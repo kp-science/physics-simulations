@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science Simulation — ก้อนหิน A & B บนตึกสูง</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --colA:    #38bdf8;
+  --colB:    #fb923c;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Sarabun','TH Sarabun New',sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+
+header { background: linear-gradient(135deg,#0f172a,#1e293b); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+header .icon { font-size: 2rem; }
+header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+header p { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+header .badge { margin-left: auto; background: #1e3a5f; border: 1px solid var(--accent); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+
+nav { display: flex; gap: 4px; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+nav button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun',sans-serif; font-size: 0.85rem; font-weight: 600; white-space: nowrap; transition: all .2s; }
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+
+.tab-section { display: none; }
+.tab-section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ===================== SIM TAB ===================== */
+.sim-layout { display: grid; grid-template-columns: 240px 1fr; height: calc(100vh - 120px); }
+
+/* Control Panel */
+.ctrl-panel { background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.ctrl-section { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.ctrl-section h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+
+/* Slider rows — 2-line layout to prevent overflow */
+.sl-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.sl-top { display: flex; align-items: center; gap: 6px; }
+.sl-symbol { font-size: 0.82rem; font-weight: 700; min-width: 14px; flex-shrink: 0; }
+.sl-label { font-size: 0.78rem; color: var(--muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sl-bottom { display: flex; align-items: center; gap: 6px; }
+.sl-range { flex: 1; min-width: 0; accent-color: var(--accent); cursor: pointer; height: 4px; }
+.val-input { width: 48px; flex-shrink: 0; padding: 3px 5px; background: #0a0e1a; border: 1.5px solid var(--accent2); border-radius: 5px; color: var(--accent3); font-weight: 700; font-size: 0.82rem; text-align: center; -moz-appearance: textfield; font-family: 'Share Tech Mono', monospace; }
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.val-input:focus { outline: none; border-color: var(--accent); color: var(--text); }
+.sl-unit { font-size: 0.72rem; color: var(--muted); flex-shrink: 0; min-width: 28px; }
+
+.hint-box { background: #0a1628; border: 1px solid #2563eb; border-radius: 8px; padding: 10px; font-size: 0.78rem; color: #93c5fd; line-height: 1.6; }
+.hint-box .hint-title { color: #60a5fa; font-weight: 700; margin-bottom: 4px; }
+
+.btn-row { display: flex; gap: 6px; }
+.btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun',sans-serif; font-weight: 700; font-size: 0.85rem; transition: .15s; flex: 1; }
+.btn-play { background: #1b5e20; color: #fff; }
+.btn-play:hover { background: #2e7d32; }
+.btn-play.playing { background: #b71c1c; }
+.btn-reset { background: #0d47a1; color: #fff; }
+.btn-reset:hover { background: #1565c0; }
+
+.speed-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.speed-row label { font-size: 0.75rem; color: var(--muted); }
+.speed-row input[type=range] { flex: 1; accent-color: var(--accent4); }
+.speed-row span { font-size: 0.75rem; color: var(--accent4); min-width: 28px; font-family: 'Share Tech Mono',monospace; }
+
+/* Readout */
+.readout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.readout-card { background: #0a0e1a; border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+.readout-card .rc-label { font-size: 0.7rem; color: var(--muted); }
+.readout-card .rc-val { font-size: 1.05rem; font-weight: 700; font-family: 'Share Tech Mono',monospace; }
+.rc-A { color: var(--colA); }
+.rc-B { color: var(--colB); }
+.rc-both { color: var(--accent3); }
+
+.time-display { text-align: center; font-family: 'Share Tech Mono',monospace; font-size: 1.4rem; color: var(--accent); padding: 6px; }
+
+/* Canvas Area */
+.canvas-area { position: relative; overflow: hidden; background: #070b14; }
+canvas { width: 100%; height: 100%; display: block; }
+
+/* Verdict */
+.verdict-bar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,14,26,0.94); border-top: 1px solid var(--border); padding: 7px 14px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.v-item { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.v-item span { font-weight: 700; font-family: 'Share Tech Mono',monospace; }
+.v-item .va { color: var(--colA); }
+.v-item .vb { color: var(--colB); }
+.vbar-sep { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; }
+
+/* ===================== THEORY TAB ===================== */
+.theory-wrap { max-width: 900px; margin: 0 auto; padding: 30px 24px 60px; }
+.theory-wrap h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+.theory-wrap .sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 28px; }
+
+.t-section { margin-bottom: 28px; }
+.t-section h3 { font-size: 1rem; font-weight: 700; color: var(--accent4); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+/* Situation Card */
+.situation-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; margin-bottom: 20px; }
+.sit-stone { text-align: center; }
+.sit-stone .stone-label { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+.sit-stone .stone-label.A { color: var(--colA); }
+.sit-stone .stone-label.B { color: var(--colB); }
+.sit-stone .stone-icon { font-size: 2.5rem; margin-bottom: 6px; }
+.sit-stone p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+.sit-stone .v0-val { font-size: 1.3rem; font-weight: 700; font-family: 'Share Tech Mono',monospace; display: block; margin: 4px 0; }
+.sit-divider { text-align: center; color: var(--muted); font-size: 1.5rem; }
+
+/* Kinematics equations */
+.eq-block { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+.eq-block .eq-title { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+.eq-block .eq-formula { font-family: 'Share Tech Mono',monospace; font-size: 1.05rem; color: var(--accent); text-align: center; padding: 8px; background: #0a0e1a; border-radius: 6px; }
+.eq-block .eq-note { font-size: 0.8rem; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+/* Graph SVG */
+.graph-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.graph-container h4 { font-size: 0.85rem; color: var(--accent2); margin-bottom: 12px; }
+
+/* Analysis cards */
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.analysis-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.analysis-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; }
+.analysis-card h4.A { color: var(--colA); }
+.analysis-card h4.B { color: var(--colB); }
+.analysis-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.7; }
+.analysis-card .key-eq { font-family: 'Share Tech Mono',monospace; font-size: 0.85rem; color: var(--text); background: #0a0e1a; padding: 6px 10px; border-radius: 5px; margin: 6px 0; display: block; }
+
+/* Verdict Answer */
+.verdict-section { background: var(--panel2); border: 2px solid var(--accent3); border-radius: 14px; padding: 20px; }
+.verdict-section h3 { color: var(--accent3); font-size: 1rem; margin-bottom: 14px; }
+.verdict-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding: 12px; border-radius: 8px; }
+.verdict-item.correct { background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.3); }
+.verdict-item.wrong { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2); }
+.verdict-item .vi-icon { font-size: 1.2rem; flex-shrink: 0; }
+.verdict-item .vi-body { font-size: 0.85rem; line-height: 1.6; }
+.verdict-item .vi-body strong { color: var(--text); }
+.verdict-item.correct .vi-body { color: #86efac; }
+.verdict-item.wrong .vi-body { color: #fca5a5; }
+
+/* key answer */
+.key-answer { text-align: center; background: linear-gradient(135deg,#0f2a1f,#1a3326); border: 2px solid var(--accent3); border-radius: 12px; padding: 16px; margin-top: 14px; }
+.key-answer .ka-label { font-size: 0.82rem; color: var(--muted); }
+.key-answer .ka-val { font-size: 1.5rem; font-weight: 700; color: var(--accent3); font-family: 'Share Tech Mono',monospace; }
+
+/* v-t graph inline */
+.vt-svg-wrap { overflow-x: auto; }
+
+@media (max-width: 700px) {
+  .sim-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
+  .canvas-area { height: 340px; }
+  .analysis-grid { grid-template-columns: 1fr; }
+  .situation-card { grid-template-columns: 1fr; }
+  .sit-divider { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🪨</div>
+  <div>
+    <h1>ก้อนหิน A &amp; B — การตกและพุ่งขึ้นแนวดิ่ง</h1>
+    <p>ฟิสิกส์ 3 ม.4 · กลศาสตร์ · การเคลื่อนที่แนวดิ่ง</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี &amp; เฉลย</button>
+</nav>
+
+<!-- ===================== SIM TAB ===================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+
+    <!-- Control Panel -->
+    <div class="ctrl-panel">
+      <div class="ctrl-section">
+        <h3>⏱ เวลา</h3>
+        <div class="time-display" id="timeDisplay">t = 0.00 s</div>
+        <div class="btn-row">
+          <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+          <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+        </div>
+        <div class="speed-row">
+          <label>ความเร็ว:</label>
+          <input type="range" id="speedSlider" min="0.1" max="2" step="0.1" value="0.5">
+          <span id="speedVal">0.5×</span>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <h3>🏗️ ตัวแปรปรับได้</h3>
+
+        <div class="sl-row">
+          <div class="sl-top">
+            <span class="sl-symbol" style="color:var(--colA);">A</span>
+            <span class="sl-label">v₀ ความเร็วต้น (ขว้างขึ้น)</span>
+          </div>
+          <div class="sl-bottom">
+            <input class="sl-range" type="range" id="sl-v0A" min="5" max="30" step="1" value="10">
+            <input class="val-input" type="number" id="vi-v0A" min="5" max="30" value="10">
+            <span class="sl-unit">m/s</span>
+          </div>
+        </div>
+
+        <div class="sl-row">
+          <div class="sl-top">
+            <span class="sl-symbol" style="color:#94a3b8;">H</span>
+            <span class="sl-label">ความสูงตึก</span>
+          </div>
+          <div class="sl-bottom">
+            <input class="sl-range" type="range" id="sl-H" min="20" max="100" step="5" value="40">
+            <input class="val-input" type="number" id="vi-H" min="20" max="100" value="40">
+            <span class="sl-unit">m</span>
+          </div>
+        </div>
+
+        <div class="sl-row">
+          <div class="sl-top">
+            <span class="sl-symbol" style="color:#facc15;">g</span>
+            <span class="sl-label">ความเร่งโน้มถ่วง</span>
+          </div>
+          <div class="sl-bottom">
+            <input class="sl-range" type="range" id="sl-g" min="1" max="15" step="0.5" value="10">
+            <input class="val-input" type="number" id="vi-g" min="1" max="15" step="0.5" value="10">
+            <span class="sl-unit">m/s²</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctrl-section">
+        <h3>📊 ค่าปัจจุบัน</h3>
+        <div class="readout-grid">
+          <div class="readout-card">
+            <div class="rc-label">ความเร็ว A</div>
+            <div class="rc-val rc-A" id="rd-vA">—</div>
+          </div>
+          <div class="readout-card">
+            <div class="rc-label">ความเร็ว B</div>
+            <div class="rc-val rc-B" id="rd-vB">—</div>
+          </div>
+          <div class="readout-card">
+            <div class="rc-label">ความสูง A</div>
+            <div class="rc-val rc-A" id="rd-yA">—</div>
+          </div>
+          <div class="readout-card">
+            <div class="rc-label">ความสูง B</div>
+            <div class="rc-val rc-B" id="rd-yB">—</div>
+          </div>
+          <div class="readout-card" style="grid-column:span 2;">
+            <div class="rc-label">ความเร็วเฉลี่ย Δx/t (A / B) หลังจบ</div>
+            <div class="rc-val" id="rd-avg" style="color:var(--accent2);font-size:0.82rem;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint-box">
+        <div class="hint-title">💡 Hint</div>
+        ลองปรับ v₀ ให้เท่ากับ g·H ต่างๆ แล้วสังเกตว่าเมื่อตกถึงพื้น<br>
+        ความเร็วของทั้งสองก้อนเป็นอย่างไร?
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-area" id="canvasWrap">
+      <canvas id="simCanvas"></canvas>
+      <div class="verdict-bar" id="verdictBar">
+        <div class="v-item">v กระทบพื้น A: <span class="va" id="vf-A">—</span></div>
+        <div class="v-item">v กระทบพื้น B: <span class="vb" id="vf-B">—</span></div>
+        <div class="v-item vbar-sep"></div>
+        <div class="v-item">ความเร็วเฉลี่ย (Δx/t) A: <span class="va" id="vavg-A">—</span></div>
+        <div class="v-item">ความเร็วเฉลี่ย (Δx/t) B: <span class="vb" id="vavg-B">—</span></div>
+        <div class="v-item vbar-sep"></div>
+        <div class="v-item">อัตราเร็วเฉลี่ย (d/t) A: <span class="va" id="savg-A">—</span></div>
+        <div class="v-item">อัตราเร็วเฉลี่ย (d/t) B: <span class="vb" id="savg-B">—</span></div>
+        <div class="v-item vbar-sep"></div>
+        <div class="v-item">เวลาตก A: <span class="va" id="tf-A">—</span></div>
+        <div class="v-item">เวลาตก B: <span class="vb" id="tf-B">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== THEORY TAB ===================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+    <h2>ทฤษฎี การเคลื่อนที่แนวดิ่งภายใต้แรงโน้มถ่วง</h2>
+    <div class="sub">ฟิสิกส์ 3 ม.4 · ไม่คิดแรงต้านอากาศ</div>
+
+    <!-- Situation -->
+    <div class="t-section">
+      <h3>📋 โจทย์</h3>
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;font-size:0.9rem;line-height:1.8;color:var(--text);margin-bottom:16px;">
+        แดงกับดำยืนอยู่บนตึกสูง ถ้าแดงปาก้อนหิน <strong style="color:var(--colA);">A</strong> ขึ้นไปแนวดิ่งด้วยความเร็วต้น 10 m/s
+        พร้อมกันกับที่ดำปาก้อนหิน <strong style="color:var(--colB);">B</strong> ลงในแนวดิ่งด้วยขนาดความเร็วเท่ากัน
+        ข้อใดต่อไปนี้สรุปได้ถูกต้อง <em>(ไม่ต้องคิดผลของแรงต้านของอากาศ)</em>
+      </div>
+
+      <div class="situation-card">
+        <div class="sit-stone">
+          <div class="stone-label A">ก้อนหิน A 🪨</div>
+          <div class="stone-icon">⬆️</div>
+          <span class="v0-val" style="color:var(--colA);">v₀ = +10 m/s</span>
+          <p>ขว้างขึ้นแนวดิ่ง<br>จากยอดตึก</p>
+        </div>
+        <div class="sit-divider">⚡<br>เริ่ม<br>พร้อมกัน</div>
+        <div class="sit-stone">
+          <div class="stone-label B">ก้อนหิน B 🪨</div>
+          <div class="stone-icon">⬇️</div>
+          <span class="v0-val" style="color:var(--colB);">v₀ = −10 m/s</span>
+          <p>ปาลงแนวดิ่ง<br>จากยอดตึก</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equations -->
+    <div class="t-section">
+      <h3>🔢 สมการหลัก (ไม่มีแรงต้านอากาศ)</h3>
+      <div class="eq-block">
+        <div class="eq-title">ความเร็ว ณ เวลา t</div>
+        <div class="eq-formula">v(t) = v₀ − g·t</div>
+        <div class="eq-note">กำหนดแกนบวก = ขึ้น, g = 10 m/s² (เสมอชี้ลง)</div>
+      </div>
+      <div class="eq-block">
+        <div class="eq-title">ความสูง ณ เวลา t (วัดจากจุดเริ่ม = ยอดตึก)</div>
+        <div class="eq-formula">y(t) = v₀·t − ½·g·t²</div>
+      </div>
+      <div class="eq-block">
+        <div class="eq-title">ความเร็ว ณ ความสูง y (ใช้พลังงาน)</div>
+        <div class="eq-formula">v² = v₀² + 2·(−g)·Δy</div>
+        <div class="eq-note">เมื่อตกลงมายังจุดเดิม (Δy = 0) → v = −v₀ (ขนาดเท่ากัน ทิศตรงข้าม)</div>
+      </div>
+    </div>
+
+    <!-- v-t graph -->
+    <div class="t-section">
+      <h3>📈 กราฟ v-t เชิงเปรียบเทียบ</h3>
+      <div class="graph-container">
+        <h4>กราฟความเร็ว (v) เทียบเวลา (t) — ความสูงตึก H = 40 m, v₀ = 10 m/s</h4>
+        <div class="vt-svg-wrap">
+          <svg id="vtGraph" viewBox="0 0 700 340" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;"></svg>
+        </div>
+      </div>
+      <div class="graph-container">
+        <h4>กราฟตำแหน่ง (y) จากพื้นดิน เทียบเวลา (t)</h4>
+        <div class="vt-svg-wrap">
+          <svg id="ytGraph" viewBox="0 0 700 300" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis -->
+    <div class="t-section">
+      <h3>🔍 การวิเคราะห์</h3>
+      <div class="analysis-grid">
+        <div class="analysis-card">
+          <h4 class="A">ก้อนหิน A (ขว้างขึ้น)</h4>
+          <p>
+            เมื่อ A ถึงจุดเดิม (ยอดตึก) บนทางลง:
+            <span class="key-eq">v = −10 m/s (ขนาด 10 m/s ลง)</span>
+            จากนั้นมีสภาพเหมือน B ทุกประการ
+            ดังนั้น A ใช้เวลาในการตกนานกว่า B
+            <span class="key-eq">t_A &gt; t_B</span>
+            ระยะทางรวมที่ A เดินทาง ≥ H (มีส่วนที่ขึ้น)
+          </p>
+        </div>
+        <div class="analysis-card">
+          <h4 class="B">ก้อนหิน B (ปาลง)</h4>
+          <p>
+            B เริ่มต้นที่ยอดตึก ความเร็วต้น −10 m/s (ลง)
+            ตกลงตรงๆ ด้วยความเร่ง g
+            <span class="key-eq">v_B(t) = −10 − g·t</span>
+            ถึงพื้นเร็วกว่า A อย่างชัดเจน
+          </p>
+        </div>
+      </div>
+
+      <!-- ความเร็วขณะกระทบพื้น -->
+      <div class="eq-block" style="margin-bottom:12px;">
+        <div class="eq-title">ความเร็วขณะกระทบพื้น (velocity, vector)</div>
+        <div class="eq-formula">v_f² = v₀² + 2g·H &nbsp;→&nbsp; v_f = −√(v₀² + 2gH)</div>
+        <div class="eq-note">
+          A: v₀ = +10 m/s → v_f = −√(100 + 2gH)<br>
+          B: v₀ = −10 m/s → v_f = −√(100 + 2gH)<br>
+          ∴ <strong style="color:var(--accent3);">v_f ของ A และ B เท่ากัน ทั้งขนาดและทิศทาง ✓</strong>
+        </div>
+      </div>
+
+      <!-- ความเร็วเฉลี่ย vector -->
+      <div class="eq-block" style="margin-bottom:12px;">
+        <div class="eq-title">ความเร็วเฉลี่ย (velocity, vector) = การกระจัด / เวลา</div>
+        <div class="eq-formula">v̄ = Δx / t = (−H) / t</div>
+        <div class="eq-note">
+          การกระจัด A = การกระจัด B = <strong>−H</strong> (ยอดตึก → พื้น ทิศลง)<br>
+          แต่ <strong>t_A &gt; t_B</strong> เพราะ A ขึ้นก่อนแล้วค่อยลง<br>
+          ∴ |v̄_A| = H/t_A &nbsp;&lt;&nbsp; |v̄_B| = H/t_B<br>
+          <strong style="color:#f87171;">v̄_A ≠ v̄_B (ไม่เท่ากัน) ✗</strong>
+        </div>
+      </div>
+
+      <!-- อัตราเร็วเฉลี่ย scalar -->
+      <div class="eq-block">
+        <div class="eq-title">อัตราเร็วเฉลี่ย (speed, scalar) = ระยะทาง / เวลา</div>
+        <div class="eq-formula">s̄ = d / t</div>
+        <div class="eq-note">
+          A: ระยะทาง = s_up + (H + s_up) = 2s_up + H &nbsp;(มากกว่า H)<br>
+          B: ระยะทาง = H<br>
+          ต้องคำนวณตัวเลขจึงจะบอกได้ว่าเท่ากันหรือไม่ (ไม่ใช่ประเด็นในโจทย์)
+        </div>
+      </div>
+    </div>
+
+    <!-- Proof section — corrected -->
+    <div class="t-section">
+      <h3>📐 พิสูจน์ v_f ของ A และ B เท่ากัน</h3>
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:0.85rem;line-height:1.9;color:var(--text);">
+        ใช้สมการ <strong style="color:var(--accent);">v² = v₀² − 2g·Δy</strong> &nbsp;(Δy = −H, a = −g)<br><br>
+
+        <strong style="color:var(--colA);">ก้อนหิน A:</strong> v₀ = +10 m/s<br>
+        v_A² = (+10)² + 2(−g)(−H) = 100 + 2gH<br>
+        v_A = <strong>−√(100 + 2gH)</strong> (ทิศลง)<br><br>
+
+        <strong style="color:var(--colB);">ก้อนหิน B:</strong> v₀ = −10 m/s<br>
+        v_B² = (−10)² + 2(−g)(−H) = 100 + 2gH<br>
+        v_B = <strong>−√(100 + 2gH)</strong> (ทิศลง)<br><br>
+
+        <strong style="color:var(--accent3);">∴ v_A = v_B ทั้งขนาดและทิศ → ข้อ 2 ถูก ✓</strong><br><br>
+
+        <strong style="color:#f87171;">หมายเหตุ: ความเร็วเฉลี่ย (Δx/t) ไม่เท่ากัน เพราะ t_A ≠ t_B → ข้อ 3 ผิด ✗</strong>
+      </div>
+    </div>
+
+    <!-- Answer -->
+    <div class="t-section">
+      <h3>✅ เฉลยและการสรุป</h3>
+      <div class="verdict-section">
+        <h3>ตรวจสอบแต่ละข้อ</h3>
+
+        <div class="verdict-item wrong">
+          <div class="vi-icon">❌</div>
+          <div class="vi-body">
+            <strong>ข้อ 1: ก้อนหิน A มีขนาดของความเร็วเฉลี่ยมากกว่าของก้อนหิน B</strong><br>
+            ผิด — ความเร็วเฉลี่ย (vector) = Δx/t = −H/t<br>
+            การกระจัดเท่ากัน (−H) แต่ t_A &gt; t_B ∴ |v̄_A| &lt; |v̄_B| ไม่ใช่มากกว่า
+          </div>
+        </div>
+
+        <div class="verdict-item correct">
+          <div class="vi-icon">✅</div>
+          <div class="vi-body">
+            <strong>ข้อ 2: ก้อนหินทั้งสองตกกระทบพื้นด้วยความเร็วเท่ากัน</strong><br>
+            ถูก — v_f² = v₀² + 2gH: A ใช้ v₀ = +10, B ใช้ v₀ = −10<br>
+            v₀² = 100 เท่ากัน ∴ v_f = −√(100 + 2gH) เท่ากันทั้งขนาดและทิศ
+          </div>
+        </div>
+
+        <div class="verdict-item wrong">
+          <div class="vi-icon">❌</div>
+          <div class="vi-body">
+            <strong>ข้อ 3: ก้อนหินทั้งสองมีความเร็วเฉลี่ยเท่ากัน</strong><br>
+            ผิด — ความเร็วเฉลี่ย (vector) = Δx/t = −H/t<br>
+            แม้ Δx = −H เท่ากัน แต่ t_A ≠ t_B ∴ v̄_A ≠ v̄_B
+          </div>
+        </div>
+
+        <div class="verdict-item wrong">
+          <div class="vi-icon">❌</div>
+          <div class="vi-body">
+            <strong>ข้อ 4: มีคำตอบถูกมากกว่า 1 ข้อ</strong><br>
+            ผิด — มีข้อถูกเพียงข้อเดียวคือข้อ 2
+          </div>
+        </div>
+
+        <div class="key-answer">
+          <div class="ka-label">คำตอบที่ถูกต้องคือ</div>
+          <div class="ka-val">ข้อ 2 เพียงข้อเดียว</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:6px;">ก้อนหินทั้งสองตกกระทบพื้นด้วยความเร็ว (vector) เท่ากัน = −√(v₀² + 2gH)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────
+let isPlaying = false, t = 0, animId = null, lastTs = null, speed = 0.5;
+let v0A = 10, H = 40, g = 10;
+let stateA = {}, stateB = {}, landed_A = false, landed_B = false;
+let trail_A = [], trail_B = [];
+let sumV_A = 0, sumV_B = 0, frames_A = 0, frames_B = 0;
+let vfA = null, vfB = null, tA_land = null, tB_land = null;
+
+function getParams() {
+  v0A = parseFloat(document.getElementById('sl-v0A').value) || 10;
+  H   = parseFloat(document.getElementById('sl-H').value)   || 40;
+  g   = parseFloat(document.getElementById('sl-g').value)   || 10;
+}
+
+function initState() {
+  getParams();
+  landed_A = false; landed_B = false;
+  trail_A = []; trail_B = [];
+  sumV_A = 0; sumV_B = 0; frames_A = 0; frames_B = 0;
+  vfA = null; vfB = null; tA_land = null; tB_land = null;
+  t = 0;
+  stateA = { y: H, v: v0A };
+  stateB = { y: H, v: -v0A };
+}
+
+// ─────────────────────────────────────────────────────
+//  PHYSICS UPDATE (exact formula)
+// ─────────────────────────────────────────────────────
+function getKin(v0, t, g, H) {
+  const y = H + v0 * t - 0.5 * g * t * t;  // height from ground
+  const v = v0 - g * t;
+  return { y, v };
+}
+
+function updateReadout(tNow) {
+  const kA = getKin(v0A, tNow, g, H);
+  const kB = getKin(-v0A, tNow, g, H);
+
+  // A
+  const yA = landed_A ? 0 : Math.max(0, kA.y);
+  const vA = landed_A ? 0 : kA.v;
+  // B
+  const yB = landed_B ? 0 : Math.max(0, kB.y);
+  const vB = landed_B ? 0 : kB.v;
+
+  document.getElementById('rd-vA').textContent = fmt(vA) + ' m/s';
+  document.getElementById('rd-vB').textContent = fmt(vB) + ' m/s';
+  document.getElementById('rd-yA').textContent = fmt(yA) + ' m';
+  document.getElementById('rd-yB').textContent = fmt(yB) + ' m';
+
+  // readout card avg — show after both landed
+  if (!landed_A || !landed_B) {
+    document.getElementById('rd-avg').textContent = '—';
+  } else {
+    // velocity avg vector: Δx/t = −H/t (negative = downward)
+    const vavgA = (-H) / tA_land;
+    const vavgB = (-H) / tB_land;
+    document.getElementById('rd-avg').textContent =
+      'A: ' + fmt(vavgA) + '  B: ' + fmt(vavgB) + ' m/s';
+  }
+
+  document.getElementById('timeDisplay').textContent = 't = ' + tNow.toFixed(2) + ' s';
+
+  // ── bottom bar ──
+  // 1) ความเร็วขณะกระทบพื้น (vector, ทิศลง = ลบ)
+  if (vfA !== null) document.getElementById('vf-A').textContent = fmt(vfA) + ' m/s';
+  if (vfB !== null) document.getElementById('vf-B').textContent = fmt(vfB) + ' m/s';
+
+  // 2) เวลาตก
+  if (tA_land !== null) document.getElementById('tf-A').textContent = tA_land.toFixed(2) + ' s';
+  if (tB_land !== null) document.getElementById('tf-B').textContent = tB_land.toFixed(2) + ' s';
+
+  if (tA_land !== null) {
+    // ความเร็วเฉลี่ย (vector) = Δx / t = −H / t  (ลง = ลบ)
+    const vavgA = (-H) / tA_land;
+    document.getElementById('vavg-A').textContent = fmt(vavgA) + ' m/s';
+
+    // อัตราเร็วเฉลี่ย (scalar) = ระยะทางรวม / t
+    // A: ขึ้น s_up = v0²/2g แล้วตกลงจากความสูง H + s_up
+    const s_up = (v0A * v0A) / (2 * g);
+    const distA = s_up + (H + s_up);   // = 2*s_up + H
+    document.getElementById('savg-A').textContent = fmt(distA / tA_land) + ' m/s';
+  }
+  if (tB_land !== null) {
+    // ความเร็วเฉลี่ย (vector) = −H / t
+    const vavgB = (-H) / tB_land;
+    document.getElementById('vavg-B').textContent = fmt(vavgB) + ' m/s';
+
+    // อัตราเร็วเฉลี่ย (scalar) = H / t  (B ตกตรง ระยะทาง = H)
+    document.getElementById('savg-B').textContent = fmt(H / tB_land) + ' m/s';
+  }
+}
+
+function fmt(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+
+// ─────────────────────────────────────────────────────
+//  DRAW
+// ─────────────────────────────────────────────────────
+function draw() {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H_c = canvas.height;
+
+  ctx.clearRect(0, 0, W, H_c);
+
+  const margin = { t: 30, b: 60, l: 80, r: 60 };
+  const plotH = H_c - margin.t - margin.b;
+  const plotW = W - margin.l - margin.r;
+
+  const scale = plotH / (H * 1.35); // px per meter
+
+  // ground
+  const groundY = margin.t + plotH;
+  // building top
+  const topY = groundY - H * scale;
+
+  // Background
+  ctx.fillStyle = '#070b14';
+  ctx.fillRect(0, 0, W, H_c);
+
+  // Grid
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 0.5;
+  const gridStep = H > 60 ? 20 : 10;
+  for (let m = 0; m <= H + gridStep; m += gridStep) {
+    const y = groundY - m * scale;
+    if (y < margin.t) break;
+    ctx.beginPath(); ctx.moveTo(margin.l, y); ctx.lineTo(W - margin.r, y); ctx.stroke();
+    ctx.fillStyle = '#475569'; ctx.font = '11px Share Tech Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText(m + 'm', margin.l - 4, y + 4);
+  }
+
+  // Building
+  const bldW = 56, bldX = W / 2 - bldW * 1.5;
+  // building body
+  const grad = ctx.createLinearGradient(bldX, topY, bldX + bldW, groundY);
+  grad.addColorStop(0, '#1e3a5f');
+  grad.addColorStop(1, '#0f172a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(bldX, topY, bldW, H * scale);
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bldX, topY, bldW, H * scale);
+
+  // windows
+  for (let wy = 0.1; wy < 0.95; wy += 0.15) {
+    const winY = topY + wy * H * scale;
+    ctx.fillStyle = '#fbbf24';
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(bldX + 8, winY, 16, 9);
+    ctx.fillRect(bldX + 30, winY, 16, 9);
+    ctx.globalAlpha = 1;
+  }
+
+  // Ground
+  ctx.fillStyle = '#374151';
+  ctx.fillRect(0, groundY, W, H_c - groundY);
+  ctx.fillStyle = '#4b5563';
+  ctx.fillRect(0, groundY, W, 3);
+
+  // ─ Trails
+  function drawTrail(trail, color) {
+    if (trail.length < 2) return;
+    ctx.save();
+    trail.forEach((pt, i) => {
+      const alpha = (i / trail.length) * 0.4;
+      const px = pt.x;
+      const py = groundY - pt.y * scale;
+      if (py < margin.t || py > groundY) return;
+      ctx.beginPath();
+      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  drawTrail(trail_A, getComputedStyle(document.documentElement).getPropertyValue('--colA'));
+  drawTrail(trail_B, getComputedStyle(document.documentElement).getPropertyValue('--colB'));
+
+  // ─ Stone positions
+  const xA = bldX - 50;
+  const xB = bldX + bldW + 28;
+
+  const kA = getKin(v0A, t, g, H);
+  const kB = getKin(-v0A, t, g, H);
+  const yA_m = landed_A ? 0 : Math.max(0, kA.y);
+  const yB_m = landed_B ? 0 : Math.max(0, kB.y);
+
+  const pyA = groundY - yA_m * scale;
+  const pyB = groundY - yB_m * scale;
+
+  // velocity arrows
+  function drawArrow(ctx, x, y, vx, vy, color) {
+    const mag = Math.sqrt(vx * vx + vy * vy);
+    if (mag < 0.5) return;
+    const len = Math.min(mag * 2.5, 60);
+    const nx = (vx / mag) * len, ny = (vy / mag) * len;
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = 2.5; ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + nx, y + ny); ctx.stroke();
+    const angle = Math.atan2(ny, nx);
+    ctx.beginPath();
+    ctx.moveTo(x + nx, y + ny);
+    ctx.lineTo(x + nx - 8 * Math.cos(angle - 0.4), y + ny - 8 * Math.sin(angle - 0.4));
+    ctx.lineTo(x + nx - 8 * Math.cos(angle + 0.4), y + ny - 8 * Math.sin(angle + 0.4));
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+
+  // draw stones
+  function drawStone(x, py_s, label, color, v_val) {
+    if (py_s < margin.t) return;
+    const r = 14;
+    ctx.save();
+    const sg = ctx.createRadialGradient(x - 3, py_s - 3, 2, x, py_s, r);
+    sg.addColorStop(0, '#fff');
+    sg.addColorStop(0.3, color);
+    sg.addColorStop(1, '#0a0e1a');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(x, py_s, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, py_s, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Sarabun';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, py_s);
+    ctx.restore();
+
+    // v label
+    ctx.save();
+    ctx.fillStyle = color; ctx.font = '11px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(fmt(v_val) + ' m/s', x, py_s - r - 6);
+    ctx.restore();
+  }
+
+  // update trails
+  if (isPlaying) {
+    if (!landed_A) trail_A.push({ x: xA, y: yA_m });
+    if (!landed_B) trail_B.push({ x: xB, y: yB_m });
+    if (trail_A.length > 120) trail_A.shift();
+    if (trail_B.length > 120) trail_B.shift();
+  }
+
+  // velocity arrows
+  if (!landed_A) drawArrow(ctx, xA, pyA, 0, -(kA.v) * 2, '#38bdf8');
+  if (!landed_B) drawArrow(ctx, xB, pyB, 0, -(kB.v) * 2, '#fb923c');
+
+  drawStone(xA, pyA, 'A', '#38bdf8', landed_A ? 0 : kA.v);
+  drawStone(xB, pyB, 'B', '#fb923c', landed_B ? 0 : kB.v);
+
+  // Axis label
+  ctx.fillStyle = '#64748b'; ctx.font = '11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('ก้อนหิน A (ขว้างขึ้น)', xA, margin.t - 10);
+  ctx.fillText('ก้อนหิน B (ปาลง)', xB, margin.t - 10);
+
+  // t label
+  ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 13px Share Tech Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('t = ' + t.toFixed(2) + ' s', margin.l, 20);
+}
+
+// ─────────────────────────────────────────────────────
+//  ANIMATION LOOP
+// ─────────────────────────────────────────────────────
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * speed;
+  lastTs = ts;
+
+  // check landing before advancing
+  const kA = getKin(v0A, t, g, H);
+  const kB = getKin(-v0A, t, g, H);
+
+  if (!landed_A && kA.y <= 0) {
+    landed_A = true; vfA = kA.v; tA_land = t;
+  }
+  if (!landed_B && kB.y <= 0) {
+    landed_B = true; vfB = kB.v; tB_land = t;
+  }
+
+  if (!landed_A || !landed_B) t += dt;
+
+  draw();
+  updateReadout(t);
+
+  if (!landed_A || !landed_B) {
+    animId = requestAnimationFrame(loop);
+  } else {
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶ เริ่ม';
+    document.getElementById('playBtn').classList.remove('playing');
+    draw();
+    updateReadout(t);
+  }
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    if (landed_A && landed_B) initState();
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด'; btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม'; btn.classList.remove('playing');
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false; lastTs = null;
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  initState(); draw(); updateReadout(0);
+  ['vf-A','vf-B','vavg-A','vavg-B','savg-A','savg-B','tf-A','tf-B'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  document.getElementById('rd-avg').textContent = '—';
+}
+
+// ─────────────────────────────────────────────────────
+//  THEORY GRAPHS
+// ─────────────────────────────────────────────────────
+function drawVTGraph() {
+  const svg = document.getElementById('vtGraph');
+  const W = 700, H_s = 340;
+  const ml = 60, mr = 30, mt = 30, mb = 50;
+  const pw = W - ml - mr, ph = H_s - mt - mb;
+
+  const _v0A = 10, _H = 40, _g = 10;
+  // time for A to land: _H + _v0A*t - 0.5*_g*t*t = 0 → t = (v0A + sqrt(v0A^2 + 2gH))/g
+  const tA = (_v0A + Math.sqrt(_v0A * _v0A + 2 * _g * _H)) / _g;
+  const tB_t = (-(-_v0A) + Math.sqrt(_v0A * _v0A + 2 * _g * _H)) / _g; // B: v0 = -v0A, y(t)=0
+  const tMax = tA * 1.05;
+
+  const vfA_t = _v0A - _g * tA;
+  const vfB_t = -_v0A - _g * tB_t;
+  const vMax = _v0A + 2, vMin = vfA_t - 3;
+  const vRange = vMax - vMin;
+
+  function px(tt) { return ml + (tt / tMax) * pw; }
+  function py(vv) { return mt + ph - ((vv - vMin) / vRange) * ph; }
+
+  let s = '';
+
+  // axes
+  const y0 = py(0);
+  s += `<line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#475569" stroke-width="1.5"/>`;
+  s += `<line x1="${ml}" y1="${mt + ph}" x2="${ml + pw}" y2="${mt + ph}" stroke="#475569" stroke-width="1.5"/>`;
+  s += `<line x1="${ml}" y1="${y0}" x2="${ml + pw}" y2="${y0}" stroke="#475569" stroke-dasharray="4,4" stroke-width="1"/>`;
+
+  // axis labels
+  s += `<text x="${ml - 8}" y="${py(0) + 4}" fill="#94a3b8" font-size="11" text-anchor="end">0</text>`;
+  s += `<text x="${W / 2}" y="${H_s - 6}" fill="#94a3b8" font-size="12" text-anchor="middle">เวลา t (s)</text>`;
+  s += `<text x="12" y="${mt + ph / 2}" fill="#94a3b8" font-size="12" text-anchor="middle" transform="rotate(-90,12,${mt + ph / 2})">ความเร็ว v (m/s)</text>`;
+
+  // v ticks
+  for (let v = Math.ceil(vMin); v <= Math.floor(vMax); v += 5) {
+    const yp = py(v);
+    s += `<line x1="${ml - 4}" y1="${yp}" x2="${ml}" y2="${yp}" stroke="#475569" stroke-width="1"/>`;
+    s += `<text x="${ml - 7}" y="${yp + 4}" fill="#64748b" font-size="10" text-anchor="end">${v}</text>`;
+  }
+
+  // t ticks
+  for (let tt = 0; tt <= tMax; tt += 1) {
+    const xp = px(tt);
+    s += `<line x1="${xp}" y1="${mt + ph}" x2="${xp}" y2="${mt + ph + 4}" stroke="#475569" stroke-width="1"/>`;
+    s += `<text x="${xp}" y="${mt + ph + 16}" fill="#64748b" font-size="10" text-anchor="middle">${tt.toFixed(0)}</text>`;
+  }
+
+  // ─ Line A
+  let pathA = '';
+  for (let i = 0; i <= 80; i++) {
+    const tt = (i / 80) * tA;
+    const vv = _v0A - _g * tt;
+    const xp = px(tt), yp = py(vv);
+    pathA += (i === 0 ? 'M' : 'L') + `${xp},${yp} `;
+  }
+  s += `<path d="${pathA}" stroke="#38bdf8" stroke-width="2.5" fill="none"/>`;
+
+  // ─ Line B
+  let pathB = '';
+  for (let i = 0; i <= 80; i++) {
+    const tt = (i / 80) * tB_t;
+    const vv = -_v0A - _g * tt;
+    const xp = px(tt), yp = py(vv);
+    pathB += (i === 0 ? 'M' : 'L') + `${xp},${yp} `;
+  }
+  s += `<path d="${pathB}" stroke="#fb923c" stroke-width="2.5" fill="none"/>`;
+
+  // Labels
+  s += `<text x="${px(tA * 0.3)}" y="${py(_v0A - _g * tA * 0.3) - 8}" fill="#38bdf8" font-size="12" font-weight="bold">ก้อนหิน A</text>`;
+  s += `<text x="${px(tB_t * 0.3)}" y="${py(-_v0A - _g * tB_t * 0.3) + 16}" fill="#fb923c" font-size="12" font-weight="bold">ก้อนหิน B</text>`;
+
+  // mark landing
+  s += `<circle cx="${px(tA)}" cy="${py(vfA_t)}" r="5" fill="#38bdf8"/>`;
+  s += `<text x="${px(tA) + 6}" y="${py(vfA_t) - 6}" fill="#38bdf8" font-size="10">ถึงพื้น A</text>`;
+  s += `<circle cx="${px(tB_t)}" cy="${py(vfB_t)}" r="5" fill="#fb923c"/>`;
+  s += `<text x="${px(tB_t) - 6}" y="${py(vfB_t) - 6}" fill="#fb923c" font-size="10" text-anchor="end">ถึงพื้น B</text>`;
+
+  // |vf| annotation
+  const yfA = py(vfA_t), yfB = py(vfB_t);
+  s += `<line x1="${px(tA)}" y1="${yfA}" x2="${px(tB_t)}" y2="${yfB}" stroke="#34d399" stroke-dasharray="5,3" stroke-width="1.5"/>`;
+  s += `<text x="${(px(tA) + px(tB_t)) / 2}" y="${(yfA + yfB) / 2 - 8}" fill="#34d399" font-size="11" text-anchor="middle">|v_f| เท่ากัน</text>`;
+
+  svg.innerHTML = s;
+}
+
+function drawYTGraph() {
+  const svg = document.getElementById('ytGraph');
+  const W = 700, H_s = 300;
+  const ml = 60, mr = 30, mt = 30, mb = 50;
+  const pw = W - ml - mr, ph = H_s - mt - mb;
+
+  const _v0A = 10, _H = 40, _g = 10;
+  const tA = (_v0A + Math.sqrt(_v0A * _v0A + 2 * _g * _H)) / _g;
+  const tB_t = (_v0A + Math.sqrt(_v0A * _v0A + 2 * _g * _H)) / _g - 2 * _v0A / _g;
+  const tMax = tA * 1.05;
+  const yMax = _H + _v0A * _v0A / (2 * _g) + 2;
+
+  function px(tt) { return ml + (tt / tMax) * pw; }
+  function py(yy) { return mt + ph - (yy / yMax) * ph; }
+
+  let s = '';
+  s += `<line x1="${ml}" y1="${mt}" x2="${ml}" y2="${mt + ph}" stroke="#475569" stroke-width="1.5"/>`;
+  s += `<line x1="${ml}" y1="${mt + ph}" x2="${ml + pw}" y2="${mt + ph}" stroke="#475569" stroke-width="1.5"/>`;
+  // H line
+  s += `<line x1="${ml}" y1="${py(_H)}" x2="${ml + pw}" y2="${py(_H)}" stroke="#64748b" stroke-dasharray="4,4" stroke-width="1"/>`;
+  s += `<text x="${ml - 7}" y="${py(_H) + 4}" fill="#64748b" font-size="10" text-anchor="end">H</text>`;
+
+  // y ticks
+  for (let yy = 0; yy <= yMax; yy += 10) {
+    const yp = py(yy);
+    s += `<line x1="${ml - 4}" y1="${yp}" x2="${ml}" y2="${yp}" stroke="#475569" stroke-width="1"/>`;
+    s += `<text x="${ml - 7}" y="${yp + 4}" fill="#64748b" font-size="10" text-anchor="end">${yy}</text>`;
+  }
+  // t ticks
+  for (let tt = 0; tt <= tMax; tt += 1) {
+    const xp = px(tt);
+    s += `<line x1="${xp}" y1="${mt + ph}" x2="${xp}" y2="${mt + ph + 4}" stroke="#475569" stroke-width="1"/>`;
+    s += `<text x="${xp}" y="${mt + ph + 16}" fill="#64748b" font-size="10" text-anchor="middle">${tt.toFixed(0)}</text>`;
+  }
+
+  s += `<text x="${W / 2}" y="${H_s - 6}" fill="#94a3b8" font-size="12" text-anchor="middle">เวลา t (s)</text>`;
+  s += `<text x="12" y="${mt + ph / 2}" fill="#94a3b8" font-size="12" text-anchor="middle" transform="rotate(-90,12,${mt + ph / 2})">ความสูง y (m)</text>`;
+
+  // Curve A
+  let pathA = '';
+  for (let i = 0; i <= 100; i++) {
+    const tt = (i / 100) * tA;
+    const yy = Math.max(0, _H + _v0A * tt - 0.5 * _g * tt * tt);
+    pathA += (i === 0 ? 'M' : 'L') + `${px(tt)},${py(yy)} `;
+  }
+  s += `<path d="${pathA}" stroke="#38bdf8" stroke-width="2.5" fill="none"/>`;
+
+  // Curve B (ends earlier)
+  const tB_land = (_v0A + Math.sqrt(_v0A * _v0A + 2 * _g * _H)) / _g - 2 * _v0A / _g;
+  let pathB = '';
+  for (let i = 0; i <= 100; i++) {
+    const tt = (i / 100) * tB_land;
+    const yy = Math.max(0, _H - _v0A * tt - 0.5 * _g * tt * tt);
+    pathB += (i === 0 ? 'M' : 'L') + `${px(tt)},${py(yy)} `;
+  }
+  s += `<path d="${pathB}" stroke="#fb923c" stroke-width="2.5" fill="none"/>`;
+
+  // Labels
+  s += `<text x="${px(tA * 0.15)}" y="${py(_H + _v0A * (tA * 0.15) - 0.5 * _g * (tA * 0.15) ** 2) - 8}" fill="#38bdf8" font-size="12" font-weight="bold">A</text>`;
+  s += `<text x="${px(tB_land * 0.25)}" y="${py(_H - _v0A * tB_land * 0.25 - 0.5 * _g * (tB_land * 0.25) ** 2) + 16}" fill="#fb923c" font-size="12" font-weight="bold">B</text>`;
+
+  svg.innerHTML = s;
+}
+
+// ─────────────────────────────────────────────────────
+//  TAB SWITCH
+// ─────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────────
+//  CANVAS RESIZE
+// ─────────────────────────────────────────────────────
+function resizeCanvas() {
+  const canvas = document.getElementById('simCanvas');
+  const wrap = document.getElementById('canvasWrap');
+  canvas.width = wrap.clientWidth || 600;
+  canvas.height = wrap.clientHeight || 500;
+  if (!isPlaying) draw();
+}
+
+// ─────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // slider sync
+  const _v2s = { 'vi-v0A': 'sl-v0A', 'vi-H': 'sl-H', 'vi-g': 'sl-g' };
+
+  function syncVal(inp) {
+    const sl = document.getElementById(_v2s[inp.id]);
+    if (!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+
+  Object.entries(_v2s).forEach(([vi, si]) => {
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    if (!sl || !inp) return;
+    sl.addEventListener('input', () => { inp.value = parseFloat(sl.value); resetSim(); });
+    inp.addEventListener('blur', () => syncVal(inp));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { syncVal(inp); inp.blur(); } });
+    inp.addEventListener('input', () => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v)) { sl.value = Math.max(+sl.min, Math.min(+sl.max, v)); resetSim(); }
+    });
+  });
+
+  // speed
+  const spSlider = document.getElementById('speedSlider');
+  spSlider.addEventListener('input', () => {
+    speed = parseFloat(spSlider.value);
+    document.getElementById('speedVal').textContent = speed.toFixed(1) + '×';
+  });
+
+  resizeCanvas();
+  initState();
+  draw();
+  updateReadout(0);
+  drawVTGraph();
+  drawYTGraph();
+});
+
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
