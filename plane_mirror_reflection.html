@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science Simulation — การสะท้อนแสงจากกระจกเงาราบ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #fb923c;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+
+header { background: linear-gradient(135deg, #0f172a, #1e293b); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+header .icon { font-size: 2rem; }
+header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+header p { font-size: 0.82rem; color: var(--muted); }
+header .badge { margin-left: auto; background: #2a1a0a; border: 1px solid var(--accent); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; }
+
+nav { display: flex; gap: 4px; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid var(--border); }
+nav button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 7px 18px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.88rem; font-weight: 600; transition: all .2s; }
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+
+.tab-section { display: none; }
+.tab-section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── SIM TAB ── */
+.sim-layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 110px); }
+.ctrl-panel { background: var(--panel); border-right: 1px solid var(--border); padding: 18px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.ctrl-panel h3 { color: var(--accent); font-size: 0.9rem; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.canvas-area { background: var(--bg); position: relative; display: flex; flex-direction: column; }
+canvas { flex: 1; display: block; }
+
+.sl-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.sl-label { font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+.sl-label.sym { color: var(--accent); font-weight: 700; font-size: 0.9rem; min-width: 20px; }
+.sl-range { flex: 1; accent-color: var(--accent); cursor: pointer; }
+.sl-unit { font-size: 0.78rem; color: var(--muted); min-width: 22px; flex-shrink: 0; }
+.val-input { width: 52px; padding: 2px 6px; background: var(--panel2); border: 1.5px solid var(--accent2); border-radius: 5px; color: var(--accent3); font-weight: 700; font-size: 0.85rem; text-align: center; font-family: 'Share Tech Mono', monospace; -moz-appearance: textfield; flex-shrink: 0; }
+.val-input::-webkit-outer-spin-button, .val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.val-input:focus { outline: none; border-color: var(--accent); }
+
+.preset-group { display: flex; flex-direction: column; gap: 5px; }
+.preset-btn { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); padding: 6px 10px; border-radius: 7px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.82rem; transition: .15s; text-align: left; }
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); background: #2a1a0a; }
+.preset-btn.active { border-color: var(--accent); color: var(--accent); background: #2a1a0a; }
+
+.readout-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.readout-box h4 { color: var(--accent2); font-size: 0.82rem; margin-bottom: 10px; }
+.readout-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; font-size: 0.82rem; }
+.readout-label { color: var(--muted); }
+.readout-val { font-family: 'Share Tech Mono', monospace; color: var(--accent3); font-size: 0.95rem; font-weight: 700; }
+.readout-val.highlight { color: var(--accent); font-size: 1.05rem; }
+.law-badge { background: #1a3320; border: 1px solid var(--accent3); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; color: var(--accent3); line-height: 1.5; }
+.law-badge.warning { background: #3a1a1a; border-color: #f87171; color: #f87171; }
+
+.ctrl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { padding: 7px 14px; border: none; border-radius: 7px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.82rem; transition: .15s; }
+.btn-primary { background: var(--accent); color: #0a0e1a; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+.btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+.btn-secondary.on { border-color: var(--accent2); color: var(--accent2); background: #18142a; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.toggle-label { font-size: 0.8rem; color: var(--muted); }
+.toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--panel2); border-radius: 20px; border: 1px solid var(--border); transition: .3s; }
+.toggle-slider:before { content: ""; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: var(--muted); border-radius: 50%; transition: .3s; }
+input:checked + .toggle-slider { background: #1a3050; border-color: var(--accent2); }
+input:checked + .toggle-slider:before { transform: translateX(16px); background: var(--accent2); }
+
+/* ── THEORY TAB ── */
+.theory-body { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+.theory-body h2 { color: var(--accent); font-size: 1.15rem; margin-bottom: 16px; border-left: 4px solid var(--accent); padding-left: 12px; }
+.theory-body h3 { color: var(--accent2); font-size: 0.95rem; margin: 18px 0 8px; }
+.theory-body p { color: var(--muted); line-height: 1.75; margin-bottom: 10px; font-size: 0.9rem; }
+.theory-body strong { color: var(--text); }
+
+.concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+.concept-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.concept-card .cc-icon { font-size: 1.6rem; margin-bottom: 6px; }
+.concept-card .cc-title { color: var(--accent); font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+.concept-card .cc-desc { color: var(--muted); font-size: 0.8rem; line-height: 1.6; }
+
+.law-box { background: linear-gradient(135deg, #0f2a1a, #0a1f2f); border: 1.5px solid var(--accent3); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+.law-box .law-title { color: var(--accent3); font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.law-box .law-eq { font-family: 'Share Tech Mono', monospace; color: var(--accent); font-size: 1.3rem; font-weight: 700; text-align: center; margin: 10px 0; letter-spacing: 2px; }
+.law-box .law-note { color: var(--muted); font-size: 0.82rem; line-height: 1.6; }
+
+.svg-diagram { width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 16px 0; }
+
+.comparison-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.83rem; }
+.comparison-table th { background: var(--panel); color: var(--accent); padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+.comparison-table td { background: var(--panel2); color: var(--muted); padding: 7px 12px; border: 1px solid var(--border); }
+.comparison-table tr:hover td { color: var(--text); }
+
+.term-highlight { color: var(--accent); font-weight: 700; }
+.term-green { color: var(--accent3); font-weight: 700; }
+.term-purple { color: var(--accent2); font-weight: 700; }
+
+@media (max-width: 680px) {
+  .sim-layout { grid-template-columns: 1fr; grid-template-rows: auto 320px; }
+  .ctrl-panel { border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🔦</div>
+  <div>
+    <h1>การสะท้อนแสงจากกระจกเงาราบ</h1>
+    <p>Plane Mirror — Law of Reflection | ฟิสิกส์ ม.5</p>
+  </div>
+  <span class="badge">KP Science Simulation</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     TAB 1 : SIMULATION
+════════════════════════════════════════════ -->
+<div class="tab-section active" id="tab-sim">
+<div class="sim-layout">
+
+  <!-- Control Panel -->
+  <div class="ctrl-panel">
+    <h3>⚙️ ตัวแปรควบคุม</h3>
+
+    <!-- Angle of Incidence -->
+    <div>
+      <div class="sl-row" style="margin-bottom:2px;">
+        <span class="sl-label sym">θᵢ</span>
+        <span class="sl-label">มุมตกกระทบ</span>
+      </div>
+      <div class="sl-row">
+        <input class="sl-range" type="range" id="sl-angle" min="0" max="85" step="1" value="40">
+        <input class="val-input" type="number" id="vi-angle" min="0" max="85" value="40">
+        <span class="sl-unit">°</span>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px;">⚡ มุมตัวอย่าง</div>
+      <div class="preset-group" id="presets">
+        <button class="preset-btn" onclick="setPreset(0,'กระทบตั้งฉาก (normal incidence)')">0° — กระทบตั้งฉาก</button>
+        <button class="preset-btn" onclick="setPreset(30,'มุมทั่วไป 30°')">30° — มุมทั่วไป</button>
+        <button class="preset-btn active" onclick="setPreset(40,'มุมทั่วไป 40°')">40° — มุมทั่วไป</button>
+        <button class="preset-btn" onclick="setPreset(45,'มุม 45° — incident = reflected')">45° — สมมาตร</button>
+        <button class="preset-btn" onclick="setPreset(60,'มุมชัน 60°')">60° — มุมชัน</button>
+        <button class="preset-btn" onclick="setPreset(80,'ใกล้ขนานกระจก')">80° — เกือบขนาน</button>
+      </div>
+    </div>
+
+    <!-- Toggles -->
+    <div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">🔧 ตัวเลือกแสดงผล</div>
+      <div class="toggle-row">
+        <span class="toggle-label">แสดงมุม (arc)</span>
+        <label class="toggle"><input type="checkbox" id="tog-arc" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Normal line (เส้นปกติ)</span>
+        <label class="toggle"><input type="checkbox" id="tog-normal" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">แสดง Label ชื่อ</span>
+        <label class="toggle"><input type="checkbox" id="tog-label" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Light beam (ลำแสง)</span>
+        <label class="toggle"><input type="checkbox" id="tog-beam"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div class="readout-box">
+      <h4>📊 ค่าที่วัดได้</h4>
+      <div class="readout-row">
+        <span class="readout-label">มุมตกกระทบ (θᵢ)</span>
+        <span class="readout-val highlight" id="out-i">40°</span>
+      </div>
+      <div class="readout-row">
+        <span class="readout-label">มุมสะท้อน (θᵣ)</span>
+        <span class="readout-val highlight" id="out-r">40°</span>
+      </div>
+      <div class="readout-row">
+        <span class="readout-label">มุมตกกระทบจากผิว</span>
+        <span class="readout-val" id="out-surf">50°</span>
+      </div>
+      <div class="readout-row">
+        <span class="readout-label">θᵢ = θᵣ ?</span>
+        <span class="readout-val" id="out-law" style="color:var(--accent3);">✅ ตรง</span>
+      </div>
+    </div>
+
+    <!-- Law badge -->
+    <div class="law-badge" id="law-msg">
+      ✅ กฎการสะท้อนแสง: <strong>θᵢ = θᵣ = 40°</strong><br>
+      รังสีตกกระทบ, เส้นปกติ และรังสีสะท้อน อยู่ในระนาบเดียวกัน
+    </div>
+
+  </div><!-- end ctrl-panel -->
+
+  <!-- Canvas -->
+  <div class="canvas-area">
+    <canvas id="simCanvas"></canvas>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TAB 2 : THEORY
+════════════════════════════════════════════ -->
+<div class="tab-section" id="tab-theory">
+<div class="theory-body">
+
+  <h2>การสะท้อนแสงจากกระจกเงาราบ (Reflection from Plane Mirror)</h2>
+
+  <p>เมื่อแสงเดินทางไปกระทบกับพื้นผิวกระจกเงาราบ แสงจะสะท้อนออกมาตามกฎการสะท้อนแสง โดยไม่มีการดูดกลืนหรือหักเหเข้าสู่ตัวกลาง</p>
+
+  <!-- Key terms visual -->
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="cc-icon">📏</div>
+      <div class="cc-title">เส้นปกติ (Normal Line)</div>
+      <div class="cc-desc">เส้นสมมติที่ตั้งฉากกับผิวกระจก ณ จุดที่แสงกระทบ ใช้เป็นเส้นอ้างอิงในการวัดมุม</div>
+    </div>
+    <div class="concept-card">
+      <div class="cc-icon">➡️</div>
+      <div class="cc-title">รังสีตกกระทบ (Incident Ray)</div>
+      <div class="cc-desc">รังสีแสงที่เดินทางเข้าหากระจก ก่อนการสะท้อน เขียนแทนด้วยลูกศรชี้เข้าหาผิวกระจก</div>
+    </div>
+    <div class="concept-card">
+      <div class="cc-icon">↩️</div>
+      <div class="cc-title">รังสีสะท้อน (Reflected Ray)</div>
+      <div class="cc-desc">รังสีแสงที่เดินทางออกจากกระจกหลังการสะท้อน เขียนแทนด้วยลูกศรชี้ออกจากผิวกระจก</div>
+    </div>
+    <div class="concept-card">
+      <div class="cc-icon">📐</div>
+      <div class="cc-title">มุมตกกระทบ θᵢ</div>
+      <div class="cc-desc">มุมระหว่างรังสีตกกระทบกับเส้นปกติ วัดจากเส้นปกติ ไม่ใช่จากผิวกระจก</div>
+    </div>
+    <div class="concept-card">
+      <div class="cc-icon">📐</div>
+      <div class="cc-title">มุมสะท้อน θᵣ</div>
+      <div class="cc-desc">มุมระหว่างรังสีสะท้อนกับเส้นปกติ วัดจากเส้นปกติ เช่นเดียวกับมุมตกกระทบ</div>
+    </div>
+    <div class="concept-card">
+      <div class="cc-icon">⚠️</div>
+      <div class="cc-title">ข้อควรระวัง</div>
+      <div class="cc-desc">มุมทั้งสองวัดจาก <strong style="color:var(--accent3);">เส้นปกติ</strong> เสมอ ไม่ใช่วัดจากผิวกระจกโดยตรง!</div>
+    </div>
+  </div>
+
+  <!-- Law box -->
+  <div class="law-box">
+    <div class="law-title">⚖️ กฎการสะท้อนแสง (Law of Reflection)</div>
+    <div class="law-eq">θᵢ = θᵣ</div>
+    <div class="law-note">
+      <strong>กฎข้อที่ 1:</strong> มุมตกกระทบ = มุมสะท้อน (วัดจากเส้นปกติเสมอ)<br>
+      <strong>กฎข้อที่ 2:</strong> รังสีตกกระทบ, เส้นปกติ และรังสีสะท้อน ต้องอยู่ใน <strong>ระนาบเดียวกัน</strong>
+    </div>
+  </div>
+
+  <!-- SVG Diagram -->
+  <h3>📊 แผนภาพอธิบาย</h3>
+  <svg class="svg-diagram" viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg">
+    <rect width="700" height="360" fill="#111827"/>
+    <!-- Mirror -->
+    <line x1="100" y1="220" x2="600" y2="220" stroke="#94a3b8" stroke-width="3"/>
+    <!-- Mirror hatching -->
+    <g stroke="#1e3a5f" stroke-width="1.5">
+      <line x1="105" y1="220" x2="90" y2="235"/><line x1="130" y1="220" x2="115" y2="235"/>
+      <line x1="155" y1="220" x2="140" y2="235"/><line x1="180" y1="220" x2="165" y2="235"/>
+      <line x1="205" y1="220" x2="190" y2="235"/><line x1="230" y1="220" x2="215" y2="235"/>
+      <line x1="255" y1="220" x2="240" y2="235"/><line x1="280" y1="220" x2="265" y2="235"/>
+      <line x1="305" y1="220" x2="290" y2="235"/><line x1="330" y1="220" x2="315" y2="235"/>
+      <line x1="355" y1="220" x2="340" y2="235"/><line x1="380" y1="220" x2="365" y2="235"/>
+      <line x1="405" y1="220" x2="390" y2="235"/><line x1="430" y1="220" x2="415" y2="235"/>
+      <line x1="455" y1="220" x2="440" y2="235"/><line x1="480" y1="220" x2="465" y2="235"/>
+      <line x1="505" y1="220" x2="490" y2="235"/><line x1="530" y1="220" x2="515" y2="235"/>
+      <line x1="555" y1="220" x2="540" y2="235"/><line x1="580" y1="220" x2="565" y2="235"/>
+      <line x1="600" y1="220" x2="590" y2="232"/>
+    </g>
+    <!-- Mirror label -->
+    <text x="620" y="215" fill="#94a3b8" font-size="12" font-family="Sarabun, sans-serif">Plane Mirror</text>
+
+    <!-- Normal line (dashed) -->
+    <line x1="350" y1="60" x2="350" y2="310" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="7,4"/>
+    <text x="356" y="72" fill="#818cf8" font-size="12" font-family="Sarabun, sans-serif">Normal</text>
+    <text x="343" y="87" fill="#818cf8" font-size="12" font-family="Sarabun, sans-serif">(เส้นปกติ)</text>
+    <!-- N label -->
+    <text x="355" y="305" fill="#818cf8" font-size="13" font-family="Sarabun, sans-serif" font-weight="bold">N</text>
+
+    <!-- Incident ray -->
+    <line x1="200" y1="80" x2="350" y2="220" stroke="#fb923c" stroke-width="2.5"/>
+    <!-- arrowhead incident -->
+    <polygon points="350,220 338,206 348,208" fill="#fb923c"/>
+    <text x="195" y="75" fill="#fb923c" font-size="12" font-family="Sarabun, sans-serif">รังสีตกกระทบ</text>
+    <text x="195" y="89" fill="#fb923c" font-size="11" font-family="Share Tech Mono, monospace">(Incident Ray)</text>
+
+    <!-- Reflected ray -->
+    <line x1="350" y1="220" x2="500" y2="80" stroke="#34d399" stroke-width="2.5"/>
+    <!-- arrowhead reflected -->
+    <polygon points="500,80 489,95 492,83" fill="#34d399"/>
+    <text x="490" y="75" fill="#34d399" font-size="12" font-family="Sarabun, sans-serif">รังสีสะท้อน</text>
+    <text x="490" y="89" fill="#34d399" font-size="11" font-family="Share Tech Mono, monospace">(Reflected Ray)</text>
+
+    <!-- Arc for θi -->
+    <path d="M 350,220 m -30,0 a 30,30 0 0,1 21,-21" stroke="#fb923c" stroke-width="1.5" fill="none"/>
+    <text x="306" y="192" fill="#fb923c" font-size="13" font-family="Share Tech Mono, monospace">θᵢ</text>
+
+    <!-- Arc for θr -->
+    <path d="M 350,220 m 30,0 a 30,30 0 0,0 -21,-21" stroke="#34d399" stroke-width="1.5" fill="none"/>
+    <text x="364" y="192" fill="#34d399" font-size="13" font-family="Share Tech Mono, monospace">θᵣ</text>
+
+    <!-- Equal sign badge -->
+    <rect x="310" y="255" width="80" height="30" rx="8" fill="#1a3320" stroke="#34d399" stroke-width="1"/>
+    <text x="350" y="275" fill="#34d399" font-size="14" font-family="Share Tech Mono, monospace" text-anchor="middle" font-weight="bold">θᵢ = θᵣ</text>
+
+    <!-- Point X -->
+    <circle cx="350" cy="220" r="5" fill="#f472b6"/>
+    <text x="356" y="218" fill="#f472b6" font-size="12" font-family="Sarabun, sans-serif">จุด X</text>
+
+    <!-- Protractor hint (semicircle) -->
+    <path d="M 280,220 a 70,70 0 0,1 140,0" stroke="#1e3a5f" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+    <text x="340" y="158" fill="#1e3a5f" font-size="10" font-family="Sarabun, sans-serif">โปรแทรกเตอร์</text>
+  </svg>
+
+  <!-- Measurement explanation -->
+  <h3>🔬 วิธีวัดมุมในการทดลอง</h3>
+  <p>ในการทดลองจริง (ตามใบงาน) ใช้วิธีดังนี้:</p>
+
+  <table class="comparison-table">
+    <tr>
+      <th>ขั้นตอน</th>
+      <th>วิธีปฏิบัติ</th>
+      <th>จุดสำคัญ</th>
+    </tr>
+    <tr>
+      <td>1. เตรียมพื้นผิว</td>
+      <td>ติดกระดาษขาวบนแผ่นโฟม</td>
+      <td>ต้องเรียบ ไม่บิดงอ</td>
+    </tr>
+    <tr>
+      <td>2. กำหนดจุด X</td>
+      <td>ใช้ดินสอลากเส้นตรง ทำเครื่องหมาย x ที่จุดกระทบ</td>
+      <td>เส้นแรกคือแนวผิวกระจก</td>
+    </tr>
+    <tr>
+      <td>3. ตั้งกระจก</td>
+      <td>วางขอบกระจกบนเส้นแรก ค้ำด้วยดินน้ำมัน</td>
+      <td>ด้านสะท้อนต้องอยู่บนเส้น</td>
+    </tr>
+    <tr>
+      <td>4. วางโปรแทรกเตอร์</td>
+      <td>จุดกำเนิดที่จุด X, เส้น 90° ตรงกับเส้นปกติ</td>
+      <td>ครึ่งวงกลมอยู่ด้านหน้ากระจก</td>
+    </tr>
+    <tr>
+      <td>5. ฉายแสง</td>
+      <td>ใช้หลอดไฟ + ช่องแคบสร้างลำแสง ฉายที่มุมต่างๆ</td>
+      <td>บันทึกทั้ง θᵢ และ θᵣ</td>
+    </tr>
+    <tr>
+      <td>6. บันทึกผล</td>
+      <td>อ่านมุมจากโปรแทรกเตอร์ทั้งสองด้าน</td>
+      <td>วัดจากเส้นปกติเสมอ</td>
+    </tr>
+  </table>
+
+  <!-- Misconception warning -->
+  <div style="background:#2a1a0a;border:1px solid var(--accent4);border-radius:10px;padding:14px 16px;margin:16px 0;">
+    <div style="color:var(--accent4);font-weight:700;margin-bottom:6px;">⚠️ ความเข้าใจผิดที่พบบ่อย</div>
+    <p style="margin-bottom:6px;font-size:0.85rem;">❌ <strong>ผิด:</strong> วัดมุมจากผิวกระจก → จะได้มุมเสริม (90° - θᵢ)</p>
+    <p style="font-size:0.85rem;">✅ <strong>ถูก:</strong> วัดมุมจากเส้นปกติ (Normal line) เสมอ → θᵢ = θᵣ</p>
+  </div>
+
+  <!-- Summary -->
+  <h3>📝 สรุปสาระสำคัญ</h3>
+  <div class="concept-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));">
+    <div class="concept-card" style="border-color:var(--accent4);">
+      <div class="cc-title" style="color:var(--accent4);">กฎ 1: มุมเท่ากัน</div>
+      <div class="cc-desc">θᵢ = θᵣ เสมอ ไม่ว่าจะเปลี่ยนมุมตกกระทบเป็นเท่าไรก็ตาม</div>
+    </div>
+    <div class="concept-card" style="border-color:var(--accent2);">
+      <div class="cc-title" style="color:var(--accent2);">กฎ 2: ระนาบเดียวกัน</div>
+      <div class="cc-desc">รังสีตกกระทบ, เส้นปกติ และรังสีสะท้อน ต้องอยู่ในระนาบเดียวกัน (coplanar)</div>
+    </div>
+    <div class="concept-card" style="border-color:var(--accent3);">
+      <div class="cc-title" style="color:var(--accent3);">กรณีพิเศษ θ = 0°</div>
+      <div class="cc-desc">แสงตั้งฉากกระจก → สะท้อนกลับตามเส้นทางเดิม (retroreflection)</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'sim') { resizeCanvas(); draw(); }
+}
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let angle = 40; // degrees from normal
+let showArc    = true;
+let showNormal = true;
+let showLabel  = true;
+let showBeam   = false;
+
+// Beam animation
+let beamT = 0;
+let animId = null;
+let isBeamAnim = false;
+
+// ═══════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════
+function resizeCanvas() {
+  const canvas = document.getElementById('simCanvas');
+  const container = canvas.parentElement;
+  canvas.width  = container.clientWidth  || 700;
+  canvas.height = container.clientHeight || 480;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function draw() {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid (subtle)
+  ctx.strokeStyle = 'rgba(30,58,95,0.35)';
+  ctx.lineWidth = 1;
+  const gs = 40;
+  for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // ── Mirror ──
+  const mx = W * 0.5, my = H * 0.62;
+  const mLen = Math.min(W * 0.42, 260);
+
+  // Mirror surface
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(mx - mLen, my); ctx.lineTo(mx + mLen, my); ctx.stroke();
+
+  // Hatching
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1.5;
+  const hStep = 22;
+  for (let hx = mx - mLen + 10; hx < mx + mLen; hx += hStep) {
+    ctx.beginPath();
+    ctx.moveTo(hx, my);
+    ctx.lineTo(hx - 12, my + 14);
+    ctx.stroke();
+  }
+
+  // Mirror label
+  if (showLabel) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px Sarabun, sans-serif';
+    ctx.fillText('Plane Mirror', mx + mLen + 8, my + 4);
+  }
+
+  // ── Normal Line ──
+  if (showNormal) {
+    ctx.save();
+    ctx.strokeStyle = '#818cf8';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 5]);
+    ctx.beginPath();
+    ctx.moveTo(mx, my - H * 0.48);
+    ctx.lineTo(mx, my + 40);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    if (showLabel) {
+      ctx.fillStyle = '#818cf8';
+      ctx.font = 'bold 13px Share Tech Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('N', mx + 5, my - H * 0.44);
+    }
+  }
+
+  // ── Rays ──
+  const rad = (angle * Math.PI) / 180;
+  const rayLen = Math.min(W, H) * 0.52;
+
+  // Incident ray direction: from upper-left → point X
+  // incident angle measured from normal
+  const ix = mx - Math.sin(rad) * rayLen;
+  const iy = my - Math.cos(rad) * rayLen;
+
+  // Reflected ray direction: from point X → upper-right
+  const rx = mx + Math.sin(rad) * rayLen;
+  const ry = my - Math.cos(rad) * rayLen;
+
+  // Beam glow effect
+  function drawRay(x1, y1, x2, y2, color, progress = 1) {
+    const ex = x1 + (x2 - x1) * progress;
+    const ey = y1 + (y2 - y1) * progress;
+    // Glow
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 8;
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Light beam (broad)
+  if (showBeam) {
+    const bw = 16; // beam width in pixels perpendicular
+    const perpX = -Math.cos(rad);
+    const perpY = Math.sin(rad);
+    ctx.save();
+    // Incident beam
+    const grad = ctx.createLinearGradient(ix + perpX*bw, iy + perpY*bw, ix - perpX*bw, iy - perpY*bw);
+    grad.addColorStop(0, 'rgba(251,146,60,0)');
+    grad.addColorStop(0.5, 'rgba(251,146,60,0.18)');
+    grad.addColorStop(1, 'rgba(251,146,60,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(ix + perpX*bw, iy + perpY*bw);
+    ctx.lineTo(mx + perpX*bw, my + perpY*bw);
+    ctx.lineTo(mx - perpX*bw, my - perpY*bw);
+    ctx.lineTo(ix - perpX*bw, iy - perpY*bw);
+    ctx.closePath();
+    ctx.fill();
+    // Reflected beam
+    const perpRX = Math.cos(rad);
+    const perpRY = Math.sin(rad);
+    const grad2 = ctx.createLinearGradient(rx + perpRX*bw, ry + perpRY*bw, rx - perpRX*bw, ry - perpRY*bw);
+    grad2.addColorStop(0, 'rgba(52,211,153,0)');
+    grad2.addColorStop(0.5, 'rgba(52,211,153,0.18)');
+    grad2.addColorStop(1, 'rgba(52,211,153,0)');
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.moveTo(rx + perpRX*bw, ry + perpRY*bw);
+    ctx.lineTo(mx + perpRX*bw, my + perpRY*bw);
+    ctx.lineTo(mx - perpRX*bw, my - perpRY*bw);
+    ctx.lineTo(rx - perpRX*bw, ry - perpRY*bw);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Draw incident ray
+  drawRay(ix, iy, mx, my, '#fb923c');
+  // Arrowhead at point X
+  drawArrow(ctx, ix, iy, mx, my, '#fb923c');
+
+  // Draw reflected ray
+  drawRay(mx, my, rx, ry, '#34d399');
+  drawArrow(ctx, mx, my, rx, ry, '#34d399');
+
+  // ── Arc for angles ──
+  if (showArc) {
+    const arcR = Math.min(mLen * 0.42, 70);
+    // θi arc (incident side, left of normal)
+    ctx.save();
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // from -90° (up/normal direction) going left by angle
+    const startA = -Math.PI / 2;
+    const endA   = -Math.PI / 2 - rad; // going clockwise (leftward)
+    ctx.arc(mx, my, arcR, endA, startA);
+    ctx.stroke();
+    ctx.restore();
+
+    // θr arc (reflected side, right of normal)
+    ctx.save();
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const startR = -Math.PI / 2;
+    const endR   = -Math.PI / 2 + rad;
+    ctx.arc(mx, my, arcR, startR, endR);
+    ctx.stroke();
+    ctx.restore();
+
+    // Labels on arcs
+    if (showLabel) {
+      const labelR = arcR + 18;
+      const midI = -Math.PI/2 - rad/2;
+      const midR = -Math.PI/2 + rad/2;
+      ctx.fillStyle = '#fb923c';
+      ctx.font = 'bold 15px Share Tech Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('θᵢ', mx + labelR * Math.cos(midI), my + labelR * Math.sin(midI) + 5);
+      ctx.fillStyle = '#34d399';
+      ctx.fillText('θᵣ', mx + labelR * Math.cos(midR), my + labelR * Math.sin(midR) + 5);
+    }
+  }
+
+  // ── Point X ──
+  ctx.save();
+  ctx.fillStyle = '#f472b6';
+  ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.fill();
+  if (showLabel) {
+    ctx.fillStyle = '#f472b6';
+    ctx.font = 'bold 13px Sarabun, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('X', mx + 9, my - 8);
+  }
+  ctx.restore();
+
+  // ── Labels on rays ──
+  if (showLabel) {
+    ctx.save();
+    ctx.font = '13px Sarabun, sans-serif';
+    ctx.fillStyle = '#fb923c';
+    ctx.textAlign = 'right';
+    ctx.fillText('รังสีตกกระทบ', ix - 8, iy - 6);
+    ctx.font = '10px Share Tech Mono, monospace';
+    ctx.fillText('Incident Ray', ix - 8, iy + 8);
+
+    ctx.fillStyle = '#34d399';
+    ctx.textAlign = 'left';
+    ctx.fillText('รังสีสะท้อน', rx + 8, ry - 6);
+    ctx.font = '10px Share Tech Mono, monospace';
+    ctx.fillText('Reflected Ray', rx + 8, ry + 8);
+    ctx.restore();
+  }
+
+  // ── Source (light bulb symbol) ──
+  const bulbX = ix - 12, bulbY = iy - 12;
+  ctx.save();
+  ctx.strokeStyle = '#fbbf24';
+  ctx.fillStyle = '#fbbf24';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(bulbX, bulbY, 9, 0, Math.PI*2); ctx.fill();
+  // rays
+  for (let a = 0; a < 360; a += 45) {
+    const ar = (a * Math.PI) / 180;
+    ctx.beginPath();
+    ctx.moveTo(bulbX + 11 * Math.cos(ar), bulbY + 11 * Math.sin(ar));
+    ctx.lineTo(bulbX + 16 * Math.cos(ar), bulbY + 16 * Math.sin(ar));
+    ctx.strokeStyle = '#fbbf24';
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  const ux = dx/len, uy = dy/len;
+  const ax = x1 + ux * (len * 0.55), ay = y1 + uy * (len * 0.55);
+  const hw = 9, hl = 16;
+  const px = -uy, py = ux;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ax + ux*hl, ay + uy*hl);
+  ctx.lineTo(ax + px*hw, ay + py*hw);
+  ctx.lineTo(ax - px*hw, ay - py*hw);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+//  UPDATE READOUT
+// ═══════════════════════════════════════════
+function updateReadout() {
+  document.getElementById('out-i').textContent = angle + '°';
+  document.getElementById('out-r').textContent = angle + '°';
+  document.getElementById('out-surf').textContent = (90 - angle) + '°';
+  document.getElementById('out-law').textContent = '✅ ตรง';
+  document.getElementById('out-law').style.color = 'var(--accent3)';
+  document.getElementById('law-msg').className = 'law-badge';
+  document.getElementById('law-msg').innerHTML =
+    `✅ กฎการสะท้อนแสง: <strong>θᵢ = θᵣ = ${angle}°</strong><br>` +
+    (angle === 0
+      ? 'แสงตั้งฉากกระจก → สะท้อนกลับตามเส้นทางเดิม'
+      : 'รังสีตกกระทบ, เส้นปกติ และรังสีสะท้อน อยู่ในระนาบเดียวกัน');
+}
+
+// ═══════════════════════════════════════════
+//  PRESET
+// ═══════════════════════════════════════════
+function setPreset(deg, label) {
+  angle = deg;
+  document.getElementById('sl-angle').value = deg;
+  document.getElementById('vi-angle').value = deg;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  updateReadout();
+  draw();
+}
+
+// ═══════════════════════════════════════════
+//  DOM READY
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const slAngle = document.getElementById('sl-angle');
+  const viAngle = document.getElementById('vi-angle');
+
+  slAngle.addEventListener('input', () => {
+    angle = parseInt(slAngle.value);
+    viAngle.value = angle;
+    // deactivate all presets
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    updateReadout();
+    draw();
+  });
+
+  viAngle.addEventListener('blur', () => {
+    let v = Math.max(0, Math.min(85, parseInt(viAngle.value) || 0));
+    angle = v;
+    viAngle.value = v;
+    slAngle.value = v;
+    updateReadout();
+    draw();
+  });
+  viAngle.addEventListener('keydown', e => { if (e.key === 'Enter') viAngle.blur(); });
+
+  // Toggles
+  document.getElementById('tog-arc').addEventListener('change', e => { showArc = e.target.checked; draw(); });
+  document.getElementById('tog-normal').addEventListener('change', e => { showNormal = e.target.checked; draw(); });
+  document.getElementById('tog-label').addEventListener('change', e => { showLabel = e.target.checked; draw(); });
+  document.getElementById('tog-beam').addEventListener('change', e => { showBeam = e.target.checked; draw(); });
+
+  resizeCanvas();
+  updateReadout();
+  draw();
+});
+</script>
+</body>
+</html>
