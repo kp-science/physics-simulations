@@ -333,26 +333,53 @@ footer span{color:var(--accent)}
 </div>
 
 <script>
-// ===== PASSWORD =====
-const CORRECT_PW = 'kp2025';  // ← เปลี่ยนรหัสที่นี่
+// ===== PASSWORD (SHA-256 Per-Customer System) =====
+// จัดการรหัสผ่านทั้งหมดผ่าน admin_passwords.html
+// วาง hash ที่ได้จาก Admin Tool ลงใน Set ด้านล่างนี้
 
-function checkPW() {
+const VALID_HASHES = new Set([
+  // ตัวอย่าง — ลบทิ้งแล้วใส่ hash จริงจาก Admin Tool
+  // "abc123...hash...", // ชื่อลูกค้า (kp-mech-xxxxxx)
+]);
+
+// ─── SHA-256 Helper ────────────────────────────────
+async function sha256(msg) {
+  const buf  = new TextEncoder().encode(msg);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ─── Check Password ────────────────────────────────
+async function checkPW() {
   const val = document.getElementById('pw-input').value.trim();
   const err = document.getElementById('pw-error');
-  if (val === CORRECT_PW) {
+  const btn = document.querySelector('.pw-btn');
+
+  if (!val) return;
+  btn.textContent = '⏳ กำลังตรวจสอบ...';
+  btn.disabled = true;
+
+  const hash = await sha256(val);
+
+  if (VALID_HASHES.has(hash)) {
     document.getElementById('pw-overlay').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
-    sessionStorage.setItem('kp_mech_unlocked', '1');
+    sessionStorage.setItem('kp_mech_unlocked', hash);
   } else {
     err.textContent = '❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่';
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-input').focus();
     setTimeout(() => err.textContent = '', 3000);
   }
+
+  btn.textContent = '🔓 เข้าใช้งาน';
+  btn.disabled = false;
 }
 
-// ตรวจสอบ session (ไม่ต้องกรอกซ้ำในแท็บเดิม)
-if (sessionStorage.getItem('kp_mech_unlocked') === '1') {
+// ─── Restore session ───────────────────────────────
+const _saved = sessionStorage.getItem('kp_mech_unlocked');
+if (_saved && VALID_HASHES.has(_saved)) {
   document.getElementById('pw-overlay').style.display = 'none';
   document.getElementById('main-content').style.display = 'block';
 }
