@@ -171,17 +171,20 @@ footer span{color:var(--accent)}
 </head>
 <body>
 
-<!-- ===== PASSWORD OVERLAY ===== -->
+<!-- ===== LOGIN OVERLAY ===== -->
 <div id="pw-overlay">
   <div class="pw-box">
     <div class="pw-icon">🔐</div>
     <h2>KP Science — กลศาสตร์</h2>
     <p>เนื้อหานี้สำหรับผู้ที่ซื้อแพ็กเกจ<br><strong style="color:var(--text)">Mechanics Collection</strong> เท่านั้น</p>
-    <input class="pw-input" type="password" id="pw-input" placeholder="••••••" maxlength="20"
+    <input class="pw-input" type="text" id="pw-user" placeholder="Username"
+      style="margin-bottom:.6rem;letter-spacing:.5px"
+      onkeydown="if(event.key==='Enter') document.getElementById('pw-input').focus()">
+    <input class="pw-input" type="password" id="pw-input" placeholder="Password"
       onkeydown="if(event.key==='Enter') checkPW()">
     <button class="pw-btn" onclick="checkPW()">🔓 เข้าใช้งาน</button>
     <div class="pw-error" id="pw-error"></div>
-    <div class="pw-hint">* รหัสผ่านได้รับทาง Line หลังชำระเงิน</div>
+    <div class="pw-hint">* Username และ Password ได้รับทาง Line หลังชำระเงิน</div>
   </div>
 </div>
 
@@ -333,14 +336,9 @@ footer span{color:var(--accent)}
 </div>
 
 <script>
-// ===== PASSWORD (SHA-256 Per-Customer System) =====
-// จัดการรหัสผ่านทั้งหมดผ่าน admin_passwords.html
-// วาง hash ที่ได้จาก Admin Tool ลงใน Set ด้านล่างนี้
-
-const VALID_HASHES = new Set([
-  // ตัวอย่าง — ลบทิ้งแล้วใส่ hash จริงจาก Admin Tool
-  // "abc123...hash...", // ชื่อลูกค้า (kp-mech-xxxxxx)
-]);
+// ===== USERNAME + PASSWORD (SHA-256 Per-Customer) =====
+// จัดการผู้ใช้ทั้งหมดผ่าน admin_passwords.html
+// copy โค้ดจาก Admin Tool แล้ววางแทนที่ VALID_USERS ด้านล่าง
 
 // ─── SHA-256 Helper ────────────────────────────────
 async function sha256(msg) {
@@ -350,24 +348,36 @@ async function sha256(msg) {
     .map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ─── Check Password ────────────────────────────────
-async function checkPW() {
-  const val = document.getElementById('pw-input').value.trim();
-  const err = document.getElementById('pw-error');
-  const btn = document.querySelector('.pw-btn');
+// ─── User Database: { username: sha256(password) } ─
+// วาง hash จาก Admin Tool ตรงนี้
+const VALID_USERS = {
+  // "teacher01": "abc123...hash...",  // ชื่อลูกค้า · รหัส KP-2025-xxxx
+};
 
-  if (!val) return;
+// ─── Login ─────────────────────────────────────────
+async function checkPW() {
+  const user = document.getElementById('pw-user').value.trim().toLowerCase();
+  const pw   = document.getElementById('pw-input').value.trim();
+  const err  = document.getElementById('pw-error');
+  const btn  = document.querySelector('.pw-btn');
+
+  if (!user || !pw) {
+    err.textContent = '❌ กรุณากรอก Username และ Password';
+    setTimeout(() => err.textContent = '', 3000);
+    return;
+  }
+
   btn.textContent = '⏳ กำลังตรวจสอบ...';
   btn.disabled = true;
 
-  const hash = await sha256(val);
+  const hash = await sha256(pw);
 
-  if (VALID_HASHES.has(hash)) {
+  if (VALID_USERS[user] === hash) {
     document.getElementById('pw-overlay').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
-    sessionStorage.setItem('kp_mech_unlocked', hash);
+    sessionStorage.setItem('kp_mech', user + ':' + hash);
   } else {
-    err.textContent = '❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่';
+    err.textContent = '❌ Username หรือ Password ไม่ถูกต้อง';
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-input').focus();
     setTimeout(() => err.textContent = '', 3000);
@@ -378,10 +388,13 @@ async function checkPW() {
 }
 
 // ─── Restore session ───────────────────────────────
-const _saved = sessionStorage.getItem('kp_mech_unlocked');
-if (_saved && VALID_HASHES.has(_saved)) {
-  document.getElementById('pw-overlay').style.display = 'none';
-  document.getElementById('main-content').style.display = 'block';
+const _sess = sessionStorage.getItem('kp_mech');
+if (_sess) {
+  const [_u, _h] = _sess.split(':');
+  if (VALID_USERS[_u] === _h) {
+    document.getElementById('pw-overlay').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+  }
 }
 
 // ===== FILTER =====
