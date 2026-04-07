@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — String and Weights Drop</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+  --c1:#38bdf8; --c2:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:15px;min-height:100vh;}
+.mono{font-family:'Share Tech Mono','Courier New',monospace;}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:2rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;white-space:nowrap;}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+.section{display:none;}
+.section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Control bar */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.btn{padding:7px 16px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.88rem;transition:.15s;}
+.btn-play{background:#166534;color:#fff;}
+.btn-play:hover{background:#15803d;}
+.btn-play.playing{background:#991b1b;}
+.btn-play.playing:hover{background:#b91c1c;}
+.btn-reset{background:#1e3a8a;color:#fff;}
+.btn-reset:hover{background:#1d4ed8;}
+.btn-sound{background:var(--panel2);border:1.5px solid var(--border);color:var(--muted);}
+.btn-sound.on{border-color:var(--accent3);color:var(--accent3);}
+
+/* Mode bar */
+.mode-bar{background:#0f172a;border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mode-btn{background:var(--panel2);border:1.5px solid var(--border);color:var(--muted);font-size:0.82rem;padding:5px 12px;}
+.mode-btn:hover{border-color:var(--accent);color:var(--accent);}
+.mode-btn.active-mode{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.12);}
+#mS1.active-mode{border-color:var(--c1);color:var(--c1);background:rgba(56,189,248,.12);}
+#mS2.active-mode{border-color:var(--c2);color:var(--c2);background:rgba(251,146,60,.12);}
+.btn-preview{background:var(--panel2);border:1.5px solid var(--border);color:var(--muted);font-size:0.82rem;padding:5px 10px;}
+.btn-preview:hover{border-color:var(--accent3);color:var(--accent3);}
+.speed-grp{display:flex;align-items:center;gap:6px;font-size:0.83rem;}
+.speed-grp span{color:var(--muted);}
+.speed-val{color:var(--accent);font-weight:700;min-width:30px;}
+input[type=range]{accent-color:var(--accent);cursor:pointer;}
+
+/* Canvas */
+.canvas-wrap{display:flex;justify-content:center;padding:12px 20px 6px;background:var(--bg);}
+#simCanvas{border:1px solid var(--border);border-radius:8px;max-width:100%;}
+
+/* Timeline */
+.tl-area{padding:8px 20px 12px;}
+.tl-label{font-size:0.8rem;color:var(--muted);margin-bottom:6px;}
+.tl-bar{position:relative;height:34px;background:var(--panel);border:1px solid var(--border);border-radius:6px;margin-bottom:7px;overflow:hidden;}
+.tl-title{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.77rem;font-weight:700;z-index:2;}
+.tl-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;opacity:.2;transition:opacity .15s, transform .15s;}
+.tl-dot.lit{opacity:1;transform:translate(-50%,-50%) scale(1.3);}
+.tl-dot.c1{background:var(--c1);box-shadow:0 0 8px var(--c1);}
+.tl-dot.c2{background:var(--c2);box-shadow:0 0 8px var(--c2);}
+
+/* Readout */
+.ro-area{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 14px;}
+@media(max-width:540px){.ro-area{grid-template-columns:1fr;}}
+.ro-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.ro-panel h3{font-size:0.82rem;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.hit-row{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-radius:4px;font-size:0.8rem;transition:background .2s;}
+.hit-row.lit{background:rgba(56,189,248,.1);}
+.hit-lbl{color:var(--muted);}
+.hit-t{color:var(--accent);font-family:'Share Tech Mono',monospace;}
+.hit-dt{font-family:'Share Tech Mono',monospace;font-weight:700;}
+
+/* Theory */
+.th-wrap{max-width:780px;margin:0 auto;padding:20px;}
+.th-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px;}
+.th-card h2{font-size:1rem;color:var(--accent);margin-bottom:10px;}
+.th-card p{line-height:1.72;font-size:0.9rem;margin-bottom:8px;}
+.eq-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:11px;margin:10px 0;text-align:center;font-size:1.1rem;color:var(--accent3);font-family:'Share Tech Mono',monospace;}
+.tbl-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:560px){.tbl-grid{grid-template-columns:1fr;}}
+.dtbl{width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:8px;}
+.dtbl th{background:var(--panel2);padding:7px 10px;text-align:right;border:1px solid var(--border);color:var(--accent);font-weight:700;}
+.dtbl th:first-child{text-align:left;}
+.dtbl td{padding:5px 10px;border:1px solid var(--border);text-align:right;font-family:'Share Tech Mono',monospace;}
+.dtbl td:first-child{text-align:left;color:var(--muted);}
+.dtbl tr:hover td{background:rgba(56,189,248,.05);}
+.note{font-size:0.77rem;color:var(--muted);margin-top:7px;}
+
+/* Quiz */
+.qz-wrap{max-width:820px;margin:0 auto;padding:16px 20px;}
+.qz-hdr{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.qz-hdr h2{font-size:1rem;color:var(--accent);}
+.qz-meta{font-size:0.8rem;color:var(--muted);}
+.pb-wrap{height:4px;background:var(--panel2);border-radius:2px;margin-top:6px;width:200px;}
+.pb-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
+.btn-qz{background:var(--accent);color:#0a0e1a;font-weight:700;}
+.btn-qz:hover{opacity:.9;}
+.btn-qz.sec{background:var(--panel2);border:1.5px solid var(--border);color:var(--text);}
+.btn-qz.sec:hover{border-color:var(--accent);color:var(--accent);}
+.btn-qz:disabled{opacity:.4;cursor:not-allowed;}
+
+.q-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;}
+.q-num{font-size:0.77rem;color:var(--muted);margin-bottom:6px;}
+.q-text{font-size:0.93rem;line-height:1.65;margin-bottom:14px;}
+.q-choices{display:grid;gap:8px;}
+.q-opt{background:var(--panel2);border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:0.87rem;transition:all .15s;display:flex;align-items:flex-start;gap:10px;}
+.q-opt:hover{border-color:var(--accent);background:rgba(56,189,248,.08);}
+.q-opt.sel{border-color:var(--accent);background:rgba(56,189,248,.12);color:var(--accent);}
+.q-opt.cor{border-color:var(--accent3);background:rgba(52,211,153,.12);color:var(--accent3);}
+.q-opt.wrg{border-color:#f87171;background:rgba(248,113,113,.1);color:#f87171;}
+.opt-key{font-weight:700;font-size:0.82rem;min-width:18px;flex-shrink:0;}
+.q-fb{margin-top:10px;padding:8px 12px;border-radius:6px;font-size:0.83rem;display:none;}
+.q-fb.show{display:block;}
+.q-fb.cor{background:rgba(52,211,153,.15);color:var(--accent3);border:1px solid var(--accent3);}
+.q-fb.wrg{background:rgba(248,113,113,.12);color:#f87171;border:1px solid #f87171;}
+
+.qz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:10px 0;}
+.pg-info{text-align:center;}
+.pg-ind{font-size:0.82rem;color:var(--muted);margin-top:4px;}
+.pg-dots{display:flex;gap:7px;justify-content:center;}
+.pg-dot{width:9px;height:9px;border-radius:50%;background:var(--border);cursor:pointer;transition:.15s;}
+.pg-dot.cur{background:var(--accent);}
+.pg-dot.done{background:var(--accent3);}
+
+.score-card{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:36px;text-align:center;display:none;}
+.score-card.show{display:block;animation:fadeIn .4s ease;}
+.sc-num{font-size:3.8rem;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace;}
+.sc-lbl{font-size:0.88rem;color:var(--muted);margin-top:4px;}
+.sc-grade{font-size:1.5rem;font-weight:700;margin:14px 0 6px;}
+.sc-det{font-size:0.85rem;color:var(--muted);margin-bottom:22px;}
+
+/* ═══ POE ═══ */
+.poe-wrap{max-width:780px;margin:0 auto;padding:20px;}
+/* Step progress bar */
+.poe-steps{display:flex;align-items:center;gap:0;margin-bottom:24px;}
+.poe-step-item{flex:1;text-align:center;position:relative;}
+.poe-step-item::after{content:'';position:absolute;top:18px;left:50%;width:100%;height:3px;background:var(--border);z-index:0;}
+.poe-step-item:last-child::after{display:none;}
+.poe-step-circle{width:38px;height:38px;border-radius:50%;border:2.5px solid var(--border);background:var(--panel);color:var(--muted);font-weight:700;font-size:1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;position:relative;z-index:1;transition:all .3s;}
+.poe-step-circle.cur{border-color:var(--accent);background:var(--accent);color:#0a0e1a;}
+.poe-step-circle.done{border-color:var(--accent3);background:var(--accent3);color:#0a0e1a;}
+.poe-step-lbl{font-size:0.78rem;color:var(--muted);}
+.poe-step-lbl.cur{color:var(--accent);font-weight:700;}
+.poe-step-lbl.done{color:var(--accent3);}
+/* Cards */
+.poe-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;display:none;}
+.poe-card.active{display:block;animation:fadeIn .35s ease;}
+.poe-card h2{font-size:1.1rem;margin-bottom:6px;}
+.poe-card .sub{font-size:0.83rem;color:var(--muted);margin-bottom:18px;line-height:1.6;}
+/* Predict choices */
+.pred-q{margin-bottom:18px;}
+.pred-q-lbl{font-size:0.9rem;font-weight:600;margin-bottom:10px;padding:8px 12px;border-radius:7px;}
+.pred-q-lbl.s1{background:rgba(56,189,248,.1);color:var(--c1);border-left:3px solid var(--c1);}
+.pred-q-lbl.s2{background:rgba(251,146,60,.1);color:var(--c2);border-left:3px solid var(--c2);}
+.pred-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.pred-opt{background:var(--panel2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:0.85rem;transition:all .15s;user-select:none;}
+.pred-opt:hover{border-color:var(--accent);color:var(--accent);}
+.pred-opt.sel{border-color:var(--accent);background:rgba(56,189,248,.15);color:var(--accent);font-weight:700;}
+.pred-opt.sel.s2{border-color:var(--c2);background:rgba(251,146,60,.13);color:var(--c2);}
+/* Observe */
+.obs-action-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.obs-check-grid{display:grid;gap:10px;margin-bottom:16px;}
+.obs-check-item{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;}
+.obs-check-item p{font-size:0.85rem;color:var(--muted);margin-bottom:8px;}
+.obs-check-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.obs-opt{background:var(--panel);border:1.5px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:0.82rem;transition:all .15s;}
+.obs-opt:hover{border-color:var(--accent3);}
+.obs-opt.sel{border-color:var(--accent3);background:rgba(52,211,153,.12);color:var(--accent3);font-weight:700;}
+/* Explain */
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+@media(max-width:500px){.compare-row{grid-template-columns:1fr;}}
+.compare-box{border-radius:9px;padding:14px;}
+.compare-box.pred{background:rgba(129,140,248,.1);border:1px solid var(--accent2);}
+.compare-box.obs{background:rgba(52,211,153,.1);border:1px solid var(--accent3);}
+.compare-box h4{font-size:0.78rem;margin-bottom:8px;font-weight:700;}
+.compare-box p{font-size:0.88rem;line-height:1.65;}
+.explain-q{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+.explain-q .eq-lbl{font-size:0.82rem;color:var(--muted);margin-bottom:8px;}
+.explain-opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.explain-opt{background:var(--panel);border:1.5px solid var(--border);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:0.85rem;transition:all .15s;}
+.explain-opt:hover{border-color:var(--accent);}
+.explain-opt.sel{border-color:var(--accent);background:rgba(56,189,248,.1);color:var(--accent);}
+.explain-opt.cor{border-color:var(--accent3);background:rgba(52,211,153,.12);color:var(--accent3);}
+.explain-opt.wrg{border-color:#f87171;background:rgba(248,113,113,.1);color:#f87171;}
+.reveal-box{background:linear-gradient(135deg,#0f1f3a,#1a2d4a);border:1px solid var(--accent);border-radius:12px;padding:20px;display:none;animation:fadeIn .4s ease;}
+.reveal-box.show{display:block;}
+.reveal-box h3{color:var(--accent);margin-bottom:12px;font-size:1rem;}
+.reveal-eq{background:var(--panel2);border-radius:8px;padding:10px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent3);margin:8px 0;}
+.poe-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;}
+.btn-poe{background:var(--accent);color:#0a0e1a;font-weight:700;}
+.btn-poe:hover{opacity:.9;}
+.btn-poe:disabled{opacity:.35;cursor:not-allowed;}
+.btn-poe.sec{background:var(--panel2);border:1.5px solid var(--border);color:var(--text);}
+.btn-poe.sec:hover{border-color:var(--accent);}
+.hook-box{background:linear-gradient(135deg,#0f2040,#1e1040);border:1px solid var(--accent2);border-radius:10px;padding:16px 20px;margin-bottom:20px;}
+.hook-box p{font-size:0.95rem;line-height:1.72;color:var(--text);}
+.hook-box .hl{color:var(--accent4);font-weight:700;}
+.preview-canvas-row{display:flex;gap:16px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+.preview-canvas-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.preview-canvas-box h4{font-size:0.8rem;margin-bottom:8px;}
+.goto-sim-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,#166534,#15803d);color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.9rem;transition:.15s;}
+.goto-sim-btn:hover{opacity:.9;}
+
+.btn-sim-link{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:linear-gradient(90deg,#1e3a8a,#1d4ed8);color:#fff;border:none;border-radius:7px;padding:6px 14px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.82rem;font-weight:700;transition:.15s;}
+.btn-sim-link:hover{opacity:.88;}
+footer{text-align:center;padding:18px;font-size:0.77rem;color:var(--muted);border-top:1px solid var(--border);margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🪢</div>
+  <div>
+    <h1>String and Weights Drop — การตกอิสระ (Demo 01-12)</h1>
+    <p>ฟิสิกส์ ม.4–5 | กลศาสตร์: การตกอิสระ, กราฟพาราโบลา</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" id="navPoe" onclick="showSec('poe',this)">🔮 POE Activity</button>
+  <button id="navSim" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📋 ทฤษฎี & ตาราง</button>
+  <button onclick="showSec('quiz',this)">✏️ แบบฝึกหัด</button>
+</nav>
+
+<!-- ═══ POE ACTIVITY ═══ -->
+<div id="sec-poe" class="section active">
+<div class="poe-wrap">
+
+  <!-- Step indicator -->
+  <div class="poe-steps">
+    <div class="poe-step-item">
+      <div class="poe-step-circle cur" id="sc0">P</div>
+      <div class="poe-step-lbl cur" id="sl0">🔮 ทำนาย</div>
+    </div>
+    <div class="poe-step-item">
+      <div class="poe-step-circle" id="sc1">O</div>
+      <div class="poe-step-lbl" id="sl1">👁 สังเกต</div>
+    </div>
+    <div class="poe-step-item">
+      <div class="poe-step-circle" id="sc2">E</div>
+      <div class="poe-step-lbl" id="sl2">💡 อธิบาย</div>
+    </div>
+  </div>
+
+  <!-- ─── P: PREDICT ─── -->
+  <div class="poe-card active" id="pCard0">
+    <h2 style="color:var(--accent2)">🔮 P — ทำนาย (Predict)</h2>
+    <div class="sub">ก่อนดู simulation — ลองทำนายผลจากสิ่งที่เห็น ไม่มีผิดถูก เป้าหมายคือให้คุณคิดก่อน!</div>
+
+    <div class="hook-box">
+      <p>🪢 <span class="hl">ลองนึกภาพ...</span> คุณถือเชือก 2 เส้น แต่ละเส้นมีตุ้มน้ำหนัก 6 ตัวผูกไว้ต่างตำแหน่ง</p>
+      <p style="margin-top:10px;">เชือก <strong style="color:var(--c1)">①</strong> — ตุ้มห่างกัน <strong>25 cm เท่ากันทุกช่วง</strong> (25, 50, 75, 100, 125, 150 cm จากพื้น)</p>
+      <p style="margin-top:6px;">เชือก <strong style="color:var(--c2)">②</strong> — ตุ้มห่างกัน <strong>แบบเรขาคณิต</strong> (5, 20, 45, 80, 125, 180 cm จากพื้น)</p>
+      <p style="margin-top:10px;color:var(--muted);">เมื่อปล่อยทั้งสองพร้อมกัน... <span class="hl">คุณคิดว่าจะได้ยินอะไร?</span></p>
+    </div>
+
+    <!-- preview canvases -->
+    <div class="preview-canvas-row">
+      <div class="preview-canvas-box">
+        <h4 style="color:var(--c1)">① ระยะเท่ากัน</h4>
+        <canvas id="prevC1" width="130" height="200"></canvas>
+      </div>
+      <div style="display:flex;align-items:center;color:var(--muted);font-size:1.8rem;">vs</div>
+      <div class="preview-canvas-box">
+        <h4 style="color:var(--c2)">② ระยะเรขาคณิต</h4>
+        <canvas id="prevC2" width="130" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="pred-q">
+      <div class="pred-q-lbl s1">🔵 เชือก ① (ระยะเท่ากัน) — เสียงกระทบพื้นจะเป็นอย่างไร?</div>
+      <div class="pred-opts" id="pq1">
+        <div class="pred-opt" onclick="pickPred(1,'same')">ก. ห่างเท่ากันตลอด</div>
+        <div class="pred-opt" onclick="pickPred(1,'faster')">ข. ถี่ขึ้นเรื่อยๆ</div>
+        <div class="pred-opt" onclick="pickPred(1,'slower')">ค. ห่างขึ้นเรื่อยๆ</div>
+      </div>
+    </div>
+
+    <div class="pred-q">
+      <div class="pred-q-lbl s2">🟠 เชือก ② (ระยะเรขาคณิต) — เสียงกระทบพื้นจะเป็นอย่างไร?</div>
+      <div class="pred-opts" id="pq2">
+        <div class="pred-opt" onclick="pickPred(2,'same')">ก. ห่างเท่ากันตลอด</div>
+        <div class="pred-opt" onclick="pickPred(2,'faster')">ข. ถี่ขึ้นเรื่อยๆ</div>
+        <div class="pred-opt" onclick="pickPred(2,'slower')">ค. ห่างขึ้นเรื่อยๆ</div>
+      </div>
+    </div>
+
+    <div class="pred-q">
+      <div class="pred-q-lbl" style="background:rgba(129,140,248,.1);color:var(--accent2);border-left:3px solid var(--accent2);">✏️ เหตุผลที่คุณทำนายเช่นนั้น</div>
+      <textarea id="predReason" rows="3" style="width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;font-family:'Sarabun',sans-serif;font-size:0.88rem;resize:vertical;margin-top:8px;" placeholder="เช่น 'ระยะห่างเท่ากัน → เสียงน่าจะห่างกันเท่ากัน...'"></textarea>
+    </div>
+
+    <div class="poe-nav">
+      <span style="font-size:0.8rem;color:var(--muted);" id="predWarn"></span>
+      <button class="btn btn-poe" onclick="submitPredict()">บันทึกการทำนาย → สังเกต</button>
+    </div>
+  </div>
+
+  <!-- ─── O: OBSERVE ─── -->
+  <div class="poe-card" id="pCard1">
+    <h2 style="color:var(--accent)">👁 O — สังเกต (Observe)</h2>
+    <div class="sub">ไปทดลองใน Simulation แล้วกลับมาบันทึกสิ่งที่สังเกตได้ — หน้านี้จะรอคุณอยู่</div>
+
+    <!-- Go-to-sim CTA -->
+    <div style="background:linear-gradient(135deg,#0f2040,#1a2d0a);border:1px solid var(--accent);border-radius:12px;padding:20px;margin-bottom:18px;text-align:center;">
+      <p style="font-size:0.9rem;color:var(--text);margin-bottom:6px;">🔬 กด ▶ เริ่ม ใน Simulation แล้ว<strong>ฟังเสียงทั้งสองเส้นให้ชัดเจน</strong></p>
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">สังเกต: เสียงถี่ขึ้น ห่างขึ้น หรือเท่ากัน? ดู Timeline ด้านล่าง canvas ด้วย</p>
+      <button class="goto-sim-btn" onclick="goToSim()">🎬 ไป Simulation ทดลอง →</button>
+    </div>
+
+    <!-- Observation questions -->
+    <p style="font-size:0.85rem;color:var(--accent4);margin-bottom:12px;font-weight:600;">📝 หลังทดลองแล้ว — บันทึกสิ่งที่สังเกตได้:</p>
+    <div class="obs-check-grid">
+      <div class="obs-check-item">
+        <p style="color:var(--c1)">🔵 เชือก ① (THUMP หนัก) — เสียงที่ได้ยินจริงคือ</p>
+        <div class="obs-check-opts" id="oq1">
+          <div class="obs-opt" onclick="pickObs(1,'same')">ก. ห่างเท่ากันตลอด</div>
+          <div class="obs-opt" onclick="pickObs(1,'faster')">ข. ถี่ขึ้นเรื่อยๆ</div>
+          <div class="obs-opt" onclick="pickObs(1,'slower')">ค. ห่างขึ้นเรื่อยๆ</div>
+        </div>
+      </div>
+      <div class="obs-check-item">
+        <p style="color:var(--c2)">🟠 เชือก ② (CLICK แหลม) — เสียงที่ได้ยินจริงคือ</p>
+        <div class="obs-check-opts" id="oq2">
+          <div class="obs-opt" onclick="pickObs(2,'same')">ก. ห่างเท่ากันตลอด</div>
+          <div class="obs-opt" onclick="pickObs(2,'faster')">ข. ถี่ขึ้นเรื่อยๆ</div>
+          <div class="obs-opt" onclick="pickObs(2,'slower')">ค. ห่างขึ้นเรื่อยๆ</div>
+        </div>
+      </div>
+      <div class="obs-check-item" style="grid-column:1/-1;">
+        <p>📊 ช่วงเวลา Δt ระหว่างเสียงของเชือก ① เป็นอย่างไร</p>
+        <div class="obs-check-opts" id="oq3">
+          <div class="obs-opt" onclick="pickObs(3,'dec')">ก. Δt สั้นลงเรื่อยๆ (เสียงถี่ขึ้น)</div>
+          <div class="obs-opt" onclick="pickObs(3,'same')">ข. Δt คงที่ทุกช่วง</div>
+          <div class="obs-opt" onclick="pickObs(3,'inc')">ค. Δt ยาวขึ้นเรื่อยๆ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="poe-nav">
+      <button class="btn btn-poe sec" onclick="poeGoStep(0)">← กลับ Predict</button>
+      <span style="font-size:0.8rem;color:var(--muted);" id="obsWarn"></span>
+      <button class="btn btn-poe" onclick="submitObserve()">บันทึกการสังเกต → Explain</button>
+    </div>
+  </div>
+
+  <!-- ─── E: EXPLAIN ─── -->
+  <div class="poe-card" id="pCard2">
+    <h2 style="color:var(--accent3)">💡 E — อธิบาย (Explain)</h2>
+
+    <!-- Dynamic feedback banner -->
+    <div id="eFeedback" style="border-radius:10px;padding:16px 20px;margin-bottom:18px;font-size:0.95rem;font-weight:600;line-height:1.65;"></div>
+
+    <!-- Prediction vs Observation compare -->
+    <div id="compareArea" style="margin-bottom:18px;"></div>
+
+    <!-- Guided MCQ questions (always shown) -->
+    <div id="guideQs">
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">❓ คำถามนำ — ตอบเพื่อสร้างความเข้าใจ</p>
+
+      <div class="explain-q">
+        <div class="eq-lbl">1. เหตุใด Δt ของเชือก ① จึงสั้นลงเรื่อยๆ แม้ตุ้มห่างกันเท่ากัน?</div>
+        <div class="explain-opts" id="gq1">
+          <div class="explain-opt" onclick="pickGQ(1,'a')">ก. เพราะตุ้มมีน้ำหนักมากขึ้นตามลำดับ</div>
+          <div class="explain-opt" onclick="pickGQ(1,'b')">ข. เพราะความเร็วการตกเพิ่มขึ้นตามเวลา ทำให้ระยะเท่ากันใช้เวลาสั้นลง</div>
+          <div class="explain-opt" onclick="pickGQ(1,'c')">ค. เพราะแรงโน้มถ่วงเพิ่มขึ้นตามความเร็ว</div>
+        </div>
+      </div>
+
+      <div class="explain-q">
+        <div class="eq-lbl">2. ระยะของเชือก ② (1, 4, 9, 16, 25, 36 cm) เป็นสัดส่วนกับ</div>
+        <div class="explain-opts" id="gq2">
+          <div class="explain-opt" onclick="pickGQ(2,'a')">ก. n (เพิ่มขึ้นเป็นเส้นตรง)</div>
+          <div class="explain-opt" onclick="pickGQ(2,'b')">ข. n² (กำลังสองของจำนวนลำดับ)</div>
+          <div class="explain-opt" onclick="pickGQ(2,'c')">ค. 2ⁿ (เพิ่มแบบทวีคูณ)</div>
+        </div>
+      </div>
+
+      <div class="explain-q">
+        <div class="eq-lbl">3. ถ้า s ∝ n² และ n = จำนวนช่วงเวลา Δt คงที่ แสดงว่า s สัมพันธ์กับ t อย่างไร?</div>
+        <div class="explain-opts" id="gq3">
+          <div class="explain-opt" onclick="pickGQ(3,'a')">ก. s ∝ t (กราฟเส้นตรง)</div>
+          <div class="explain-opt" onclick="pickGQ(3,'b')">ข. s ∝ t² (กราฟพาราโบลา)</div>
+          <div class="explain-opt" onclick="pickGQ(3,'c')">ค. s ∝ 1/t</div>
+        </div>
+      </div>
+
+      <div style="text-align:right;margin-top:10px;">
+        <button class="btn btn-poe" id="gqCheckBtn" onclick="checkGQ()">✔ ตรวจคำตอบ</button>
+      </div>
+    </div>
+
+    <!-- Theory reveal (appears after check or perfect obs score) -->
+    <div id="revealBox" style="display:none;animation:fadeIn .4s ease;">
+      <div style="border:1px solid var(--accent3);border-radius:12px;padding:20px;background:rgba(52,211,153,.06);margin-top:16px;">
+        <div style="font-size:0.95rem;font-weight:700;color:var(--accent3);margin-bottom:12px;">📐 บทสรุปจากการทดลอง</div>
+        <p style="font-size:0.88rem;line-height:1.75;margin-bottom:10px;">
+          <strong style="color:var(--c1)">เชือก ①</strong> — เสียง<strong>ถี่ขึ้น</strong> เพราะ t = √(2s/g) → Δt ลดลงทุกช่วง สอดคล้องกับ s ≠ ∝ t
+        </p>
+        <p style="font-size:0.88rem;line-height:1.75;margin-bottom:12px;">
+          <strong style="color:var(--c2)">เชือก ②</strong> — เสียง<strong>ห่างเท่ากัน</strong> เพราะระยะ ∝ n² → t_n = n√(2s₀/g) → Δt = คงที่ พิสูจน์ <strong>s ∝ t²</strong>
+        </p>
+        <div class="reveal-eq">s = ½ · g · t²</div>
+        <div class="reveal-eq">v = g · t &nbsp;|&nbsp; t = √(2s / g)</div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-top:10px;">กราฟ s–t → <strong style="color:var(--text)">พาราโบลา</strong> &nbsp;|&nbsp; กราฟ v–t → <strong style="color:var(--text)">เส้นตรงผ่านจุดกำเนิด</strong></p>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="goto-sim-btn" onclick="goToSim()">🎬 ดู Simulation อีกครั้ง</button>
+          <button class="btn btn-poe" onclick="showSec('quiz',document.querySelectorAll('nav button')[3])">✏️ ทำแบบฝึกหัด</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="poe-nav" style="margin-top:16px;">
+      <button class="btn btn-poe sec" onclick="poeGoStep(1)">← กลับ Observe</button>
+      <span></span>
+    </div>
+  </div>
+
+</div>
+</div>
+
+
+<!-- ═══ SIMULATION ═══ -->
+<div id="sec-sim" class="section">
+  <!-- POE return banner (shows when coming from POE O step) -->
+  <div id="poeReturnBanner" style="display:none;background:linear-gradient(90deg,#1e3a8a,#0f2040);border-bottom:2px solid var(--accent);padding:10px 20px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:0.88rem;color:var(--accent);">🔮 <strong>POE กำลังดำเนินการ — ขั้น O (Observe)</strong> &nbsp;ทดลองเสร็จแล้ว กลับไปบันทึกการสังเกต</span>
+    <button class="goto-sim-btn" style="padding:7px 16px;font-size:0.85rem;" onclick="backFromSim()">← กลับ POE (ขั้น O)</button>
+  </div>
+  <!-- Row 1: mode selector -->
+  <div class="mode-bar">
+    <span style="font-size:0.8rem;color:var(--muted);flex-shrink:0;">เลือกเส้น:</span>
+    <button class="btn mode-btn" id="mS1" onclick="setMode('s1')">🔵 ① เท่ากัน เท่านั้น</button>
+    <button class="btn mode-btn active-mode" id="mBoth" onclick="setMode('both')">⇌ ทั้งสองเส้น</button>
+    <button class="btn mode-btn" id="mS2" onclick="setMode('s2')">🟠 ② เรขาคณิต เท่านั้น</button>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn btn-preview" onclick="playSoundOnly(1)" title="ฟังเสียงเชือก ① เท่านั้น">🔉①</button>
+      <button class="btn btn-preview" onclick="playSoundOnly(2)" title="ฟังเสียงเชือก ② เท่านั้น">🔉②</button>
+    </div>
+  </div>
+  <!-- Row 2: playback controls -->
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="speed-grp">
+      <span>ความช้า:</span>
+      <input type="range" id="speedSl" min="0.05" max="0.60" step="0.01" value="0.12" style="width:90px;">
+      <span class="speed-val" id="speedLbl">0.12×</span>
+    </div>
+    <button class="btn btn-sound on" id="soundBtn" onclick="toggleSound()">🔊 เสียง</button>
+    <span style="margin-left:auto;font-size:0.79rem;color:var(--muted);">g = 9.8 m/s² | <span id="realDtLbl" style="color:var(--accent3);">Δt จริง ① ≈ 0.75 s</span></span>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="simCanvas" width="720" height="500"></canvas>
+  </div>
+
+  <div class="tl-area">
+    <div class="tl-label">⏱ ตำแหน่งกระทบตามเวลา (0 → 0.65 s) — แต่ละจุด = 1 ตุ้ม</div>
+    <div class="tl-bar" id="tlBar1">
+      <span class="tl-title" style="color:var(--c1)">① เท่ากัน</span>
+      <div id="tl1"></div>
+    </div>
+    <div class="tl-bar" id="tlBar2">
+      <span class="tl-title" style="color:var(--c2)">② เรขาคณิต</span>
+      <div id="tl2"></div>
+    </div>
+  </div>
+
+  <div class="ro-area">
+    <div class="ro-panel" id="roPanel1">
+      <h3 style="color:var(--c1)">① ระยะเท่ากัน (25 cm intervals)</h3>
+      <div id="hits1"></div>
+    </div>
+    <div class="ro-panel" id="roPanel2">
+      <h3 style="color:var(--c2)">② ระยะเรขาคณิต (1:4:9:16:25:36)</h3>
+      <div id="hits2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THEORY ═══ -->
+<div id="sec-theory" class="section">
+  <div class="th-wrap">
+    <div class="th-card">
+      <h2>🔬 สมการการตกอิสระ</h2>
+      <p>วัตถุตกอิสระอยู่ภายใต้ความเร่งคงที่ <strong>g = 9.8 m/s²</strong></p>
+      <div class="eq-box">a = g = 9.8 m/s²</div>
+      <div class="eq-box">v = g · t</div>
+      <div class="eq-box">s = ½ · g · t²</div>
+      <div class="eq-box">t = √(2s / g)</div>
+      <p>กราฟ <strong>s–t</strong> เป็นพาราโบลา เพราะ s ∝ t² | กราฟ <strong>v–t</strong> เป็นเส้นตรงผ่านจุดกำเนิด เพราะ v ∝ t</p>
+    </div>
+
+    <div class="th-card">
+      <h2>🪢 หลักการทดลอง</h2>
+      <p><strong style="color:var(--c1)">เชือกที่ ①</strong> ผูกตุ้มระยะห่างเท่ากัน (25 cm) → เมื่อปล่อย Δt <em>ลดลงเรื่อยๆ</em> เสียงถี่ขึ้น ✦ พิสูจน์ว่า s–t ไม่ใช่เส้นตรง</p>
+      <p><strong style="color:var(--c2)">เชือกที่ ②</strong> ผูกตุ้มระยะเรขาคณิต 1:4:9:16:25:36 (กำลังสองสมบูรณ์) → Δt <em>คงที่ทุกช่วง</em> เสียงสม่ำเสมอ ✦ พิสูจน์โดยตรงว่า s ∝ t² คือกราฟพาราโบลา</p>
+    </div>
+
+    <div class="tbl-grid">
+      <div class="th-card">
+        <h2 style="color:var(--c1)">ตาราง I — ระยะเท่ากัน</h2>
+        <table class="dtbl">
+          <tr><th>s (cm)</th><th>t (s)</th><th>Δt (s)</th></tr>
+          <tr><td>0</td><td>0.000</td><td>—</td></tr>
+          <tr><td>25</td><td>0.226</td><td style="color:var(--accent4)">0.226</td></tr>
+          <tr><td>50</td><td>0.319</td><td style="color:var(--accent4)">0.093</td></tr>
+          <tr><td>75</td><td>0.391</td><td style="color:var(--accent4)">0.072</td></tr>
+          <tr><td>100</td><td>0.452</td><td style="color:var(--accent4)">0.061</td></tr>
+          <tr><td>125</td><td>0.505</td><td style="color:var(--accent4)">0.053</td></tr>
+          <tr><td>150</td><td>0.553</td><td style="color:var(--accent4)">0.048</td></tr>
+        </table>
+        <p class="note">* Δt ลดลงเรื่อยๆ → เสียงถี่ขึ้น</p>
+      </div>
+      <div class="th-card">
+        <h2 style="color:var(--c2)">ตาราง II — ระยะเรขาคณิต</h2>
+        <table class="dtbl">
+          <tr><th>s (cm)</th><th>t (s)</th><th>Δt (s)</th></tr>
+          <tr><td>0</td><td>0.000</td><td>—</td></tr>
+          <tr><td>5</td><td>0.101</td><td style="color:var(--accent3)">0.101</td></tr>
+          <tr><td>20</td><td>0.202</td><td style="color:var(--accent3)">0.101</td></tr>
+          <tr><td>45</td><td>0.303</td><td style="color:var(--accent3)">0.101</td></tr>
+          <tr><td>80</td><td>0.404</td><td style="color:var(--accent3)">0.101</td></tr>
+          <tr><td>125</td><td>0.505</td><td style="color:var(--accent3)">0.101</td></tr>
+          <tr><td>180</td><td>0.606</td><td style="color:var(--accent3)">0.101</td></tr>
+        </table>
+        <p class="note">* Δt = 0.101 s คงที่ทุกช่วง → เสียงสม่ำเสมอ</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QUIZ ═══ -->
+<div id="sec-quiz" class="section">
+  <div class="qz-wrap">
+    <div class="qz-hdr">
+      <div>
+        <h2>✏️ แบบทดสอบ — การตกอิสระ</h2>
+        <div class="qz-meta" id="qzMeta">คลัง 20 ข้อ · สุ่มครั้งละ 5 ข้อ</div>
+        <div class="pb-wrap"><div class="pb-fill" id="qzPb" style="width:0%"></div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-qz sec" onclick="shuffleQz()">🔀 สุ่มชุดใหม่</button>
+        <button class="btn btn-qz" id="subBtn" onclick="submitQuiz()">✔ ส่งคำตอบ</button>
+      </div>
+    </div>
+    <div id="qContainer"></div>
+    <div class="score-card" id="scoreCard">
+      <div class="sc-num" id="scNum">0/5</div>
+      <div class="sc-lbl">คะแนนที่ได้</div>
+      <div class="sc-grade" id="scGrade"></div>
+      <div class="sc-det" id="scDet"></div>
+      <button class="btn btn-qz" style="margin-top:16px;" onclick="shuffleQz()">🔀 สุ่มชุดใหม่</button>
+    </div>
+  </div>
+</div>
+
+
+<footer>© 2568 KP Science simulation | Demo 01-12 String and Weights Drop | Physics ม.4–5</footer>
+
+<script>
+// ═══ NAV ═══
+function showSec(name,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══ PHYSICS DATA ═══
+const G=9.8;
+const H1=[.25,.50,.75,1.00,1.25,1.50];
+const H2=[.05,.20,.45,.80,1.25,1.80];
+const T1=H1.map(h=>Math.sqrt(2*h/G));
+const T2=H2.map(h=>Math.sqrt(2*h/G));
+const TMAX=0.72, MAXH=1.80;
+
+// ═══ MODE ═══
+let simMode='both'; // 's1' | 's2' | 'both'
+function setMode(m){
+  simMode=m;
+  ['mS1','mBoth','mS2'].forEach(id=>document.getElementById(id).classList.remove('active-mode'));
+  document.getElementById(m==='s1'?'mS1':m==='s2'?'mS2':'mBoth').classList.add('active-mode');
+  // Update timeline visibility
+  document.getElementById('tlBar1').style.display=(m==='s2')?'none':'';
+  document.getElementById('tlBar2').style.display=(m==='s1')?'none':'';
+  document.getElementById('roPanel1').style.display=(m==='s2')?'none':'';
+  document.getElementById('roPanel2').style.display=(m==='s1')?'none':'';
+  resetSim();
+}
+
+// ═══ AUDIO — distinct sounds ═══
+let actx=null, sndOn=true;
+function toggleSound(){
+  sndOn=!sndOn;
+  const b=document.getElementById('soundBtn');
+  b.textContent=sndOn?'🔊 เสียง':'🔇 ปิดเสียง';
+  b.classList.toggle('on',sndOn);
+}
+function ensureAudio(){
+  if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended') actx.resume();
+  return actx;
+}
+
+// String 1 → "THUMP" เสียงหนัก ต่ำ (ตุ้มโลหะกระทบกระดานไม้)
+function playThump(when){
+  try{
+    const ctx=ensureAudio(), t=when||ctx.currentTime;
+    // Noise burst → lowpass → fade out
+    const len=Math.floor(ctx.sampleRate*0.5);
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.04));
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=180; lp.Q.value=8;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=40;
+    const gain=ctx.createGain();
+    gain.gain.setValueAtTime(2.5,t);
+    gain.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+    src.connect(hp); hp.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
+    src.start(t); src.stop(t+0.5);
+    // Add low sine resonance
+    const osc=ctx.createOscillator(); const og=ctx.createGain();
+    osc.frequency.setValueAtTime(80,t); osc.frequency.exponentialRampToValueAtTime(40,t+0.3);
+    og.gain.setValueAtTime(0.7,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+    osc.connect(og); og.connect(ctx.destination);
+    osc.start(t); osc.stop(t+0.4);
+  }catch(e){}
+}
+
+// String 2 → "CLICK" เสียงเบา สั้น แหลม (ไม้เคาะ)
+function playClick(when){
+  try{
+    const ctx=ensureAudio(), t=when||ctx.currentTime;
+    // Very short high-freq tick
+    const osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.type='sine';
+    osc.frequency.setValueAtTime(1400,t);
+    osc.frequency.exponentialRampToValueAtTime(600,t+0.03);
+    gain.gain.setValueAtTime(0.0,t);
+    gain.gain.linearRampToValueAtTime(1.0,t+0.003);
+    gain.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(t); osc.stop(t+0.08);
+    // Tiny noise burst for attack
+    const nb=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.008),ctx.sampleRate);
+    const nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    const ns=ctx.createBufferSource(); ns.buffer=nb;
+    const hp2=ctx.createBiquadFilter(); hp2.type='highpass'; hp2.frequency.value=2000;
+    const ng=ctx.createGain(); ng.gain.setValueAtTime(0.4,t);
+    ns.connect(hp2); hp2.connect(ng); ng.connect(ctx.destination);
+    ns.start(t);
+  }catch(e){}
+}
+
+function playTap(type,when){ type===1?playThump(when):playClick(when); }
+
+// 🔉 Sound-only preview — schedule all taps in advance at stretched timing
+function playSoundOnly(str){
+  ensureAudio();
+  if(!sndOn){ alert('กรุณาเปิดเสียงก่อนครับ'); return; }
+  const ctx=actx, now=ctx.currentTime+0.3;
+  const stretch=3.5; // ยืด 3.5× เพื่อให้ฟังง่าย
+  (str===1?T1:T2).forEach(t=>playTap(str,now+t*stretch));
+}
+
+// ═══ SIM STATE ═══
+let playing=false, simT=0, lastTs=null, animId=null, speed=0.12;
+let simHl=null; // {str:1|2|0, idx:0-5|null, label:str, start:timestamp}
+let hlAnimId=null;
+let hit1=new Array(6).fill(false), hit2=new Array(6).fill(false);
+let ht1=new Array(6).fill(null), ht2=new Array(6).fill(null);
+
+const cv=document.getElementById('simCanvas');
+const cx2=cv.getContext('2d');
+
+function resize(){
+  const mw=Math.min(720,window.innerWidth-40);
+  cv.width=mw; cv.height=Math.round(mw*500/720);
+  if(!playing) draw();
+}
+window.addEventListener('resize',resize); resize();
+
+document.getElementById('speedSl').oninput=function(){
+  speed=parseFloat(this.value);
+  document.getElementById('speedLbl').textContent=speed.toFixed(2)+'×';
+  updRealDt();
+};
+function updRealDt(){
+  // Show real-time Δt for String 1 first interval as reference
+  const dt1=(T1[1]-T1[0])/speed;
+  const dt2=(T2[1]-T2[0])/speed;
+  let txt='';
+  if(simMode!=='s2') txt+=`Δt① ≈ ${dt1.toFixed(2)}s`;
+  if(simMode==='both') txt+=' | ';
+  if(simMode!=='s1') txt+=`Δt② ≈ ${dt2.toFixed(2)}s`;
+  document.getElementById('realDtLbl').textContent=txt;
+}
+updRealDt();
+
+function togglePlay(){
+  ensureAudio();
+  playing=!playing;
+  const b=document.getElementById('playBtn');
+  if(playing){
+    if(simT>=TMAX) resetState();
+    lastTs=null;
+    animId=requestAnimationFrame(loop);
+    b.textContent='⏸ หยุด'; b.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    b.textContent='▶ เริ่ม'; b.classList.remove('playing');
+  }
+}
+
+function resetSim(){
+  cancelAnimationFrame(animId); playing=false;
+  const b=document.getElementById('playBtn');
+  b.textContent='▶ เริ่ม'; b.classList.remove('playing');
+  resetState(); draw(); buildReadouts(); buildTimeline(); updRealDt();
+}
+
+function resetState(){
+  simT=0; lastTs=null;
+  hit1=new Array(6).fill(false); hit2=new Array(6).fill(false);
+  ht1=new Array(6).fill(null);   ht2=new Array(6).fill(null);
+}
+
+// ═══ LOOP ═══
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05)*speed;
+  lastTs=ts; simT+=dt;
+
+  if(simMode!=='s2')
+    T1.forEach((t,i)=>{ if(!hit1[i]&&simT>=t){ hit1[i]=true; ht1[i]=t; playTap(1); updRo1(i); litTl('tld1-'+i); }});
+  if(simMode!=='s1')
+    T2.forEach((t,i)=>{ if(!hit2[i]&&simT>=t){ hit2[i]=true; ht2[i]=t; playTap(2); updRo2(i); litTl('tld2-'+i); }});
+
+  draw();
+  if(simT<TMAX){ animId=requestAnimationFrame(loop); }
+  else{
+    playing=false;
+    const b=document.getElementById('playBtn');
+    b.textContent='▶ เริ่ม'; b.classList.remove('playing');
+  }
+}
+
+// ═══ DRAW ═══
+function draw(){
+  const W=cv.width, H=cv.height, ctx=cx2;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0e1a'; ctx.fillRect(0,0,W,H);
+
+  const flY=H-52, topY=36, scH=(flY-topY)/MAXH;
+  const toY=h=>flY-h*scH;
+
+  // Grid & ruler
+  ctx.strokeStyle='#1a2d4a'; ctx.lineWidth=0.5;
+  for(let h=0;h<=MAXH;h+=0.25){
+    const y=toY(h);
+    ctx.beginPath(); ctx.moveTo(52,y); ctx.lineTo(W-52,y); ctx.stroke();
+    if(Math.abs(h%0.50)<0.01){
+      ctx.fillStyle='#2d4a6a'; ctx.font='9px Share Tech Mono,monospace';
+      ctx.textAlign='right'; ctx.fillText((h*100).toFixed(0)+'cm',50,y+3);
+    }
+  }
+
+  // Floor bar
+  ctx.strokeStyle='#475569'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(50,flY); ctx.lineTo(W-50,flY); ctx.stroke();
+  ctx.strokeStyle='#2d3f55'; ctx.lineWidth=1;
+  for(let x=54;x<W-50;x+=14){
+    ctx.beginPath(); ctx.moveTo(x,flY); ctx.lineTo(x-10,flY+12); ctx.stroke();
+  }
+  ctx.fillStyle='#64748b'; ctx.font='12px Sarabun,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('พื้น (floor)',W/2,flY+22);
+
+  // Timer
+  ctx.fillStyle='#94a3b8'; ctx.font='bold 13px Share Tech Mono,monospace';
+  ctx.textAlign='right'; ctx.fillText('t = '+simT.toFixed(3)+' s',W-54,topY-10);
+
+  // Layout depends on mode
+  if(simMode==='both'){
+    // Divider
+    ctx.strokeStyle='#1e3a5f'; ctx.lineWidth=1; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(W/2,topY); ctx.lineTo(W/2,flY); ctx.stroke();
+    ctx.setLineDash([]);
+    drawString(W*0.28, H1, hit1, ht1, '#38bdf8','① ระยะเท่ากัน', scH, flY, topY, 9, 1);
+    drawString(W*0.72, H2, hit2, ht2, '#fb923c','② ระยะเรขาคณิต', scH, flY, topY, 9, 2);
+  } else if(simMode==='s1'){
+    drawString(W*0.50, H1, hit1, ht1, '#38bdf8','① ระยะเท่ากัน (THUMP🔊)', scH, flY, topY, 12, 1);
+  } else {
+    drawString(W*0.50, H2, hit2, ht2, '#fb923c','② ระยะเรขาคณิต (CLICK🔊)', scH, flY, topY, 12, 2);
+  }
+}
+
+function drawString(cx, heights, hitArr, htArr, color, lbl, scH, flY, topY, r, strNum){
+  const ctx=cx2;
+  const toY=h=>flY-h*scH;
+
+  // Label
+  ctx.fillStyle=color; ctx.font=`bold ${r===12?13:11}px Sarabun,sans-serif`; ctx.textAlign='center';
+  ctx.fillText(lbl, cx, topY-8);
+
+  // Rope — top to lowest in-air weight
+  let lowestAir=Math.max(...heights);
+  heights.forEach((h,i)=>{
+    if(!hitArr[i]) lowestAir=Math.min(lowestAir,Math.max(0,h-0.5*G*simT*simT));
+  });
+  ctx.strokeStyle=color+'60'; ctx.lineWidth=r===12?2.5:2;
+  ctx.beginPath(); ctx.moveTo(cx,topY); ctx.lineTo(cx,toY(lowestAir)); ctx.stroke();
+
+  // Support bracket
+  ctx.fillStyle=color+'cc'; ctx.fillRect(cx-24,topY-4,48,6);
+  ctx.strokeStyle=color; ctx.lineWidth=1;
+  ctx.strokeRect(cx-24,topY-4,48,6);
+
+  // Weights
+  heights.forEach((h,i)=>{
+    const curH=hitArr[i]?0:Math.max(0,h-0.5*G*simT*simT);
+    const wy=toY(curH);
+    const isHit=hitArr[i];
+    const age=isHit&&htArr[i]!==null?simT-htArr[i]:null;
+
+    // Impact effects (rings expanding from floor)
+    if(isHit&&age!==null&&age<0.5){
+      for(let ring=0;ring<2;ring++){
+        const a2=Math.max(0,age-ring*0.12);
+        if(a2>0){
+          const rad=r*1.5+a2*120;
+          const alpha=Math.max(0,1-a2*3.5);
+          ctx.beginPath(); ctx.arc(cx,flY,rad,0,Math.PI*2);
+          ctx.strokeStyle=color+Math.round(alpha*255).toString(16).padStart(2,'0');
+          ctx.lineWidth=2-ring; ctx.stroke();
+        }
+      }
+      // Floor splat circle
+      if(age<0.2){
+        ctx.beginPath(); ctx.arc(cx,flY,r*2,0,Math.PI*2);
+        ctx.fillStyle=color+Math.round((1-age/0.2)*60).toString(16).padStart(2,'0');
+        ctx.fill();
+      }
+    }
+
+    // Weight glow (in-air)
+    if(!isHit){
+      ctx.beginPath(); ctx.arc(cx,wy,r+5,0,Math.PI*2);
+      ctx.fillStyle=color+'18'; ctx.fill();
+    }
+
+    // Weight body
+    ctx.beginPath(); ctx.arc(cx,wy,r,0,Math.PI*2);
+    if(isHit){
+      ctx.fillStyle=color+'30';
+    } else {
+      const gr=ctx.createRadialGradient(cx-r*0.3,wy-r*0.3,r*0.1,cx,wy,r);
+      gr.addColorStop(0,'#ffffffcc'); gr.addColorStop(0.4,color); gr.addColorStop(1,color+'bb');
+      ctx.fillStyle=gr;
+    }
+    ctx.fill();
+    ctx.strokeStyle=isHit?color+'40':'#ffffff60'; ctx.lineWidth=1.2; ctx.stroke();
+
+    // Number
+    ctx.fillStyle=isHit?color+'50':'#0a0e1a';
+    ctx.font=`bold ${Math.round(r*0.9)}px Share Tech Mono,monospace`; ctx.textAlign='center';
+    ctx.fillText((i+1).toString(),cx,wy+r*0.35);
+
+    // cm label before drop
+    if(!isHit&&simT<0.015){
+      ctx.fillStyle=color+'99'; ctx.font='9px Share Tech Mono,monospace'; ctx.textAlign='left';
+      ctx.fillText((h*100).toFixed(0)+' cm',cx+r+3,wy+3);
+    }
+
+    // Δt badge when just hit
+    if(isHit&&age!==null&&age<0.8&&i>0){
+      const dt=heights===H1?(T1[i]-T1[i-1]):(T2[i]-T2[i-1]);
+      const alpha=Math.max(0,1-age/0.8);
+      ctx.fillStyle=`rgba(${color==='#38bdf8'?'56,189,248':'251,146,60'},${alpha})`;
+      ctx.font='bold 10px Share Tech Mono,monospace'; ctx.textAlign='center';
+      ctx.fillText('Δt='+dt.toFixed(3)+'s', cx, flY-14);
+    }
+  });
+}
+
+// ═══ READOUTS ═══
+function buildReadouts(){
+  document.getElementById('hits1').innerHTML=H1.map((h,i)=>
+    `<div class="hit-row" id="hr1-${i}">
+      <span class="hit-lbl">ตุ้ม ${i+1} (${(h*100).toFixed(0)} cm)</span>
+      <span class="hit-t" id="t1-${i}">— s</span>
+      <span class="hit-dt" style="color:#94a3b8" id="dt1-${i}">Δt—</span>
+    </div>`).join('');
+  document.getElementById('hits2').innerHTML=H2.map((h,i)=>
+    `<div class="hit-row" id="hr2-${i}">
+      <span class="hit-lbl">ตุ้ม ${i+1} (${(h*100).toFixed(0)} cm)</span>
+      <span class="hit-t" id="t2-${i}">— s</span>
+      <span class="hit-dt" style="color:#94a3b8" id="dt2-${i}">Δt—</span>
+    </div>`).join('');
+}
+function updRo1(i){
+  const t=T1[i], dt=i===0?t:t-T1[i-1];
+  const te=document.getElementById('t1-'+i), de=document.getElementById('dt1-'+i);
+  if(te) te.textContent=t.toFixed(3)+' s';
+  if(de){ de.textContent='Δ'+dt.toFixed(3); de.style.color=i===0?'#fb923c':'#f87171'; }
+  const r=document.getElementById('hr1-'+i); if(r) r.classList.add('lit');
+}
+function updRo2(i){
+  const t=T2[i], dt=i===0?t:t-T2[i-1];
+  const te=document.getElementById('t2-'+i), de=document.getElementById('dt2-'+i);
+  if(te) te.textContent=t.toFixed(3)+' s';
+  if(de){ de.textContent='Δ'+dt.toFixed(3); de.style.color='#34d399'; }
+  const r=document.getElementById('hr2-'+i); if(r) r.classList.add('lit');
+}
+
+// ═══ TIMELINE ═══
+function buildTimeline(){
+  const TL=0.65;
+  document.getElementById('tl1').innerHTML=T1.map((t,i)=>{
+    const pct=(t/TL)*100;
+    return`<div class="tl-dot c1" id="tld1-${i}" style="left:calc(${pct}% + 60px * ${pct/100})"></div>`;
+  }).join('');
+  document.getElementById('tl2').innerHTML=T2.map((t,i)=>{
+    const pct=(t/TL)*100;
+    return`<div class="tl-dot c2" id="tld2-${i}" style="left:calc(${pct}% + 60px * ${pct/100})"></div>`;
+  }).join('');
+
+  // Reposition properly
+  setTimeout(()=>{
+    const bars=document.querySelectorAll('.tl-bar');
+    [T1,T2].forEach((arr,si)=>{
+      const bar=bars[si]; if(!bar) return;
+      const bw=bar.clientWidth-80; // usable width after title
+      arr.forEach((t,i)=>{
+        const el=document.getElementById(`tld${si+1}-${i}`);
+        if(el) el.style.left=(80+(t/TL)*bw)+'px';
+      });
+    });
+  },100);
+}
+function litTl(id){
+  const el=document.getElementById(id);
+  if(el) el.classList.add('lit');
+}
+
+buildReadouts(); buildTimeline(); draw();
+
+// ═══════════════════════════════════════════
+// POE LOGIC
+// ═══════════════════════════════════════════
+let predS1=null, predS2=null;
+let obsS1=null, obsS2=null, obsDt=null;
+let gqAns={1:null,2:null,3:null};
+const OBS_CORRECT={s1:'faster',s2:'same',dt:'dec'};
+const PRED_LBL={same:'ห่างเท่ากันตลอด',faster:'ถี่ขึ้นเรื่อยๆ',slower:'ห่างขึ้นเรื่อยๆ'};
+const OBS_LBL={same:'ห่างเท่ากันตลอด',faster:'ถี่ขึ้นเรื่อยๆ',slower:'ห่างขึ้นเรื่อยๆ',dec:'Δt สั้นลงเรื่อยๆ',inc:'Δt ยาวขึ้น'};
+
+function drawPreviewCanvases(){
+  drawPreview('prevC1',H1,'#38bdf8');
+  drawPreview('prevC2',H2,'#fb923c');
+}
+function drawPreview(id,heights,color){
+  const cv=document.getElementById(id); if(!cv) return;
+  const W=cv.width,H=cv.height,ctx=cv.getContext('2d');
+  ctx.fillStyle='#0a0e1a'; ctx.fillRect(0,0,W,H);
+  const cx=W/2,flY=H-14,topY=14,sc=(flY-topY)/MAXH,toY=h=>flY-h*sc;
+  ctx.strokeStyle='#475569'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(10,flY); ctx.lineTo(W-10,flY); ctx.stroke();
+  ctx.strokeStyle=color+'55'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx,topY); ctx.lineTo(cx,toY(heights[0])); ctx.stroke();
+  ctx.fillStyle=color+'aa'; ctx.fillRect(cx-14,topY-2,28,4);
+  heights.forEach((h,i)=>{
+    const wy=toY(h),r=6;
+    const gr=ctx.createRadialGradient(cx-1,wy-1,1,cx,wy,r);
+    gr.addColorStop(0,'#fff'); gr.addColorStop(1,color);
+    ctx.beginPath(); ctx.arc(cx,wy,r,0,Math.PI*2);
+    ctx.fillStyle=gr; ctx.fill();
+    ctx.strokeStyle='#ffffff44'; ctx.lineWidth=0.8; ctx.stroke();
+    ctx.fillStyle='#0a0e1a'; ctx.font='bold 7px monospace'; ctx.textAlign='center';
+    ctx.fillText((i+1).toString(),cx,wy+2.5);
+    ctx.fillStyle=color+'88'; ctx.font='7px monospace'; ctx.textAlign='left';
+    ctx.fillText((h*100).toFixed(0)+'cm',cx+8,wy+2);
+  });
+}
+setTimeout(drawPreviewCanvases,200);
+
+function poeGoStep(step){
+  [0,1,2].forEach(i=>{
+    document.getElementById('pCard'+i).classList.remove('active');
+    const c=document.getElementById('sc'+i),l=document.getElementById('sl'+i);
+    c.classList.remove('cur','done'); l.classList.remove('cur','done');
+    if(i<step){c.classList.add('done');l.classList.add('done');}
+    else if(i===step){c.classList.add('cur');l.classList.add('cur');}
+  });
+  document.getElementById('pCard'+step).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function pickPred(q,val){
+  const id='pq'+q;
+  document.querySelectorAll('#'+id+' .pred-opt').forEach(el=>el.classList.remove('sel'));
+  event.target.closest('.pred-opt').classList.add('sel');
+  if(q===1) predS1=val; else predS2=val;
+  document.getElementById('predWarn').textContent=(predS1&&predS2)?'':'' ;
+}
+function submitPredict(){
+  if(!predS1||!predS2){
+    document.getElementById('predWarn').textContent='⚠ เลือกคำตอบทั้ง 2 ข้อก่อน';
+    return;
+  }
+  poeGoStep(1);
+}
+
+function goToSim(){
+  const banner=document.getElementById('poeReturnBanner');
+  if(banner) banner.style.display='flex';
+  showSec('sim',document.getElementById('navSim'));
+}
+function backFromSim(){
+  const banner=document.getElementById('poeReturnBanner');
+  if(banner) banner.style.display='none';
+  showSec('poe',document.getElementById('navPoe'));
+  poeGoStep(1);
+}
+
+function pickObs(q,val){
+  const id='oq'+q;
+  document.querySelectorAll('#'+id+' .obs-opt').forEach(el=>el.classList.remove('sel'));
+  event.target.closest('.obs-opt').classList.add('sel');
+  if(q===1) obsS1=val; else if(q===2) obsS2=val; else obsDt=val;
+  const ready=obsS1&&obsS2&&obsDt;
+  document.getElementById('obsWarn').textContent=ready?'✅ พร้อม':'';
+}
+function submitObserve(){
+  if(!obsS1||!obsS2||!obsDt){
+    document.getElementById('obsWarn').textContent='⚠ ตอบทั้ง 3 ข้อก่อน';
+    return;
+  }
+  buildExplain();
+  poeGoStep(2);
+}
+
+function buildExplain(){
+  const score=[obsS1===OBS_CORRECT.s1,obsS2===OBS_CORRECT.s2,obsDt===OBS_CORRECT.dt].filter(Boolean).length;
+  const fb=document.getElementById('eFeedback');
+  if(score===3){
+    fb.style.cssText='border-radius:10px;padding:16px 20px;margin-bottom:18px;font-size:0.95rem;font-weight:600;line-height:1.65;background:rgba(52,211,153,.15);border:1px solid #34d399;color:#34d399;';
+    fb.innerHTML='🌟 <strong>ยอดเยี่ยม! คุณเข้าใจการสังเกตได้ถูกต้องทั้งหมด (3/3)</strong><br><span style="font-size:0.85rem;font-weight:400">ลองตอบคำถามนำด้านล่างเพื่อเชื่อมโยงสู่ทฤษฎีฟิสิกส์</span>';
+    setTimeout(()=>{document.getElementById('revealBox').style.display='block';},900);
+  } else if(score===2){
+    fb.style.cssText='border-radius:10px;padding:16px 20px;margin-bottom:18px;font-size:0.95rem;font-weight:600;line-height:1.65;background:rgba(251,146,60,.12);border:1px solid #fb923c;color:#fb923c;';
+    fb.innerHTML='😊 <strong>เกือบสมบูรณ์! สังเกตได้ '+score+'/3 ข้อ</strong><br><span style="font-size:0.85rem;font-weight:400">มีบางข้อคลาดเคลื่อน — ดูตารางเปรียบเทียบด้านล่าง แล้วตอบคำถามนำต่อ</span>';
+  } else {
+    fb.style.cssText='border-radius:10px;padding:16px 20px;margin-bottom:18px;font-size:0.95rem;font-weight:600;line-height:1.65;background:rgba(248,113,113,.12);border:1px solid #f87171;color:#f87171;';
+    fb.innerHTML='🔄 <strong>ลองทดลองซ้ำอีกที! สังเกตได้เพียง '+score+'/3 ข้อ</strong><br>'
+      +'<span style="font-size:0.85rem;font-weight:400">ผลการสังเกตยังไม่ตรง — ลองกลับไปฟังเสียงแต่ละเส้นแยกกัน แล้วกลับมาตอบใหม่</span><br>'
+      +'<button class="goto-sim-btn" style="margin-top:10px;font-size:0.82rem;padding:7px 14px;display:inline-flex;" onclick="retryObs()">🔄 กลับไปสังเกตใหม่</button>';
+  }
+
+  const rows=[
+    {lbl:'เชือก ① (THUMP)',pred:PRED_LBL[predS1]||'—',obs:OBS_LBL[obsS1]||'—',cor:obsS1===OBS_CORRECT.s1,ans:'ถี่ขึ้นเรื่อยๆ'},
+    {lbl:'เชือก ② (CLICK)',pred:PRED_LBL[predS2]||'—',obs:OBS_LBL[obsS2]||'—',cor:obsS2===OBS_CORRECT.s2,ans:'ห่างเท่ากันตลอด'},
+    {lbl:'Δt ของเชือก ①',pred:'—',obs:OBS_LBL[obsDt]||'—',cor:obsDt===OBS_CORRECT.dt,ans:'Δt สั้นลงเรื่อยๆ'},
+  ];
+  document.getElementById('compareArea').innerHTML=`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:6px;">
+    <tr>
+      <th style="background:var(--panel2);padding:8px 12px;border:1px solid var(--border);text-align:left;">ประเด็น</th>
+      <th style="background:rgba(129,140,248,.1);padding:8px;border:1px solid var(--border);color:var(--accent2);">🔮 ทำนาย</th>
+      <th style="background:rgba(56,189,248,.08);padding:8px;border:1px solid var(--border);color:var(--accent);">👁 สังเกต</th>
+      <th style="background:var(--panel2);padding:8px;border:1px solid var(--border);color:var(--accent3);">✅ เฉลย</th>
+    </tr>
+    ${rows.map(r=>`<tr>
+      <td style="padding:7px 12px;border:1px solid var(--border);color:var(--muted);">${r.lbl}</td>
+      <td style="padding:7px 12px;border:1px solid var(--border);">${r.pred}</td>
+      <td style="padding:7px 12px;border:1px solid var(--border);color:${r.cor?'#34d399':'#f87171'};">${r.obs} ${r.cor?'✅':'❌'}</td>
+      <td style="padding:7px 12px;border:1px solid var(--border);color:#34d399;">${r.ans}</td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+
+function retryObs(){
+  obsS1=null; obsS2=null; obsDt=null;
+  ['oq1','oq2','oq3'].forEach(id=>document.querySelectorAll('#'+id+' .obs-opt').forEach(el=>el.classList.remove('sel')));
+  document.getElementById('obsWarn').textContent='';
+  // Reset E state
+  document.getElementById('revealBox').style.display='none';
+  document.getElementById('eFeedback').innerHTML='';
+  document.getElementById('compareArea').innerHTML='';
+  const btn=document.getElementById('gqCheckBtn');
+  if(btn){btn.textContent='✔ ตรวจคำตอบ';btn.disabled=false;}
+  gqAns={1:null,2:null,3:null};
+  ['gq1','gq2','gq3'].forEach(id=>document.querySelectorAll('#'+id+' .explain-opt').forEach(el=>el.classList.remove('sel','cor','wrg')));
+  goToSim();
+}
+
+function pickGQ(q,val){
+  const nth={a:1,b:2,c:3};
+  document.querySelectorAll('#gq'+q+' .explain-opt').forEach(el=>el.classList.remove('sel'));
+  event.target.closest('.explain-opt').classList.add('sel');
+  gqAns[q]=val;
+}
+function checkGQ(){
+  if(!gqAns[1]||!gqAns[2]||!gqAns[3]){alert('ตอบทั้ง 3 ข้อก่อนครับ');return;}
+  const cor={1:'b',2:'b',3:'b'};
+  [1,2,3].forEach(q=>{
+    const opts=document.querySelectorAll('#gq'+q+' .explain-opt');
+    opts.forEach(el=>el.classList.remove('sel','cor','wrg'));
+    const idx={a:0,b:1,c:2};
+    opts[idx[cor[q]]]?.classList.add('cor');
+    if(gqAns[q]!==cor[q]) opts[idx[gqAns[q]]]?.classList.add('wrg');
+  });
+  document.getElementById('revealBox').style.display='block';
+  document.getElementById('gqCheckBtn').textContent='✅ ตรวจแล้ว';
+  document.getElementById('gqCheckBtn').disabled=true;
+  setTimeout(()=>document.getElementById('revealBox').scrollIntoView({behavior:'smooth',block:'start'}),200);
+}
+
+
+
+// ═══ QUIZ LOGIC ═══
+// openSimHighlight — called from quiz answer reveal
+function openSimHighlight(mode, strNum, hiIdx, label){
+  setMode(mode);
+  resetSim();
+  simHl = hiIdx!==null ? {str:strNum, idx:hiIdx, label:label, start:Date.now()} : null;
+  showSec('sim', document.getElementById('navSim'));
+  // start highlight animation loop
+  if(hlAnimId) cancelAnimationFrame(hlAnimId);
+  if(simHl){ (function hlLoop(){ draw(); hlAnimId=requestAnimationFrame(hlLoop); })(); }
+  // stop after 8s
+  setTimeout(()=>{ cancelAnimationFrame(hlAnimId); simHl=null; },8000);
+}
+
+// Override resetSim to also clear highlight
+const _origResetSim = resetSim;
+// (already defined above, so we patch loop to stop highlight on manual reset)
+
+// ── Question Bank (20 questions, all with simLink where applicable) ──
+const QDB=[
+  {q:"ตุ้มที่ 1 ของเชือก ① อยู่สูงจากพื้น 25 cm เมื่อปล่อยตก ใช้เวลากี่วินาที (g = 9.8 m/s²)",
+   ch:["0.101 s","0.202 s","0.226 s","0.319 s"],ans:2,
+   ex:"t = √(2×0.25/9.8) = √0.051 ≈ 0.226 s (ตรงกับตาราง I แถวแรก)",
+   sim:{mode:'s1',str:1,hi:0,label:'ตุ้ม ①-1 (25 cm)'}},
+
+  {q:"ตุ้มที่ 2 ของเชือก ① อยู่สูง 50 cm เมื่อปล่อยตก ใช้เวลากี่วินาที (g = 9.8 m/s²)",
+   ch:["0.226 s","0.319 s","0.391 s","0.452 s"],ans:1,
+   ex:"t = √(2×0.50/9.8) ≈ 0.319 s (ตาราง I)",
+   sim:{mode:'s1',str:1,hi:1,label:'ตุ้ม ①-2 (50 cm)'}},
+
+  {q:"ตุ้มที่ 3 ของเชือก ① อยู่สูง 75 cm ใช้เวลาตกกี่วินาที (g = 9.8 m/s²)",
+   ch:["0.319 s","0.391 s","0.404 s","0.452 s"],ans:1,
+   ex:"t = √(2×0.75/9.8) ≈ 0.391 s (ตาราง I)",
+   sim:{mode:'s1',str:1,hi:2,label:'ตุ้ม ①-3 (75 cm)'}},
+
+  {q:"ตุ้มที่ 4 ของเชือก ① อยู่สูง 100 cm ใช้เวลาตกถึงพื้นกี่วินาที (g = 9.8 m/s²)",
+   ch:["0.391 s","0.410 s","0.452 s","0.505 s"],ans:2,
+   ex:"t = √(2×1.00/9.8) ≈ 0.452 s (ตาราง I)",
+   sim:{mode:'s1',str:1,hi:3,label:'ตุ้ม ①-4 (100 cm)'}},
+
+  {q:"ตุ้มสุดท้ายของเชือก ① อยู่สูง 150 cm ตกถึงพื้นเมื่อเวลาใด (g = 9.8 m/s²)",
+   ch:["0.505 s","0.519 s","0.553 s","0.606 s"],ans:2,
+   ex:"t = √(2×1.50/9.8) ≈ 0.553 s (ตาราง I แถวสุดท้าย)",
+   sim:{mode:'s1',str:1,hi:5,label:'ตุ้ม ①-6 (150 cm)'}},
+
+  {q:"ตุ้มที่ 1 ของเชือก ② อยู่สูง 5 cm จากพื้น ตกถึงพื้นเมื่อใด (g = 9.8 m/s²)",
+   ch:["0.051 s","0.101 s","0.202 s","0.226 s"],ans:1,
+   ex:"t = √(2×0.05/9.8) ≈ 0.101 s (ตาราง II แถวแรก)",
+   sim:{mode:'s2',str:2,hi:0,label:'ตุ้ม ②-1 (5 cm)'}},
+
+  {q:"ตุ้มที่ 2 ของเชือก ② (20 cm) กระทบพื้นเมื่อเวลาใด (g = 9.8 m/s²)",
+   ch:["0.101 s","0.202 s","0.226 s","0.303 s"],ans:1,
+   ex:"t = √(2×0.20/9.8) ≈ 0.202 s (ตาราง II)",
+   sim:{mode:'s2',str:2,hi:1,label:'ตุ้ม ②-2 (20 cm)'}},
+
+  {q:"ตุ้มที่ 3 ของเชือก ② (45 cm) ตกถึงพื้นเมื่อเวลาใด (g = 9.8 m/s²)",
+   ch:["0.202 s","0.303 s","0.319 s","0.404 s"],ans:1,
+   ex:"t = √(2×0.45/9.8) ≈ 0.303 s (ตาราง II)",
+   sim:{mode:'s2',str:2,hi:2,label:'ตุ้ม ②-3 (45 cm)'}},
+
+  {q:"ตุ้มที่ 4 ของเชือก ② (80 cm) ตกถึงพื้นเมื่อเวลาใด (g = 9.8 m/s²)",
+   ch:["0.303 s","0.391 s","0.404 s","0.452 s"],ans:2,
+   ex:"t = √(2×0.80/9.8) ≈ 0.404 s (ตาราง II)",
+   sim:{mode:'s2',str:2,hi:3,label:'ตุ้ม ②-4 (80 cm)'}},
+
+  {q:"ตุ้มสุดท้ายของเชือก ② อยู่สูง 180 cm ตกถึงพื้นเมื่อใด (g = 9.8 m/s²)",
+   ch:["0.505 s","0.553 s","0.606 s","0.707 s"],ans:2,
+   ex:"t = √(2×1.80/9.8) ≈ 0.606 s (ตาราง II แถวสุดท้าย)",
+   sim:{mode:'s2',str:2,hi:5,label:'ตุ้ม ②-6 (180 cm)'}},
+
+  {q:"ตุ้มที่ 5 (125 cm) ซึ่งมีอยู่ทั้งในเชือก ① และ ② กระทบพื้นพร้อมกันที่เวลาใด",
+   ch:["0.452 s","0.505 s","0.553 s","0.606 s"],ans:1,
+   ex:"t = √(2×1.25/9.8) ≈ 0.505 s ทั้งเชือก ① และ ② มีตุ้มที่ 125 cm",
+   sim:{mode:'both',str:0,hi:4,label:'ตุ้ม 125 cm (ทั้งสองเส้น)'}},
+
+  {q:"เชือก ① (ระยะเท่ากัน) เมื่อปล่อยตก เสียงที่ได้ยินจะเป็นอย่างไร",
+   ch:["ถี่เท่ากันตลอด","ถี่ขึ้นเรื่อยๆ","ห่างขึ้นเรื่อยๆ","สุ่มไม่สม่ำเสมอ"],ans:1,
+   ex:"Δt ลดลง (0.226, 0.093, 0.072, ...) เพราะ v เพิ่มขึ้น → ระยะเท่ากันใช้เวลาสั้นลง",
+   sim:{mode:'s1',str:1,hi:null,label:'เชือก ① ทั้งเส้น'}},
+
+  {q:"เชือก ② (ระยะเรขาคณิต 1:4:9:16:25:36) เมื่อปล่อยตก เสียงที่ได้ยินจะเป็นอย่างไร",
+   ch:["ถี่ขึ้นเรื่อยๆ","ห่างขึ้นเรื่อยๆ","ห่างเท่ากันตลอด","ขึ้นกับน้ำหนักตุ้ม"],ans:2,
+   ex:"Δt = 0.101 s ทุกช่วง เพราะ s_n ∝ n² → t_n = n·Δt → ห่างเท่ากัน",
+   sim:{mode:'s2',str:2,hi:null,label:'เชือก ② ทั้งเส้น'}},
+
+  {q:"Δt ระหว่างตุ้มที่ 1 (25 cm) กับตุ้มที่ 2 (50 cm) ของเชือก ① คือ",
+   ch:["0.226 s","0.093 s","0.072 s","0.319 s"],ans:1,
+   ex:"Δt = t₂ − t₁ = 0.319 − 0.226 = 0.093 s",
+   sim:{mode:'s1',str:1,hi:1,label:'ตุ้ม ①-2 (50 cm)'}},
+
+  {q:"ระยะห่างของตุ้มในเชือก ② (5,20,45,80,125,180 cm) เป็นสัดส่วนกับ",
+   ch:["1:2:3:4:5:6","1:3:5:7:9:11","1:4:9:16:25:36","2:4:8:16:32:64"],ans:2,
+   ex:"5:20:45:... = 1²×5 : 2²×5 : 3²×5 : ... → 1:4:9:16:25:36",
+   sim:{mode:'s2',str:2,hi:null,label:'เชือก ② ทั้งเส้น'}},
+
+  {q:"กราฟ s–t ของวัตถุตกอิสระมีลักษณะเป็น",
+   ch:["เส้นตรงผ่านจุดกำเนิด","พาราโบลา","เส้นโค้งชี้แจง","ไฮเปอร์โบลา"],ans:1,
+   ex:"s = ½gt² → s ∝ t² → กราฟพาราโบลา",
+   sim:{mode:'both',str:0,hi:null,label:'ทั้งสองเส้น'}},
+
+  {q:"เหตุใด Δt ของเชือก ① จึงสั้นลงเรื่อยๆ แม้ระยะห่างตุ้มเท่ากัน",
+   ch:["น้ำหนักตุ้มมากขึ้น","ความเร็วการตกเพิ่มขึ้น ระยะเท่ากันจึงใช้เวลาสั้นลง","แรงโน้มถ่วงเพิ่มขึ้น","เชือกมีความยืดหยุ่น"],ans:1,
+   ex:"v = gt → ยิ่งตกนาน ยิ่งเร็ว → ช่วง 25 cm ในตอนท้ายผ่านเร็วกว่าตอนต้น",
+   sim:{mode:'s1',str:1,hi:null,label:'เชือก ① ทั้งเส้น'}},
+
+  {q:"เหตุใดเชือก ② (ระยะ ∝ n²) จึงให้ Δt คงที่ทุกช่วง",
+   ch:["น้ำหนักตุ้มเท่ากัน","s_n ∝ n² ทำให้ t_n = n·Δt → Δt คงที่","เชือกมีความยาวพิเศษ","g ต่างกันตามความสูง"],ans:1,
+   ex:"t_n = √(2n²s₀/g) = n√(2s₀/g) = n·Δt → ช่วงเวลาระหว่างตุ้มคงที่",
+   sim:{mode:'s2',str:2,hi:null,label:'เชือก ② ทั้งเส้น'}},
+
+  {q:"ความเร็วขณะกระทบพื้นของตุ้มที่อยู่สูง 125 cm (g = 9.8 m/s²) คือ",
+   ch:["2.45 m/s","3.52 m/s","4.95 m/s","6.26 m/s"],ans:2,
+   ex:"v = √(2gs) = √(2×9.8×1.25) = √24.5 ≈ 4.95 m/s",
+   sim:{mode:'both',str:0,hi:4,label:'ตุ้ม 125 cm (ทั้งสองเส้น)'}},
+
+  {q:"ถ้าตุ้มที่ 1 ของเชือก ② อยู่สูง 5 cm ตุ้มที่ 3 (n=3) ควรอยู่สูงเท่าใดตามกฎ s ∝ n²",
+   ch:["15 cm","25 cm","45 cm","60 cm"],ans:2,
+   ex:"s₃ = 3²×5 = 9×5 = 45 cm ✓ (ตรงกับตาราง II)",
+   sim:{mode:'s2',str:2,hi:2,label:'ตุ้ม ②-3 (45 cm)'}},
+];
+
+const QUIZ_N=5;
+let selQ=[],qAns=[],qChecked=false;
+
+function shuffleQz(){
+  selQ=[...QDB].sort(()=>Math.random()-.5).slice(0,QUIZ_N);
+  qAns=new Array(QUIZ_N).fill(-1);
+  qChecked=false;
+  document.getElementById('scoreCard').classList.remove('show');
+  document.getElementById('subBtn').style.display='';
+  document.getElementById('subBtn').disabled=false;
+  document.getElementById('subBtn').textContent='✔ ส่งคำตอบ';
+  renderQuiz();
+}
+
+function renderQuiz(){
+  const chk=qChecked;
+  document.getElementById('qzMeta').textContent=
+    chk?`ทำเสร็จแล้ว — ${qAns.filter((a,i)=>a===selQ[i].ans).length}/${QUIZ_N} ถูก`
+       :`คลัง 20 ข้อ · ชุดนี้ ${QUIZ_N} ข้อ`;
+  document.getElementById('qzPb').style.width=(chk?100:0)+'%';
+
+  let h='';
+  selQ.forEach((q,i)=>{
+    h+=`<div class="q-card">
+      <div class="q-num">ข้อ ${i+1}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="q-choices">${q.ch.map((c,ci)=>{
+        let cl='q-opt';
+        if(chk){
+          if(ci===q.ans) cl+=' cor';
+          else if(ci===qAns[i]&&ci!==q.ans) cl+=' wrg';
+        } else if(ci===qAns[i]) cl+=' sel';
+        return`<div class="${cl}" onclick="pickQ(${i},${ci})"><span class="opt-key">${['ก','ข','ค','ง'][ci]}.</span>${c}</div>`;
+      }).join('')}</div>
+      ${chk?`<div class="q-fb show ${qAns[i]===q.ans?'cor':'wrg'}">
+        ${qAns[i]===q.ans?'✅ ถูกต้อง!':'❌ ผิด — คำตอบที่ถูก: <strong>'+['ก','ข','ค','ง'][q.ans]+'. '+q.ch[q.ans]+'</strong>'}
+        <br><small style="opacity:.85">${q.ex}</small>
+        ${q.sim?`<br><button class="btn-sim-link" onclick="openSimHighlight('${q.sim.mode}',${q.sim.str},${q.sim.hi!==null?q.sim.hi:'null'},'${q.sim.label}')">🎬 ดูใน Simulation — ${q.sim.label}</button>`:''}
+      </div>`:''}
+    </div>`;
+  });
+  document.getElementById('qContainer').innerHTML=h;
+}
+
+function pickQ(qi,ci){
+  if(qChecked) return;
+  qAns[qi]=ci; renderQuiz();
+}
+
+function submitQuiz(){
+  const unanswered=qAns.findIndex(a=>a===-1);
+  if(unanswered!==-1){ alert(`กรุณาตอบข้อ ${unanswered+1} ก่อนส่ง`); return; }
+  qChecked=true;
+  renderQuiz();
+  const ok=qAns.filter((a,i)=>a===selQ[i].ans).length;
+  document.getElementById('subBtn').textContent='✅ ตรวจแล้ว';
+  document.getElementById('subBtn').disabled=true;
+  showScore(ok);
+}
+
+function showScore(ok){
+  const pct=(ok/QUIZ_N*100).toFixed(0);
+  document.getElementById('scNum').textContent=`${ok}/${QUIZ_N}`;
+  let g,col;
+  if(ok===5){g='⭐ Perfect!';col='#34d399';}
+  else if(ok>=4){g='👍 ดีมาก';col='#38bdf8';}
+  else if(ok>=3){g='😊 ดี';col='#818cf8';}
+  else if(ok>=2){g='📚 ต้องพัฒนา';col='#fb923c';}
+  else          {g='💪 ทบทวนใหม่';col='#f87171';}
+  const ge=document.getElementById('scGrade'); ge.textContent=g; ge.style.color=col;
+  document.getElementById('scDet').textContent=`ตอบถูก ${ok} ข้อ จาก ${QUIZ_N} ข้อ (${pct}%)`;
+  document.getElementById('scoreCard').classList.add('show');
+}
+
+shuffleQz();
+
+</script>
+</body>
+</html>

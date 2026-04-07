@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guinea and Feather — Demo 01-14 | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --metal-c: #93c5fd;
+  --paper-c: #fbbf24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+/* ─── Header ─── */
+header {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+header .icon { font-size: 2rem; }
+header h1 { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+header p { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lang-btn {
+  background: var(--panel2); border: 1.5px solid var(--accent2);
+  color: var(--accent2); padding: 5px 14px; border-radius: 20px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-size: 0.8rem; font-weight: 700; transition: all .2s;
+}
+.lang-btn:hover { background: var(--accent2); color: #0a0e1a; }
+.badge {
+  background: #1e3a5f; border: 1px solid var(--accent);
+  color: var(--accent); padding: 3px 10px;
+  border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+}
+/* ─── Nav ─── */
+nav {
+  display: flex; gap: 4px; padding: 8px 20px;
+  background: #0f172a; border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none; }
+nav button {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); padding: 7px 16px; border-radius: 8px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-size: 0.85rem; font-weight: 600; white-space: nowrap;
+  transition: all .2s;
+}
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+/* ─── Section ─── */
+.section { display: none; }
+.section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+/* ─── Control Bar ─── */
+.cbar {
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.btn { padding: 6px 16px; border: none; border-radius: 6px; cursor: pointer;
+  font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.88rem; transition: .15s; }
+.btn-play  { background: #1b5e20; color: #fff; }
+.btn-play:hover { background: #2e7d32; }
+.btn-play.playing { background: #b71c1c; }
+.btn-reset { background: #0d47a1; color: #fff; }
+.btn-reset:hover { background: #1565c0; }
+.speed-group { display: flex; align-items: center; gap: 6px; }
+.speed-group span { font-size: 0.82rem; color: var(--muted); }
+.sl-range { accent-color: var(--accent); cursor: pointer; width: 90px; }
+#speedLbl { font-family: 'Share Tech Mono', monospace; color: var(--accent3); font-size: 0.88rem; min-width: 32px; }
+/* Mode buttons */
+.mode-group { display: flex; gap: 6px; }
+.mode-btn {
+  background: var(--panel2); border: 1.5px solid var(--border);
+  color: var(--muted); padding: 5px 14px; border-radius: 20px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-size: 0.82rem; font-weight: 700; transition: all .2s;
+}
+.mode-btn.active-air  { border-color: var(--accent3); color: var(--accent3); background: rgba(52,211,153,.12); }
+.mode-btn.active-vac  { border-color: var(--accent5); color: var(--accent5); background: rgba(244,114,182,.12); }
+/* ─── Sim Layout ─── */
+.sim-wrap {
+  display: flex; gap: 0; max-width: 1100px; margin: 0 auto;
+  padding: 16px; flex-wrap: wrap; justify-content: center;
+}
+.canvas-col { flex: 0 0 auto; }
+canvas { display: block; border-radius: 10px; border: 1px solid var(--border); background: #0a0e1a; }
+/* ─── Readout ─── */
+.readout-col {
+  flex: 1; min-width: 220px; max-width: 300px;
+  display: flex; flex-direction: column; gap: 10px; padding-left: 16px;
+}
+.r-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.r-title {
+  font-size: 0.78rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.r-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+.r-label { font-size: 0.8rem; color: var(--muted); flex: 1; }
+.r-val { font-family: 'Share Tech Mono', monospace; font-size: 1rem; font-weight: 700; }
+.r-unit { font-size: 0.72rem; color: var(--muted); }
+.r-metal { color: var(--metal-c); }
+.r-paper { color: var(--paper-c); }
+.timer-val { font-family: 'Share Tech Mono', monospace; font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+/* ─── Theory Tab ─── */
+.theory-wrap {
+  max-width: 900px; margin: 0 auto; padding: 20px 16px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+}
+.t-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.t-card h3 { color: var(--accent); font-size: 1rem; margin-bottom: 8px; }
+.t-card p, .t-card li { font-size: 0.88rem; color: var(--text); line-height: 1.6; }
+.t-card ul { padding-left: 16px; }
+.eq-box {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; margin: 8px 0;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; color: var(--accent3); text-align: center;
+}
+table.t-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
+table.t-table th { background: var(--panel2); color: var(--accent); padding: 5px 8px; text-align: left; }
+table.t-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); }
+table.t-table tr:last-child td { border-bottom: none; }
+/* ─── Concept Tab ─── */
+.concept-wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+.hero-card {
+  background: linear-gradient(135deg, #0f1f3a, #1a2e50);
+  border: 1.5px solid var(--accent); border-radius: 14px;
+  padding: 22px; margin-bottom: 16px; text-align: center;
+}
+.hero-card h2 { font-size: 1.4rem; color: var(--accent); margin-bottom: 8px; }
+.hero-card p { color: var(--text); line-height: 1.7; font-size: 0.95rem; }
+.concept-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
+  margin-bottom: 16px;
+}
+.c-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+}
+.c-card .c-icon { font-size: 1.8rem; margin-bottom: 6px; }
+.c-card h4 { color: var(--accent4); font-size: 0.9rem; margin-bottom: 4px; }
+.c-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+.summary-table { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.summary-table h3 { color: var(--accent3); margin-bottom: 10px; font-size: 1rem; }
+/* ─── Velocity bars ─── */
+.vel-bars { display: flex; gap: 16px; justify-content: center; padding: 8px 0; }
+.vel-bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vel-bar-wrap {
+  width: 36px; height: 80px; background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+  display: flex; align-items: flex-end;
+}
+.vel-bar-fill { width: 100%; transition: height .1s; border-radius: 2px 2px 0 0; }
+.vel-bar-label { font-size: 0.72rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="icon">🧲</div>
+  <div>
+    <h1 id="hTitle">Guinea and Feather — Demo 01-14</h1>
+    <p id="hSub">การตกอิสระ: ผลของแรงต้านอากาศ | ฟิสิกส์ ม.4–6</p>
+  </div>
+  <div class="header-right">
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">🌐 English</button>
+    <div class="badge">KP Science simulation</div>
+  </div>
+</header>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <button class="active" id="nav0" onclick="showSection('sim',this)">🎬 <span class="nt0">Simulation</span></button>
+  <button id="nav1" onclick="showSection('theory',this)">📐 <span class="nt1">ทฤษฎี</span></button>
+  <button id="nav2" onclick="showSection('concept',this)">💡 <span class="nt2">สรุปแนวคิด</span></button>
+</nav>
+
+<!-- ════════════════════════════════════
+     SECTION : SIMULATION
+════════════════════════════════════ -->
+<div class="section active" id="sec-sim">
+  <!-- Control Bar -->
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ <span id="playTxt">เริ่ม</span></button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ <span id="resetTxt">รีเซ็ต</span></button>
+    <div class="speed-group">
+      <span id="speedLblTxt">ความเร็ว</span>
+      <input class="sl-range" type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+      <span id="speedLbl">1.0×</span>
+    </div>
+    <div class="mode-group">
+      <button class="mode-btn active-air" id="btnAir" onclick="setMode('air')">🌬️ <span id="airTxt">มีอากาศ</span></button>
+      <button class="mode-btn" id="btnVac" onclick="setMode('vac')">🚀 <span id="vacTxt">สุญญากาศ</span></button>
+    </div>
+  </div>
+
+  <!-- Sim body -->
+  <div class="sim-wrap">
+    <div class="canvas-col">
+      <canvas id="simCanvas" width="520" height="590"></canvas>
+    </div>
+
+    <!-- Readout -->
+    <div class="readout-col">
+      <!-- Timer -->
+      <div class="r-card">
+        <div class="r-title" id="rtTimer">⏱ เวลา</div>
+        <div class="r-row" style="justify-content:center;">
+          <span class="timer-val" id="valTimer">0.000</span>
+          <span class="r-unit">s</span>
+        </div>
+      </div>
+
+      <!-- Metal -->
+      <div class="r-card">
+        <div class="r-title" style="color:var(--metal-c);" id="rtMetal">🔩 แผ่นโลหะ</div>
+        <div class="r-row">
+          <span class="r-label" id="lblVel">ความเร็ว</span>
+          <span class="r-val r-metal" id="valMV">0.00</span>
+          <span class="r-unit">m/s</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblAcc">ความเร่ง</span>
+          <span class="r-val r-metal" id="valMA">9.80</span>
+          <span class="r-unit">m/s²</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblDist">ระยะทาง</span>
+          <span class="r-val r-metal" id="valMD">0.000</span>
+          <span class="r-unit">m</span>
+        </div>
+        <div class="r-row" id="metalFinRow" style="display:none;">
+          <span class="r-label" id="lblFin">ถึงก้น</span>
+          <span class="r-val r-metal" id="valMF">—</span>
+          <span class="r-unit">s</span>
+        </div>
+      </div>
+
+      <!-- Paper -->
+      <div class="r-card">
+        <div class="r-title" style="color:var(--paper-c);" id="rtPaper">📄 กระดาษ</div>
+        <div class="r-row">
+          <span class="r-label" id="lblVel2">ความเร็ว</span>
+          <span class="r-val r-paper" id="valPV">0.00</span>
+          <span class="r-unit">m/s</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblAcc2">ความเร่ง</span>
+          <span class="r-val r-paper" id="valPA">9.80</span>
+          <span class="r-unit">m/s²</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblDist2">ระยะทาง</span>
+          <span class="r-val r-paper" id="valPD">0.000</span>
+          <span class="r-unit">m</span>
+        </div>
+        <div class="r-row" id="paperFinRow" style="display:none;">
+          <span class="r-label" id="lblFin2">ถึงก้น</span>
+          <span class="r-val r-paper" id="valPF">—</span>
+          <span class="r-unit">s</span>
+        </div>
+      </div>
+
+      <!-- Param info -->
+      <div class="r-card">
+        <div class="r-title" id="rtParam">📊 พารามิเตอร์</div>
+        <div class="r-row">
+          <span class="r-label" id="lblMode2">โหมด</span>
+          <span class="r-val" id="valMode" style="color:var(--accent3); font-size:.85rem;">มีอากาศ</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblMass">มวลโลหะ</span>
+          <span class="r-val r-metal">100</span>
+          <span class="r-unit">g</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label" id="lblMass2">มวลกระดาษ</span>
+          <span class="r-val r-paper">1</span>
+          <span class="r-unit">g</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label">v<sub>t</sub> (Metal)</span>
+          <span class="r-val r-metal">36.5</span>
+          <span class="r-unit">m/s</span>
+        </div>
+        <div class="r-row">
+          <span class="r-label">v<sub>t</sub> (Paper)</span>
+          <span class="r-val r-paper">1.49</span>
+          <span class="r-unit">m/s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION : THEORY
+════════════════════════════════════ -->
+<div class="section" id="sec-theory">
+  <div class="theory-wrap">
+
+    <div class="t-card">
+      <h3 id="th1">🌍 การตกอิสระ</h3>
+      <p id="th1p">ในสุญญากาศ วัตถุทุกชนิดตกด้วยความเร่งเท่ากันคือ g = 9.8 m/s² โดยไม่ขึ้นกับมวล นี่คือสิ่งที่กาลิเลโอค้นพบ</p>
+      <div class="eq-box">a = g = 9.8 m/s²</div>
+      <p id="th1p2">เมื่อมีอากาศ แรงต้านทำให้ความเร่งลดลง และวัตถุเบาจะได้รับผลมากกว่าวัตถุหนัก</p>
+      <div class="eq-box">a = g − F<sub>d</sub>/m</div>
+    </div>
+
+    <div class="t-card">
+      <h3 id="th2">💨 แรงต้านอากาศ</h3>
+      <p id="th2p">แรงต้านอากาศขึ้นกับความเร็ว รูปทรง ขนาด และความหนาแน่นของอากาศ</p>
+      <div class="eq-box">F<sub>d</sub> = ½ρC<sub>d</sub>Av²</div>
+      <table class="t-table" id="dragTable">
+        <tr><th id="tt1">ตัวแปร</th><th id="tt2">ความหมาย</th><th id="tt3">ค่า</th></tr>
+        <tr><td>ρ</td><td id="tt4">ความหนาแน่นอากาศ</td><td>1.225 kg/m³</td></tr>
+        <tr><td>C<sub>d</sub></td><td id="tt5">สัมประสิทธิ์ลาก</td><td>0.3 / 1.8</td></tr>
+        <tr><td>A</td><td id="tt6">พื้นที่หน้าตัด</td><td>0.004 m²</td></tr>
+        <tr><td>v</td><td id="tt7">ความเร็ว</td><td>m/s</td></tr>
+      </table>
+    </div>
+
+    <div class="t-card">
+      <h3 id="th3">⚡ ความเร็วสุดท้าย</h3>
+      <p id="th3p">เมื่อแรงต้านเท่ากับแรงโน้มถ่วง วัตถุถึงความเร็วสุดท้าย (Terminal Velocity)</p>
+      <div class="eq-box">v<sub>t</sub> = √(2mg / ρC<sub>d</sub>A)</div>
+      <table class="t-table" id="vtTable">
+        <tr><th id="tt8">วัตถุ</th><th>m (g)</th><th>C<sub>d</sub></th><th>v<sub>t</sub> (m/s)</th></tr>
+        <tr><td id="tt9" style="color:var(--metal-c);">🔩 โลหะ</td><td>100</td><td>0.3</td><td style="color:var(--metal-c);">36.5</td></tr>
+        <tr><td id="tt10" style="color:var(--paper-c);">📄 กระดาษ</td><td>1</td><td>1.8</td><td style="color:var(--paper-c);">1.49</td></tr>
+      </table>
+    </div>
+
+    <div class="t-card">
+      <h3 id="th4">📐 กฎข้อที่ 2 ของนิวตัน</h3>
+      <p id="th4p">แรงลัพธ์ที่กระทำต่อวัตถุเท่ากับมวลคูณด้วยความเร่ง</p>
+      <div class="eq-box">ΣF = ma</div>
+      <div class="eq-box">mg − F<sub>d</sub> = ma</div>
+      <p id="th4p2">ในหลอดที่ยาว 1.5 m ภายใต้แรงโน้มถ่วงปกติ:<br>
+        🔩 ถึงก้น ≈ 0.553 s (เหมือนกันทั้ง 2 โหมด)<br>
+        📄 ถึงก้น ≈ 1.11 s (มีอากาศ) / 0.553 s (สุญญากาศ)</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SECTION : CONCEPT
+════════════════════════════════════ -->
+<div class="section" id="sec-concept">
+  <div class="concept-wrap">
+    <div class="hero-card">
+      <h2 id="con0">💡 แนวคิดสำคัญ</h2>
+      <p id="con0p">วัตถุทุกชนิด ไม่ว่าจะหนักหรือเบา ตกด้วยความเร่งเท่ากันเมื่อไม่มีแรงต้านอากาศ ความแตกต่างที่เราเห็นในชีวิตประจำวันเกิดจากแรงต้านอากาศ ไม่ใช่จากมวลของวัตถุ</p>
+    </div>
+
+    <div class="concept-grid">
+      <div class="c-card">
+        <div class="c-icon">🌕</div>
+        <h4 id="c1h">บนดวงจันทร์</h4>
+        <p id="c1p">ปี 1971 นักบินอวกาศ David Scott ทดลองทิ้งค้อนและขนนกพร้อมกันบนดวงจันทร์ ทั้งสองตกถึงพื้นพร้อมกันทุกประการ เพราะดวงจันทร์ไม่มีบรรยากาศ</p>
+      </div>
+      <div class="c-card">
+        <div class="c-icon">🏛️</div>
+        <h4 id="c2h">กาลิเลโอ</h4>
+        <p id="c2p">กาลิเลโอ กาลิเลอี เสนอในปี ค.ศ. 1638 ว่าวัตถุทุกชนิดตกด้วยความเร่งเท่ากัน โดยทดลองกับลูกเหล็กต่างขนาดจากหอเอนปิซา</p>
+      </div>
+      <div class="c-card">
+        <div class="c-icon">🧪</div>
+        <h4 id="c3h">การทดลองนี้</h4>
+        <p id="c3p">หลอดแก้ว 2 หลอดบรรจุแผ่นโลหะและกระดาษ เมื่อพลิกกลับในอากาศกระดาษตกช้ากว่า แต่เมื่อสูบอากาศออกทั้งสองตกถึงก้นพร้อมกัน</p>
+      </div>
+      <div class="c-card">
+        <div class="c-icon">⚖️</div>
+        <h4 id="c4h">หลักสมมูล</h4>
+        <p id="c4p">มวลเฉื่อยและมวลโน้มถ่วงมีค่าเท่ากัน นี่คือพื้นฐานของทฤษฎีสัมพัทธภาพทั่วไปของ Einstein และแสดงให้เห็นว่าแรงโน้มถ่วงไม่เลือกวัตถุ</p>
+      </div>
+    </div>
+
+    <div class="summary-table">
+      <h3 id="sumH">📊 สรุปเปรียบเทียบ</h3>
+      <table class="t-table" id="sumTable">
+        <tr>
+          <th id="st0">สภาวะ</th>
+          <th id="st1">โลหะ (t)</th>
+          <th id="st2">กระดาษ (t)</th>
+          <th id="st3">ผล</th>
+        </tr>
+        <tr>
+          <td id="st4">🌬️ มีอากาศ</td>
+          <td style="color:var(--metal-c);">0.553 s</td>
+          <td style="color:var(--paper-c);">1.11 s</td>
+          <td id="st5">ตกต่างเวลา</td>
+        </tr>
+        <tr>
+          <td id="st6">🚀 สุญญากาศ</td>
+          <td style="color:var(--metal-c);">0.553 s</td>
+          <td style="color:var(--paper-c);">0.553 s</td>
+          <td id="st7">ตกพร้อมกัน ✅</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   LANGUAGE SYSTEM
+════════════════════════════════════ */
+let lang = 'th';
+
+const T = {
+  th: {
+    hTitle: 'Guinea and Feather — Demo 01-14',
+    hSub:   'การตกอิสระ: ผลของแรงต้านอากาศ | ฟิสิกส์ ม.4–6',
+    langBtn: '🌐 English',
+    nt0: 'Simulation', nt1: 'ทฤษฎี', nt2: 'สรุปแนวคิด',
+    playStart: 'เริ่ม', playPause: 'หยุด', resetTxt: 'รีเซ็ต',
+    speedLblTxt: 'ความเร็ว',
+    airTxt: 'มีอากาศ', vacTxt: 'สุญญากาศ',
+    rtTimer: '⏱ เวลา',
+    rtMetal: '🔩 แผ่นโลหะ', rtPaper: '📄 กระดาษ',
+    lblVel: 'ความเร็ว', lblAcc: 'ความเร่ง', lblDist: 'ระยะทาง', lblFin: 'ถึงก้น',
+    lblVel2: 'ความเร็ว', lblAcc2: 'ความเร่ง', lblDist2: 'ระยะทาง', lblFin2: 'ถึงก้น',
+    rtParam: '📊 พารามิเตอร์', lblMode2: 'โหมด', lblMass: 'มวลโลหะ', lblMass2: 'มวลกระดาษ',
+    modeAir: 'มีอากาศ', modeVac: 'สุญญากาศ',
+    // Theory
+    th1: '🌍 การตกอิสระ',
+    th1p: 'ในสุญญากาศ วัตถุทุกชนิดตกด้วยความเร่งเท่ากันคือ g = 9.8 m/s² โดยไม่ขึ้นกับมวล นี่คือสิ่งที่กาลิเลโอค้นพบ',
+    th1p2: 'เมื่อมีอากาศ แรงต้านทำให้ความเร่งลดลง และวัตถุเบาจะได้รับผลมากกว่าวัตถุหนัก',
+    th2: '💨 แรงต้านอากาศ', th2p: 'แรงต้านอากาศขึ้นกับความเร็ว รูปทรง ขนาด และความหนาแน่นของอากาศ',
+    tt1: 'ตัวแปร', tt2: 'ความหมาย', tt3: 'ค่า',
+    tt4: 'ความหนาแน่นอากาศ', tt5: 'สัมประสิทธิ์ลาก', tt6: 'พื้นที่หน้าตัด', tt7: 'ความเร็ว',
+    th3: '⚡ ความเร็วสุดท้าย', th3p: 'เมื่อแรงต้านเท่ากับแรงโน้มถ่วง วัตถุถึงความเร็วสุดท้าย (Terminal Velocity)',
+    tt8: 'วัตถุ', tt9: '🔩 โลหะ', tt10: '📄 กระดาษ',
+    th4: '📐 กฎข้อที่ 2 ของนิวตัน', th4p: 'แรงลัพธ์ที่กระทำต่อวัตถุเท่ากับมวลคูณด้วยความเร่ง',
+    th4p2: 'ในหลอดที่ยาว 1.5 m ภายใต้แรงโน้มถ่วงปกติ:<br>🔩 ถึงก้น ≈ 0.553 s (เหมือนกันทั้ง 2 โหมด)<br>📄 ถึงก้น ≈ 1.11 s (มีอากาศ) / 0.553 s (สุญญากาศ)',
+    // Concept
+    con0: '💡 แนวคิดสำคัญ',
+    con0p: 'วัตถุทุกชนิด ไม่ว่าจะหนักหรือเบา ตกด้วยความเร่งเท่ากันเมื่อไม่มีแรงต้านอากาศ ความแตกต่างที่เราเห็นในชีวิตประจำวันเกิดจากแรงต้านอากาศ ไม่ใช่จากมวลของวัตถุ',
+    c1h: 'บนดวงจันทร์', c1p: 'ปี 1971 นักบินอวกาศ David Scott ทดลองทิ้งค้อนและขนนกพร้อมกันบนดวงจันทร์ ทั้งสองตกถึงพื้นพร้อมกันทุกประการ เพราะดวงจันทร์ไม่มีบรรยากาศ',
+    c2h: 'กาลิเลโอ', c2p: 'กาลิเลโอ กาลิเลอี เสนอในปี ค.ศ. 1638 ว่าวัตถุทุกชนิดตกด้วยความเร่งเท่ากัน โดยทดลองกับลูกเหล็กต่างขนาดจากหอเอนปิซา',
+    c3h: 'การทดลองนี้', c3p: 'หลอดแก้ว 2 หลอดบรรจุแผ่นโลหะและกระดาษ เมื่อพลิกกลับในอากาศกระดาษตกช้ากว่า แต่เมื่อสูบอากาศออกทั้งสองตกถึงก้นพร้อมกัน',
+    c4h: 'หลักสมมูล', c4p: 'มวลเฉื่อยและมวลโน้มถ่วงมีค่าเท่ากัน นี่คือพื้นฐานของทฤษฎีสัมพัทธภาพทั่วไปของ Einstein และแสดงให้เห็นว่าแรงโน้มถ่วงไม่เลือกวัตถุ',
+    sumH: '📊 สรุปเปรียบเทียบ',
+    st0: 'สภาวะ', st1: 'โลหะ (t)', st2: 'กระดาษ (t)', st3: 'ผล',
+    st4: '🌬️ มีอากาศ', st5: 'ตกต่างเวลา', st6: '🚀 สุญญากาศ', st7: 'ตกพร้อมกัน ✅',
+    cMetal: 'โลหะ', cPaper: 'กระดาษ', cAir: 'มีอากาศ', cVac: 'สุญญากาศ',
+    cTogether: '🎉 ถึงพร้อมกัน!', cScale: 'ระยะ',
+  },
+  en: {
+    hTitle: 'Guinea and Feather — Demo 01-14',
+    hSub:   'Free Fall: Effect of Air Resistance | Physics Grade 10–12',
+    langBtn: '🌐 ภาษาไทย',
+    nt0: 'Simulation', nt1: 'Theory', nt2: 'Key Concepts',
+    playStart: 'Play', playPause: 'Pause', resetTxt: 'Reset',
+    speedLblTxt: 'Speed',
+    airTxt: 'With Air', vacTxt: 'Vacuum',
+    rtTimer: '⏱ Time',
+    rtMetal: '🔩 Metal Disc', rtPaper: '📄 Paper',
+    lblVel: 'Velocity', lblAcc: 'Acceleration', lblDist: 'Distance', lblFin: 'Finish',
+    lblVel2: 'Velocity', lblAcc2: 'Acceleration', lblDist2: 'Distance', lblFin2: 'Finish',
+    rtParam: '📊 Parameters', lblMode2: 'Mode', lblMass: 'Metal mass', lblMass2: 'Paper mass',
+    modeAir: 'With Air', modeVac: 'Vacuum',
+    th1: '🌍 Free Fall',
+    th1p: 'In vacuum, all objects fall with the same acceleration g = 9.8 m/s², regardless of mass. This is what Galileo discovered.',
+    th1p2: 'With air, drag reduces acceleration. Lighter objects are affected more than heavier ones.',
+    th2: '💨 Air Drag Force', th2p: 'Drag force depends on velocity, shape, area, and air density.',
+    tt1: 'Symbol', tt2: 'Meaning', tt3: 'Value',
+    tt4: 'Air density', tt5: 'Drag coefficient', tt6: 'Cross-section area', tt7: 'Velocity',
+    th3: '⚡ Terminal Velocity', th3p: 'When drag equals gravity, the object reaches terminal velocity.',
+    tt8: 'Object', tt9: '🔩 Metal', tt10: '📄 Paper',
+    th4: "📐 Newton's 2nd Law", th4p: 'Net force on an object equals mass times acceleration.',
+    th4p2: 'In a 1.5 m tube under normal gravity:<br>🔩 Reaches bottom ≈ 0.553 s (both modes)<br>📄 Reaches bottom ≈ 1.11 s (air) / 0.553 s (vacuum)',
+    con0: '💡 Key Concept',
+    con0p: 'All objects, heavy or light, fall with the same acceleration when there is no air resistance. Differences we see in everyday life are caused by air drag, not by the mass of the object.',
+    c1h: 'On the Moon', c1p: 'In 1971, astronaut David Scott simultaneously dropped a hammer and a feather on the Moon. Both hit the ground at exactly the same time because the Moon has no atmosphere.',
+    c2h: 'Galileo', c2p: 'Galileo Galilei proposed in 1638 that all objects fall with the same acceleration, demonstrated by dropping iron balls of different sizes from the Leaning Tower of Pisa.',
+    c3h: 'This Experiment', c3p: 'Two glass tubes contain a metal disc and paper. When inverted with air, the paper falls slower. When air is pumped out, both reach the bottom at the same time.',
+    c4h: 'Equivalence Principle', c4p: "Inertial mass and gravitational mass are equal. This is the foundation of Einstein's General Theory of Relativity and shows that gravity does not discriminate.",
+    sumH: '📊 Comparison Summary',
+    st0: 'Condition', st1: 'Metal (t)', st2: 'Paper (t)', st3: 'Result',
+    st4: '🌬️ With Air', st5: 'Different times', st6: '🚀 Vacuum', st7: 'Together ✅',
+    cMetal: 'Metal', cPaper: 'Paper', cAir: 'With Air', cVac: 'Vacuum',
+    cTogether: '🎉 Together!', cScale: 'Distance',
+  }
+};
+
+function toggleLang() {
+  lang = lang === 'th' ? 'en' : 'th';
+  applyLang();
+}
+
+function applyLang() {
+  const L = T[lang];
+  const ids = ['hTitle','hSub','langBtn','nt0','nt1','nt2',
+    'resetTxt','speedLblTxt','airTxt','vacTxt',
+    'rtTimer','rtMetal','rtPaper',
+    'lblVel','lblAcc','lblDist','lblFin',
+    'lblVel2','lblAcc2','lblDist2','lblFin2',
+    'rtParam','lblMode2','lblMass','lblMass2',
+    'th1','th1p','th1p2','th2','th2p',
+    'tt1','tt2','tt3','tt4','tt5','tt6','tt7',
+    'th3','th3p','tt8','tt9','tt10',
+    'th4','th4p','th4p2',
+    'con0','con0p','c1h','c1p','c2h','c2p','c3h','c3p','c4h','c4p',
+    'sumH','st0','st1','st2','st3','st4','st5','st6','st7'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && L[id] !== undefined) el.innerHTML = L[id];
+  });
+  // play btn
+  const pb = document.getElementById('playBtn');
+  const pt = document.getElementById('playTxt');
+  if (pt) pt.textContent = isPlaying ? L.playPause : L.playStart;
+  // mode display
+  const vm = document.getElementById('valMode');
+  if (vm) vm.textContent = mode === 'air' ? L.modeAir : L.modeVac;
+  // html lang
+  document.documentElement.lang = lang === 'th' ? 'th' : 'en';
+  draw();
+}
+
+/* ════════════════════════════════════
+   PHYSICS CONSTANTS
+════════════════════════════════════ */
+const G    = 9.8;       // m/s²
+const LENT = 1.5;       // tube length m
+// Metal disc
+const mM   = 0.1;       // kg
+const bM   = 0.000735;  // drag coeff × area × rho/2
+// Paper
+const mP   = 0.001;     // kg
+const bP   = 0.00441;
+
+/* ════════════════════════════════════
+   CANVAS CONSTANTS
+════════════════════════════════════ */
+const CW = 520, CH = 590;
+const LX = 130;   // left tube center X  (metal)
+const RX = 390;   // right tube center X (paper)
+const TW = 28;    // tube inner half-width
+const WALL = 8;   // tube wall thickness
+const TTOP = 90;  // tube top Y
+const TBOT = 530; // tube bottom Y
+const TH   = TBOT - TTOP;  // 440 px
+const PPM  = TH / LENT;    // px per metre
+const SX   = CW/2;         // scale bar X
+
+/* ════════════════════════════════════
+   AIR PARTICLES
+════════════════════════════════════ */
+const N_PART = 16;
+const particles = { L: [], R: [] };
+function initParticles() {
+  ['L','R'].forEach(side => {
+    particles[side] = [];
+    const cx = side === 'L' ? LX : RX;
+    for (let i = 0; i < N_PART; i++) {
+      particles[side].push({
+        x: cx + (Math.random() - 0.5) * (TW * 2 - 8),
+        y: TTOP + Math.random() * TH,
+        vy: -(0.4 + Math.random() * 0.8),
+        r:  1.5 + Math.random() * 1.5,
+        a:  0.3 + Math.random() * 0.4
+      });
+    }
+  });
+}
+function updateParticles(dt) {
+  ['L','R'].forEach(side => {
+    const cx = side === 'L' ? LX : RX;
+    particles[side].forEach(p => {
+      p.y += p.vy * dt * 60;
+      if (p.y < TTOP) {
+        p.y = TBOT;
+        p.x = cx + (Math.random() - 0.5) * (TW * 2 - 8);
+      }
+    });
+  });
+}
+
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+let mode = 'air';        // 'air' | 'vac'
+let isPlaying = false;
+let animId = null;
+let lastTs = null;
+let speed = 1.0;
+let simTime = 0;
+let metalPos = 0, metalVel = 0, metalAccel = G, metalDone = false, metalFin = -1;
+let paperPos = 0, paperVel = 0, paperAccel = G, paperDone = false, paperFin = -1;
+let celebTimer = 0;
+let flashMetal = 0, flashPaper = 0;
+
+function initState() {
+  simTime = 0;
+  metalPos = 0; metalVel = 0; metalAccel = G; metalDone = false; metalFin = -1;
+  paperPos = 0; paperVel = 0; paperAccel = G; paperDone = false; paperFin = -1;
+  celebTimer = 0; flashMetal = 0; flashPaper = 0;
+  document.getElementById('metalFinRow').style.display = 'none';
+  document.getElementById('paperFinRow').style.display = 'none';
+}
+
+/* ════════════════════════════════════
+   ANIMATION LOOP
+════════════════════════════════════ */
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * speed;
+  lastTs = ts;
+
+  update(dt);
+  draw();
+  updateReadout();
+
+  const allDone = metalDone && paperDone;
+  if (celebTimer > 0) celebTimer -= dt;
+
+  if (allDone && celebTimer <= 0) {
+    isPlaying = false;
+    updatePlayBtn();
+    return;
+  }
+  animId = requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  const vac = mode === 'vac';
+  simTime += dt;
+
+  // Metal
+  if (!metalDone) {
+    const drag = vac ? 0 : bM * metalVel * metalVel;
+    metalAccel = G - drag / mM;
+    metalVel  += metalAccel * dt;
+    metalPos  += metalVel * dt;
+    if (metalPos >= LENT) {
+      metalPos = LENT; metalVel = 0; metalDone = true;
+      metalFin = simTime; flashMetal = 0.6;
+      document.getElementById('metalFinRow').style.display = 'flex';
+      document.getElementById('valMF').textContent = metalFin.toFixed(3);
+    }
+  }
+
+  // Paper
+  if (!paperDone) {
+    const drag = vac ? 0 : bP * paperVel * paperVel;
+    paperAccel = G - drag / mP;
+    if (paperAccel < 0) paperAccel = 0;
+    paperVel  += paperAccel * dt;
+    paperPos  += paperVel * dt;
+    if (paperPos >= LENT) {
+      paperPos = LENT; paperVel = 0; paperDone = true;
+      paperFin = simTime; flashPaper = 0.6;
+      document.getElementById('paperFinRow').style.display = 'flex';
+      document.getElementById('valPF').textContent = paperFin.toFixed(3);
+    }
+  }
+
+  // Celebration
+  if (metalDone && paperDone && celebTimer <= 0 && vac) {
+    celebTimer = 2.5;
+  }
+
+  // Particles
+  if (!mode === 'vac') updateParticles(dt);
+  if (mode === 'air') updateParticles(dt);
+
+  // Flash decay
+  if (flashMetal > 0) flashMetal -= dt * 2;
+  if (flashPaper > 0) flashPaper -= dt * 2;
+}
+
+/* ════════════════════════════════════
+   DRAW
+════════════════════════════════════ */
+function draw() {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Background
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(30,58,95,0.4)'; ctx.lineWidth = 1;
+  for (let x = 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Draw tubes
+  drawTube(ctx, LX);
+  drawTube(ctx, RX);
+
+  // Air particles
+  if (mode === 'air') {
+    ['L','R'].forEach(side => {
+      const cx = side === 'L' ? LX : RX;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cx - TW, TTOP, TW * 2, TH);
+      ctx.clip();
+      particles[side].forEach(p => {
+        ctx.globalAlpha = p.a * 0.5;
+        ctx.fillStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.restore();
+    });
+  }
+
+  // Objects
+  drawMetal(ctx);
+  drawPaper(ctx);
+
+  // Scale bar
+  drawScaleBar(ctx);
+
+  // Labels
+  drawLabels(ctx);
+
+  // Celebration
+  if (celebTimer > 0) {
+    const alpha = Math.min(1, celebTimer / 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 22px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(T[lang].cTogether, W/2, H/2 - 20);
+    // Stars
+    for (let i = 0; i < 6; i++) {
+      const ax = W/2 + Math.cos(i * Math.PI/3 + simTime*2) * 80;
+      const ay = H/2 + Math.sin(i * Math.PI/3 + simTime*2) * 40 - 20;
+      ctx.font = '18px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('✨', ax, ay);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawTube(ctx, cx) {
+  // Outer walls
+  const grad = ctx.createLinearGradient(cx - TW - WALL, 0, cx + TW + WALL, 0);
+  grad.addColorStop(0,   'rgba(100,160,220,0.35)');
+  grad.addColorStop(0.15,'rgba(180,220,255,0.08)');
+  grad.addColorStop(0.5, 'rgba(180,220,255,0.03)');
+  grad.addColorStop(0.85,'rgba(180,220,255,0.08)');
+  grad.addColorStop(1,   'rgba(100,160,220,0.35)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx - TW - WALL, TTOP, TW * 2 + WALL * 2, TH);
+
+  // Tube borders
+  ctx.strokeStyle = 'rgba(147,197,253,0.55)'; ctx.lineWidth = 2;
+  // Left wall
+  ctx.beginPath(); ctx.moveTo(cx - TW - WALL, TTOP); ctx.lineTo(cx - TW - WALL, TBOT); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - TW, TTOP); ctx.lineTo(cx - TW, TBOT); ctx.stroke();
+  // Right wall
+  ctx.beginPath(); ctx.moveTo(cx + TW, TTOP); ctx.lineTo(cx + TW, TBOT); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + TW + WALL, TTOP); ctx.lineTo(cx + TW + WALL, TBOT); ctx.stroke();
+
+  // Top cap
+  ctx.fillStyle = 'rgba(147,197,253,0.3)';
+  ctx.fillRect(cx - TW - WALL, TTOP - 8, TW * 2 + WALL * 2, 8);
+  // Bottom cap
+  ctx.fillRect(cx - TW - WALL, TBOT, TW * 2 + WALL * 2, 8);
+  ctx.strokeStyle = 'rgba(147,197,253,0.6)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - TW - WALL, TBOT, TW * 2 + WALL * 2, 8);
+
+  // Sheen
+  const sheen = ctx.createLinearGradient(cx - TW, 0, cx - TW + 10, 0);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.18)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sheen;
+  ctx.fillRect(cx - TW, TTOP, 10, TH);
+}
+
+function drawMetal(ctx) {
+  const py = TTOP + metalPos * PPM;
+  const cx = LX;
+  const r = TW - 4;
+
+  // Flash
+  if (flashMetal > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, flashMetal * 0.8);
+    ctx.beginPath(); ctx.arc(cx, TBOT + 4, r + 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#93c5fd'; ctx.fill();
+    ctx.restore();
+  }
+
+  // Disc body
+  const grad = ctx.createRadialGradient(cx - r*0.3, py - r*0.3, 0, cx, py, r);
+  grad.addColorStop(0, '#e0f0ff');
+  grad.addColorStop(0.4, '#93c5fd');
+  grad.addColorStop(1, '#3b82f6');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(cx, py, r, r * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rim
+  ctx.strokeStyle = '#bfdbfe'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, py, r, r * 0.25, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(59,130,246,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(cx, py + r * 0.3, r * 0.9, r * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawPaper(ctx) {
+  const py = TTOP + paperPos * PPM;
+  const cx = RX;
+  const hw = TW - 4, hh = 3;
+
+  // Flash
+  if (flashPaper > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, flashPaper * 0.8);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(cx - hw - 8, TBOT - 4, hw * 2 + 16, 16);
+    ctx.restore();
+  }
+
+  // Paper with slight tilt (based on velocity)
+  const tilt = Math.min(paperVel * 0.015, 0.12);
+  ctx.save();
+  ctx.translate(cx, py);
+  ctx.rotate(tilt);
+
+  const grad = ctx.createLinearGradient(0, -hh, 0, hh);
+  grad.addColorStop(0, '#fef9c3');
+  grad.addColorStop(0.5, '#fde68a');
+  grad.addColorStop(1, '#f59e0b');
+  ctx.fillStyle = grad;
+  ctx.fillRect(-hw, -hh, hw*2, hh*2);
+
+  // Lines on paper
+  ctx.strokeStyle = 'rgba(146,64,14,0.3)'; ctx.lineWidth = 0.5;
+  for (let i = -hw + 6; i < hw; i += 8) {
+    ctx.beginPath(); ctx.moveTo(i, -hh + 0.5); ctx.lineTo(i, hh - 0.5); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1;
+  ctx.strokeRect(-hw, -hh, hw*2, hh*2);
+  ctx.restore();
+}
+
+function drawScaleBar(ctx) {
+  const sx = SX;
+  const barH = TH;
+  const x = sx - 12;
+
+  // Axis
+  ctx.strokeStyle = 'rgba(148,163,184,0.35)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(x, TTOP); ctx.lineTo(x, TBOT); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Ticks every 0.25 m
+  for (let m = 0; m <= LENT; m += 0.25) {
+    const ty = TTOP + m * PPM;
+    const isMain = (m % 0.5 === 0);
+    ctx.strokeStyle = isMain ? 'rgba(148,163,184,0.7)' : 'rgba(148,163,184,0.35)';
+    ctx.lineWidth = isMain ? 1.5 : 1;
+    ctx.beginPath();
+    ctx.moveTo(x - (isMain ? 8 : 5), ty);
+    ctx.lineTo(x + (isMain ? 8 : 5), ty);
+    ctx.stroke();
+
+    if (isMain) {
+      ctx.fillStyle = '#94a3b8'; ctx.font = '10px Share Tech Mono, monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(m.toFixed(1), x - 11, ty + 4);
+    }
+  }
+
+  // Label
+  ctx.save(); ctx.translate(x - 26, (TTOP + TBOT) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#64748b'; ctx.font = '10px Sarabun, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(T[lang].cScale + ' (m)', 0, 0);
+  ctx.restore();
+}
+
+function drawLabels(ctx) {
+  const L = T[lang];
+
+  // Metal label
+  ctx.fillStyle = '#93c5fd'; ctx.font = 'bold 12px Sarabun, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(L.cMetal, LX, TTOP - 20);
+
+  // Paper label
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText(L.cPaper, RX, TTOP - 20);
+
+  // Mode label
+  ctx.fillStyle = mode === 'air' ? '#34d399' : '#f472b6';
+  ctx.font = 'bold 11px Sarabun, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(mode === 'air' ? ('🌬️ ' + L.cAir) : ('🚀 ' + L.cVac), CW/2, TTOP - 20);
+
+  // Velocity bars below tubes
+  const maxV = 15;
+  const barMaxH = 40;
+  const barW = 20;
+
+  // Metal bar
+  const mvRatio = Math.min(metalVel / maxV, 1);
+  const mBH = mvRatio * barMaxH;
+  ctx.fillStyle = 'rgba(30,58,95,0.6)';
+  ctx.fillRect(LX - barW/2, TBOT + 18, barW, barMaxH);
+  const mg = ctx.createLinearGradient(0, TBOT + 18 + barMaxH - mBH, 0, TBOT + 18 + barMaxH);
+  mg.addColorStop(0, '#60a5fa'); mg.addColorStop(1, '#93c5fd');
+  ctx.fillStyle = mg;
+  ctx.fillRect(LX - barW/2, TBOT + 18 + barMaxH - mBH, barW, mBH);
+  ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1;
+  ctx.strokeRect(LX - barW/2, TBOT + 18, barW, barMaxH);
+
+  // Paper bar
+  const pvRatio = Math.min(paperVel / maxV, 1);
+  const pBH = pvRatio * barMaxH;
+  ctx.fillStyle = 'rgba(30,58,95,0.6)';
+  ctx.fillRect(RX - barW/2, TBOT + 18, barW, barMaxH);
+  const pg = ctx.createLinearGradient(0, TBOT + 18 + barMaxH - pBH, 0, TBOT + 18 + barMaxH);
+  pg.addColorStop(0, '#f59e0b'); pg.addColorStop(1, '#fbbf24');
+  ctx.fillStyle = pg;
+  ctx.fillRect(RX - barW/2, TBOT + 18 + barMaxH - pBH, barW, pBH);
+  ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1;
+  ctx.strokeRect(RX - barW/2, TBOT + 18, barW, barMaxH);
+
+  // v labels
+  ctx.fillStyle = '#64748b'; ctx.font = '9px Share Tech Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText('v', LX, TBOT + 72);
+  ctx.fillText('v', RX, TBOT + 72);
+}
+
+/* ════════════════════════════════════
+   READOUT UPDATE
+════════════════════════════════════ */
+function updateReadout() {
+  document.getElementById('valTimer').textContent = simTime.toFixed(3);
+  document.getElementById('valMV').textContent   = metalVel.toFixed(2);
+  document.getElementById('valMA').textContent   = metalAccel.toFixed(2);
+  document.getElementById('valMD').textContent   = metalPos.toFixed(3);
+  document.getElementById('valPV').textContent   = paperVel.toFixed(2);
+  document.getElementById('valPA').textContent   = paperAccel.toFixed(2);
+  document.getElementById('valPD').textContent   = paperPos.toFixed(3);
+}
+
+/* ════════════════════════════════════
+   CONTROLS
+════════════════════════════════════ */
+function updatePlayBtn() {
+  const btn = document.getElementById('playBtn');
+  const txt = document.getElementById('playTxt');
+  if (isPlaying) {
+    btn.classList.add('playing');
+    txt.textContent = T[lang].playPause;
+  } else {
+    btn.classList.remove('playing');
+    txt.textContent = T[lang].playStart;
+  }
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  updatePlayBtn();
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+  } else {
+    cancelAnimationFrame(animId);
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false;
+  lastTs = null;
+  initState();
+  updatePlayBtn();
+  draw();
+  updateReadout();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnAir').className = 'mode-btn' + (m === 'air' ? ' active-air' : '');
+  document.getElementById('btnVac').className = 'mode-btn' + (m === 'vac' ? ' active-vac' : '');
+  const vm = document.getElementById('valMode');
+  if (vm) vm.textContent = m === 'air' ? T[lang].modeAir : T[lang].modeVac;
+  resetSim();
+}
+
+document.getElementById('speedSlider').oninput = function() {
+  speed = parseFloat(this.value);
+  document.getElementById('speedLbl').textContent = speed.toFixed(1) + '×';
+};
+
+/* ════════════════════════════════════
+   NAV TABS
+════════════════════════════════════ */
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+initParticles();
+initState();
+draw();
+updateReadout();
+</script>
+</body>
+</html>

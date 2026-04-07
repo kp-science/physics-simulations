@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — แรงบนพื้นเอียง (Exp.5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --vec-w:   #f87171;
+  --vec-fp:  #38bdf8;
+  --vec-fn:  #34d399;
+  --vec-N:   #facc15;
+  --vec-fp-th: #fb923c;
+  --vec-fn-th: #818cf8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:1.9rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.73rem;font-weight:600;white-space:nowrap;}
+
+nav{display:flex;gap:4px;padding:9px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.84rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+.tab-section{display:none;}
+.tab-section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ── SIM LAYOUT ── */
+.sim-wrap{display:grid;grid-template-columns:258px 1fr;min-height:calc(100vh - 108px);}
+@media(max-width:680px){.sim-wrap{grid-template-columns:1fr;}}
+
+/* ── LEFT PANEL ── */
+.ctrl{background:var(--panel);border-right:1px solid var(--border);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.ctrl-title{font-size:0.73rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+
+.sl-row{display:flex;align-items:center;gap:5px;margin-bottom:7px;}
+.sl-label{font-size:0.81rem;color:var(--muted);flex-shrink:0;min-width:96px;}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;}
+.sl-unit{font-size:0.75rem;color:var(--muted);min-width:18px;flex-shrink:0;}
+.val-input{width:50px;padding:2px 4px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.83rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text);}
+.sl-range.fp-color{accent-color:var(--vec-fp);}
+.sl-range.fn-color{accent-color:var(--vec-fn);}
+.val-input.fp-color{border-color:var(--vec-fp);color:var(--vec-fp);}
+.val-input.fn-color{border-color:var(--vec-fn);color:var(--vec-fn);}
+
+/* Eq meter */
+.eq-wrap{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:11px;}
+.eq-subtitle{font-size:0.74rem;color:var(--muted);margin-bottom:7px;}
+.eq-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:0.79rem;}
+.eq-axis{color:var(--muted);min-width:50px;flex-shrink:0;}
+.eq-track{flex:1;height:9px;background:#1a2235;border-radius:5px;position:relative;overflow:visible;}
+.eq-fill{position:absolute;top:0;height:100%;border-radius:5px;transition:all .22s;}
+.eq-zero{position:absolute;left:50%;top:-4px;width:2px;height:17px;background:#334155;transform:translateX(-50%);}
+.eq-val{min-width:46px;text-align:right;font-family:'Share Tech Mono',monospace;font-size:0.78rem;font-weight:700;flex-shrink:0;}
+.eq-status{text-align:center;padding:6px 0 0;font-size:0.86rem;font-weight:700;}
+
+/* Readout grid */
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.rd-card{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;}
+.rd-key{font-size:0.7rem;color:var(--muted);margin-bottom:2px;}
+.rd-val{font-family:'Share Tech Mono',monospace;font-size:0.88rem;font-weight:700;}
+
+/* Toggles */
+.tog-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:0.79rem;color:var(--muted);}
+.tog-cb{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;}
+
+/* Legend */
+.leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:0.79rem;color:var(--muted);}
+.leg-line{width:20px;height:4px;border-radius:2px;flex-shrink:0;}
+.leg-dash{width:20px;height:4px;border-radius:2px;flex-shrink:0;background:repeating-linear-gradient(90deg,currentColor 0 5px,transparent 5px 9px);}
+
+/* Auto btn */
+.auto-btn{width:100%;padding:7px;background:#1b5e20;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.83rem;transition:.15s;}
+.auto-btn:hover{background:#2e7d32;}
+
+/* ── CANVAS ── */
+.canvas-col{display:flex;flex-direction:column;}
+.canvas-wrap{flex:1;background:#070d18;position:relative;min-height:460px;}
+canvas#simCanvas{display:block;width:100%;height:100%;}
+
+/* ── TABLE ── */
+.tbl-area{background:var(--panel);border-top:1px solid var(--border);padding:14px 16px;}
+.tbl-area h3{font-size:0.9rem;color:var(--accent);margin-bottom:9px;}
+table{width:100%;border-collapse:collapse;font-size:0.76rem;}
+th{background:var(--panel2);color:var(--accent);padding:6px 7px;border:1px solid var(--border);white-space:nowrap;}
+td{padding:5px 7px;border:1px solid var(--border);text-align:center;}
+tr:nth-child(even) td{background:#0f172a;}
+.td-h{font-family:'Share Tech Mono',monospace;font-weight:700;}
+.eb0{display:inline-block;padding:1px 5px;border-radius:4px;font-size:0.73rem;font-weight:700;}
+.eg{background:#1a3320;color:var(--accent3);}
+.ew{background:#2a1f10;color:var(--accent4);}
+.er{background:#3a1a1a;color:#f87171;}
+.tbl-btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+.btn-add{padding:6px 16px;background:var(--panel2);border:1px solid var(--accent);color:var(--accent);border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;font-size:0.83rem;transition:.15s;}
+.btn-add:hover{background:var(--accent);color:#0a0e1a;}
+.btn-clr{padding:6px 16px;background:var(--panel2);border:1px solid #f87171;color:#f87171;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;font-size:0.83rem;transition:.15s;}
+.btn-clr:hover{background:#f87171;color:#0a0e1a;}
+.tbl-note{font-size:0.76rem;color:var(--muted);margin-top:5px;}
+
+/* ── THEORY ── */
+.th-wrap{max-width:900px;margin:0 auto;padding:22px 18px;}
+.t-sec{margin-bottom:28px;}
+.t-sec h2{font-size:1.03rem;font-weight:700;color:var(--accent);margin-bottom:11px;padding-bottom:5px;border-bottom:2px solid var(--border);}
+.t-sec p{line-height:1.8;color:var(--text);font-size:0.87rem;margin-bottom:7px;}
+.formula-box{background:#0f172a;border:1px solid var(--accent);border-radius:8px;padding:13px 16px;margin:10px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:0.88rem;line-height:2.1;}
+.hl{background:var(--panel2);border-left:3px solid var(--accent4);border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:0.85rem;}
+.t-card{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:13px 15px;margin-bottom:9px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+@media(max-width:560px){.two-col{grid-template-columns:1fr;}}
+.t-svg{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px;}
+.ang-table{width:100%;border-collapse:collapse;font-size:0.81rem;margin-top:7px;}
+.ang-table th{background:#1e3a5f;color:var(--accent);padding:6px 9px;border:1px solid var(--border);}
+.ang-table td{padding:5px 9px;border:1px solid var(--border);text-align:center;}
+.ang-table tr:nth-child(even) td{background:#0f172a;}
+.gp-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px;margin-top:12px;}
+.gp-wrap h4{color:var(--accent4);font-size:0.83rem;margin-bottom:7px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">📐</div>
+  <div>
+    <h1>แรงบนพื้นเอียง</h1>
+    <p>Forces Caused by Weights on an Incline — Experiment 5 (Berg 1992)</p>
+  </div>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ═══════════════ SIM TAB ═══════════════ -->
+<div id="tab-sim" class="tab-section active">
+<div class="sim-wrap">
+
+  <!-- LEFT CTRL -->
+  <div class="ctrl">
+
+    <div>
+      <div class="ctrl-title">⚙️ ตั้งค่าการทดลอง</div>
+      <div class="sl-row">
+        <span class="sl-label">น้ำหนักรถ W</span>
+        <input class="sl-range" type="range" id="sl-W" min="1" max="25" step="0.1" value="12.7">
+        <input class="val-input" type="number"  id="vi-W" min="1" max="25" step="0.1" value="12.7">
+        <span class="sl-unit">N</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">มุมเอียง θ</span>
+        <input class="sl-range" type="range" id="sl-A" min="0" max="80" step="0.5" value="22">
+        <input class="val-input" type="number"  id="vi-A" min="0" max="80" step="0.5" value="22">
+        <span class="sl-unit">°</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-title">🌀 เครื่องชั่งสปริง (Input ของนักเรียน)</div>
+      <p style="font-size:0.76rem;color:var(--muted);margin-bottom:7px;">ดึงทั้งสองเส้นพร้อมกันจนรถสมดุล</p>
+
+      <!-- F(P): up along incline -->
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--vec-fp);">F(P) ↑ ขนาน</span>
+        <input class="sl-range fp-color" type="range" id="sl-FP" min="0" max="25" step="0.05" value="0">
+        <input class="val-input fp-color"  type="number"  id="vi-FP" min="0" max="25" step="0.05" value="0">
+        <span class="sl-unit">N</span>
+      </div>
+
+      <!-- F(N): out perpendicular to incline -->
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--vec-fn);">F(N) ↗ ตั้งฉาก</span>
+        <input class="sl-range fn-color" type="range" id="sl-FN" min="0" max="25" step="0.05" value="0">
+        <input class="val-input fn-color"  type="number"  id="vi-FN" min="0" max="25" step="0.05" value="0">
+        <span class="sl-unit">N</span>
+      </div>
+
+      <button class="auto-btn" onclick="autoBalance()">⚡ Auto-Balance (ดูเฉลย)</button>
+    </div>
+
+    <!-- Equilibrium meter -->
+    <div>
+      <div class="ctrl-title">⚖️ สมดุลของแรง</div>
+      <div class="eq-wrap">
+        <div class="eq-subtitle">แรงสุทธิในแต่ละแนว (= 0 เมื่อสมดุล)</div>
+        <div class="eq-row">
+          <span class="eq-axis" style="color:var(--vec-fp);">ขนาน</span>
+          <div class="eq-track">
+            <div class="eq-fill" id="eq-p"></div>
+            <div class="eq-zero"></div>
+          </div>
+          <span class="eq-val" id="eq-vp">—</span>
+        </div>
+        <div class="eq-row">
+          <span class="eq-axis" style="color:var(--vec-fn);">ตั้งฉาก</span>
+          <div class="eq-track">
+            <div class="eq-fill" id="eq-n"></div>
+            <div class="eq-zero"></div>
+          </div>
+          <span class="eq-val" id="eq-vn">—</span>
+        </div>
+        <!-- N readout -->
+        <div class="eq-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:5px;">
+          <span class="eq-axis" style="color:var(--vec-N);">N (พื้น)</span>
+          <div class="eq-track">
+            <div class="eq-fill" id="eq-N" style="left:0;background:var(--vec-N);"></div>
+            <div class="eq-zero"></div>
+          </div>
+          <span class="eq-val" id="eq-vN" style="color:var(--vec-N);">—</span>
+        </div>
+        <div class="eq-status" id="eq-status">—</div>
+      </div>
+    </div>
+
+    <!-- Calculated readouts -->
+    <div>
+      <div class="ctrl-title">🧮 ค่าทางทฤษฎี</div>
+      <div class="rd-grid">
+        <div class="rd-card">
+          <div class="rd-key">W·sin θ = F(P')</div>
+          <div class="rd-val" id="rd-fp" style="color:var(--vec-fp-th);">—</div>
+        </div>
+        <div class="rd-card">
+          <div class="rd-key">W·cos θ = F(N')</div>
+          <div class="rd-val" id="rd-fn" style="color:var(--vec-fn-th);">—</div>
+        </div>
+        <div class="rd-card">
+          <div class="rd-key">N = W·cosθ − F(N)</div>
+          <div class="rd-val" id="rd-N" style="color:var(--vec-N);">—</div>
+        </div>
+        <div class="rd-card">
+          <div class="rd-key">sin θ / cos θ</div>
+          <div class="rd-val" id="rd-trig" style="color:var(--accent4);">—</div>
+        </div>
+        <div class="rd-card">
+          <div class="rd-key">% err F(P)</div>
+          <div class="rd-val" id="rd-ep">—</div>
+        </div>
+        <div class="rd-card">
+          <div class="rd-key">% err F(N)</div>
+          <div class="rd-val" id="rd-en">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display toggles -->
+    <div>
+      <div class="ctrl-title">🎨 แสดงเวกเตอร์</div>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-W"    checked> น้ำหนัก W</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-N"    checked> แรงปฏิกิริยา N (จากพื้นเอียง)</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-FP"   checked> F(P) สปริงขนาน</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-FN"   checked> F(N) สปริงตั้งฉาก</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-comp"> องค์ประกอบ W·sinθ / W·cosθ</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-ang"  checked> แสดงมุม θ</label>
+      <label class="tog-row"><input class="tog-cb" type="checkbox" id="cb-rope" checked> เชือก + สปริงสเกล</label>
+    </div>
+
+    <!-- Legend -->
+    <div>
+      <div class="ctrl-title">ตำนานสัญลักษณ์</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-w)"></div>W น้ำหนักรถ (แนวดิ่ง)</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-N)"></div>N แรงพื้นเอียงรองรับ</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-fp)"></div>F(P) สปริงดึงขึ้นตามพื้นเอียง</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-fn)"></div>F(N) สปริงดึงออกตั้งฉากพื้น</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-fp-th)"></div>W·sinθ องค์ประกอบขนาน</div>
+      <div class="leg-row"><div class="leg-line" style="background:var(--vec-fn-th)"></div>W·cosθ องค์ประกอบตั้งฉาก</div>
+    </div>
+
+  </div><!-- end ctrl -->
+
+  <!-- CANVAS + TABLE -->
+  <div class="canvas-col">
+    <div class="canvas-wrap">
+      <canvas id="simCanvas"></canvas>
+    </div>
+
+    <div class="tbl-area">
+      <h3>📋 ตารางบันทึกผล</h3>
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Trial</th>
+            <th rowspan="2">W (N)</th>
+            <th rowspan="2">θ (°)</th>
+            <th rowspan="2">sinθ</th>
+            <th rowspan="2">cosθ</th>
+            <th colspan="3">แนวขนานพื้นเอียง</th>
+            <th colspan="3">แนวตั้งฉากพื้นเอียง</th>
+          </tr>
+          <tr>
+            <th>F(P) สปริง</th><th>W·sinθ</th><th>%err</th>
+            <th>F(N) สปริง</th><th>W·cosθ</th><th>%err</th>
+          </tr>
+        </thead>
+        <tbody id="trialBody"></tbody>
+      </table>
+      <div class="tbl-btns">
+        <button class="btn-add" onclick="addTrial()">＋ บันทึก Trial</button>
+        <button class="btn-clr" onclick="clearTrials()">🗑 ล้าง</button>
+      </div>
+      <div class="tbl-note" id="tblNote">ยังไม่มีข้อมูล — ปรับสปริงให้สมดุล แล้วกด "บันทึก Trial"</div>
+    </div>
+  </div>
+
+</div><!-- end sim-wrap -->
+</div><!-- end tab-sim -->
+
+<!-- ═══════════════ THEORY TAB ═══════════════ -->
+<div id="tab-theory" class="tab-section">
+<div class="th-wrap">
+
+  <div class="t-sec">
+    <h2>🎯 จุดประสงค์</h2>
+    <p>ศึกษาความสัมพันธ์ระหว่างองค์ประกอบของแรงโน้มถ่วงบนพื้นเอียงกับมุมเอียง โดยใช้เครื่องชั่งสปริง 2 อัน วัดแรงที่ทำให้รถสมดุล</p>
+  </div>
+
+  <div class="t-sec">
+    <h2>📐 แผนภาพแรงและสมดุล</h2>
+    <div class="t-svg">
+      <svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" style="max-width:640px;width:100%;">
+        <!--
+          SVG geometry (y down):
+          base=(70,370), tip=(530,120)
+          dx=460, dy=-250 → angle = atan(250/460) ≈ 28.5°
+          sinA≈0.477, cosA≈0.879
+          Incline UP direction: (cosA,-sinA) = (0.879,-0.477) → right+UP ✓
+          Normal OUT (upper-left): (-sinA,-cosA) = (-0.477,-0.879) → left+UP ✓
+        -->
+        <rect width="680" height="420" fill="#111827" rx="8"/>
+
+        <!-- Floor -->
+        <line x1="30" y1="370" x2="620" y2="370" stroke="#475569" stroke-width="3"/>
+        <g stroke="#1e3a5f" stroke-width="1">
+          <line x1="50" y1="370" x2="40" y2="383"/><line x1="75" y1="370" x2="65" y2="383"/>
+          <line x1="100" y1="370" x2="90" y2="383"/><line x1="130" y1="370" x2="120" y2="383"/>
+          <line x1="160" y1="370" x2="150" y2="383"/><line x1="190" y1="370" x2="180" y2="383"/>
+          <line x1="220" y1="370" x2="210" y2="383"/><line x1="250" y1="370" x2="240" y2="383"/>
+          <line x1="280" y1="370" x2="270" y2="383"/><line x1="310" y1="370" x2="300" y2="383"/>
+          <line x1="340" y1="370" x2="330" y2="383"/><line x1="370" y1="370" x2="360" y2="383"/>
+          <line x1="400" y1="370" x2="390" y2="383"/><line x1="430" y1="370" x2="420" y2="383"/>
+          <line x1="460" y1="370" x2="450" y2="383"/><line x1="490" y1="370" x2="480" y2="383"/>
+          <line x1="520" y1="370" x2="510" y2="383"/><line x1="550" y1="370" x2="540" y2="383"/>
+          <line x1="580" y1="370" x2="570" y2="383"/><line x1="610" y1="370" x2="600" y2="383"/>
+        </g>
+
+        <!-- Incline triangle: base(70,370) tip(530,120) right-corner(530,370) -->
+        <polygon points="70,370 530,370 530,120" fill="#1a2235cc" stroke="#38bdf8" stroke-width="2"/>
+        <!-- Right wall hatch -->
+        <g stroke="#334155" stroke-width="1">
+          <line x1="530" y1="370" x2="545" y2="360"/><line x1="530" y1="340" x2="545" y2="330"/>
+          <line x1="530" y1="310" x2="545" y2="300"/><line x1="530" y1="280" x2="545" y2="270"/>
+          <line x1="530" y1="250" x2="545" y2="240"/><line x1="530" y1="220" x2="545" y2="210"/>
+          <line x1="530" y1="190" x2="545" y2="180"/><line x1="530" y1="160" x2="545" y2="150"/>
+          <line x1="530" y1="130" x2="545" y2="120"/>
+        </g>
+        <!-- Right-angle marker -->
+        <rect x="516" y="356" width="14" height="14" fill="none" stroke="#38bdf888" stroke-width="1.5"/>
+        <!-- Incline label -->
+        <text x="330" y="275" fill="#38bdf855" font-size="13" font-family="Sarabun,sans-serif" text-anchor="middle">พื้นเอียง</text>
+
+        <!-- Angle arc at base(70,370) -->
+        <path d="M 128,370 A 58,58 0 0 1 159,322" fill="none" stroke="#fb923c" stroke-width="2"/>
+        <text x="148" y="366" fill="#fb923c" font-size="15" font-family="Sarabun,sans-serif" font-weight="bold">θ</text>
+
+        <!--
+          Cart sits at ~43% along incline from base:
+          cx = 70 + 0.43*460 = 70+198 = 268
+          cy = 370 - 0.43*250 = 370-108 = 262
+          Cart rotated -28.5° on incline
+          Eyescrew (top-center of cart, ch=28 in local):
+          eye_world_x = cx + ch*sinA = 268 + 28*0.477 = 268+13 = 281
+          eye_world_y = cy - ch*cosA = 262 - 28*0.879 = 262-25 = 237
+        -->
+        <!-- Cart body (rotated -28.5° at cx=268,cy=262) -->
+        <g transform="translate(268,262) rotate(-28.5)">
+          <rect x="-28" y="-28" width="56" height="28" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5" rx="4"/>
+          <circle cx="-16" cy="0" r="8" fill="#0a0e1a" stroke="#38bdf8" stroke-width="1.5"/>
+          <circle cx="16" cy="0" r="8" fill="#0a0e1a" stroke="#38bdf8" stroke-width="1.5"/>
+          <!-- eyescrew top-center at (0,-28) local -->
+          <circle cx="0" cy="-28" r="4" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+        </g>
+
+        <!-- All vectors originate from eyescrew = (281, 237) -->
+        <!-- u_up=(cosA,-sinA)=(0.879,-0.477)  u_out=(-sinA,-cosA)=(-0.477,-0.879) -->
+        <!-- u_dn=(-cosA,sinA)=(-0.879,0.477)  u_in=(sinA,cosA)=(0.477,0.879)     -->
+
+        <!-- W: straight DOWN, length=97px -->
+        <line x1="281" y1="237" x2="281" y2="334" stroke="#f87171" stroke-width="3"/>
+        <polygon points="281,340 275,325 287,325" fill="#f87171"/>
+        <text x="290" y="295" fill="#f87171" font-size="15" font-family="Sarabun,sans-serif" font-weight="bold">W</text>
+
+        <!-- N: perpendicular OUT of incline = (-sinA,-cosA)*85 = (-41,-75) from eye -->
+        <!-- N endpoint = (281-41, 237-75) = (240, 162) -->
+        <line x1="281" y1="237" x2="240" y2="162" stroke="#facc15" stroke-width="2.5"/>
+        <polygon points="240,157 234,172 246,172" fill="#facc15"/>
+        <text x="218" y="156" fill="#facc15" font-size="14" font-family="Sarabun,sans-serif" font-weight="bold">N</text>
+
+        <!-- F(P): UP incline = u_up*80 = (0.879,-0.477)*80 = (+70,-38) from eye -->
+        <!-- F(P) endpoint = (281+70, 237-38) = (351, 199) -->
+        <line x1="281" y1="237" x2="351" y2="199" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="8,4"/>
+        <polygon points="351,199 339,203 342,191" fill="#38bdf8"/>
+        <text x="354" y="197" fill="#38bdf8" font-size="13" font-family="Sarabun,sans-serif" font-weight="bold">F(P)</text>
+
+        <!-- F(N): OUT of incline = u_out*75 = (-0.477,-0.879)*75 = (-36,-66) from eye -->
+        <!-- same direction as N, shorter: endpoint = (281-36, 237-66) = (245, 171) -->
+        <!-- Draw F(N) slightly offset from N for clarity: use dashed green -->
+        <line x1="281" y1="237" x2="249" y2="176" stroke="#34d399" stroke-width="2.5" stroke-dasharray="8,4"/>
+        <polygon points="249,171 246,186 258,183" fill="#34d399"/>
+        <text x="220" y="175" fill="#34d399" font-size="13" font-family="Sarabun,sans-serif" font-weight="bold">F(N)</text>
+
+        <!-- W·sinθ: DOWN incline = u_dn*65 = (-0.879,0.477)*65 = (-57,31) from eye -->
+        <!-- endpoint = (281-57, 237+31) = (224, 268) -->
+        <line x1="281" y1="237" x2="224" y2="268" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polygon points="224,273 219,259 231,259" fill="#fb923c"/>
+        <text x="192" y="275" fill="#fb923c" font-size="11" font-family="Sarabun,sans-serif">W·sinθ</text>
+
+        <!-- W·cosθ: INTO incline = u_in*80 = (0.477,0.879)*80 = (38,70) from eye -->
+        <!-- endpoint = (281+38, 237+70) = (319, 307) -->
+        <line x1="281" y1="237" x2="319" y2="307" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polygon points="319,312 313,298 325,298" fill="#818cf8"/>
+        <text x="322" y="310" fill="#818cf8" font-size="11" font-family="Sarabun,sans-serif">W·cosθ</text>
+
+        <!-- Rope 1: eyescrew(281,237) → spring SP1 along u_up direction -->
+        <!-- SP1 center = eye + u_up*100 = (281+88, 237-48) = (369, 189) -->
+        <line x1="281" y1="237" x2="369" y2="189" stroke="#d4b483" stroke-width="2"/>
+        <!-- SP1 body: rectangle along incline direction -->
+        <g transform="translate(369,189) rotate(-28.5)">
+          <rect x="0" y="-7" width="38" height="14" fill="#0d1e36" stroke="#38bdf8" stroke-width="1.5" rx="3"/>
+          <text x="19" y="5" fill="#38bdf8" font-size="8" text-anchor="middle" font-family="Share Tech Mono">SP1</text>
+          <circle cx="-4" cy="0" r="4" fill="none" stroke="#38bdf8" stroke-width="1.2"/>
+        </g>
+        <!-- Rope 1 extension past spring -->
+        <line x1="407" y1="170" x2="435" y2="155" stroke="#d4b483" stroke-width="2"/>
+
+        <!-- Rope 2: eyescrew(281,237) → spring SP2 along u_out direction -->
+        <!-- SP2 center = eye + u_out*95 = (281-45, 237-83) = (236, 154) -->
+        <line x1="281" y1="237" x2="236" y2="154" stroke="#d4b483" stroke-width="2"/>
+        <!-- SP2 body: rectangle along normal direction (rotated -28.5-90 = -118.5°) -->
+        <g transform="translate(236,154) rotate(-118.5)">
+          <rect x="0" y="-7" width="38" height="14" fill="#0d1e36" stroke="#34d399" stroke-width="1.5" rx="3"/>
+          <text x="19" y="5" fill="#34d399" font-size="8" text-anchor="middle" font-family="Share Tech Mono">SP2</text>
+          <circle cx="-4" cy="0" r="4" fill="none" stroke="#34d399" stroke-width="1.2"/>
+        </g>
+        <!-- Rope 2 extension past spring -->
+        <line x1="200" y1="121" x2="174" y2="98" stroke="#d4b483" stroke-width="2"/>
+
+        <!-- Right angle marker at eyescrew between F(P) and F(N) directions -->
+        <g transform="translate(281,237) rotate(-28.5)">
+          <path d="M 12,0 L 12,-12 L 0,-12" fill="none" stroke="#94a3b866" stroke-width="1.2"/>
+        </g>
+
+        <!-- Equations box -->
+        <rect x="28" y="16" width="290" height="88" fill="#0f172a" stroke="#1e3a5f" stroke-width="1" rx="6"/>
+        <text x="40" y="38"  fill="#94a3b8" font-size="11" font-family="Share Tech Mono">สมดุลขนาน:  F(P) = W·sinθ</text>
+        <text x="40" y="57"  fill="#94a3b8" font-size="11" font-family="Share Tech Mono">สมดุลตั้งฉาก: N + F(N) = W·cosθ</text>
+        <text x="40" y="76"  fill="#facc15" font-size="11" font-family="Share Tech Mono">∴ N = W·cosθ − F(N)</text>
+        <text x="40" y="95"  fill="#94a3b8" font-size="11" font-family="Share Tech Mono">F(N)→W·cosθ แล้ว N→0</text>
+
+        <text x="420" y="30" fill="#e2e8f0" font-size="13" font-family="Sarabun,sans-serif" text-anchor="middle" font-weight="bold">Free Body Diagram บนพื้นเอียง</text>
+      </svg>
+    </div>
+
+    <div class="formula-box">
+สมดุลในแนวขนานพื้นเอียง:   F(P) = W · sin θ<br>
+สมดุลในแนวตั้งฉากพื้นเอียง: N + F(N) = W · cos θ<br>
+<br>
+∴ &nbsp; N = W · cos θ − F(N)<br>
+<br>
+เมื่อ F(N) = W·cosθ → N = 0 &nbsp; (รถลอยออกจากพื้น)<br>
+เมื่อ F(N) = 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → N = W·cosθ &nbsp; (ไม่มีสปริงตั้งฉาก)
+    </div>
+
+    <div class="hl">
+      <strong style="color:var(--accent4);">💡 สังเกตสำคัญ:</strong>
+      แรง <strong style="color:var(--vec-N);">N</strong> (จากพื้นเอียงรองรับรถ) มีทิศตั้งฉากออกจากพื้นเอียงเสมอ
+      เมื่อเราดึงสปริง F(N) มากขึ้น N จะลดลงเท่ากัน เพราะรถยังต้องสมดุลในแนวตั้งฉาก
+    </div>
+  </div>
+
+  <div class="t-sec">
+    <h2>📈 กราฟ F(P') และ F(N') กับมุมเอียง</h2>
+    <div class="gp-wrap">
+      <h4>W = 12.7 N — เส้นแนวตั้งสีขาว = มุม θ ปัจจุบัน</h4>
+      <canvas id="graphCanvas" width="700" height="280" style="width:100%;max-width:700px;display:block;"></canvas>
+      <p style="font-size:0.77rem;color:var(--muted);margin-top:5px;">
+        🟠 F(P')=W·sinθ &nbsp;|&nbsp; 🟣 F(N')=W·cosθ &nbsp;|&nbsp; 🔴 W คงที่
+      </p>
+    </div>
+    <div class="two-col" style="margin-top:11px;">
+      <div class="t-card">
+        <p><strong style="color:var(--vec-fp-th);">F(P') กับ sin θ</strong></p>
+        <p style="font-size:0.83rem;">สัดส่วนโดยตรง — กราฟ F(P') vs sin θ เป็นเส้นตรงผ่านจุดกำเนิด ความชัน = W</p>
+      </div>
+      <div class="t-card">
+        <p><strong style="color:var(--vec-fn-th);">F(N') กับ cos θ</strong></p>
+        <p style="font-size:0.83rem;">สัดส่วนโดยตรง — กราฟ F(N') vs cos θ เป็นเส้นตรงผ่านจุดกำเนิด ความชัน = W</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="t-sec">
+    <h2>🧮 ตัวอย่างคำนวณ (Trial 1 จากเอกสาร)</h2>
+    <div class="t-card">
+      <div class="formula-box" style="font-size:0.85rem;">
+W = 12.7 N &nbsp; θ = 22.0° &nbsp; sin22°=0.375 &nbsp; cos22°=0.927<br>
+<br>
+F(P')  = 12.7 × 0.375 = <span style="color:var(--vec-fp-th);">4.76 N</span> &nbsp; (สปริงวัดได้ 4.5 N → errP ≈ 5.5%)<br>
+F(N')  = 12.7 × 0.927 = <span style="color:var(--vec-fn-th);">11.77 N</span> (สปริงวัดได้ 11.5 N → errN ≈ 2.3%)<br>
+<br>
+ถ้า F(N)=0: &nbsp; N = W·cos22° = 11.77 N &nbsp;(พื้นรับน้ำหนักทั้งหมด)<br>
+ถ้า F(N)=5: &nbsp; N = 11.77−5.00 = <span style="color:var(--vec-N);">6.77 N</span><br>
+ถ้า F(N)=11.77: N = 0 &nbsp;(รถลอยออกจากพื้น!)<br>
+<br>
+θ=30° → F(P') = 12.7×0.5 = <span style="color:var(--accent4);">6.35 N = W/2 ✓</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="t-sec">
+    <h2>📌 ตารางค่า sin/cos มุมสำคัญ</h2>
+    <table class="ang-table">
+      <thead><tr><th>θ (°)</th><th>sinθ</th><th>cosθ</th><th>F(P')/W</th><th>F(N')/W</th><th>หมายเหตุ</th></tr></thead>
+      <tbody id="angleBody"></tbody>
+    </table>
+  </div>
+
+  <div class="t-sec">
+    <h2>🔬 ขั้นตอนการทดลอง</h2>
+    <div class="two-col">
+      <div class="t-card">
+        <p><strong style="color:var(--accent);">อุปกรณ์</strong></p>
+        <ul style="margin-left:16px;font-size:0.83rem;line-height:2.1;">
+          <li>รถไดนามิกส์ (น้ำหนักทราบ)</li>
+          <li>พื้นเอียงปรับมุมได้</li>
+          <li>สปริงสเกล 0–20 N จำนวน 2 อัน</li>
+          <li>เชือก 2 เส้น ≈ 30 cm</li>
+          <li>กระดาษกราฟ</li>
+        </ul>
+      </div>
+      <div class="t-card">
+        <p><strong style="color:var(--accent);">ขั้นตอน</strong></p>
+        <ol style="margin-left:16px;font-size:0.83rem;line-height:2.1;">
+          <li>วางรถบนพื้นเอียง ตั้งมุม θ</li>
+          <li>ผูกเชือก 2 เส้นที่รถ — ต่อสปริงสเกล SP1 (ขนาน↑) และ SP2 (ตั้งฉาก↗)</li>
+          <li>ดึงทั้งสองพร้อมกันจนรถนิ่ง (สมดุล)</li>
+          <li>ถอดพื้นเอียงออก — รถยังคงอยู่นิ่ง</li>
+          <li>อ่านค่า F(P) และ F(N)</li>
+          <li>เปรียบเทียบกับ Vector Diagram คำนวณ % error</li>
+          <li>เปลี่ยนมุม θ ทำซ้ำ</li>
+        </ol>
+      </div>
+    </div>
+    <div class="hl" style="border-color:var(--accent);margin-top:10px;">
+      <strong style="color:var(--accent);">💡 Berg (1992) Tips:</strong> เคาะสปริงสเกลเบาๆ ก่อนอ่านทุกครั้ง เพื่อให้เข็มไม่ค้าง หล่อลื่นล้อรถให้หมุนได้อย่างอิสระ
+    </div>
+    <div class="t-card" style="margin-top:9px;">
+      <p style="font-size:0.83rem;"><strong>อ้างอิง:</strong> Berg, R.E. (1992). <em>Video Encyclopedia of Physics Demonstrations</em>. Exp.5: Forces Caused by Weights on an Incline.</p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script>
+// ─── TAB ───
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory') setTimeout(drawGraph,80);
+}
+
+// ─── CANVAS SETUP ───
+const canvas = document.getElementById('simCanvas');
+const ctx    = canvas.getContext('2d');
+function resizeCanvas(){
+  canvas.width  = canvas.parentElement.clientWidth  || 780;
+  canvas.height = Math.max(canvas.parentElement.clientHeight||460, 460);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ─── HELPERS ───
+function arrow(ctx, ox,oy, vx,vy, color, label, dashed, lw){
+  const len=Math.hypot(vx,vy);
+  if(len<2) return;
+  const ang=Math.atan2(vy,vx);
+  ctx.save();
+  if(dashed) ctx.setLineDash([8,5]);
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+vx,oy+vy);
+  ctx.strokeStyle=color; ctx.lineWidth=lw||3; ctx.stroke();
+  ctx.setLineDash([]);
+  const hw=9, hl=15;
+  ctx.translate(ox+vx,oy+vy); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-hl,-hw/2); ctx.lineTo(-hl,hw/2); ctx.closePath();
+  ctx.fillStyle=color; ctx.fill();
+  ctx.restore();
+  if(label){
+    ctx.save();
+    ctx.fillStyle=color; ctx.font='bold 13px Sarabun,sans-serif';
+    const oa=ang+Math.PI/2;
+    ctx.fillText(label, ox+vx+16*Math.cos(oa), oy+vy+16*Math.sin(oa));
+    ctx.restore();
+  }
+}
+
+function lblBox(ox,oy,txt,color){
+  ctx.save();
+  ctx.font='11px Share Tech Mono,monospace';
+  const tw=ctx.measureText(txt).width+14;
+  ctx.fillStyle=color+'22'; ctx.strokeStyle=color; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(ox-tw/2,oy-11,tw,20,4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=color; ctx.fillText(txt,ox-tw/2+7,oy+4);
+  ctx.restore();
+}
+
+// ─── DRAW SPRING SCALE ───
+// hookX,hookY = rope attachment point (near-cart end)
+// dir = unit vector {x,y} pointing AWAY from cart (direction of pull)
+// body extends from hook outward in dir direction
+function drawSpringScale(hookX, hookY, dir, val, maxVal, color, label){
+  const bw = 13, bh = 40;
+  const ang = Math.atan2(dir.y, dir.x);
+  // body center = hook + dir*(bh/2)
+  const bcx = hookX + dir.x * bh/2;
+  const bcy = hookY + dir.y * bh/2;
+
+  ctx.save();
+  ctx.translate(bcx, bcy);
+  ctx.rotate(ang);
+  // local x-axis now points in dir direction (away from cart)
+  // body rect: -bh/2 to +bh/2 along x, -bw/2 to +bw/2 along y
+  ctx.fillStyle = '#0d1e36';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(-bh/2, -bw/2, bh, bw, 3); ctx.fill(); ctx.stroke();
+
+  // graduation marks along top edge
+  ctx.strokeStyle = color+'99'; ctx.lineWidth = 0.8;
+  for(let i=0; i<=5; i++){
+    const tx = -bh/2 + 3 + i*(bh-6)/5;
+    ctx.beginPath(); ctx.moveTo(tx,-bw/2+1); ctx.lineTo(tx,-bw/2+5); ctx.stroke();
+  }
+  // needle: travels left→right as value increases
+  const needleX = -bh/2 + 3 + (Math.min(val,maxVal)/maxVal)*(bh-6);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(-bh/2+3, bw/4); ctx.lineTo(needleX, bw/4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(needleX, bw/4, 2.5, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+
+  // hook on the cart side (−x end, i.e. toward cart)
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(-bh/2 - 5, 0, 5, Math.PI*0.5, -Math.PI*0.5, true); ctx.stroke();
+
+  // eyelet on the far side (+x, pulled by experimenter)
+  ctx.beginPath(); ctx.arc(bh/2 + 5, 0, 5, -Math.PI*0.5, Math.PI*0.5, false); ctx.stroke();
+
+  ctx.restore();
+
+  // label perpendicular to pull direction
+  const px = -dir.y, py = dir.x; // perpendicular unit vec
+  const lx = bcx + px*(bw/2+9);
+  const ly = bcy + py*(bw/2+9);
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.font = 'bold 11px Sarabun, sans-serif';
+  ctx.fillText(label, lx, ly - 3);
+  ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillText(val.toFixed(2)+'N', lx, ly + 11);
+  ctx.restore();
+}
+
+// ─── ROPE ───
+function drawRope(x1,y1,x2,y2){
+  ctx.save();
+  ctx.strokeStyle='#d4b483'; ctx.lineWidth=2.5; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.restore();
+}
+
+// ─── MAIN DRAW ───
+function draw(){
+  const W   = parseFloat(document.getElementById('sl-W').value)||12.7;
+  const Adeg= parseFloat(document.getElementById('sl-A').value)||22;
+  const FP  = parseFloat(document.getElementById('sl-FP').value)||0;
+  const FN  = parseFloat(document.getElementById('sl-FN').value)||0;
+
+  const showW    = document.getElementById('cb-W').checked;
+  const showN    = document.getElementById('cb-N').checked;
+  const showFP   = document.getElementById('cb-FP').checked;
+  const showFN_v = document.getElementById('cb-FN').checked;
+  const showComp = document.getElementById('cb-comp').checked;
+  const showAng  = document.getElementById('cb-ang').checked;
+  const showRope = document.getElementById('cb-rope').checked;
+
+  const cW=canvas.width, cH=canvas.height;
+  ctx.clearRect(0,0,cW,cH);
+
+  // grid bg
+  ctx.strokeStyle='#1e3a5f1a'; ctx.lineWidth=1;
+  for(let x=0;x<cW;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cH);ctx.stroke();}
+  for(let y=0;y<cH;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cW,y);ctx.stroke();}
+
+  const aRad = Adeg * Math.PI / 180;
+  const sinA = Math.sin(aRad), cosA = Math.cos(aRad);
+
+  // ══════════════════════════════════════════════════
+  // CANVAS COORDINATE SYSTEM (y increases DOWNWARD)
+  //
+  // Incline: base(bottom-left) → tip(top-right)
+  //   tip = (baseX + L·cosA,  baseY - L·sinA)
+  //
+  // Surface direction (up-slope in screen):
+  //   û_up = (cosA, -sinA)   e.g. θ=30°: (0.866, -0.5) → right & UP ✓
+  //
+  // Normal OUT of incline surface (the side the cart sits on = upper-left side):
+  //   Rotate û_up by 90° CCW (in standard math) = 90° CW visually on screen (y-down):
+  //   rotate (cosA,-sinA) by +90° standard: (-(-sinA), cosA) = (sinA, cosA)
+  //   But that points DOWN-right → WRONG (into surface)
+  //   Rotate by -90° standard (CW): ((-sinA), -cosA) → LEFT & UP ✓ for θ=30°: (-0.5,-0.866)
+  //   û_out = (-sinA, -cosA)  ← perpendicular OUT (upper-left side of incline) ✓
+  //   û_in  = (+sinA, +cosA)  ← perpendicular INTO surface ✓
+  //
+  // Verify θ=30°: sinA=0.5, cosA=0.866
+  //   û_up  = (0.866, -0.5)  → right+UP ✓
+  //   û_dn  = (-0.866, 0.5)  → left+DOWN ✓
+  //   û_out = (-0.5, -0.866) → left+UP ✓ (normal away from incline surface)
+  //   û_in  = (0.5,  0.866)  → right+DOWN ✓ (into incline)
+  // ══════════════════════════════════════════════════
+
+  const u_up  = { x:  cosA, y: -sinA };   // up the incline (toward tip)
+  const u_dn  = { x: -cosA, y:  sinA };   // down the incline (toward base)
+  const u_out = { x: -sinA, y: -cosA };   // perpendicular OUT of incline (upper-left)
+  const u_in  = { x:  sinA, y:  cosA };   // perpendicular INTO incline (lower-right)
+
+  const pxPerN = Math.min(cW, cH) * 0.028;
+  const maxPx  = Math.min(cW, cH) * 0.40;
+  function clampPx(n){ return Math.min(Math.abs(n) * pxPerN, maxPx); }
+
+  // ── INCLINE GEOMETRY ──
+  const baseX = cW * 0.10, baseY = cH * 0.84;
+  const iLen  = cW * 0.72;
+  const tipX  = baseX + iLen * cosA, tipY = baseY - iLen * sinA;
+
+  // floor
+  ctx.beginPath(); ctx.moveTo(baseX-20,baseY); ctx.lineTo(baseX+iLen+50,baseY);
+  ctx.strokeStyle='#475569'; ctx.lineWidth=3; ctx.stroke();
+  ctx.strokeStyle='#1e3a5f'; ctx.lineWidth=1;
+  for(let x=baseX-10;x<baseX+iLen+50;x+=22){
+    ctx.beginPath();ctx.moveTo(x,baseY);ctx.lineTo(x-10,baseY+13);ctx.stroke();
+  }
+
+  // incline fill
+  ctx.beginPath();
+  ctx.moveTo(baseX,baseY); ctx.lineTo(tipX,tipY); ctx.lineTo(tipX,baseY);
+  ctx.closePath();
+  ctx.fillStyle='#1a2235cc'; ctx.fill();
+  ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(tipX,baseY);ctx.lineTo(tipX,tipY);ctx.stroke();
+  // right-angle at base corner
+  ctx.strokeStyle='#38bdf877'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(tipX-14,baseY);ctx.lineTo(tipX-14,baseY-14);ctx.lineTo(tipX,baseY-14);ctx.stroke();
+
+  // angle arc
+  if(showAng){
+    const ar=56;
+    ctx.beginPath(); ctx.arc(baseX,baseY,ar,-aRad,0,false);
+    ctx.strokeStyle='#fb923c'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#fb923c'; ctx.font='bold 14px Sarabun,sans-serif';
+    const ma=aRad/2;
+    ctx.fillText(`θ=${Adeg.toFixed(1)}°`, baseX+(ar+10)*Math.cos(ma*0.7), baseY-(ar-8)*Math.sin(ma*0.7));
+  }
+
+  // ── CART ──
+  // cartFrac: position along incline [0.15 … 0.80], controlled by drag
+  const cx = baseX + iLen * cartFrac * cosA;
+  const cy = baseY - iLen * cartFrac * sinA;
+  const cw = 54, ch = 30;
+
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(-aRad);
+  ctx.fillStyle='#1e3a5f'; ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(-cw/2,-ch,cw,ch,5); ctx.fill(); ctx.stroke();
+  [-cw*0.35,cw*0.35].forEach(wx=>{
+    ctx.beginPath(); ctx.arc(wx,0,9,0,Math.PI*2);
+    ctx.fillStyle='#0a0e1a'; ctx.fill();
+    ctx.strokeStyle='#38bdf8'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.strokeStyle='#334155'; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(wx,-9);ctx.lineTo(wx,9);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(wx-9,0);ctx.lineTo(wx+9,0);ctx.stroke();
+  });
+  // eyescrew at top-center of cart body (local: 0, -ch)
+  ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(0,-ch,5,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // Drag hint: small icon on cart
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = isDragging ? '#facc1566' : '#38bdf822';
+  ctx.strokeStyle= isDragging ? '#facc15' : '#38bdf888';
+  ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle= isDragging ? '#facc15' : '#38bdf8cc';
+  ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('⟺',0,0);
+  ctx.restore();
+
+  // ── EYESCREW WORLD POSITION ──
+  // Cart drawn with rotate(-aRad). Top-center local = (0,-ch).
+  // World offset of (0,-ch) after rotate(-aRad):
+  //   dx = 0*cos(-aRad) - (-ch)*sin(-aRad) = -ch*(-sinA) = ch*sinA   WRONG
+  // Correct rotation matrix for angle θ (rotate CCW by θ in standard, but canvas rotate is CW):
+  //   canvas ctx.rotate(θ) rotates CW in screen coords.
+  //   so ctx.rotate(-aRad) rotates CCW by aRad.
+  //   local point (lx,ly) → world: (lx*cosA - ly*sinA,  lx*sinA + ly*cosA) rotated by -aRad:
+  //   Actually for ctx.rotate(-aRad): world = (lx*cos(aRad) + ly*sin(aRad),  -lx*sin(aRad) + ly*cos(aRad))
+  //   For (lx,ly)=(0,-ch):
+  //     worldDx = 0*cosA + (-ch)*sinA = -ch*sinA
+  //     worldDy = -0*sinA + (-ch)*cosA = -ch*cosA
+  // Eyescrew world = cart center + (−ch·sinA, −ch·cosA)
+  // That equals cx + u_out.x*ch, cy + u_out.y*ch  (since u_out=(-sinA,-cosA)) ✓
+  const eyeX2 = cx + u_out.x * ch;
+  const eyeY2 = cy + u_out.y * ch;
+
+  // ── ROPES & SPRING SCALES ──
+  if(showRope){
+    // ── ROPE 1: F(P) — from eyescrew UP the incline ──
+    const rope1Len = clampPx(FP) + 50;
+    const rope1EndX = eyeX2 + u_up.x * rope1Len;
+    const rope1EndY = eyeY2 + u_up.y * rope1Len;
+    drawRope(eyeX2, eyeY2, rope1EndX, rope1EndY);
+    // spring: hook at rope1End, body extends further in u_up direction
+    if(FP > 0.01){
+      drawSpringScale(rope1EndX, rope1EndY, u_up, FP, 25, '#38bdf8', 'F(P)');
+    }
+
+    // ── ROPE 2: F(N) — from eyescrew OUT of incline ──
+    const rope2Len = clampPx(FN) + 50;
+    const rope2EndX = eyeX2 + u_out.x * rope2Len;
+    const rope2EndY = eyeY2 + u_out.y * rope2Len;
+    drawRope(eyeX2, eyeY2, rope2EndX, rope2EndY);
+    if(FN > 0.01){
+      drawSpringScale(rope2EndX, rope2EndY, u_out, FN, 25, '#34d399', 'F(N)');
+    }
+  }
+
+  // ── FORCE VECTORS from eyescrew ──
+  const ox = eyeX2, oy = eyeY2;
+
+  // W: straight down (0, +1)
+  if(showW){
+    const wPx = clampPx(W);
+    arrow(ctx, ox, oy, 0, wPx, '#f87171', 'W', false);
+    lblBox(ox+22, oy+wPx*0.5, `W=${W.toFixed(1)}N`, '#f87171');
+  }
+
+  // N: perpendicular OUT of incline, mag = max(0, W·cosA − FN)
+  const N_mag = Math.max(0, W*cosA - FN);
+  if(showN && N_mag > 0.005){
+    const nPx = clampPx(N_mag);
+    arrow(ctx, ox, oy, u_out.x*nPx, u_out.y*nPx, '#facc15', 'N', false);
+    lblBox(ox + u_out.x*nPx + 24, oy + u_out.y*nPx, `N=${N_mag.toFixed(2)}N`, '#facc15');
+  }
+
+  // F(P): up along incline — only if >0
+  if(showFP && FP > 0.01){
+    const fpPx = clampPx(FP);
+    arrow(ctx, ox, oy, u_up.x*fpPx, u_up.y*fpPx, '#38bdf8', 'F(P)', true);
+    lblBox(ox + u_up.x*fpPx + 24, oy + u_up.y*fpPx, `F(P)=${FP.toFixed(2)}N`, '#38bdf8');
+  }
+
+  // F(N): out of incline (same direction as N) — only if >0
+  if(showFN_v && FN > 0.01){
+    const fnPx = clampPx(FN);
+    arrow(ctx, ox, oy, u_out.x*fnPx, u_out.y*fnPx, '#34d399', 'F(N)', true);
+    lblBox(ox + u_out.x*fnPx - 24, oy + u_out.y*fnPx - 18, `F(N)=${FN.toFixed(2)}N`, '#34d399');
+  }
+
+  // Components W·sinθ and W·cosθ (theory)
+  if(showComp){
+    const fp_th = W*sinA, fn_th = W*cosA;
+    // W·sinθ pulls cart DOWN the incline
+    if(fp_th > 0.01){
+      const pxT = clampPx(fp_th);
+      arrow(ctx, ox, oy, u_dn.x*pxT, u_dn.y*pxT, '#fb923c', 'W·sinθ', true, 2);
+    }
+    // W·cosθ presses cart INTO the incline
+    if(fn_th > 0.01){
+      const pxT = clampPx(fn_th);
+      arrow(ctx, ox, oy, u_in.x*pxT, u_in.y*pxT, '#818cf8', 'W·cosθ', true, 2);
+    }
+  }
+}
+
+// ─── UPDATE READOUTS & EQ METER ───
+function update(){
+  const W   = parseFloat(document.getElementById('sl-W').value)||12.7;
+  const Adeg= parseFloat(document.getElementById('sl-A').value)||22;
+  const FP  = parseFloat(document.getElementById('sl-FP').value)||0;
+  const FN  = parseFloat(document.getElementById('sl-FN').value)||0;
+
+  const aRad=Adeg*Math.PI/180;
+  const sinA=Math.sin(aRad), cosA=Math.cos(aRad);
+  const fp_th=W*sinA, fn_th=W*cosA;
+  const N_mag=Math.max(0, fn_th-FN);
+
+  // Readouts
+  document.getElementById('rd-fp').textContent   = fp_th.toFixed(3)+' N';
+  document.getElementById('rd-fn').textContent   = fn_th.toFixed(3)+' N';
+  document.getElementById('rd-N').textContent    = N_mag.toFixed(3)+' N';
+  document.getElementById('rd-trig').textContent = sinA.toFixed(3)+' / '+cosA.toFixed(3);
+
+  const ep=fp_th>0.01 ? Math.abs(FP-fp_th)/fp_th*100 : null;
+  const en=fn_th>0.01 ? Math.abs(FN-fn_th)/fn_th*100 : null;
+  document.getElementById('rd-ep').innerHTML = ep!==null
+    ? `<span class="eb0 ${ebc(ep)}">${ep.toFixed(1)}%</span>` : '—';
+  document.getElementById('rd-en').innerHTML = en!==null
+    ? `<span class="eb0 ${ebc(en)}">${en.toFixed(1)}%</span>` : '—';
+
+  // Equilibrium bars
+  const netP = FP - fp_th;   // + = too much F(P), - = too little
+  const netN = FN - fn_th;   // + = too much F(N), - = too little (N going negative → detached)
+  const maxRef = W;
+
+  setBar('eq-p','eq-vp', netP, maxRef, '#38bdf8', '#34d399');
+  setBar('eq-n','eq-vn', netN, maxRef, '#34d399', '#34d399');
+
+  // N bar (0 to W·cosθ, always positive)
+  const nFill=document.getElementById('eq-N');
+  const nPct=Math.min(N_mag/maxRef*100, 100);
+  nFill.style.cssText=`left:0;width:${nPct}%;background:var(--vec-N);height:100%;border-radius:5px;`;
+  document.getElementById('eq-vN').textContent=N_mag.toFixed(2)+' N';
+
+  // status
+  const okP=Math.abs(netP)<maxRef*0.04, okN=Math.abs(netN)<maxRef*0.04;
+  const st=document.getElementById('eq-status');
+  if(FP<0.01&&FN<0.01){
+    st.style.color='var(--muted)'; st.textContent='ยังไม่ได้ดึงสปริง';
+  } else if(okP&&okN){
+    st.style.color='var(--eq-ok)'; st.textContent='✅ สมดุล! รถนิ่ง';
+  } else {
+    const hints=[];
+    if(!okP) hints.push(netP>0?'ลด F(P)':'เพิ่ม F(P)');
+    if(!okN) hints.push(netN>0?'ลด F(N)':'เพิ่ม F(N)');
+    st.style.color='#f87171'; st.textContent='⚖️ ยังไม่สมดุล — '+hints.join(', ');
+  }
+
+  draw();
+}
+
+function setBar(fillId,valId,net,max,color,okColor){
+  const fill=document.getElementById(fillId);
+  const val=document.getElementById(valId);
+  const pct=Math.min(Math.abs(net)/max*45,45);
+  const isOk=Math.abs(net)<max*0.04;
+  const c=isOk?'var(--eq-ok)':(Math.abs(net)<max*0.15?'var(--accent4)':'var(--eq-bad)');
+  const left=net>=0?50:50-pct;
+  fill.style.cssText=`left:${left}%;width:${pct}%;background:${c};height:100%;border-radius:5px;`;
+  val.style.color=c;
+  val.textContent=(net>=0?'+':'')+net.toFixed(2)+' N';
+}
+
+function ebc(e){ return e<3?'eg':e<10?'ew':'er'; }
+
+// ─── AUTO BALANCE ───
+function autoBalance(){
+  const W=parseFloat(document.getElementById('sl-W').value)||12.7;
+  const A=parseFloat(document.getElementById('sl-A').value)||22;
+  const aRad=A*Math.PI/180;
+  const fp=W*Math.sin(aRad), fn=W*Math.cos(aRad);
+  ['sl-FP','vi-FP'].forEach(id=>document.getElementById(id).value=fp.toFixed(2));
+  ['sl-FN','vi-FN'].forEach(id=>document.getElementById(id).value=fn.toFixed(2));
+  update();
+}
+
+// ─── SLIDER SYNC ───
+const _map={'vi-W':'sl-W','vi-A':'sl-A','vi-FP':'sl-FP','vi-FN':'sl-FN'};
+function syncVI(inp){
+  const sl=document.getElementById(_map[inp.id]);
+  if(!sl)return;
+  let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));
+  inp.value=v; sl.value=v; update();
+}
+
+// ─── TRIAL TABLE ───
+let trials=[];
+function addTrial(){
+  const W=+document.getElementById('sl-W').value;
+  const A=+document.getElementById('sl-A').value;
+  const FP=+document.getElementById('sl-FP').value;
+  const FN=+document.getElementById('sl-FN').value;
+  const r=A*Math.PI/180;
+  const fp_th=W*Math.sin(r), fn_th=W*Math.cos(r);
+  const sinA=Math.sin(r),cosA=Math.cos(r);
+  const ep=fp_th>0.01?Math.abs(FP-fp_th)/fp_th*100:0;
+  const en=fn_th>0.01?Math.abs(FN-fn_th)/fn_th*100:0;
+  trials.push({W,A,sinA,cosA,FP,fp_th,ep,FN,fn_th,en});
+  const tb=document.getElementById('trialBody');
+  tb.innerHTML=trials.map((t,i)=>`<tr>
+    <td>${i+1}</td><td class="td-h">${t.W.toFixed(1)}</td><td class="td-h">${t.A.toFixed(1)}</td>
+    <td>${t.sinA.toFixed(3)}</td><td>${t.cosA.toFixed(3)}</td>
+    <td style="color:var(--vec-fp);">${t.FP.toFixed(2)}</td>
+    <td style="color:var(--vec-fp-th);">${t.fp_th.toFixed(2)}</td>
+    <td><span class="eb0 ${ebc(t.ep)}">${t.ep.toFixed(1)}%</span></td>
+    <td style="color:var(--vec-fn);">${t.FN.toFixed(2)}</td>
+    <td style="color:var(--vec-fn-th);">${t.fn_th.toFixed(2)}</td>
+    <td><span class="eb0 ${ebc(t.en)}">${t.en.toFixed(1)}%</span></td>
+  </tr>`).join('');
+  document.getElementById('tblNote').textContent=`บันทึกแล้ว ${trials.length} trial`;
+}
+function clearTrials(){
+  trials=[];
+  document.getElementById('trialBody').innerHTML='';
+  document.getElementById('tblNote').textContent='ล้างข้อมูลแล้ว';
+}
+
+// ─── CART DRAG STATE ───
+let cartFrac = 0.45; // position along incline 0→1
+let isDragging = false;
+
+function getCartHitRadius(){ return 40; }
+
+function getCartWorldPos(){
+  const Adeg = parseFloat(document.getElementById('sl-A').value)||22;
+  const aRad  = Adeg*Math.PI/180;
+  const cW=canvas.width, cH=canvas.height;
+  const baseX=cW*0.10, baseY=cH*0.84;
+  const iLen=cW*0.72;
+  return {
+    cx: baseX + iLen*cartFrac*Math.cos(aRad),
+    cy: baseY - iLen*cartFrac*Math.sin(aRad),
+    baseX, baseY, iLen, aRad
+  };
+}
+
+function fracFromMouse(mx, my){
+  const Adeg = parseFloat(document.getElementById('sl-A').value)||22;
+  const aRad  = Adeg*Math.PI/180;
+  const cW=canvas.width, cH=canvas.height;
+  const baseX=cW*0.10, baseY=cH*0.84;
+  const iLen=cW*0.72;
+  // Project mouse onto incline axis
+  const dx=mx-baseX, dy=my-baseY;
+  const along = dx*Math.cos(aRad) + dy*(-Math.sin(aRad)); // dot with u_up (cosA,-sinA) but y flipped
+  // Along incline: project (dx,dy) onto (cosA,-sinA) direction
+  const proj = (dx*Math.cos(aRad) + dy*(-Math.sin(aRad)));
+  return Math.max(0.1, Math.min(0.85, proj/iLen));
+}
+
+function setupDrag(){
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return { x: touch.clientX - r.left, y: touch.clientY - r.top };
+  }
+
+  function onStart(e){
+    const p = getPos(e);
+    const g = getCartWorldPos();
+    const dist = Math.hypot(p.x-g.cx, p.y-g.cy);
+    if(dist < getCartHitRadius()){
+      isDragging = true;
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  }
+
+  function onMove(e){
+    if(!isDragging) return;
+    e.preventDefault();
+    const p = getPos(e);
+    cartFrac = fracFromMouse(p.x, p.y);
+    draw();
+  }
+
+  function onEnd(){
+    isDragging = false;
+    canvas.style.cursor = 'grab';
+  }
+
+  canvas.addEventListener('mousedown',  onStart);
+  canvas.addEventListener('mousemove',  onMove);
+  canvas.addEventListener('mouseup',    onEnd);
+  canvas.addEventListener('mouseleave', onEnd);
+  canvas.addEventListener('touchstart', onStart, {passive:false});
+  canvas.addEventListener('touchmove',  onMove,  {passive:false});
+  canvas.addEventListener('touchend',   onEnd);
+
+  // Hover cursor: show grab when near cart
+  canvas.addEventListener('mousemove', e=>{
+    if(isDragging) return;
+    const r=canvas.getBoundingClientRect();
+    const p={x:e.clientX-r.left, y:e.clientY-r.top};
+    const g=getCartWorldPos();
+    canvas.style.cursor = Math.hypot(p.x-g.cx,p.y-g.cy)<getCartHitRadius() ? 'grab' : 'default';
+  });
+}
+
+// ─── THEORY GRAPH ───
+function drawGraph(){
+  const gc=document.getElementById('graphCanvas');
+  if(!gc)return;
+  const gx=gc.getContext('2d');
+  const gW=gc.offsetWidth||700; gc.width=gW; gc.height=290;
+  const W_f=12.7,gH=gc.height;
+  const pL=55,pR=20,pT=22,pB=48,pw=gW-pL-pR,ph=gH-pT-pB;
+  gx.fillStyle='#0f172a';gx.fillRect(0,0,gW,gH);
+  gx.strokeStyle='#1e3a5f55';gx.lineWidth=1;
+  for(let i=0;i<=5;i++){const y=pT+ph-i*ph/5;gx.beginPath();gx.moveTo(pL,y);gx.lineTo(pL+pw,y);gx.stroke();gx.fillStyle='#94a3b8';gx.font='11px Share Tech Mono';gx.fillText((W_f*i/5).toFixed(1),2,y+4);}
+  for(let i=0;i<=9;i++){const x=pL+i*pw/9;gx.beginPath();gx.moveTo(x,pT);gx.lineTo(x,pT+ph);gx.stroke();gx.fillStyle='#94a3b8';gx.font='11px Share Tech Mono';gx.fillText(i*10+'°',x-10,pT+ph+16);}
+  gx.strokeStyle='#334155';gx.lineWidth=2;
+  gx.beginPath();gx.moveTo(pL,pT);gx.lineTo(pL,pT+ph);gx.lineTo(pL+pw,pT+ph);gx.stroke();
+  gx.fillStyle='#94a3b8';gx.font='12px Sarabun,sans-serif';
+  gx.fillText('F (N)',2,pT+ph/2);gx.fillText('มุมเอียง θ (°)',pL+pw/2-50,gH-4);
+  // W line
+  gx.strokeStyle='#f87171';gx.lineWidth=1.5;gx.setLineDash([6,4]);
+  gx.beginPath();gx.moveTo(pL,pT);gx.lineTo(pL+pw,pT);gx.stroke();
+  gx.setLineDash([]);gx.fillStyle='#f87171';gx.font='bold 11px Sarabun';gx.fillText('W=12.7N',pL+pw-62,pT-4);
+  // F(P') curve
+  gx.strokeStyle='#fb923c';gx.lineWidth=2.5;gx.beginPath();
+  for(let d=0;d<=85;d++){const x=pL+d*pw/90,y=pT+ph-(W_f*Math.sin(d*Math.PI/180)/W_f)*ph;d===0?gx.moveTo(x,y):gx.lineTo(x,y);}
+  gx.stroke();
+  // F(N') curve
+  gx.strokeStyle='#818cf8';gx.lineWidth=2.5;gx.beginPath();
+  for(let d=0;d<=85;d++){const x=pL+d*pw/90,y=pT+ph-(W_f*Math.cos(d*Math.PI/180)/W_f)*ph;d===0?gx.moveTo(x,y):gx.lineTo(x,y);}
+  gx.stroke();
+  // current A marker
+  const curA=+document.getElementById('sl-A').value;
+  const mx=pL+curA*pw/90;
+  gx.strokeStyle='#ffffff55';gx.lineWidth=1.5;gx.setLineDash([3,3]);
+  gx.beginPath();gx.moveTo(mx,pT);gx.lineTo(mx,pT+ph);gx.stroke();
+  gx.setLineDash([]);gx.fillStyle='#ffffffaa';gx.font='11px Share Tech Mono';gx.fillText(`θ=${curA}°`,mx+3,pT+12);
+  // legend
+  [['#fb923c',"F(P')=W·sinθ"],['#818cf8',"F(N')=W·cosθ"],['#f87171','W (คงที่)']].forEach(([c,l],i)=>{
+    gx.fillStyle=c;gx.fillRect(pL+10,pT+14+i*16,22,4);
+    gx.fillStyle='#e2e8f0';gx.font='11px Sarabun';gx.fillText(l,pL+36,pT+19+i*16);
+  });
+}
+
+// ─── ANGLE TABLE ───
+function buildAngleTable(){
+  const angs=[0,10,15,20,22,30,37,45,53,60,70,80,90];
+  const notes={0:'F(P\')=0',22:'ค่าในเอกสาร',30:'F(P\')=W/2 ✓',45:'F(P\')=F(N\')',90:'N=0, F(P\')=W'};
+  document.getElementById('angleBody').innerHTML=angs.map(a=>{
+    const r=a*Math.PI/180,s=Math.sin(r),c=Math.cos(r);
+    return `<tr><td>${a}°</td><td>${s.toFixed(4)}</td><td>${c.toFixed(4)}</td>
+      <td style="color:var(--vec-fp-th);">${s.toFixed(4)}</td>
+      <td style="color:var(--vec-fn-th);">${c.toFixed(4)}</td>
+      <td style="font-size:0.77rem;color:var(--accent4);">${notes[a]||''}</td></tr>`;
+  }).join('');
+}
+
+// ─── INIT ───
+window.addEventListener('DOMContentLoaded',()=>{
+  Object.entries(_map).forEach(([vi,si])=>{
+    const sl=document.getElementById(si), inp=document.getElementById(vi);
+    if(!sl||!inp)return;
+    sl.addEventListener('input',()=>{inp.value=parseFloat(sl.value);update();});
+    inp.addEventListener('blur',()=>syncVI(inp));
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')syncVI(inp);});
+  });
+  ['cb-W','cb-N','cb-FP','cb-FN','cb-comp','cb-ang','cb-rope'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',draw);
+  });
+  setupDrag();
+  resizeCanvas(); update(); buildAngleTable();
+});
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>setTimeout(drawGraph,80));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,825 @@
+<!-- © 2568 KP Science Simulation | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 02-01 Shooter &amp; Dropper — KP Science Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --text:#e2e8f0;--muted:#94a3b8;
+  --clr-d:#38bdf8;--clr-s:#fb923c;--clr-vy:#34d399;--clr-vx:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono',monospace;}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:1.9rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.73rem;font-weight:600;white-space:nowrap;}
+
+/* NAV */
+nav{display:flex;gap:4px;padding:7px 20px;background:#0f172a;border-bottom:1px solid var(--border);}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;transition:.2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+/* TAB */
+.tab-section{display:none;}
+.tab-section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* SIM LAYOUT */
+.sim-wrapper{display:flex;height:calc(100vh - 135px);min-height:480px;}
+.canvas-area{flex:1;position:relative;background:#06090f;overflow:hidden;}
+#simCanvas{width:100%;height:100%;display:block;}
+
+/* HUD OVERLAY */
+.hud{position:absolute;top:10px;left:10px;background:rgba(10,14,26,.82);border:1px solid var(--border);border-radius:8px;padding:7px 12px;pointer-events:none;}
+.hud-time{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent4);}
+.hud-sub{font-size:0.7rem;color:var(--muted);margin-top:1px;}
+
+/* RESULT BANNER */
+.result-banner{display:none;position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+  background:rgba(13,42,30,.95);border:2px solid var(--accent3);border-radius:12px;
+  padding:11px 24px;text-align:center;color:var(--accent3);font-size:1rem;font-weight:700;white-space:nowrap;}
+.result-banner.show{display:block;animation:popIn .35s ease;}
+@keyframes popIn{from{transform:translateX(-50%) scale(.8);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+
+/* CONTROL PANEL */
+.ctrl-panel{width:272px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+.ctrl-sec{padding:11px 14px;border-bottom:1px solid var(--border);}
+.ctrl-title{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;}
+
+/* BUTTONS */
+.play-row{display:flex;gap:6px;margin-bottom:8px;}
+.btn{padding:7px 12px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.85rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;flex:2;}
+.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}
+.btn-reset{background:#0d47a1;color:#fff;flex:1;}
+.btn-reset:hover{background:#1565c0;}
+
+/* SPEED */
+.speed-bar{display:flex;align-items:center;gap:4px;}
+.sp-lbl{font-size:.73rem;color:var(--muted);margin-right:3px;}
+.btn-speed{padding:3px 8px;border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.78rem;cursor:pointer;transition:.15s;}
+.btn-speed:hover{border-color:var(--accent);color:var(--accent);}
+.btn-speed.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700;}
+
+/* STEP */
+.step-row{display:flex;align-items:center;gap:5px;margin-top:6px;}
+.btn-step{padding:4px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:.78rem;cursor:pointer;transition:.15s;flex:1;}
+.btn-step:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.btn-step:disabled{opacity:.3;cursor:not-allowed;}
+.step-info{font-size:.73rem;color:var(--muted);text-align:center;min-width:56px;font-family:'Share Tech Mono',monospace;}
+
+/* PRESETS */
+.preset-bar{display:flex;gap:5px;flex-wrap:wrap;}
+.btn-preset{padding:4px 10px;border:1px solid var(--border);border-radius:16px;background:transparent;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:.78rem;cursor:pointer;transition:.15s;}
+.btn-preset:hover{border-color:var(--accent);color:var(--accent);}
+.btn-preset.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700;}
+
+/* SLIDERS */
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.sl-sym{font-size:.85rem;font-weight:700;min-width:20px;font-family:'Share Tech Mono',monospace;}
+.sl-lbl{font-size:.78rem;color:var(--muted);min-width:58px;flex-shrink:0;}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;}
+.sl-unit{font-size:.73rem;color:var(--muted);min-width:28px;}
+.val-input{width:48px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.8rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);}
+
+/* TOGGLES */
+.toggle-bar{display:flex;flex-direction:column;gap:7px;}
+.tog-item{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.tog-item input[type=checkbox]{display:none;}
+.tog-box{width:29px;height:16px;background:var(--panel2);border:1.5px solid var(--border);border-radius:8px;position:relative;transition:.2s;flex-shrink:0;}
+.tog-box::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:.2s;}
+.tog-item input:checked+.tog-box{background:var(--accent);border-color:var(--accent);}
+.tog-item input:checked+.tog-box::after{left:15px;background:#0a0e1a;}
+.tog-lbl{font-size:.78rem;color:var(--muted);transition:.15s;}
+.tog-item:has(input:checked) .tog-lbl{color:var(--text);}
+
+/* READOUT */
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.rd-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;}
+.rd-card.full{grid-column:1/-1;}
+.rd-lbl{font-size:.65rem;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em;}
+.rd-val{font-family:'Share Tech Mono',monospace;font-size:.95rem;font-weight:700;}
+.rd-card.clr-d .rd-val{color:var(--clr-d);}
+.rd-card.clr-s .rd-val{color:var(--clr-s);}
+.rd-card.clr-y .rd-val{color:var(--accent3);}
+.rd-card.highlight{border-color:var(--accent3);}
+
+/* LEGEND */
+.legend{display:flex;gap:10px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--muted);}
+.leg-dot{width:9px;height:9px;border-radius:50%;}
+
+/* THEORY */
+.theory{max-width:800px;margin:0 auto;padding:26px 20px;}
+.theory h2{color:var(--accent);font-size:1.1rem;margin-bottom:10px;}
+.theory h3{color:var(--accent2);font-size:.92rem;margin:16px 0 7px;}
+.theory p{color:var(--muted);line-height:1.75;margin-bottom:9px;}
+.eq-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px 17px;margin:10px 0;}
+.eq-row{display:flex;align-items:baseline;gap:14px;margin-bottom:5px;}
+.eq-sym{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:var(--accent3);min-width:130px;}
+.eq-desc{font-size:.76rem;color:var(--muted);font-family:'Sarabun',sans-serif;}
+.key-box{background:#0d2a1e;border:1px solid var(--accent3);border-radius:10px;padding:13px 17px;margin:14px 0;}
+.key-box .k-title{color:var(--accent3);font-weight:700;font-size:.88rem;margin-bottom:5px;}
+.key-box p{color:var(--accent3);opacity:.85;font-size:.85rem;margin:0;}
+.cmp-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.82rem;}
+.cmp-table th{background:var(--panel2);color:var(--accent);padding:7px 11px;border:1px solid var(--border);text-align:left;}
+.cmp-table td{padding:7px 11px;border:1px solid var(--border);color:var(--text);}
+.cmp-table tr:nth-child(even) td{background:var(--panel);}
+.ref-footer{font-size:.72rem;color:var(--muted);border-top:1px solid var(--border);padding-top:11px;margin-top:22px;}
+
+@media(max-width:768px){
+  .sim-wrapper{flex-direction:column;height:auto;}
+  .ctrl-panel{width:100%;max-height:350px;border-left:none;border-top:1px solid var(--border);}
+  .canvas-area{height:300px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🎯</div>
+  <div>
+    <h1>Demo 02-01 — Shooter &amp; Dropper</h1>
+    <p>การอิสระขององค์ประกอบความเร็วแนวดิ่งและแนวราบ</p>
+  </div>
+  <div class="badge">KP Science Simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<!-- ═══ SIM TAB ═══ -->
+<div id="tab-sim" class="tab-section active">
+<div class="sim-wrapper">
+
+  <!-- Canvas -->
+  <div class="canvas-area">
+    <canvas id="simCanvas"></canvas>
+    <div class="hud">
+      <div class="hud-time mono" id="hud-t">t = 0.000 s</div>
+      <div class="hud-sub">g = 9.8 m/s²  |  uniform acceleration</div>
+    </div>
+    <div class="result-banner" id="result-banner">🎯 ลูกทั้งสองแตะพื้นพร้อมกัน! ✓</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-panel">
+
+    <!-- Play -->
+    <div class="ctrl-sec">
+      <div class="ctrl-title">⏯ ควบคุม</div>
+      <div class="play-row">
+        <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+      </div>
+      <div class="speed-bar">
+        <span class="sp-lbl">Speed:</span>
+        <button class="btn-speed" onclick="setSpd(.25,this)">¼×</button>
+        <button class="btn-speed" onclick="setSpd(.5,this)">½×</button>
+        <button class="btn-speed active" onclick="setSpd(1,this)">1×</button>
+        <button class="btn-speed" onclick="setSpd(2,this)">2×</button>
+        <button class="btn-speed" onclick="setSpd(5,this)">5×</button>
+      </div>
+      <div class="step-row">
+        <button class="btn-step" id="btn-sb" onclick="stepBack()" disabled>⏮ ย้อน</button>
+        <span class="step-info" id="step-info">–</span>
+        <button class="btn-step" id="btn-sf" onclick="stepFwd()" disabled>ถัดไป ⏭</button>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="ctrl-sec">
+      <div class="ctrl-title">🎯 ค่าสำเร็จรูป</div>
+      <div class="preset-bar">
+        <button class="btn-preset" onclick="applyPreset('slow',this)">🐢 ช้า</button>
+        <button class="btn-preset active" onclick="applyPreset('mid',this)">🏃 กลาง</button>
+        <button class="btn-preset" onclick="applyPreset('fast',this)">🚀 เร็ว</button>
+        <button class="btn-preset" onclick="applyPreset('ultra',this)">⚡ สุดเร็ว</button>
+      </div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="ctrl-sec">
+      <div class="ctrl-title">🎛 ตัวแปร</div>
+      <div class="sl-row">
+        <span class="sl-sym" style="color:var(--clr-s)">v₀</span>
+        <span class="sl-lbl">ความเร็วยิง</span>
+        <input class="sl-range" type="range" id="sl-v0" min="1" max="30" step="0.5" value="15">
+        <input class="val-input" type="number" id="vi-v0" min="1" max="30" step="0.5" value="15">
+        <span class="sl-unit">m/s</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-sym" style="color:var(--accent3)">H</span>
+        <span class="sl-lbl">ความสูง</span>
+        <input class="sl-range" type="range" id="sl-h" min="1" max="12" step="0.5" value="6">
+        <input class="val-input" type="number" id="vi-h" min="1" max="12" step="0.5" value="6">
+        <span class="sl-unit">m</span>
+      </div>
+    </div>
+
+    <!-- Toggles -->
+    <div class="ctrl-sec">
+      <div class="ctrl-title">👁 แสดง / ซ่อน</div>
+      <div class="toggle-bar">
+        <label class="tog-item">
+          <input type="checkbox" id="tog-yguide" checked onchange="toggleLayer('yguide',this.checked)">
+          <span class="tog-box"></span><span class="tog-lbl">📏 เส้น y เดียวกัน (จุดสำคัญ)</span>
+        </label>
+        <label class="tog-item">
+          <input type="checkbox" id="tog-vec" checked onchange="toggleLayer('vec',this.checked)">
+          <span class="tog-box"></span><span class="tog-lbl">🏹 เวกเตอร์ความเร็ว</span>
+        </label>
+        <label class="tog-item">
+          <input type="checkbox" id="tog-trace" checked onchange="toggleLayer('trace',this.checked)">
+          <span class="tog-box"></span><span class="tog-lbl">〰️ เส้นทางการเคลื่อนที่</span>
+        </label>
+        <label class="tog-item">
+          <input type="checkbox" id="tog-vylabel" checked onchange="toggleLayer('vylabel',this.checked)">
+          <span class="tog-box"></span><span class="tog-lbl">🏷️ ค่า vᵧ กำกับลูก</span>
+        </label>
+        <label class="tog-item">
+          <input type="checkbox" id="tog-grid" onchange="toggleLayer('grid',this.checked)">
+          <span class="tog-box"></span><span class="tog-lbl">🔲 Grid เมตร</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div class="ctrl-sec">
+      <div class="ctrl-title">📊 ค่าขณะนั้น</div>
+      <div class="rd-grid">
+        <div class="rd-card full clr-y highlight">
+          <div class="rd-lbl">⬇️ ระยะตก y (ทั้งคู่เท่ากัน!)</div>
+          <div class="rd-val mono" id="rd-y">0.000 m</div>
+        </div>
+        <div class="rd-card clr-d">
+          <div class="rd-lbl">🔵 vᵧ ตกตรง</div>
+          <div class="rd-val mono" id="rd-vyd">0.00 m/s</div>
+        </div>
+        <div class="rd-card clr-s">
+          <div class="rd-lbl">🟠 vᵧ ยิง</div>
+          <div class="rd-val mono" id="rd-vys">0.00 m/s</div>
+        </div>
+        <div class="rd-card clr-d">
+          <div class="rd-lbl">🔵 vₓ ตกตรง</div>
+          <div class="rd-val mono">0 m/s</div>
+        </div>
+        <div class="rd-card clr-s">
+          <div class="rd-lbl">🟠 vₓ ยิง</div>
+          <div class="rd-val mono" id="rd-vxs">– m/s</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="ctrl-sec">
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--clr-d)"></div>ตกตรง (Dropper)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--clr-s)"></div>ยิงแนวราบ (Shooter)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--accent3)"></div>เส้น y เท่ากัน</div>
+      </div>
+    </div>
+
+  </div><!-- /ctrl-panel -->
+</div><!-- /sim-wrapper -->
+</div><!-- /tab-sim -->
+
+<!-- ═══ THEORY TAB ═══ -->
+<div id="tab-theory" class="tab-section">
+<div class="theory">
+  <h2>🧲 การอิสระขององค์ประกอบการเคลื่อนที่ — Demo 02-01</h2>
+  <p>การสาธิต Shooter/Dropper แสดงให้เห็นว่า <strong style="color:var(--accent)">การเคลื่อนที่แนวดิ่งของวัตถุไม่ได้รับผลกระทบจากการเคลื่อนที่แนวราบ</strong> ไม่ว่าวัตถุจะถูกปล่อยตรงๆ หรือถูกยิงออกไปในแนวราบ ทั้งสองจะตกลงพื้นพร้อมกันเสมอเมื่อปล่อยจากความสูงเดียวกัน</p>
+
+  <h3>📐 สมการการเคลื่อนที่ (ขอบเขต: uniform acceleration, ไม่มีแรงต้านอากาศ)</h3>
+  <div class="eq-box">
+    <div style="color:var(--clr-d);font-weight:700;margin-bottom:8px;font-size:.82rem;">🔵 ลูกตกตรง (Dropper) — ปล่อยจากหยุดนิ่ง</div>
+    <div class="eq-row"><span class="eq-sym">x = x₀</span><span class="eq-desc">ไม่มีการเคลื่อนที่แนวราบ</span></div>
+    <div class="eq-row"><span class="eq-sym">y = ½ g t²</span><span class="eq-desc">ระยะตกสะสม (m), g = 9.8 m/s²</span></div>
+    <div class="eq-row"><span class="eq-sym">vᵧ = g t</span><span class="eq-desc">ความเร็วแนวดิ่ง เพิ่มสม่ำเสมอ (m/s)</span></div>
+  </div>
+  <div class="eq-box">
+    <div style="color:var(--clr-s);font-weight:700;margin-bottom:8px;font-size:.82rem;">🟠 ลูกยิงแนวราบ (Shooter) — ยิงด้วยความเร็ว v₀ แนวราบ</div>
+    <div class="eq-row"><span class="eq-sym">x = x₀ + v₀ t</span><span class="eq-desc">เคลื่อนที่แนวราบสม่ำเสมอ (m)</span></div>
+    <div class="eq-row"><span class="eq-sym">y = ½ g t²</span><span class="eq-desc">ระยะตกสะสม — <strong style="color:var(--accent3)">เหมือนกันทุกประการกับ Dropper!</strong></span></div>
+    <div class="eq-row"><span class="eq-sym">vₓ = v₀</span><span class="eq-desc">ความเร็วแนวราบคงที่ตลอด (m/s)</span></div>
+    <div class="eq-row"><span class="eq-sym">vᵧ = g t</span><span class="eq-desc">ความเร็วแนวดิ่ง — <strong style="color:var(--accent3)">เท่ากับ Dropper!</strong></span></div>
+  </div>
+
+  <div class="key-box">
+    <div class="k-title">🔑 ข้อสรุปสำคัญ</div>
+    <p>สมการ y = ½gt² และ vᵧ = gt ของทั้งสองลูกเหมือนกันทุกประการ ค่า v₀ ไม่ปรากฏในสมการแนวดิ่งเลย จึงสรุปได้ว่า <strong>การเคลื่อนที่แนวราบและแนวดิ่งเป็นอิสระต่อกันอย่างสมบูรณ์</strong></p>
+  </div>
+
+  <h3>📊 เปรียบเทียบ ณ เวลาเดียวกัน t</h3>
+  <table class="cmp-table">
+    <tr><th>ปริมาณ</th><th style="color:var(--clr-d)">🔵 ตกตรง</th><th style="color:var(--clr-s)">🟠 ยิงแนวราบ</th></tr>
+    <tr><td>vₓ เริ่มต้น</td><td>0 m/s</td><td>v₀ (ปรับได้)</td></tr>
+    <tr><td>ความเร่งแนวดิ่ง a</td><td>g = 9.8 m/s²</td><td>g = 9.8 m/s²</td></tr>
+    <tr><td>ระยะตก y(t)</td><td>½gt²</td><td style="color:var(--accent3);font-weight:700">½gt² ← เหมือนกัน!</td></tr>
+    <tr><td>vᵧ(t)</td><td>gt</td><td style="color:var(--accent3);font-weight:700">gt ← เหมือนกัน!</td></tr>
+    <tr><td>เวลาแตะพื้น t*</td><td>√(2H/g)</td><td style="color:var(--accent3);font-weight:700">√(2H/g) ← เหมือนกัน!</td></tr>
+  </table>
+
+  <h3>🧮 เวลาแตะพื้น</h3>
+  <div class="eq-box">
+    <div class="eq-row"><span class="eq-sym">H = ½ g t*²</span><span class="eq-desc">แก้หา t* เมื่อลูกตกครบ H เมตร</span></div>
+    <div class="eq-row"><span class="eq-sym">t* = √(2H / g)</span><span class="eq-desc">เท่ากันสำหรับทั้งคู่ ไม่ขึ้นกับ v₀</span></div>
+  </div>
+
+  <div class="ref-footer">
+    อ้างอิง: Halliday, Resnick &amp; Krane — Physics, 5th Ed. | Demo 02-01 Shooter/Dropper | หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560)<br>
+    © 2568 KP Science Simulation | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต
+  </div>
+</div>
+</div><!-- /tab-theory -->
+
+<script>
+// ═══════════════════════════════
+// CONSTANTS & STATE
+// ═══════════════════════════════
+const G = 9.8;
+let simT = 0, vy = 0;
+let isPlaying = false, animId = null, lastTs = null, spd = 1.0;
+let v0 = 15, physH = 6;
+let physScale, groundY, startY, launchX;
+let bD = {x:0,y:0}, bS = {x:0,y:0};
+let trcD = [], trcS = [];
+let simDone = false;
+
+// History for step
+let hist = [], histIdx = -1;
+const MAX_HIST = 800;
+
+// Layers
+const L = {yguide:true, vec:true, trace:true, vylabel:true, grid:false};
+
+// ═══════════════════════════════
+// CANVAS
+// ═══════════════════════════════
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const a = canvas.parentElement;
+  canvas.width  = a.clientWidth  || 760;
+  canvas.height = a.clientHeight || 480;
+  recalcLayout();
+  if (!isPlaying) draw();
+}
+
+function recalcLayout(){
+  const W = canvas.width, Hc = canvas.height;
+  groundY   = Hc - 55;
+  startY    = 62;
+  physScale = (groundY - startY) / physH;
+  launchX   = W * 0.2;
+}
+
+// ═══════════════════════════════
+// SIM INIT
+// ═══════════════════════════════
+function initState(){
+  recalcLayout();
+  simT = 0; vy = 0; simDone = false;
+  bD = {x:launchX, y:startY};
+  bS = {x:launchX, y:startY};
+  trcD = []; trcS = [];
+  hist = []; histIdx = -1;
+  document.getElementById('result-banner').classList.remove('show');
+  updateReadout();
+  updateStepUI();
+}
+
+function capState(){
+  return {
+    simT, vy,
+    bD:{...bD}, bS:{...bS},
+    trcD: trcD.map(p=>({...p})),
+    trcS: trcS.map(p=>({...p}))
+  };
+}
+
+function restState(s){
+  simT = s.simT; vy = s.vy;
+  bD = {...s.bD}; bS = {...s.bS};
+  trcD = s.trcD.map(p=>({...p}));
+  trcS = s.trcS.map(p=>({...p}));
+  updateReadout();
+}
+
+// ═══════════════════════════════
+// UPDATE
+// ═══════════════════════════════
+function update(dt){
+  if (simDone) return;
+  simT += dt;
+  const yFall = 0.5 * G * simT * simT; // meters
+  vy = G * simT;
+
+  bD.x = launchX;
+  bD.y = startY + yFall * physScale;
+
+  bS.x = launchX + v0 * simT * physScale;
+  bS.y = startY + yFall * physScale; // SAME y — physics key point
+
+  // Record trace + history every ~20ms
+  const lastT = hist.length ? hist[hist.length-1].simT : -1;
+  if (simT - lastT >= 0.018){
+    trcD.push({x:bD.x, y:bD.y});
+    trcS.push({x:bS.x, y:bS.y});
+    hist.push(capState());
+    if (hist.length > MAX_HIST) hist.shift();
+    histIdx = hist.length - 1;
+    updateStepUI();
+  }
+
+  // Ground check
+  if (bD.y >= groundY){
+    bD.y = groundY; bS.y = groundY;
+    simDone = true;
+    cancelAnimationFrame(animId);
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶ เริ่มใหม่';
+    document.getElementById('playBtn').classList.remove('playing');
+    document.getElementById('result-banner').classList.add('show');
+  }
+  updateReadout();
+}
+
+// ═══════════════════════════════
+// DRAW
+// ═══════════════════════════════
+function draw(){
+  const W = canvas.width, Hc = canvas.height;
+  ctx.clearRect(0, 0, W, Hc);
+
+  // Background sky
+  const sky = ctx.createLinearGradient(0,0,0,groundY);
+  sky.addColorStop(0,'#06090e'); sky.addColorStop(1,'#0c1828');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,groundY);
+
+  // Ground
+  ctx.fillStyle = '#0e200e'; ctx.fillRect(0,groundY,W,Hc-groundY);
+  ctx.fillStyle = '#2a5a2a'; ctx.fillRect(0,groundY,W,3);
+  // Ground label
+  ctx.save();
+  ctx.font = '11px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(42,90,42,.9)';
+  ctx.fillText('GROUND  (y = '+physH.toFixed(1)+' m)', 12, groundY+18);
+  ctx.restore();
+
+  // Grid
+  if (L.grid) drawGrid(W);
+
+  // Height scale markers
+  drawHMarkers();
+
+  // Y-guide
+  if (L.yguide) drawYGuide();
+
+  // Traces
+  if (L.trace){
+    drawTrace(trcD,'rgba(56,189,248,.3)','rgba(56,189,248,.65)');
+    drawTrace(trcS,'rgba(251,146,60,.3)','rgba(251,146,60,.65)');
+  }
+
+  // Launcher
+  drawLauncher();
+
+  // Balls
+  drawBall(bD.x, bD.y, '#38bdf8');
+  drawBall(bS.x, bS.y, '#fb923c');
+
+  // Vectors
+  if (L.vec) drawVectors();
+
+  // vy labels
+  if (L.vylabel && simT > 0.05) drawVyLabels();
+
+  // Impact glow
+  if (simDone) drawImpact();
+}
+
+function drawGrid(W){
+  ctx.save();
+  ctx.strokeStyle='rgba(30,58,95,.45)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+  for (let m=0;m<=physH+1;m++){
+    const py=startY+m*physScale; if(py>groundY+4) break;
+    ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();
+  }
+  ctx.setLineDash([]);ctx.restore();
+}
+
+function drawHMarkers(){
+  ctx.save();
+  ctx.font='10px Share Tech Mono, monospace';
+  for (let m=0;m<=physH;m++){
+    const py=startY+m*physScale; if(py>groundY+2) break;
+    ctx.fillStyle='rgba(148,163,184,.22)';ctx.fillRect(0,py,30,1);
+    ctx.fillStyle='rgba(148,163,184,.45)';ctx.fillText(m+'m',4,py-2);
+  }
+  ctx.restore();
+}
+
+function drawYGuide(){
+  if (simT < 0.01 || simDone) return;
+  const y = bD.y;
+  if (y <= startY+4) return;
+  const x1=Math.min(bD.x,bS.x)-14, x2=Math.max(bD.x,bS.x)+14;
+  ctx.save();
+  // Main dashed line
+  ctx.strokeStyle='rgba(52,211,153,.65)';ctx.lineWidth=1.5;ctx.setLineDash([7,5]);
+  ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();
+  ctx.setLineDash([]);
+  // Bracket ticks at each ball
+  ctx.strokeStyle='rgba(52,211,153,.9)';ctx.lineWidth=2;
+  [bD.x,bS.x].forEach(bx=>{
+    ctx.beginPath();ctx.moveTo(bx-8,y-6);ctx.lineTo(bx-8,y+6);ctx.stroke();
+  });
+  // Label in middle
+  ctx.fillStyle='rgba(52,211,153,.85)';
+  ctx.font='bold 11px Sarabun, sans-serif';ctx.textAlign='center';
+  const mx=(bD.x+bS.x)/2;
+  ctx.fillText('y เท่ากัน ✓',mx,y-10);
+  // y value
+  const yVal=(0.5*G*simT*simT).toFixed(2);
+  ctx.font='10px Share Tech Mono, monospace';ctx.fillStyle='rgba(52,211,153,.65)';
+  ctx.fillText(yVal+' m',mx,y+18);
+  ctx.restore();
+}
+
+function drawTrace(pts,clr,dotClr){
+  if (pts.length<2) return;
+  ctx.save();
+  ctx.strokeStyle=clr;ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+  pts.forEach((p,i)=>{if(i>0)ctx.lineTo(p.x,p.y);});
+  ctx.stroke();
+  pts.forEach((p,i)=>{
+    if(i%4!==0) return;
+    ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,Math.PI*2);
+    ctx.fillStyle=dotClr;ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawLauncher(){
+  const lx=launchX, ly=startY;
+  ctx.save();
+  // Pole
+  ctx.strokeStyle='#334155';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx,ly-32);ctx.stroke();
+  // Platform base
+  ctx.fillStyle='#1a2e4a';ctx.strokeStyle='#1e3a5f';ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.roundRect(lx-42,ly-46,90,18,4);
+  ctx.fill();ctx.stroke();
+  // Dropper socket (left — drops down)
+  ctx.fillStyle='#1e3a5f';ctx.strokeStyle='#38bdf8';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(lx-18,ly-37,9,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#38bdf8';ctx.font='bold 9px monospace';ctx.textAlign='center';
+  ctx.fillText('D',lx-18,ly-33);
+  // Shooter barrel (right — fires horizontal)
+  ctx.fillStyle='#2a1a0a';ctx.strokeStyle='#fb923c';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(lx+4,ly-43,30,12,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fb923c';ctx.font='bold 8px monospace';
+  ctx.fillText('S→',lx+19,ly-34);
+  ctx.restore();
+}
+
+function drawBall(x,y,clr){
+  ctx.save();
+  ctx.shadowColor=clr;ctx.shadowBlur=16;
+  ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);
+  ctx.fillStyle=clr;ctx.fill();
+  ctx.shadowBlur=0;
+  // Highlight
+  ctx.beginPath();ctx.arc(x-3,y-3,4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.fill();
+  ctx.restore();
+}
+
+function drawVectors(){
+  if (simT<0.03) return;
+  const sc=3.5;
+  const vyLen = Math.min(vy*sc, 80);
+
+  // Dropper: only downward vy
+  if (vyLen>3){
+    drawArrow(bD.x,bD.y, bD.x,bD.y+vyLen, '#34d399');
+    ctx.save();ctx.font='9px Share Tech Mono,monospace';
+    ctx.fillStyle='#34d399';ctx.textAlign='left';
+    ctx.fillText('vᵧ',bD.x+6,bD.y+vyLen*0.45);
+    ctx.restore();
+  }
+
+  // Shooter: vx (right) + vy (down)
+  const vxLen = Math.min(v0*sc*0.38, 72);
+  if (vxLen>3){
+    drawArrow(bS.x,bS.y, bS.x+vxLen,bS.y, '#fbbf24');
+    ctx.save();ctx.font='9px Share Tech Mono,monospace';
+    ctx.fillStyle='#fbbf24';ctx.textAlign='center';
+    ctx.fillText('vₓ',bS.x+vxLen*0.5,bS.y-7);
+    ctx.restore();
+  }
+  if (vyLen>3){
+    drawArrow(bS.x,bS.y, bS.x,bS.y+vyLen, '#34d399');
+    ctx.save();ctx.font='9px Share Tech Mono,monospace';
+    ctx.fillStyle='#34d399';ctx.textAlign='right';
+    ctx.fillText('vᵧ',bS.x-6,bS.y+vyLen*0.45);
+    ctx.restore();
+  }
+}
+
+function drawArrow(ox,oy,ex,ey,clr){
+  const ang=Math.atan2(ey-oy,ex-ox);
+  ctx.save();
+  ctx.strokeStyle=clr;ctx.fillStyle=clr;ctx.lineWidth=2.2;
+  ctx.shadowColor=clr;ctx.shadowBlur=5;
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();
+  ctx.shadowBlur=0;const hl=9;
+  ctx.beginPath();
+  ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-hl*Math.cos(ang-.35),ey-hl*Math.sin(ang-.35));
+  ctx.lineTo(ex-hl*Math.cos(ang+.35),ey-hl*Math.sin(ang+.35));
+  ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+function drawVyLabels(){
+  const v=vy.toFixed(1);
+  ctx.save();ctx.font='9px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillStyle='rgba(56,189,248,.85)';
+  ctx.fillText('vᵧ='+v,bD.x,bD.y-16);
+  ctx.fillStyle='rgba(251,146,60,.85)';
+  ctx.fillText('vᵧ='+v,bS.x,bS.y-16);
+  ctx.restore();
+}
+
+function drawImpact(){
+  [bD,bS].forEach(b=>{
+    const g=ctx.createRadialGradient(b.x,groundY,0,b.x,groundY,26);
+    g.addColorStop(0,'rgba(255,240,80,.45)');g.addColorStop(1,'rgba(255,240,80,0)');
+    ctx.save();ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(b.x,groundY,24,9,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ═══════════════════════════════
+// READOUT
+// ═══════════════════════════════
+function updateReadout(){
+  const yFall=(0.5*G*simT*simT).toFixed(3);
+  document.getElementById('rd-y').textContent   = yFall+' m';
+  document.getElementById('rd-vyd').textContent = vy.toFixed(2)+' m/s';
+  document.getElementById('rd-vys').textContent = vy.toFixed(2)+' m/s';
+  document.getElementById('rd-vxs').textContent = v0.toFixed(1)+' m/s';
+  document.getElementById('hud-t').textContent  = 't = '+simT.toFixed(3)+' s';
+}
+
+// ═══════════════════════════════
+// ANIMATION
+// ═══════════════════════════════
+function loop(ts){
+  if (!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05)*spd;
+  lastTs=ts;
+  update(dt); draw();
+  if (!simDone) animId=requestAnimationFrame(loop);
+}
+
+function togglePlay(){
+  if (simDone){resetSim();return;}
+  isPlaying=!isPlaying;
+  const btn=document.getElementById('playBtn');
+  if (isPlaying){
+    lastTs=null;animId=requestAnimationFrame(loop);
+    btn.textContent='⏸ หยุด';btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent='▶ เริ่ม';btn.classList.remove('playing');
+  }
+}
+
+function resetSim(){
+  cancelAnimationFrame(animId);
+  isPlaying=false;lastTs=null;
+  document.getElementById('playBtn').textContent='▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  initState();draw();
+}
+
+// ═══════════════════════════════
+// SPEED / STEP
+// ═══════════════════════════════
+function setSpd(val,btn){
+  spd=val;
+  document.querySelectorAll('.btn-speed').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function stepBack(){
+  if (histIdx<=0) return;
+  if (isPlaying){cancelAnimationFrame(animId);isPlaying=false;document.getElementById('playBtn').textContent='▶ เริ่ม';document.getElementById('playBtn').classList.remove('playing');}
+  histIdx--;restState(hist[histIdx]);draw();updateStepUI();
+}
+function stepFwd(){
+  if (histIdx>=hist.length-1) return;
+  histIdx++;restState(hist[histIdx]);draw();updateStepUI();
+}
+function updateStepUI(){
+  const n=hist.length;
+  document.getElementById('step-info').textContent = n>0?(histIdx+1)+'/'+n:'–';
+  document.getElementById('btn-sb').disabled=histIdx<=0;
+  document.getElementById('btn-sf').disabled=histIdx>=hist.length-1;
+}
+
+// ═══════════════════════════════
+// PRESETS
+// ═══════════════════════════════
+const PRESETS={
+  slow:{v0:5, h:6},
+  mid: {v0:15,h:6},
+  fast:{v0:22,h:8},
+  ultra:{v0:30,h:10}
+};
+function applyPreset(key,btn){
+  const p=PRESETS[key];if(!p)return;
+  document.querySelectorAll('.btn-preset').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  v0=p.v0; physH=p.h;
+  document.getElementById('sl-v0').value=v0; document.getElementById('vi-v0').value=v0;
+  document.getElementById('sl-h').value=physH; document.getElementById('vi-h').value=physH;
+  if(isPlaying){cancelAnimationFrame(animId);isPlaying=false;document.getElementById('playBtn').textContent='▶ เริ่ม';document.getElementById('playBtn').classList.remove('playing');}
+  initState();draw();
+}
+
+// ═══════════════════════════════
+// LAYERS
+// ═══════════════════════════════
+function toggleLayer(key,val){L[key]=val;if(!isPlaying)draw();}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function showTab(name,btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='sim') setTimeout(resizeCanvas,50);
+}
+
+// ═══════════════════════════════
+// SLIDER SYNC
+// ═══════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  const sMap={'vi-v0':'sl-v0','vi-h':'sl-h'};
+
+  function syncVI(inp){
+    const sl=document.getElementById(sMap[inp.id]);if(!sl)return;
+    let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));
+    inp.value=v;sl.value=v;
+    if(inp.id==='vi-v0') v0=v;
+    if(inp.id==='vi-h')  physH=v;
+    if(!isPlaying){initState();draw();}
+  }
+
+  Object.entries(sMap).forEach(([viId,slId])=>{
+    const sl=document.getElementById(slId);
+    const vi=document.getElementById(viId);
+    sl.addEventListener('input',()=>{
+      vi.value=parseFloat(sl.value);
+      if(slId==='sl-v0') v0=parseFloat(sl.value);
+      if(slId==='sl-h')  physH=parseFloat(sl.value);
+      if(!isPlaying){initState();draw();}
+    });
+    vi.addEventListener('blur',()=>syncVI(vi));
+    vi.addEventListener('keydown',e=>{if(e.key==='Enter')syncVI(vi);});
+  });
+
+  window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();
+  initState();
+  draw();
+});
+</script>
+</body>
+</html>

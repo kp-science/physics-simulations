@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Demo 01-08 Constant Velocity</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --v-col:   #66bb6a;
+  --x-col:   #ffd54f;
+  --t-col:   #ce93d8;
+  --a-col:   #ffa726;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono','Courier New',monospace;}
+
+/* ── Header ── */
+header{
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  border-bottom:2px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;gap:14px;
+}
+header .icon{font-size:2.2rem;}
+header h1{font-size:1.4rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);margin-top:2px;}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:600;white-space:nowrap;}
+
+/* ── Nav Tabs ── */
+nav{display:flex;gap:3px;padding:8px 16px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.8rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+/* ── Section ── */
+.section{display:none;}
+.section.active{display:block;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── Control Bar ── */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.btn{padding:6px 16px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;}
+.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}
+.btn-reset{background:#0d47a1;color:#fff;}
+.btn-reset:hover{background:#1565c0;}
+.btn-mode{background:var(--panel2);color:var(--muted);border:1px solid var(--border);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;font-family:'Sarabun',sans-serif;transition:.15s;}
+.btn-mode.active{background:var(--accent);color:#0a0e1a;border-color:var(--accent);}
+.btn-mode:hover:not(.active){border-color:var(--accent);color:var(--accent);}
+.sep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+.cbar-label{font-size:0.78rem;color:var(--muted);}
+
+/* ── Main Layout ── */
+.sim-body{display:flex;gap:0;height:calc(100vh - 148px);overflow:hidden;}
+.left-col{flex:1;display:flex;flex-direction:column;gap:0;overflow:hidden;}
+.right-col{width:280px;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;flex-shrink:0;}
+
+canvas{display:block;width:100%;}
+
+.canvas-block{padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;}
+.canvas-block canvas{border:1px solid var(--border);border-radius:8px;background:#060b14;}
+.canvas-label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-weight:700;}
+
+/* ── Slider ── */
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.sl-label{font-size:0.8rem;flex-shrink:0;min-width:50px;}
+.sl-range{flex:1;cursor:pointer;min-width:0;}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:26px;flex-shrink:0;text-align:right;}
+.val-input{width:54px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);}
+
+/* ── Readout ── */
+.readout-panel{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.readout-title{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;font-weight:700;}
+.readout-row{display:flex;align-items:baseline;gap:5px;margin-bottom:5px;}
+.r-label{font-size:0.78rem;min-width:32px;}
+.r-val{font-family:'Share Tech Mono',monospace;font-size:1.05rem;font-weight:700;flex:1;}
+.r-unit{font-size:0.7rem;color:var(--muted);}
+
+/* ── Theory Box ── */
+.theory-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:0.8rem;line-height:1.65;}
+.theory-box h4{color:var(--accent);font-size:0.85rem;margin-bottom:6px;}
+.formula{font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--accent3);background:#0a1628;padding:4px 8px;border-radius:5px;margin:4px 0;display:block;}
+.theory-note{font-size:0.75rem;color:var(--muted);line-height:1.5;}
+
+/* ── Info chip ── */
+.chip{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;margin:1px;}
+.chip-blue{background:#0e3a5f;color:var(--accent);}
+.chip-green{background:#0a3a1a;color:var(--accent3);}
+.chip-orange{background:#3a1a0a;color:var(--accent4);}
+
+/* ── Quiz section ── */
+.quiz-wrap{padding:14px;display:flex;flex-direction:column;gap:10px;}
+.q-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.q-card h4{color:var(--accent4);margin-bottom:8px;font-size:0.88rem;}
+.q-opt{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:.15s;margin-bottom:3px;font-size:0.83rem;}
+.q-opt:hover{background:#1e3050;}
+.q-opt input[type=radio]{margin-top:2px;accent-color:var(--accent);}
+.q-btn{padding:6px 14px;border:none;border-radius:6px;background:var(--accent2);color:#fff;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.82rem;margin-top:4px;}
+.q-result{font-size:0.82rem;margin-top:6px;padding:6px 10px;border-radius:6px;}
+.q-result.correct{background:#0a3a1a;color:var(--accent3);}
+.q-result.wrong{background:#3a0a0a;color:#ff6b6b;}
+
+footer{background:#0f172a;border-top:1px solid var(--border);padding:6px 16px;font-size:0.68rem;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚄</div>
+  <div>
+    <h1>Demo 01-08 — Constant Velocity (ความเร็วคงที่)</h1>
+    <p>Chapter 2: Linear Kinematics &nbsp;|&nbsp; The Video Encyclopedia of Physics Demonstrations &nbsp;|&nbsp; Berg, Univ. of Maryland 1992</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showTab('quiz',this)">✏️ แบบฝึกหัด</button>
+</nav>
+
+<!-- ══════════ TAB: Simulation ══════════ -->
+<div id="tab-sim" class="section active">
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="sep"></div>
+    <span class="cbar-label">โหมด:</span>
+    <button class="btn-mode active" id="m-once" onclick="setMode('once')">→ ทางเดียว</button>
+    <button class="btn-mode" id="m-bounce" onclick="setMode('bounce')">↔ กลับไปมา (Bounce)</button>
+    <div class="sep"></div>
+    <span class="cbar-label">ความเร็ว Sim:</span>
+    <input type="range" id="simSpd" min="0.1" max="4" step="0.1" value="1" style="width:70px;accent-color:var(--accent);" oninput="simSpd=+this.value;document.getElementById('spdLbl').textContent=simSpd.toFixed(1)+'×'">
+    <span id="spdLbl" style="font-size:0.8rem;color:var(--accent);min-width:30px;">1.0×</span>
+  </div>
+
+  <div class="sim-body">
+    <!-- Left: canvases -->
+    <div class="left-col">
+      <!-- Air Track Canvas -->
+      <div class="canvas-block" style="flex:0 0 auto;">
+        <div class="canvas-label">🔴 Air Track — Glider (อากาศลดแรงเสียดทาน)</div>
+        <canvas id="cTrack" height="140"></canvas>
+      </div>
+      <!-- x-t graph -->
+      <div class="canvas-block" style="flex:1 1 0;min-height:140px;">
+        <div class="canvas-label">📈 กราฟ x-t (ตำแหน่ง vs เวลา)</div>
+        <canvas id="cXt" height="160"></canvas>
+      </div>
+      <!-- v-t graph -->
+      <div class="canvas-block" style="flex:1 1 0;min-height:120px;">
+        <div class="canvas-label">📊 กราฟ v-t (ความเร็ว vs เวลา)</div>
+        <canvas id="cVt" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- Right: controls -->
+    <div class="right-col">
+      <div class="theory-box">
+        <h4>⚡ สรุปหลักการ</h4>
+        <span class="formula">x = x₀ + v·t</span>
+        <span class="formula">a = 0</span>
+        <div class="theory-note" style="margin-top:6px;">
+          เมื่อ <span class="chip chip-blue">a = 0</span> ระยะห่างระหว่างจุดในช่วงเวลาเท่ากัน <b>จะเท่ากันเสมอ</b><br><br>
+          การชนปลายราง → <span class="chip chip-orange">v → −v</span> (ขนาดเท่าเดิม ทิศตรงข้าม)
+        </div>
+      </div>
+
+      <!-- Velocity slider -->
+      <div class="readout-panel">
+        <div class="readout-title">ตั้งค่าการทดลอง</div>
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--v-col);font-weight:700;">v</span>
+          <input class="sl-range" type="range" id="sl-v" min="-12" max="12" step="0.5" value="4" style="accent-color:var(--v-col);" oninput="syncSlider('v')">
+          <input class="val-input" type="number" id="vi-v" min="-12" max="12" step="0.5" value="4" onblur="syncInput('v')">
+          <span class="sl-unit">m/s</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--t-col);font-weight:700;">Δt ติ๊ก</span>
+          <input class="sl-range" type="range" id="sl-dt" min="0.2" max="2.0" step="0.1" value="0.5" style="accent-color:var(--t-col);" oninput="syncSlider('dt')">
+          <input class="val-input" type="number" id="vi-dt" min="0.2" max="2.0" step="0.1" value="0.5" onblur="syncInput('dt')">
+          <span class="sl-unit">s</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--x-col);font-weight:700;">x₀</span>
+          <input class="sl-range" type="range" id="sl-x0" min="0" max="10" step="0.5" value="0" style="accent-color:var(--x-col);" oninput="syncSlider('x0')">
+          <input class="val-input" type="number" id="vi-x0" min="0" max="10" step="0.5" value="0" onblur="syncInput('x0')">
+          <span class="sl-unit">m</span>
+        </div>
+      </div>
+
+      <!-- Readout -->
+      <div class="readout-panel">
+        <div class="readout-title">ค่าปัจจุบัน</div>
+        <div class="readout-row">
+          <span class="r-label" style="color:var(--t-col);">t</span>
+          <span class="r-val mono" id="ro-t" style="color:var(--t-col);">0.00</span>
+          <span class="r-unit">s</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-label" style="color:var(--x-col);">x</span>
+          <span class="r-val mono" id="ro-x" style="color:var(--x-col);">0.00</span>
+          <span class="r-unit">m</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-label" style="color:var(--v-col);">v</span>
+          <span class="r-val mono" id="ro-v" style="color:var(--v-col);">4.0</span>
+          <span class="r-unit">m/s</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-label" style="color:var(--a-col);">a</span>
+          <span class="r-val mono" id="ro-a" style="color:var(--a-col);">0.00</span>
+          <span class="r-unit">m/s²</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-label" style="color:var(--muted);">จุด</span>
+          <span class="r-val mono" id="ro-dots" style="color:var(--muted);">0</span>
+          <span class="r-unit">จุด</span>
+        </div>
+      </div>
+
+      <!-- Dot spacing readout -->
+      <div class="readout-panel" id="spacing-panel">
+        <div class="readout-title">ระยะห่างระหว่างจุด</div>
+        <div id="spacing-list" style="font-size:0.78rem;color:var(--muted);">กด ▶ เริ่ม เพื่อดูจุด</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: Theory ══════════ -->
+<div id="tab-theory" class="section">
+  <div style="padding:16px;max-width:800px;display:flex;flex-direction:column;gap:12px;">
+
+    <div class="theory-box">
+      <h4>📖 Demo 01-08: Constant Velocity — ความเร็วคงที่ (หน้า 24–25)</h4>
+      การทดลองนี้แสดงความเร็วคงที่โดยใช้ <b>Air Track Glider</b> — ลูกเลื่อนบนรางอากาศ แรงเสียดทานน้อยมาก ทำให้ glider เคลื่อนที่ด้วย <b>ความเร็วคงที่</b>หลังจากถูกผลักไป<br><br>
+      ปลายรางทั้งสองมีสปริงรับแรงกระแทก (spring bouncers) ทำให้ glider ชนแล้วเด้งกลับ ความเร็วสลับทิศแต่ <b>ขนาดเท่าเดิม</b>
+      <span class="formula">v_bounce = −v_initial</span>
+    </div>
+
+    <div class="theory-box">
+      <h4>📐 สมการและกราฟ</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+        <div>
+          <div style="color:var(--accent3);font-weight:700;margin-bottom:4px;">สมการตำแหน่ง</div>
+          <span class="formula">x(t) = x₀ + v·t</span>
+          <div class="theory-note">กราฟ x-t เป็น <b>เส้นตรง</b><br>ความชัน = v (ความเร็ว)</div>
+        </div>
+        <div>
+          <div style="color:var(--accent3);font-weight:700;margin-bottom:4px;">ความเร่ง</div>
+          <span class="formula">a = dv/dt = 0</span>
+          <div class="theory-note">กราฟ v-t เป็น <b>เส้นแนวนอน</b><br>ไม่มีการเปลี่ยนแปลงความเร็ว</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="theory-box">
+      <h4>⚫ การอ่านกราฟจุด (Dot Pattern)</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;text-align:center;">
+        <div style="background:#0a1628;border-radius:6px;padding:10px;">
+          <div style="font-size:0.85rem;color:var(--v-col);font-weight:700;margin-bottom:6px;">v คงที่ (v ≠ 0)</div>
+          <div style="letter-spacing:12px;font-size:1.1rem;margin:6px 0;">⚫⚫⚫⚫⚫</div>
+          <div class="theory-note">ระยะห่างเท่ากันทุกช่วง<br>Δx คงที่</div>
+        </div>
+        <div style="background:#0a1628;border-radius:6px;padding:10px;">
+          <div style="font-size:0.85rem;color:var(--a-col);font-weight:700;margin-bottom:6px;">a > 0 (เร่งขึ้น)</div>
+          <div style="position:relative;height:28px;margin:6px 0;">
+            <span style="position:absolute;left:2px;top:50%;transform:translateY(-50%);font-size:1rem;">⚫</span>
+            <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:1rem;">⚫</span>
+            <span style="position:absolute;left:42px;top:50%;transform:translateY(-50%);font-size:1rem;">⚫</span>
+            <span style="position:absolute;left:76px;top:50%;transform:translateY(-50%);font-size:1rem;">⚫</span>
+            <span style="position:absolute;left:122px;top:50%;transform:translateY(-50%);font-size:1rem;">⚫</span>
+          </div>
+          <div class="theory-note">ระยะห่างเพิ่มขึ้น<br>Δx เพิ่มขึ้น</div>
+        </div>
+        <div style="background:#0a1628;border-radius:6px;padding:10px;">
+          <div style="font-size:0.85rem;color:var(--accent5);font-weight:700;margin-bottom:6px;">v = 0 (หยุดนิ่ง)</div>
+          <div style="letter-spacing:1px;font-size:1.1rem;margin:6px 0;">⚫⚫⚫⚫⚫</div>
+          <div class="theory-note">จุดซ้อนทับกัน<br>Δx = 0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="theory-box">
+      <h4>🛠️ อุปกรณ์การทดลอง (Equipment)</h4>
+      <div class="theory-note">
+        1. Level air track — รางอากาศระดับ<br>
+        2. Blower system — ระบบเป่าลมสร้างเบาะอากาศ<br>
+        3. Heavy glider — ลูกเลื่อนหนัก<br>
+        4. Spring bouncers ที่ปลายทั้งสองด้าน
+      </div>
+    </div>
+
+    <div class="theory-box">
+      <h4>💡 จุดสำคัญจากวิดีโอ (Script Highlights)</h4>
+      <div class="theory-note">
+        ✦ Glider ลอยบนเบาะอากาศ → แรงเสียดทานน้อยมาก<br>
+        ✦ ทำเครื่องหมายตำแหน่ง glider ทุก 0.5 วินาที → <b>ระยะห่างเท่ากัน</b><br>
+        ✦ เมื่อชนปลายราง ความเร็ว +v → −v (ทิศกลับ ขนาดเท่าเดิม)<br>
+        ✦ ที่ความเร็วสูงกว่า → ระยะห่างระหว่างจุดมากขึ้น (แต่ยังคงที่)<br>
+        ✦ กราฟ x-t มีความชัน = v (เส้นตรงเสมอ)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: Quiz ══════════ -->
+<div id="tab-quiz" class="section">
+  <div class="quiz-wrap">
+
+    <div class="q-card">
+      <h4>❓ ข้อ 1: ถ้าระยะห่างระหว่างจุดที่ติ๊กทุกครั้งมีค่าเท่ากัน วัตถุมีการเคลื่อนที่แบบใด?</h4>
+      <label class="q-opt"><input type="radio" name="q1" value="a"> ก) ความเร่งคงที่ (a = const ≠ 0)</label>
+      <label class="q-opt"><input type="radio" name="q1" value="b"> ข) ความเร็วคงที่ (v = const, a = 0)</label>
+      <label class="q-opt"><input type="radio" name="q1" value="c"> ค) หยุดนิ่ง (v = 0)</label>
+      <label class="q-opt"><input type="radio" name="q1" value="d"> ง) ไม่สามารถบอกได้</label>
+      <button class="q-btn" onclick="checkQ(1,'b')">ตรวจคำตอบ</button>
+      <div id="qr1"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 2: กราฟ x-t ของวัตถุที่เคลื่อนที่ด้วยความเร็วคงที่ควรมีรูปร่างอย่างไร?</h4>
+      <label class="q-opt"><input type="radio" name="q2" value="a"> ก) เส้นโค้งพาราโบลา</label>
+      <label class="q-opt"><input type="radio" name="q2" value="b"> ข) เส้นแนวนอน</label>
+      <label class="q-opt"><input type="radio" name="q2" value="c"> ค) เส้นตรงที่มีความชัน</label>
+      <label class="q-opt"><input type="radio" name="q2" value="d"> ง) เส้นตรงแนวตั้ง</label>
+      <button class="q-btn" onclick="checkQ(2,'c')">ตรวจคำตอบ</button>
+      <div id="qr2"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 3: Air track glider เคลื่อนที่ด้วย v = 4 m/s แล้วชนปลายราง หลังชนความเร็วเป็นเท่าใด?</h4>
+      <label class="q-opt"><input type="radio" name="q3" value="a"> ก) v = 0 m/s (หยุด)</label>
+      <label class="q-opt"><input type="radio" name="q3" value="b"> ข) v = +4 m/s (ทิศเดิม)</label>
+      <label class="q-opt"><input type="radio" name="q3" value="c"> ค) v = −4 m/s (ทิศกลับ ขนาดเท่าเดิม)</label>
+      <label class="q-opt"><input type="radio" name="q3" value="d"> ง) v = −2 m/s (ช้าลงครึ่ง)</label>
+      <button class="q-btn" onclick="checkQ(3,'c')">ตรวจคำตอบ</button>
+      <div id="qr3"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 4: ความชันของกราฟ x-t แทนค่าปริมาณทางฟิสิกส์ใด?</h4>
+      <label class="q-opt"><input type="radio" name="q4" value="a"> ก) ความเร่ง (a)</label>
+      <label class="q-opt"><input type="radio" name="q4" value="b"> ข) ความเร็ว (v)</label>
+      <label class="q-opt"><input type="radio" name="q4" value="c"> ค) การกระจัด (s)</label>
+      <label class="q-opt"><input type="radio" name="q4" value="d"> ง) เวลา (t)</label>
+      <button class="q-btn" onclick="checkQ(4,'b')">ตรวจคำตอบ</button>
+      <div id="qr4"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 5: ใช้ Simulation ด้านบน ถ้าตั้ง v = 6 m/s และ Δt = 0.5 s ระยะห่างระหว่างจุดคือเท่าใด?</h4>
+      <label class="q-opt"><input type="radio" name="q5" value="a"> ก) 1.5 m</label>
+      <label class="q-opt"><input type="radio" name="q5" value="b"> ข) 2.0 m</label>
+      <label class="q-opt"><input type="radio" name="q5" value="c"> ค) 3.0 m</label>
+      <label class="q-opt"><input type="radio" name="q5" value="d"> ง) 6.0 m</label>
+      <button class="q-btn" onclick="checkQ(5,'c')">ตรวจคำตอบ</button>
+      <div id="qr5"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>© 2568 KP Science simulation &nbsp;|&nbsp; Demo 01-08: Constant Velocity &nbsp;|&nbsp; อ้างอิง: Berg, R.E., Video Encyclopedia of Physics Demonstrations (1992) &nbsp;|&nbsp; Halliday, Resnick &amp; Krane, Fundamentals of Physics</footer>
+
+<script>
+/* ══════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════ */
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='sim') setTimeout(initCanvasSizes,30);
+}
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let playing = false;
+let animId = null;
+let lastTs = null;
+let simSpd = 1.0;
+let simMode = 'bounce'; // 'once' or 'bounce'
+
+// physics state
+let t = 0;
+let x = 0;
+let v = 4.0;
+let v0 = 4.0;   // signed velocity (can be negative)
+let x0 = 0;
+let dt_tick = 0.5;
+
+const TRACK_LEN = 12; // meters (visual track length)
+let dots = [];      // {x, t}
+let xtPath = [];    // {t, x} for line graph
+let vtPath = [];    // {t, v}
+let nextTick = 0;
+
+/* ══════════════════════════════════════
+   SLIDER SYNC
+══════════════════════════════════════ */
+function syncSlider(id){
+  const sl=document.getElementById('sl-'+id);
+  const vi=document.getElementById('vi-'+id);
+  vi.value=sl.value;
+  applyParam(id,parseFloat(sl.value));
+}
+function syncInput(id){
+  const vi=document.getElementById('vi-'+id);
+  const sl=document.getElementById('sl-'+id);
+  let val=Math.max(+sl.min,Math.min(+sl.max,parseFloat(vi.value)||0));
+  vi.value=val; sl.value=val;
+  applyParam(id,val);
+}
+function applyParam(id,val){
+  if(id==='v'){v0=val; if(!playing){v=val;}}
+  if(id==='dt') dt_tick=val;
+  if(id==='x0') x0=val;
+  if(!playing) drawAll();
+}
+
+/* ══════════════════════════════════════
+   PLAY / PAUSE / RESET / MODE
+══════════════════════════════════════ */
+function togglePlay(){
+  playing=!playing;
+  const btn=document.getElementById('playBtn');
+  if(playing){
+    btn.textContent='⏸ หยุด';
+    btn.classList.add('playing');
+    lastTs=null;
+    animId=requestAnimationFrame(loop);
+  } else {
+    btn.textContent='▶ เริ่ม';
+    btn.classList.remove('playing');
+    cancelAnimationFrame(animId);
+    animId=null;
+  }
+}
+function resetSim(){
+  cancelAnimationFrame(animId);
+  animId=null; playing=false;
+  lastTs=null;
+  t=0; x=x0; v=v0;
+  dots=[]; xtPath=[]; vtPath=[]; nextTick=0;
+  document.getElementById('playBtn').textContent='▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  updateReadout();
+  drawAll();
+}
+function setMode(m){
+  simMode=m;
+  document.getElementById('m-once').classList.toggle('active',m==='once');
+  document.getElementById('m-bounce').classList.toggle('active',m==='bounce');
+  resetSim();
+}
+
+/* ══════════════════════════════════════
+   ANIMATION LOOP
+══════════════════════════════════════ */
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dtReal=Math.min((ts-lastTs)/1000,0.05)*simSpd;
+  lastTs=ts;
+
+  // update physics
+  t += dtReal;
+  x += v * dtReal;
+
+  // boundary handling
+  if(simMode==='bounce'){
+    if(x > TRACK_LEN){
+      x = 2*TRACK_LEN - x;
+      v = -Math.abs(v0);
+      v0 = v;
+      document.getElementById('sl-v').value = v.toFixed(1);
+      document.getElementById('vi-v').value = v.toFixed(1);
+    }
+    if(x < 0){
+      x = -x;
+      v = Math.abs(v0);
+      v0 = v;
+      document.getElementById('sl-v').value = v.toFixed(1);
+      document.getElementById('vi-v').value = v.toFixed(1);
+    }
+    x = Math.max(0, Math.min(TRACK_LEN, x));
+  } else {
+    // once mode — stop at end
+    if(v>0 && x>=TRACK_LEN){ x=TRACK_LEN; playing&&togglePlay(); }
+    if(v<0 && x<=0){ x=0; playing&&togglePlay(); }
+  }
+
+  // tick dots
+  if(t >= nextTick){
+    dots.push({x:x, t:t});
+    if(dots.length > 60) dots.shift();
+    nextTick += dt_tick;
+  }
+
+  // track for graphs
+  xtPath.push({t:t,x:x});
+  vtPath.push({t:t,v:v});
+  const maxPts=600;
+  if(xtPath.length>maxPts){ xtPath.shift(); vtPath.shift(); }
+
+  updateReadout();
+  drawAll();
+  animId=requestAnimationFrame(loop);
+}
+
+/* ══════════════════════════════════════
+   UPDATE READOUT
+══════════════════════════════════════ */
+function updateReadout(){
+  document.getElementById('ro-t').textContent=t.toFixed(2);
+  document.getElementById('ro-x').textContent=x.toFixed(2);
+  document.getElementById('ro-v').textContent=v.toFixed(2);
+  document.getElementById('ro-a').textContent='0.00';
+  document.getElementById('ro-dots').textContent=dots.length;
+
+  // spacing
+  const sl=document.getElementById('spacing-list');
+  if(dots.length>=2){
+    let html='';
+    const recent=dots.slice(-6);
+    for(let i=1;i<recent.length;i++){
+      const dx=Math.abs(recent[i].x-recent[i-1].x);
+      const expected=Math.abs(v)*dt_tick;
+      const ok=Math.abs(dx-expected)<0.05;
+      html+=`<div style="font-size:0.78rem;margin-bottom:2px;color:${ok?'var(--v-col)':'var(--muted)'}">Δx<sub>${i}</sub> = ${dx.toFixed(2)} m</div>`;
+    }
+    const dx_th=(Math.abs(v)*dt_tick).toFixed(2);
+    html+=`<div style="font-size:0.72rem;color:var(--accent3);margin-top:4px;">ทฤษฎี: Δx = |v|·Δt = ${dx_th} m</div>`;
+    sl.innerHTML=html;
+  } else {
+    sl.innerHTML='<span style="font-size:0.78rem;color:var(--muted);">กด ▶ เริ่ม เพื่อดูจุด</span>';
+  }
+}
+
+/* ══════════════════════════════════════
+   DRAW ALL
+══════════════════════════════════════ */
+function drawAll(){
+  drawTrack();
+  drawXtGraph();
+  drawVtGraph();
+}
+
+/* ══════════════════════════════════════
+   CANVAS: AIR TRACK
+══════════════════════════════════════ */
+function drawTrack(){
+  const c=document.getElementById('cTrack');
+  const W=c.width, H=c.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#060b14';ctx.fillRect(0,0,W,H);
+
+  const tx1=50, tx2=W-50, ty=H/2;
+  const sc=(tx2-tx1)/TRACK_LEN;
+
+  // Track rail
+  ctx.save();
+  ctx.fillStyle='#1a2a40';ctx.fillRect(tx1,ty-15,tx2-tx1,30);
+  ctx.strokeStyle='#2a4a70';ctx.lineWidth=2;ctx.strokeRect(tx1,ty-15,tx2-tx1,30);
+  // Track groove
+  ctx.fillStyle='#0a1020';ctx.fillRect(tx1,ty-3,tx2-tx1,6);
+  ctx.restore();
+
+  // Scale marks
+  ctx.save();ctx.strokeStyle='#2a4060';ctx.lineWidth=1;ctx.fillStyle='#4a6080';ctx.font='10px Share Tech Mono,monospace';ctx.textAlign='center';
+  for(let i=0;i<=TRACK_LEN;i+=2){
+    const mx=tx1+i*sc;
+    ctx.beginPath();ctx.moveTo(mx,ty+15);ctx.lineTo(mx,ty+22);ctx.stroke();
+    ctx.fillText(i+'m',mx,ty+32);
+  }
+  ctx.restore();
+
+  // Spring bouncers at ends
+  for(const bx of[tx1, tx2]){
+    const side=bx===tx1?1:-1;
+    ctx.save();ctx.fillStyle='#fb923c';
+    for(let i=-2;i<=2;i++){
+      ctx.fillRect(bx-4+side*4,ty-12+i*6,6,4);
+    }
+    ctx.restore();
+  }
+
+  // Dots (position markers)
+  dots.forEach((d,i)=>{
+    const px=tx1+d.x*sc;
+    const alpha=0.4+0.6*((i+1)/Math.max(dots.length,1));
+    ctx.beginPath();ctx.arc(px,ty,5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${alpha})`;ctx.fill();
+    ctx.beginPath();ctx.arc(px,ty,5,0,Math.PI*2);
+    ctx.strokeStyle='rgba(200,200,200,0.3)';ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Glider body
+  const gx=tx1+x*sc;
+  ctx.save();
+  // Shadow
+  ctx.shadowColor='rgba(56,189,248,0.4)';ctx.shadowBlur=12;
+  ctx.fillStyle='#0e4a6a';
+  ctx.beginPath();ctx.roundRect(gx-24,ty-12,48,24,4);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#38bdf8';
+  ctx.beginPath();ctx.roundRect(gx-22,ty-10,44,20,3);ctx.fill();
+  // Glider lines
+  ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(gx-10,ty-10);ctx.lineTo(gx-10,ty+10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(gx+10,ty-10);ctx.lineTo(gx+10,ty+10);ctx.stroke();
+  ctx.restore();
+
+  // Velocity arrow
+  const vLen=Math.min(Math.abs(v)*7, 90);
+  const dir=v>=0?1:-1;
+  if(vLen>2){
+    ctx.save();
+    ctx.strokeStyle='#66bb6a';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(gx,ty);ctx.lineTo(gx+dir*vLen,ty);ctx.stroke();
+    const hw=7,hl=12;
+    ctx.save();ctx.translate(gx+dir*vLen,ty);ctx.rotate(dir>0?0:Math.PI);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-hl,-hw/2);ctx.lineTo(-hl,hw/2);ctx.closePath();
+    ctx.fillStyle='#66bb6a';ctx.fill();ctx.restore();
+    // v label
+    ctx.fillStyle='#66bb6a';ctx.font='bold 12px Sarabun,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('v='+v.toFixed(1)+'m/s',gx+dir*vLen/2,ty-15);
+    ctx.restore();
+  }
+
+  // Title + info
+  ctx.save();
+  ctx.fillStyle='#38bdf8';ctx.font='bold 12px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('Air Track Glider',tx1,22);
+  ctx.fillStyle='#94a3b8';ctx.font='11px Sarabun,sans-serif';
+  ctx.fillText('a = 0  |  v = const',tx1,36);
+  ctx.fillStyle='#ce93d8';ctx.textAlign='right';
+  ctx.fillText('t = '+t.toFixed(2)+' s',W-10,22);
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════
+   CANVAS: x-t GRAPH
+══════════════════════════════════════ */
+function drawXtGraph(){
+  const c=document.getElementById('cXt');
+  const W=c.width,H=c.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#060b14';ctx.fillRect(0,0,W,H);
+
+  const ml=42,mr=12,mt=10,mb=28;
+  const gw=W-ml-mr, gh=H-mt-mb;
+
+  // Axes
+  ctx.save();ctx.strokeStyle='#2a4060';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+gh);ctx.lineTo(ml+gw,mt+gh);ctx.stroke();
+  // Axis labels
+  ctx.fillStyle='#94a3b8';ctx.font='11px Sarabun,sans-serif';
+  ctx.textAlign='right';ctx.fillText('x(m)',ml-2,mt+8);
+  ctx.textAlign='center';ctx.fillText('t (s)',ml+gw,mt+gh+16);
+
+  // Y-axis ticks
+  ctx.textAlign='right';
+  for(let i=0;i<=6;i++){
+    const yv=i*2; const py=mt+gh-yv*(gh/TRACK_LEN);
+    ctx.beginPath();ctx.moveTo(ml-3,py);ctx.lineTo(ml,py);ctx.stroke();
+    ctx.fillText(yv,ml-5,py+4);
+  }
+  ctx.restore();
+
+  if(xtPath.length<2){ctx.restore&&ctx.restore();return;}
+
+  const tMax=Math.max(xtPath[xtPath.length-1].t, 4);
+  const scT=gw/tMax;
+  const scX=gh/TRACK_LEN;
+
+  // Grid lines
+  ctx.save();ctx.strokeStyle='rgba(42,64,96,0.5)';ctx.lineWidth=0.5;ctx.setLineDash([3,3]);
+  for(let i=1;i<=6;i++){
+    const py=mt+gh-i*2*scX;
+    if(py>mt){ctx.beginPath();ctx.moveTo(ml,py);ctx.lineTo(ml+gw,py);ctx.stroke();}
+  }
+  ctx.setLineDash([]);ctx.restore();
+
+  // X-axis ticks
+  ctx.save();ctx.strokeStyle='#2a4060';ctx.fillStyle='#94a3b8';ctx.font='10px Share Tech Mono,monospace';ctx.textAlign='center';
+  const nTicks=Math.min(Math.floor(tMax),8);
+  for(let i=1;i<=nTicks;i++){
+    const px=ml+i*(tMax/nTicks)*scT;
+    ctx.beginPath();ctx.moveTo(px,mt+gh);ctx.lineTo(px,mt+gh+3);ctx.stroke();
+    ctx.fillText((i*(tMax/nTicks)).toFixed(1),px,mt+gh+14);
+  }
+  ctx.restore();
+
+  // Plot line
+  ctx.save();ctx.strokeStyle='#ffd54f';ctx.lineWidth=1.8;
+  ctx.beginPath();
+  let first=true;
+  for(const p of xtPath){
+    const px=ml+p.t*scT, py=mt+gh-p.x*scX;
+    if(py<mt||py>mt+gh){first=true;continue;}
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();ctx.restore();
+
+  // Current point
+  if(xtPath.length>0){
+    const lp=xtPath[xtPath.length-1];
+    const px=ml+lp.t*scT, py=mt+gh-lp.x*scX;
+    if(py>=mt&&py<=mt+gh){
+      ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);
+      ctx.fillStyle='#ffd54f';ctx.fill();
+    }
+  }
+
+  // Slope annotation (when playing and have data)
+  if(xtPath.length>10 && playing){
+    const slope=v.toFixed(2);
+    ctx.fillStyle='rgba(255,213,79,0.85)';ctx.font='bold 11px Share Tech Mono,monospace';ctx.textAlign='left';
+    ctx.fillText('slope = v = '+slope+' m/s',ml+8,mt+14);
+  }
+}
+
+/* ══════════════════════════════════════
+   CANVAS: v-t GRAPH
+══════════════════════════════════════ */
+function drawVtGraph(){
+  const c=document.getElementById('cVt');
+  const W=c.width,H=c.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#060b14';ctx.fillRect(0,0,W,H);
+
+  const ml=42,mr=12,mt=10,mb=28;
+  const gw=W-ml-mr, gh=H-mt-mb;
+  const vMax=14;
+
+  // Zero line
+  const zy=mt+gh/2;
+  ctx.save();ctx.strokeStyle='#2a4060';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,mt+gh);ctx.lineTo(ml+gw,mt+gh);ctx.stroke();
+  ctx.strokeStyle='#2a4060';ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(ml,zy);ctx.lineTo(ml+gw,zy);ctx.stroke();
+  ctx.setLineDash([]);
+  // Labels
+  ctx.fillStyle='#94a3b8';ctx.font='11px Sarabun,sans-serif';
+  ctx.textAlign='right';ctx.fillText('v(m/s)',ml-2,mt+8);
+  ctx.textAlign='center';ctx.fillText('t (s)',ml+gw,mt+gh+16);
+  ctx.textAlign='right';ctx.fillText('0',ml-5,zy+4);
+  ctx.fillText('+'+vMax/2,ml-5,mt+gh/4+4);
+  ctx.fillText('-'+vMax/2,ml-5,mt+3*gh/4+4);
+  ctx.restore();
+
+  if(vtPath.length<2) return;
+
+  const tMax=Math.max(vtPath[vtPath.length-1].t,4);
+  const scT=gw/tMax;
+  const scV=(gh/2)/vMax*2;
+
+  // Grid
+  ctx.save();ctx.strokeStyle='rgba(42,64,96,0.4)';ctx.lineWidth=0.5;ctx.setLineDash([3,3]);
+  for(const yv of[-6,-4,-2,2,4,6]){
+    const py=zy-yv*scV/2;
+    if(py>mt&&py<mt+gh){ctx.beginPath();ctx.moveTo(ml,py);ctx.lineTo(ml+gw,py);ctx.stroke();}
+  }
+  ctx.setLineDash([]);ctx.restore();
+
+  // Plot line
+  ctx.save();ctx.strokeStyle='#66bb6a';ctx.lineWidth=2;
+  ctx.beginPath();
+  let first=true;
+  for(const p of vtPath){
+    const px=ml+p.t*scT;
+    const py=zy-p.v*scV/2;
+    const clipped=py<mt||py>mt+gh;
+    if(clipped){first=true;continue;}
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke();ctx.restore();
+
+  // Horizontal label: a=0
+  if(vtPath.length>5){
+    ctx.fillStyle='rgba(102,187,106,0.8)';ctx.font='bold 11px Share Tech Mono,monospace';ctx.textAlign='left';
+    ctx.fillText('a = 0  (เส้นแนวนอน)',ml+8,mt+14);
+  }
+
+  // Current point
+  const lp=vtPath[vtPath.length-1];
+  const px=ml+lp.t*scT, py=zy-lp.v*scV/2;
+  if(py>=mt&&py<=mt+gh){
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);
+    ctx.fillStyle='#66bb6a';ctx.fill();
+  }
+}
+
+/* ══════════════════════════════════════
+   CANVAS SIZING
+══════════════════════════════════════ */
+function initCanvasSizes(){
+  ['cTrack','cXt','cVt'].forEach(id=>{
+    const c=document.getElementById(id);
+    if(!c) return;
+    const r=c.getBoundingClientRect();
+    if(r.width>10) c.width=Math.floor(r.width);
+  });
+  drawAll();
+}
+
+/* ══════════════════════════════════════
+   QUIZ
+══════════════════════════════════════ */
+const explanations={
+  1:{b:'✅ ถูก! ระยะห่างเท่ากัน → v = const → a = 0'},
+  2:{c:'✅ ถูก! กราฟ x-t ของ v = const คือเส้นตรงที่มีความชัน = v'},
+  3:{c:'✅ ถูก! Spring bouncer ทำให้ glider ชนแล้วเด้งกลับ ความเร็ว −v (ขนาดเท่าเดิม ทิศตรงข้าม)'},
+  4:{b:'✅ ถูก! ความชัน x-t = Δx/Δt = v (ความเร็ว)'},
+  5:{c:'✅ ถูก! Δx = |v|·Δt = 6×0.5 = 3.0 m'},
+};
+const wrongMsg='❌ ลองอีกครั้ง — ';
+const wrongHints={
+  1:{a:'ก: ถ้า a ≠ 0 ระยะห่างจะเปลี่ยน',c:'ค: v=0 หมายถึงจุดซ้อนทับกัน',d:'ง: สามารถบอกได้จากระยะห่าง'},
+  2:{a:'ก: พาราโบลาคือ x ∝ t² (กรณี a ≠ 0)',b:'ข: เส้นแนวนอนคือ x = const (ไม่เคลื่อนที่)',d:'ง: เส้นตั้งไม่มีความหมายใน x-t'},
+  3:{a:'ก: สปริงไม่ดูดพลังงานออกทั้งหมด',b:'ข: ถ้าทิศเดิมจะวิ่งออกนอกราง',d:'ง: ครึ่งหนึ่งหมายถึงไม่ elastic collision'},
+  4:{a:'ก: ความเร่ง = ความชันของ v-t ไม่ใช่ x-t',c:'ค: การกระจัด = พื้นที่ใต้กราฟ v-t',d:'ง: เวลาคือแกน x ของกราฟ'},
+  5:{a:'ก: 1.5 = 3×0.5 ลองคิดใหม่',b:'ข: 2.0 ≠ 6×0.5',d:'ง: 6.0 = v ไม่ใช่ Δx'},
+};
+function checkQ(n,correct){
+  const sel=document.querySelector(`input[name="q${n}"]:checked`);
+  const div=document.getElementById('qr'+n);
+  if(!sel){div.innerHTML='<div class="q-result" style="background:#1a2235;color:#94a3b8;">⚠️ กรุณาเลือกคำตอบก่อน</div>';return;}
+  const ans=sel.value;
+  if(ans===correct){
+    div.innerHTML=`<div class="q-result correct">${explanations[n][correct]}</div>`;
+  } else {
+    const hint=wrongHints[n][ans]||'ลองทบทวนทฤษฎีอีกครั้ง';
+    div.innerHTML=`<div class="q-result wrong">${wrongMsg}${hint}</div>`;
+  }
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+window.addEventListener('load',()=>{
+  setTimeout(initCanvasSizes, 80);
+});
+window.addEventListener('resize',()=>{
+  clearTimeout(window._rszTimer);
+  window._rszTimer=setTimeout(initCanvasSizes,80);
+});
+
+// Init values
+v = parseFloat(document.getElementById('sl-v').value)||4;
+v0=v; x=parseFloat(document.getElementById('sl-x0').value)||0; x0=x;
+dt_tick=parseFloat(document.getElementById('sl-dt').value)||0.5;
+</script>
+</body>
+</html>

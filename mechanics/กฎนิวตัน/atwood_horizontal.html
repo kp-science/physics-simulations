@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — เครื่อง Atwood แนวนอน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0a0e1a;
+  --panel:  #111827;
+  --panel2: #1a2235;
+  --border: #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:   #e2e8f0;
+  --muted:  #94a3b8;
+  /* variable colours */
+  --cM: #38bdf8;
+  --cm: #fb923c;
+  --ca: #ffa726;
+  --cT: #f472b6;
+  --cv: #66bb6a;
+  --cs: #ffd54f;
+  --ct: #ce93d8;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Sarabun','TH Sarabun New',sans-serif;
+  font-size:15px; min-height:100vh; overflow-x:hidden;
+}
+.mono { font-family:'Share Tech Mono','Courier New',monospace; }
+
+/* ── Header ── */
+header {
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  border-bottom:2px solid var(--border);
+  padding:13px 20px; display:flex; align-items:center; gap:14px;
+}
+header .icon { font-size:2.1rem; }
+header h1 { font-size:1.32rem; font-weight:700; color:var(--accent); }
+header p  { font-size:0.8rem; color:var(--muted); margin-top:2px; }
+header .badge {
+  margin-left:auto; background:#1e3a5f; border:1px solid var(--accent);
+  color:var(--accent); padding:4px 12px; border-radius:20px;
+  font-size:0.74rem; font-weight:600; white-space:nowrap;
+}
+
+/* ── Nav ── */
+nav {
+  display:flex; gap:4px; padding:7px 16px;
+  background:#0f172a; border-bottom:1px solid var(--border);
+  overflow-x:auto; scrollbar-width:none;
+}
+nav button {
+  background:transparent; border:1px solid var(--border);
+  color:var(--muted); padding:6px 15px; border-radius:8px;
+  cursor:pointer; font-family:'Sarabun',sans-serif;
+  font-size:0.84rem; font-weight:600; white-space:nowrap; transition:.2s;
+}
+nav button:hover { border-color:var(--accent); color:var(--accent); }
+nav button.active { background:var(--accent); border-color:var(--accent); color:#0a0e1a; }
+
+/* ── Section ── */
+.section { display:none; }
+.section.active { display:block; animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── Mode bar ── */
+.mode-bar {
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:7px 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.mode-lbl { color:var(--muted); font-size:0.8rem; font-weight:600; margin-right:2px; }
+.mode-btn {
+  background:var(--panel2); border:1.5px solid var(--border);
+  color:var(--muted); padding:5px 13px; border-radius:8px;
+  cursor:pointer; font-family:'Sarabun',sans-serif;
+  font-size:0.82rem; font-weight:700; transition:.2s;
+}
+.mode-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+.mode-btn.active { background:var(--accent2); border-color:var(--accent2); color:#fff; }
+.acc-pill {
+  margin-left:auto; background:rgba(56,189,248,.1); border:1px solid var(--accent);
+  color:var(--accent); padding:3px 11px; border-radius:20px;
+  font-size:0.77rem; font-family:'Share Tech Mono',monospace;
+}
+
+/* ── Control bar ── */
+.cbar {
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:7px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.btn {
+  padding:6px 14px; border:none; border-radius:6px; cursor:pointer;
+  font-family:'Sarabun',sans-serif; font-weight:700; font-size:0.9rem; transition:.15s;
+}
+.btn-play  { background:#1b5e20; color:#fff; }
+.btn-play:hover { background:#2e7d32; }
+.btn-play.playing { background:#b71c1c; }
+.btn-play.playing:hover { background:#c62828; }
+.btn-reset { background:#0d47a1; color:#fff; }
+.btn-reset:hover { background:#1565c0; }
+.spd-grp { display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--muted); }
+.spd-grp input[type=range] { accent-color:var(--accent); width:76px; }
+.spd-lbl { font-family:'Share Tech Mono',monospace; color:var(--accent); min-width:30px; }
+#status-txt { font-size:0.78rem; color:var(--muted); }
+
+/* ── Sim layout ── */
+.sim-layout {
+  display:flex; height:calc(100vh - 196px); min-height:380px;
+}
+
+/* ── Left panel ── */
+.left-panel {
+  width:230px; min-width:200px; background:var(--panel);
+  border-right:1px solid var(--border); padding:14px 13px;
+  overflow-y:auto; flex-shrink:0;
+}
+.ptitle {
+  font-size:0.73rem; font-weight:700; color:var(--accent2);
+  text-transform:uppercase; letter-spacing:1px;
+  padding-bottom:6px; border-bottom:1px solid var(--border); margin-bottom:12px;
+}
+.sl-group { margin-bottom:14px; }
+.sl-name { font-size:0.82rem; font-weight:700; margin-bottom:5px; }
+.sl-row { display:flex; align-items:center; gap:5px; margin-bottom:3px; }
+.sl-range { flex:1; accent-color:var(--accent); cursor:pointer; }
+.sl-unit { font-size:0.74rem; color:var(--muted); min-width:16px; }
+.val-inp {
+  width:50px; padding:2px 4px; background:var(--panel2);
+  border:1.5px solid var(--accent2); border-radius:5px;
+  color:var(--accent3); font-weight:700; font-size:0.82rem;
+  text-align:center; font-family:'Share Tech Mono',monospace;
+  -moz-appearance:textfield; flex-shrink:0;
+}
+.val-inp::-webkit-outer-spin-button,
+.val-inp::-webkit-inner-spin-button { -webkit-appearance:none; }
+.val-inp:focus { outline:none; border-color:var(--accent); color:var(--text); }
+
+hr.div { border:none; border-top:1px solid var(--border); margin:12px 0; }
+
+.rdout-row {
+  display:flex; align-items:center; gap:5px; padding:5px 8px;
+  border-radius:6px; background:var(--panel2); margin-bottom:4px;
+}
+.rdout-lbl { font-size:0.73rem; color:var(--muted); min-width:72px; }
+.rdout-sym { font-size:0.87rem; font-weight:700; min-width:14px; }
+.rdout-val { font-family:'Share Tech Mono',monospace; font-size:0.88rem; font-weight:700; flex:1; text-align:right; }
+.rdout-unit { font-size:0.7rem; color:var(--muted); min-width:30px; }
+
+.hint-box {
+  background:var(--panel2); border-radius:7px; padding:9px 10px;
+  font-size:0.73rem; color:var(--muted); line-height:1.65; margin-top:4px;
+}
+
+/* ── Canvas container ── */
+.canvas-cont {
+  flex:1; background:#070b14; display:flex; align-items:stretch; overflow:hidden;
+}
+canvas { display:block; width:100%; height:100%; }
+
+/* ── Theory ── */
+.theory-wrap { max-width:800px; margin:0 auto; padding:22px 18px; }
+.tblock {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:18px; margin-bottom:18px;
+}
+.tblock h3 { color:var(--accent); font-size:1.0rem; font-weight:700;
+  margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+.tblock p { color:var(--text); line-height:1.75; margin-bottom:9px; font-size:0.92rem; }
+.eq { background:var(--panel2); border-left:3px solid var(--accent);
+  padding:9px 15px; border-radius:0 6px 6px 0; margin:8px 0;
+  font-family:'Share Tech Mono',monospace; font-size:0.97rem; color:var(--text); letter-spacing:.4px; }
+.ctbl { width:100%; border-collapse:collapse; margin-top:10px; font-size:0.84rem; }
+.ctbl th {
+  background:var(--panel2); color:var(--accent); font-weight:700;
+  padding:8px 12px; text-align:center; border:1px solid var(--border);
+}
+.ctbl td { padding:7px 12px; text-align:center; border:1px solid var(--border); }
+.ctbl tr:nth-child(even) td { background:rgba(255,255,255,.025); }
+
+/* ── Quiz ── */
+.quiz-wrap { max-width:700px; margin:0 auto; padding:22px 18px; }
+.qcard { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:17px; margin-bottom:15px; }
+.qcard h4 { color:var(--accent4); font-weight:700; margin-bottom:9px; font-size:0.93rem; }
+.qcard p  { color:var(--text); line-height:1.73; margin-bottom:7px; font-size:0.9rem; }
+.qhint {
+  background:var(--panel2); border-left:3px solid var(--accent3);
+  padding:8px 12px; border-radius:0 6px 6px 0;
+  color:var(--muted); font-size:0.82rem; margin-top:8px;
+  display:none; line-height:1.65;
+}
+.qhint.show { display:block; }
+.hint-btn {
+  background:transparent; border:1px solid var(--accent3);
+  color:var(--accent3); padding:4px 11px; border-radius:6px;
+  cursor:pointer; font-family:'Sarabun',sans-serif;
+  font-size:0.8rem; font-weight:700; margin-top:7px; transition:.15s;
+}
+.hint-btn:hover { background:var(--accent3); color:#0a0e1a; }
+
+/* ── Footer ── */
+footer {
+  text-align:center; padding:10px; color:var(--muted);
+  font-size:0.71rem; border-top:1px solid var(--border); background:var(--panel);
+}
+
+/* ── Exercises ── */
+.ex-wrap { max-width:820px; margin:0 auto; padding:22px 18px; }
+.ex-header {
+  background:linear-gradient(135deg,#1e293b,#0f2744);
+  border:1px solid var(--border); border-radius:10px;
+  padding:16px 18px; margin-bottom:20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.ex-header h3 { color:var(--accent3); font-size:1.0rem; font-weight:700; }
+.ex-header p  { color:var(--muted); font-size:0.82rem; margin-top:3px; }
+.score-box {
+  margin-left:auto; background:var(--panel2); border:1px solid var(--accent3);
+  border-radius:8px; padding:6px 14px; text-align:center;
+}
+.score-box .sc-num { font-family:'Share Tech Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--accent3); }
+.score-box .sc-lbl { font-size:0.7rem; color:var(--muted); }
+
+.ex-set-title {
+  font-size:0.8rem; font-weight:700; color:var(--accent2);
+  text-transform:uppercase; letter-spacing:1.5px;
+  display:flex; align-items:center; gap:8px; margin:20px 0 10px;
+}
+.ex-set-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.excard {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:16px 18px; margin-bottom:12px;
+  transition:border-color .2s;
+}
+.excard.correct  { border-color:#34d399; }
+.excard.wrong    { border-color:#f87171; }
+
+.ex-q { font-size:0.9rem; color:var(--text); line-height:1.75; margin-bottom:12px; }
+.ex-q strong { color:var(--accent); }
+.ex-given {
+  background:var(--panel2); border-left:3px solid var(--accent2);
+  padding:8px 13px; border-radius:0 6px 6px 0; margin:8px 0 12px;
+  font-family:'Share Tech Mono',monospace; font-size:0.85rem;
+  color:var(--text); line-height:1.8;
+}
+.ex-input-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.ex-input-lbl { font-size:0.82rem; color:var(--muted); min-width:56px; }
+.ex-input {
+  width:90px; padding:5px 9px; background:var(--panel2);
+  border:1.5px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:'Share Tech Mono',monospace;
+  font-size:0.9rem; text-align:center; transition:.15s;
+}
+.ex-input:focus { outline:none; border-color:var(--accent); }
+.ex-input.ok  { border-color:#34d399; background:rgba(52,211,153,.08); color:#34d399; }
+.ex-input.err { border-color:#f87171; background:rgba(248,113,113,.08); color:#f87171; }
+.ex-unit { font-size:0.78rem; color:var(--muted); }
+
+.check-btn {
+  padding:5px 14px; background:#1e3a5f; border:1px solid var(--accent);
+  color:var(--accent); border-radius:6px; cursor:pointer;
+  font-family:'Sarabun',sans-serif; font-size:0.84rem; font-weight:700;
+  transition:.15s;
+}
+.check-btn:hover { background:var(--accent); color:#0a0e1a; }
+.check-btn:disabled { opacity:.5; cursor:default; }
+
+.ex-feedback {
+  font-size:0.82rem; padding:7px 11px; border-radius:6px; margin-top:6px;
+  display:none; line-height:1.65;
+}
+.ex-feedback.ok  { display:block; background:rgba(52,211,153,.1);  color:#34d399;  border:1px solid rgba(52,211,153,.3); }
+.ex-feedback.err { display:block; background:rgba(248,113,113,.1); color:#f87171; border:1px solid rgba(248,113,113,.3); }
+
+.sol-btn {
+  background:transparent; border:1px solid var(--muted);
+  color:var(--muted); padding:3px 10px; border-radius:5px;
+  cursor:pointer; font-family:'Sarabun',sans-serif;
+  font-size:0.77rem; font-weight:600; margin-top:6px; transition:.15s;
+}
+.sol-btn:hover { border-color:var(--accent4); color:var(--accent4); }
+
+.ex-sol {
+  background:var(--panel2); border-left:3px solid var(--accent4);
+  padding:10px 14px; border-radius:0 6px 6px 0;
+  font-size:0.82rem; color:var(--muted); margin-top:8px;
+  display:none; line-height:1.8;
+}
+.ex-sol.show { display:block; }
+.ex-sol code { font-family:'Share Tech Mono',monospace; color:var(--accent4); }
+
+/* Data table for odd-number exercise */
+.dtbl { width:100%; border-collapse:collapse; font-size:0.83rem; margin:10px 0; }
+.dtbl th { background:var(--panel2); color:var(--accent); padding:7px 10px; border:1px solid var(--border); text-align:center; font-weight:700; }
+.dtbl td { padding:6px 10px; border:1px solid var(--border); text-align:center; color:var(--text); }
+.dtbl .fill-cell { background:rgba(56,189,248,.05); color:var(--accent3); font-family:'Share Tech Mono',monospace; }
+.ex-input-sm {
+  width:70px; padding:3px 6px; background:var(--panel2);
+  border:1.5px solid var(--border); border-radius:5px;
+  color:var(--text); font-family:'Share Tech Mono',monospace;
+  font-size:0.82rem; text-align:center;
+}
+.ex-input-sm:focus { outline:none; border-color:var(--accent); }
+.ex-input-sm.ok  { border-color:#34d399; color:#34d399; }
+.ex-input-sm.err { border-color:#f87171; color:#f87171; }
+
+@media (max-width:600px) {
+  .sim-layout { flex-direction:column; height:auto; }
+  .left-panel { width:100%; min-width:unset; border-right:none; border-bottom:1px solid var(--border); }
+  .canvas-cont { height:280px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>เครื่อง Atwood แนวนอน</h1>
+    <p>String &amp; Weight Acceleration | ฟิสิกส์ ม.4–6 | กฎข้อที่ 2 ของนิวตัน</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showSec('quiz',this)">✏️ คำถาม POE</button>
+  <button onclick="showSec('ex',this)">📝 แบบฝึกหัด</button>
+</nav>
+
+<!-- ═══ SIMULATION ═══ -->
+<div class="section active" id="sec-sim">
+
+  <div class="mode-bar">
+    <span class="mode-lbl">Scenario:</span>
+    <button class="mode-btn active" id="mb1" onclick="setMode(1)">กรณีที่ 1 — M &amp; m</button>
+    <button class="mode-btn"        id="mb2" onclick="setMode(2)">กรณีที่ 2 — M &amp; 2m</button>
+    <button class="mode-btn"        id="mb3" onclick="setMode(3)">กรณีที่ 3 — 2M &amp; m</button>
+    <span class="acc-pill" id="acc-pill">a = — m/s²</span>
+  </div>
+
+  <div class="cbar">
+    <button class="btn btn-play"  id="playBtn"  onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset"               onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="spd-grp">
+      <span>ความเร็ว:</span>
+      <input type="range" id="spdSlider" min="0.1" max="3" step="0.1" value="1">
+      <span class="spd-lbl" id="spdLbl">1.0×</span>
+    </div>
+    <span id="status-txt">พร้อมเริ่ม</span>
+  </div>
+
+  <div class="sim-layout">
+    <!-- Left panel -->
+    <div class="left-panel">
+      <div class="ptitle">⚙️ ตั้งค่ามวล</div>
+
+      <div class="sl-group">
+        <div class="sl-name" style="color:var(--cM)">M — มวลแกลิเดอร์</div>
+        <div class="sl-row">
+          <input class="sl-range" type="range" id="slM" min="50" max="500" step="10" value="200">
+          <input class="val-inp"  type="number" id="viM" min="50" max="500" step="10" value="200">
+          <span class="sl-unit">g</span>
+        </div>
+        <div style="font-size:.71rem;color:var(--muted);">50–500 g | ค่าทดลอง: 200 g</div>
+      </div>
+
+      <div class="sl-group">
+        <div class="sl-name" style="color:var(--cm)">m — มวลแขวน (base)</div>
+        <div class="sl-row">
+          <input class="sl-range" type="range" id="slm" min="1" max="30" step="0.5" value="3.3">
+          <input class="val-inp"  type="number" id="vim" min="1" max="30" step="0.5" value="3.3">
+          <span class="sl-unit">g</span>
+        </div>
+        <div style="font-size:.71rem;color:var(--muted);">1–30 g | ค่าทดลอง: 3.3 g</div>
+      </div>
+
+      <hr class="div">
+
+      <div class="ptitle">📊 ค่าขณะนั้น</div>
+
+      <div class="rdout-row">
+        <span class="rdout-lbl">ความเร่ง</span>
+        <span class="rdout-sym" style="color:var(--ca)">a</span>
+        <span class="rdout-val" id="rv-a" style="color:var(--ca)">0.0000</span>
+        <span class="rdout-unit">m/s²</span>
+      </div>
+      <div class="rdout-row">
+        <span class="rdout-lbl">แรงตึงเชือก</span>
+        <span class="rdout-sym" style="color:var(--cT)">T</span>
+        <span class="rdout-val" id="rv-T" style="color:var(--cT)">0.000</span>
+        <span class="rdout-unit">mN</span>
+      </div>
+      <div class="rdout-row">
+        <span class="rdout-lbl">ความเร็ว</span>
+        <span class="rdout-sym" style="color:var(--cv)">v</span>
+        <span class="rdout-val" id="rv-v" style="color:var(--cv)">0.00</span>
+        <span class="rdout-unit">cm/s</span>
+      </div>
+      <div class="rdout-row">
+        <span class="rdout-lbl">การกระจัด</span>
+        <span class="rdout-sym" style="color:var(--cs)">s</span>
+        <span class="rdout-val" id="rv-s" style="color:var(--cs)">0.00</span>
+        <span class="rdout-unit">cm</span>
+      </div>
+      <div class="rdout-row">
+        <span class="rdout-lbl">เวลา</span>
+        <span class="rdout-sym" style="color:var(--ct)">t</span>
+        <span class="rdout-val" id="rv-t" style="color:var(--ct)">0.00</span>
+        <span class="rdout-unit">s</span>
+      </div>
+
+      <hr class="div">
+      <div class="hint-box">
+        🟠 จุดสีส้ม = ตำแหน่งแกลิเดอร์ทุก <strong>0.5 s</strong><br>
+        📐 g = 9.8 m/s²<br>
+        ✅ ไม่มีแรงเสียดทาน (air track)<br>
+        ✅ เชือกเบา ไม่ยืด
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-cont">
+      <canvas id="simCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THEORY ═══ -->
+<div class="section" id="sec-theory">
+  <div class="theory-wrap">
+
+    <div class="tblock">
+      <h3>🔧 หลักการ — Horizontal Atwood's Machine</h3>
+      <p>แกลิเดอร์ (มวล M) ลอยอยู่บนรางอากาศ (air track) ซึ่งแทบไม่มีแรงเสียดทาน ถูกดึงด้วยเชือกผ่านรอกไปยังมวล m ที่แขวนอยู่ด้านข้าง แรงโน้มถ่วงที่กระทำต่อ m เป็นแรงขับของทั้งระบบ</p>
+      <p><strong style="color:var(--accent)">วิเคราะห์แรง (Free Body Diagram)</strong></p>
+      <div class="eq">มวลแขวน m :   mg − T = ma</div>
+      <div class="eq">แกลิเดอร์ M :        T = Ma</div>
+      <p style="margin-top:10px"><strong style="color:var(--accent)">แก้หา a และ T</strong> โดยตัด T ออก:</p>
+      <div class="eq">a = mg / (M + m)</div>
+      <div class="eq">T = Mmg / (M + m)</div>
+    </div>
+
+    <div class="tblock">
+      <h3>📊 เปรียบเทียบ 3 กรณี (m = 3.3 g, M = 200 g, g = 9.8 m/s²)</h3>
+      <p>เนื่องจาก m ≪ M จะได้การประมาณ a ≈ mg/M ซึ่งทำให้มองเห็น pattern ง่ายขึ้น</p>
+      <table class="ctbl">
+        <thead>
+          <tr>
+            <th>กรณี</th><th>แกลิเดอร์</th><th>มวลแขวน</th>
+            <th>สูตรโดยประมาณ</th><th>a จริง (m/s²)</th><th>เทียบกับ a₁</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--accent2)"><b>1</b></td>
+            <td>M = 200 g</td><td>m = 3.3 g</td>
+            <td style="font-family:monospace">a₁ ≈ mg/M</td>
+            <td id="tbl-a1">—</td><td>ค่าอ้างอิง</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent2)"><b>2</b></td>
+            <td>M = 200 g</td><td>2m = 6.6 g</td>
+            <td style="font-family:monospace">a₂ ≈ 2mg/M ≈ 2a₁</td>
+            <td id="tbl-a2">—</td>
+            <td style="color:#66bb6a">≈ 2× (เพิ่มขึ้น 2 เท่า)</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent2)"><b>3</b></td>
+            <td>2M = 400 g</td><td>m = 3.3 g</td>
+            <td style="font-family:monospace">a₃ ≈ mg/2M ≈ a₁/2</td>
+            <td id="tbl-a3">—</td>
+            <td style="color:#fb923c">≈ ½× (ลดลงครึ่งหนึ่ง)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tblock">
+      <h3>📐 จลนศาสตร์ — Uniform Acceleration (u = 0)</h3>
+      <p>เนื่องจาก a คงที่ และระบบเริ่มจากหยุดนิ่ง จึงใช้สมการ SUVAT ที่ u = 0:</p>
+      <div class="eq">v = at</div>
+      <div class="eq">s = ½ at²</div>
+      <div class="eq">v² = 2as</div>
+      <p>ระยะห่างระหว่างจุดตำแหน่งทุก Δt = 0.5 s จะเพิ่มขึ้นในอัตราส่วน <strong>1 : 3 : 5 : 7 : ...</strong> (Odd Number Rule)</p>
+      <p style="margin-top:10px; color:var(--muted); font-size:0.82rem;">อ้างอิง: Halliday, Resnick &amp; Krane, Physics 5th Ed. | หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560)</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ QUIZ ═══ -->
+<div class="section" id="sec-quiz">
+  <div class="quiz-wrap">
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:15px;margin-bottom:18px;">
+      <h3 style="color:var(--accent4);margin-bottom:7px;">✏️ คำถาม POE — Predict · Observe · Explain</h3>
+      <p style="color:var(--muted);font-size:0.83rem;">ทำนายคำตอบก่อน → ทดลอง simulation → เปรียบเทียบผล → อธิบาย</p>
+    </div>
+
+    <div class="qcard">
+      <h4>❓ ข้อ 1 — Predict</h4>
+      <p>ถ้าเพิ่มมวลแขวนจาก m เป็น 2m (กรณีที่ 2) โดยมวลแกลิเดอร์ยังเป็น M เหมือนเดิม <strong style="color:var(--accent)">ความเร่งของระบบจะเป็นกี่เท่าของกรณีที่ 1?</strong></p>
+      <button class="hint-btn" onclick="toggleHint('h1')">💡 ดูเฉลย</button>
+      <div class="qhint" id="h1">
+        ความเร่งเพิ่มขึ้น แต่ไม่ถึง 2 เท่าพอดี เพราะ a₂ = 2mg/(M+2m) &lt; 2·mg/(M+m) = 2a₁<br>
+        อย่างไรก็ตาม เมื่อ m ≪ M จะได้ a₂ ≈ 2a₁ (ใกล้เคียงมาก)<br>
+        ในกรณีทดลอง m=3.3 g, M=200 g: a₁ ≈ 0.1589 m/s², a₂ ≈ 0.3147 m/s² → อัตราส่วน ≈ 1.98
+      </div>
+    </div>
+
+    <div class="qcard">
+      <h4>❓ ข้อ 2 — Predict</h4>
+      <p>ถ้าเพิ่มมวลแกลิเดอร์จาก M เป็น 2M (กรณีที่ 3) โดยมวลแขวนยังเป็น m เหมือนเดิม <strong style="color:var(--accent)">ความเร่งจะเปลี่ยนอย่างไร?</strong></p>
+      <button class="hint-btn" onclick="toggleHint('h2')">💡 ดูเฉลย</button>
+      <div class="qhint" id="h2">
+        ความเร่งลดลงเกือบครึ่งหนึ่ง เพราะ a₃ = mg/(2M+m) ≈ mg/2M = a₁/2<br>
+        มวลรวมของระบบเพิ่มขึ้น 2 เท่า แต่แรงขับ (mg) เท่าเดิม จาก F=ma จึงได้ a ลดลงครึ่งหนึ่ง<br>
+        ในกรณีทดลอง: a₃ ≈ 0.0800 m/s² → อัตราส่วน a₃/a₁ ≈ 0.503
+      </div>
+    </div>
+
+    <div class="qcard">
+      <h4>❓ ข้อ 3 — Observe &amp; Explain</h4>
+      <p>จากการดู simulation สังเกตระยะห่างระหว่างจุดส้มที่มาร์กทุก 0.5 s ว่าเท่ากันหรือเพิ่มขึ้น? <strong style="color:var(--accent)">ข้อสังเกตนี้บ่งบอกถึงการเคลื่อนที่ประเภทใด?</strong></p>
+      <button class="hint-btn" onclick="toggleHint('h3')">💡 ดูเฉลย</button>
+      <div class="qhint" id="h3">
+        ระยะห่างระหว่างจุดเพิ่มขึ้นเรื่อยๆ ในอัตราส่วน <strong>1 : 3 : 5 : 7 : ...</strong><br>
+        นี่คือสัญญาณของการเคลื่อนที่แบบ <strong>ความเร่งสม่ำเสมอ (uniform acceleration)</strong><br>
+        เนื่องจาก s = ½at² → Δs ∝ ตัวเลขคี่ลำดับ — เรียกว่า Galileo's Odd Number Rule
+      </div>
+    </div>
+
+    <div class="qcard">
+      <h4>❓ ข้อ 4 — คิดขยาย</h4>
+      <p>ในทางปฏิบัติ ถ้าไม่ได้ใช้ air track แต่เป็นโต๊ะทั่วไป (มีแรงเสียดทาน f) <strong style="color:var(--accent)">สูตรความเร่งจะเปลี่ยนอย่างไร?</strong></p>
+      <button class="hint-btn" onclick="toggleHint('h4')">💡 ดูเฉลย</button>
+      <div class="qhint" id="h4">
+        สมการของแกลิเดอร์จะกลายเป็น: T − f = Ma<br>
+        เมื่อรวมกับ mg − T = ma จะได้: <strong>a = (mg − f) / (M + m)</strong><br>
+        ความเร่งลดลงตามแรงเสียดทาน f = μMg<br>
+        ถ้า f ≥ mg ระบบจะไม่เคลื่อนที่เลย (a = 0 หรือ a &lt; 0)
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ EXERCISES ═══ -->
+<div class="section" id="sec-ex">
+  <div class="ex-wrap">
+
+    <!-- Header + score -->
+    <div class="ex-header">
+      <div>
+        <h3>📝 แบบฝึกหัด — เครื่อง Atwood แนวนอน</h3>
+        <p>คำนวณ · จลนศาสตร์ · วิเคราะห์ข้อมูล | g = 9.8 m/s² | ตอบทศนิยม 2 ตำแหน่ง</p>
+      </div>
+      <div class="score-box">
+        <div class="sc-num" id="sc-num">0 / 8</div>
+        <div class="sc-lbl">คะแนน</div>
+      </div>
+    </div>
+
+    <!-- ═══ ชุดที่ 1: คำนวณ a และ T ═══ -->
+    <div class="ex-set-title">🔢 ชุดที่ 1 — คำนวณความเร่งและแรงตึงเชือก</div>
+
+    <!-- ข้อ 1 -->
+    <div class="excard" id="ex1">
+      <div class="ex-q">
+        <strong>ข้อ 1.</strong> ในการทดลอง แกลิเดอร์มีมวล M = 200 g มวลแขวน m = 3.3 g
+        จงหา <strong>ความเร่ง a</strong> ของระบบ และ <strong>แรงตึงเชือก T</strong>
+        (g = 9.8 m/s²)
+      </div>
+      <div class="ex-given">
+        M = 200 g = 0.200 kg | m = 3.3 g = 0.0033 kg | g = 9.8 m/s²<br>
+        สูตร:  a = mg / (M + m)  ,  T = Ma
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">a =</span>
+        <input class="ex-input" type="number" id="ex1-a" placeholder="0.00" step="0.001">
+        <span class="ex-unit">m/s²</span>
+        <span class="ex-input-lbl" style="margin-left:10px">T =</span>
+        <input class="ex-input" type="number" id="ex1-T" placeholder="0.00" step="0.01">
+        <span class="ex-unit">mN</span>
+        <button class="check-btn" onclick="checkEx1()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex1-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex1-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex1-sol">
+        <code>a = mg / (M + m) = (0.0033 × 9.8) / (0.200 + 0.0033)</code><br>
+        <code>  = 0.032340 / 0.2033 ≈ 0.159 m/s²</code><br><br>
+        <code>T = Ma = 0.200 × 0.159 = 0.03181 N = 31.81 mN ≈ 31.8 mN</code>
+      </div>
+    </div>
+
+    <!-- ข้อ 2 -->
+    <div class="excard" id="ex2">
+      <div class="ex-q">
+        <strong>ข้อ 2.</strong> เปลี่ยนมวลแขวนเป็น 2m = 6.6 g (กรณีที่ 2) มวลแกลิเดอร์ยังเป็น M = 200 g
+        จงหา <strong>ความเร่ง a₂</strong> และหา <strong>อัตราส่วน a₂ / a₁</strong>
+        (ใช้ a₁ จากข้อ 1)
+      </div>
+      <div class="ex-given">
+        M = 0.200 kg | m_hang = 2m = 0.0066 kg | g = 9.8 m/s²
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">a₂ =</span>
+        <input class="ex-input" type="number" id="ex2-a" placeholder="0.000" step="0.001">
+        <span class="ex-unit">m/s²</span>
+        <span class="ex-input-lbl" style="margin-left:10px">a₂/a₁ =</span>
+        <input class="ex-input" type="number" id="ex2-r" placeholder="0.00" step="0.01">
+        <span class="ex-unit">(ไม่มีหน่วย)</span>
+        <button class="check-btn" onclick="checkEx2()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex2-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex2-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex2-sol">
+        <code>a₂ = (2m)g / (M + 2m) = (0.0066 × 9.8) / (0.200 + 0.0066)</code><br>
+        <code>   = 0.06468 / 0.2066 ≈ 0.313 m/s²</code><br><br>
+        <code>a₂/a₁ = 0.313 / 0.159 ≈ 1.97 ≈ 2</code><br>
+        (ใกล้เคียง 2 เพราะ m ≪ M → a₂ ≈ 2a₁)
+      </div>
+    </div>
+
+    <!-- ข้อ 3 -->
+    <div class="excard" id="ex3">
+      <div class="ex-q">
+        <strong>ข้อ 3.</strong> ถ้าต้องการให้ระบบมีความเร่ง a = 0.50 m/s² โดยใช้แกลิเดอร์มวล M = 100 g
+        ต้องใช้มวลแขวน m เท่าใด? (g = 9.8 m/s²)
+      </div>
+      <div class="ex-given">
+        จาก a = mg / (M + m) แก้หา m<br>
+        힌트: a(M + m) = mg  →  aM = m(g − a)  →  m = aM / (g − a)
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">m =</span>
+        <input class="ex-input" type="number" id="ex3-m" placeholder="0.00" step="0.1">
+        <span class="ex-unit">g</span>
+        <button class="check-btn" onclick="checkEx3()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex3-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex3-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex3-sol">
+        <code>m = aM / (g − a) = (0.50 × 0.100) / (9.8 − 0.50)</code><br>
+        <code>  = 0.050 / 9.30 = 0.005376 kg ≈ 5.4 g</code>
+      </div>
+    </div>
+
+    <!-- ═══ ชุดที่ 2: จลนศาสตร์ ═══ -->
+    <div class="ex-set-title">📐 ชุดที่ 2 — จลนศาสตร์ (u = 0, a คงที่)</div>
+
+    <!-- ข้อ 4 -->
+    <div class="excard" id="ex4">
+      <div class="ex-q">
+        <strong>ข้อ 4.</strong> แกลิเดอร์เริ่มจากหยุดนิ่ง มีความเร่ง a = 0.159 m/s²
+        หลังจากเวลา t = 3.0 s จงหา <strong>ความเร็ว v</strong> และ <strong>ระยะทาง s</strong>
+      </div>
+      <div class="ex-given">
+        u = 0, a = 0.159 m/s², t = 3.0 s<br>
+        สูตร: v = at  ,  s = ½at²
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">v =</span>
+        <input class="ex-input" type="number" id="ex4-v" placeholder="0.00" step="0.01">
+        <span class="ex-unit">cm/s</span>
+        <span class="ex-input-lbl" style="margin-left:10px">s =</span>
+        <input class="ex-input" type="number" id="ex4-s" placeholder="0.00" step="0.1">
+        <span class="ex-unit">cm</span>
+        <button class="check-btn" onclick="checkEx4()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex4-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex4-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex4-sol">
+        <code>v = at = 0.159 × 3.0 = 0.477 m/s = 47.7 cm/s ≈ 47.7 cm/s</code><br>
+        <code>s = ½at² = ½ × 0.159 × 9.0 = 0.7155 m = 71.6 cm</code>
+      </div>
+    </div>
+
+    <!-- ข้อ 5 -->
+    <div class="excard" id="ex5">
+      <div class="ex-q">
+        <strong>ข้อ 5.</strong> แกลิเดอร์เคลื่อนที่ด้วย a = 0.159 m/s² จากหยุดนิ่ง
+        จงหา <strong>เวลา t</strong> ที่แกลิเดอร์เคลื่อนที่ไปได้ s = 20.0 cm
+      </div>
+      <div class="ex-given">
+        u = 0, a = 0.159 m/s², s = 20.0 cm = 0.200 m<br>
+        สูตร: s = ½at²  →  t = √(2s/a)
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">t =</span>
+        <input class="ex-input" type="number" id="ex5-t" placeholder="0.00" step="0.01">
+        <span class="ex-unit">s</span>
+        <button class="check-btn" onclick="checkEx5()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex5-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex5-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex5-sol">
+        <code>t = √(2s/a) = √(2 × 0.200 / 0.159)</code><br>
+        <code>  = √(2.516) = 1.586 s ≈ 1.59 s</code>
+      </div>
+    </div>
+
+    <!-- ข้อ 6 -->
+    <div class="excard" id="ex6">
+      <div class="ex-q">
+        <strong>ข้อ 6.</strong> แกลิเดอร์เริ่มจากหยุดนิ่ง a = 0.159 m/s²
+        จงหา <strong>ความเร็ว v</strong> ขณะที่เคลื่อนที่ผ่านตำแหน่ง s = 30.0 cm
+      </div>
+      <div class="ex-given">
+        u = 0, a = 0.159 m/s², s = 30.0 cm = 0.300 m<br>
+        สูตร: v² = u² + 2as = 2as
+      </div>
+      <div class="ex-input-row">
+        <span class="ex-input-lbl">v =</span>
+        <input class="ex-input" type="number" id="ex6-v" placeholder="0.00" step="0.01">
+        <span class="ex-unit">cm/s</span>
+        <button class="check-btn" onclick="checkEx6()">✔ ตรวจ</button>
+      </div>
+      <div class="ex-feedback" id="ex6-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex6-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex6-sol">
+        <code>v² = 2as = 2 × 0.159 × 0.300 = 0.09540</code><br>
+        <code>v  = √0.09540 = 0.3088 m/s = 30.9 cm/s</code>
+      </div>
+    </div>
+
+    <!-- ═══ ชุดที่ 3: วิเคราะห์ข้อมูล ═══ -->
+    <div class="ex-set-title">📊 ชุดที่ 3 — วิเคราะห์ข้อมูลการทดลอง</div>
+
+    <!-- ข้อ 7: Odd Number Rule table -->
+    <div class="excard" id="ex7">
+      <div class="ex-q">
+        <strong>ข้อ 7.</strong> จากการทดลองกรณีที่ 1 (M=200 g, m=3.3 g, a≈0.159 m/s²)
+        บันทึกตำแหน่งแกลิเดอร์ทุก 0.5 s ได้ดังตาราง
+        จงคำนวณ <strong>ระยะห่างระหว่างจุด (Δs)</strong> แต่ละช่วง
+        และตรวจสอบว่าเป็นไปตาม <strong>Odd Number Rule</strong> หรือไม่
+      </div>
+      <table class="dtbl">
+        <thead>
+          <tr>
+            <th>ช่วง</th><th>t เริ่ม (s)</th><th>t สิ้นสุด (s)</th>
+            <th>s ณ t สิ้นสุด (cm)</th><th>Δs (cm) <span style="color:var(--accent3)">[กรอกคำตอบ]</span></th>
+            <th>อัตราส่วน Δs<br><span style="font-weight:400;font-size:0.78rem;">(เทียบ Δs₁)</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>0.0</td><td>0.5</td><td>2.0</td>
+            <td class="fill-cell"><input class="ex-input-sm" id="ex7-d1" type="number" placeholder="?" step="0.1"></td>
+            <td>1</td>
+          </tr>
+          <tr>
+            <td>2</td><td>0.5</td><td>1.0</td><td>7.9</td>
+            <td class="fill-cell"><input class="ex-input-sm" id="ex7-d2" type="number" placeholder="?" step="0.1"></td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td>3</td><td>1.0</td><td>1.5</td><td>17.9</td>
+            <td class="fill-cell"><input class="ex-input-sm" id="ex7-d3" type="number" placeholder="?" step="0.1"></td>
+            <td>5</td>
+          </tr>
+          <tr>
+            <td>4</td><td>1.5</td><td>2.0</td><td>31.8</td>
+            <td class="fill-cell"><input class="ex-input-sm" id="ex7-d4" type="number" placeholder="?" step="0.1"></td>
+            <td>7</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="ex-input-row" style="margin-top:10px">
+        <button class="check-btn" onclick="checkEx7()">✔ ตรวจตาราง</button>
+      </div>
+      <div class="ex-feedback" id="ex7-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex7-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex7-sol">
+        <code>Δs₁ = 2.0 − 0    = 2.0 cm</code><br>
+        <code>Δs₂ = 7.9 − 2.0  = 5.9 cm ≈ 6.0 cm</code><br>
+        <code>Δs₃ = 17.9 − 7.9 = 10.0 cm</code><br>
+        <code>Δs₄ = 31.8 − 17.9 = 13.9 cm ≈ 14.0 cm</code><br><br>
+        อัตราส่วน: <code>2.0 : 6.0 : 10.0 : 14.0 = 1 : 3 : 5 : 7 ✓</code><br>
+        นี่คือ <strong>Galileo's Odd Number Rule</strong> — หลักฐานว่า a คงที่
+      </div>
+    </div>
+
+    <!-- ข้อ 8: เปรียบเทียบ 3 กรณี -->
+    <div class="excard" id="ex8">
+      <div class="ex-q">
+        <strong>ข้อ 8.</strong> จากการทดลอง 3 กรณี วัดความเร่งได้ดังนี้:<br>
+        กรณีที่ 1: a₁ = 0.159 m/s² | กรณีที่ 2: a₂ = 0.313 m/s² | กรณีที่ 3: a₃ = 0.080 m/s²<br><br>
+        จงคำนวณ <strong>แรงสุทธิ F<sub>net</sub> = (M+m)a</strong> ของแต่ละกรณี แล้วเปรียบเทียบกับ <strong>mg</strong> ของมวลแขวน<br>
+        <span style="color:var(--muted);font-size:0.85rem;">(กรณีที่ 1: M=0.200 kg, m=0.0033 kg | กรณีที่ 2: m_hang=0.0066 kg | กรณีที่ 3: M_glider=0.400 kg)</span>
+      </div>
+      <div class="ex-given">
+        สูตร: F<sub>net</sub> = (M<sub>glider</sub> + m<sub>hang</sub>) × a  ,  mg = m<sub>hang</sub> × g
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+        <div style="background:var(--panel2);border-radius:7px;padding:10px;border:1px solid var(--border)">
+          <div style="font-size:0.78rem;color:var(--accent2);font-weight:700;margin-bottom:6px">กรณีที่ 1</div>
+          <div class="ex-input-row" style="flex-direction:column;align-items:flex-start;gap:5px">
+            <div><span class="ex-input-lbl" style="min-width:50px">F_net =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-f1" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+            <div><span class="ex-input-lbl" style="min-width:50px">mg =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-mg1" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+          </div>
+        </div>
+        <div style="background:var(--panel2);border-radius:7px;padding:10px;border:1px solid var(--border)">
+          <div style="font-size:0.78rem;color:#66bb6a;font-weight:700;margin-bottom:6px">กรณีที่ 2</div>
+          <div class="ex-input-row" style="flex-direction:column;align-items:flex-start;gap:5px">
+            <div><span class="ex-input-lbl" style="min-width:50px">F_net =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-f2" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+            <div><span class="ex-input-lbl" style="min-width:50px">mg =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-mg2" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+          </div>
+        </div>
+        <div style="background:var(--panel2);border-radius:7px;padding:10px;border:1px solid var(--border)">
+          <div style="font-size:0.78rem;color:var(--cm);font-weight:700;margin-bottom:6px">กรณีที่ 3</div>
+          <div class="ex-input-row" style="flex-direction:column;align-items:flex-start;gap:5px">
+            <div><span class="ex-input-lbl" style="min-width:50px">F_net =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-f3" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+            <div><span class="ex-input-lbl" style="min-width:50px">mg =</span>
+            <input class="ex-input-sm" style="width:60px" id="ex8-mg3" type="number" placeholder="?" step="0.001">
+            <span class="ex-unit"> N</span></div>
+          </div>
+        </div>
+      </div>
+      <button class="check-btn" onclick="checkEx8()">✔ ตรวจ</button>
+      <div class="ex-feedback" id="ex8-fb"></div>
+      <button class="sol-btn" onclick="toggleSol('ex8-sol')">📖 ดูวิธีทำ</button>
+      <div class="ex-sol" id="ex8-sol">
+        กรณีที่ 1: <code>F_net = (0.200+0.0033)×0.159 = 0.2033×0.159 = 0.0323 N</code><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>mg  = 0.0033×9.8 = 0.0323 N ✓ (เท่ากันพอดี!)</code><br><br>
+        กรณีที่ 2: <code>F_net = (0.200+0.0066)×0.313 = 0.2066×0.313 = 0.0647 N</code><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>mg  = 0.0066×9.8 = 0.0647 N ✓</code><br><br>
+        กรณีที่ 3: <code>F_net = (0.400+0.0033)×0.080 = 0.4033×0.080 = 0.0323 N</code><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>mg  = 0.0033×9.8 = 0.0323 N ✓</code><br><br>
+        <strong>สรุป:</strong> F_net = mg เสมอ — สอดคล้องกับกฎ F = ma ของนิวตัน ✓
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2568 KP Science simulation | อ้างอิง: Halliday, Resnick &amp; Krane, Physics 5th Ed. | g = 9.8 m/s²
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+//  PHYSICS CONSTANTS & STATE
+// ═══════════════════════════════════════════════
+const G = 9.8;           // m/s²
+const SCALE = 200;       // px per metre (both axes)
+
+let M_kg = 0.200;        // glider mass
+let m_kg = 0.0033;       // base hanging mass
+let mode = 1;            // 1, 2, or 3
+
+let t_sim = 0;
+let v_sim = 0;
+let s_sim = 0;
+let dots  = [];          // {s, label}
+let lastDotT = -0.01;
+let isPlaying = false;
+let animId    = null;
+let lastTs    = null;
+let spd       = 1.0;
+let ended     = false;
+
+// ── Drag & drop state ─────────────────────────
+let s_initial   = 0;      // starting position set by drag
+let pulleyAngle = 0;      // pulley spoke rotation
+let isDragging  = false;
+let dragTarget  = null;   // 'glider' | 'mass'
+let dragStartMouse = 0;
+let dragStartS  = 0;
+let isHovering  = null;   // 'glider' | 'mass' | null
+
+// ───── Mass helpers ─────────────────────────────
+function getGlider()  { return (mode === 3 ? 2 : 1) * M_kg; }
+function getHanging() { return (mode === 2 ? 2 : 1) * m_kg; }
+function getAccel()   { const mg = getHanging(), Mg = getGlider(); return (mg * G) / (Mg + mg); }
+function getTens()    { return getGlider() * getAccel(); }
+
+// ─── Update theory table (filled from JS) ──────
+function fillTable() {
+  const m = m_kg, M = M_kg;
+  const a1 = (m * G) / (M + m);
+  const a2 = (2*m * G) / (M + 2*m);
+  const a3 = (m * G) / (2*M + m);
+  document.getElementById('tbl-a1').textContent = a1.toFixed(4);
+  document.getElementById('tbl-a2').textContent = a2.toFixed(4);
+  document.getElementById('tbl-a3').textContent = a3.toFixed(4);
+}
+
+// ═══════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * spd;
+  lastTs = ts;
+
+  const a = getAccel();
+  t_sim += dt;
+  v_sim  = a * t_sim;
+  s_sim  = s_initial + 0.5 * a * t_sim * t_sim;
+  pulleyAngle += v_sim * dt * SCALE / 18; // rotate pulley with string
+
+  // Record dot every 0.5 s
+  if (t_sim - lastDotT >= 0.5) {
+    lastDotT = Math.floor(t_sim / 0.5) * 0.5;
+    dots.push({ s: s_sim, lbl: lastDotT.toFixed(1) });
+  }
+
+  // Stop when hanging mass reaches bottom
+  const L0 = getLayout();
+  const maxFall = L0.maxFall;
+
+  if (s_sim >= maxFall) {
+    s_sim = maxFall;
+    v_sim = Math.sqrt(2 * a * Math.max(s_sim - s_initial, 0));
+    ended = true;
+    draw(); updateReadout();
+    stopPlay('🏁 สิ้นสุด');
+    return;
+  }
+
+  draw(); updateReadout();
+  animId = requestAnimationFrame(loop);
+}
+
+function stopPlay(msg) {
+  cancelAnimationFrame(animId);
+  isPlaying = false;
+  const b = document.getElementById('playBtn');
+  b.textContent = '▶ เริ่ม'; b.classList.remove('playing');
+  if (msg) document.getElementById('status-txt').textContent = msg;
+}
+
+function togglePlay() {
+  if (ended) { resetSim(); return; }
+  isPlaying = !isPlaying;
+  const b = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    b.textContent = '⏸ หยุด'; b.classList.add('playing');
+    document.getElementById('status-txt').textContent = 'กำลังเคลื่อนที่…';
+  } else {
+    cancelAnimationFrame(animId);
+    b.textContent = '▶ เริ่ม'; b.classList.remove('playing');
+    document.getElementById('status-txt').textContent = 'หยุดชั่วคราว';
+  }
+}
+
+function resetSim() {
+  stopPlay('พร้อมเริ่ม');
+  t_sim = 0; v_sim = 0; s_sim = 0; s_initial = 0;
+  dots = []; lastDotT = -0.01; lastTs = null; ended = false; pulleyAngle = 0;
+  updateReadout(); draw();
+}
+
+function setMode(m) {
+  mode = m;
+  [1,2,3].forEach(i =>
+    document.getElementById('mb'+i).classList.toggle('active', i === m)
+  );
+  resetSim(); updatePill();
+}
+
+function updatePill() {
+  const a = getAccel();
+  document.getElementById('acc-pill').textContent = 'a = ' + a.toFixed(4) + ' m/s²';
+}
+
+// ─── Speed slider ────────────────────────────
+document.getElementById('spdSlider').oninput = function() {
+  spd = parseFloat(this.value);
+  document.getElementById('spdLbl').textContent = spd.toFixed(1) + '×';
+};
+
+// ─── Mass sliders ─────────────────────────────
+function bindSlider(slId, viId, isM) {
+  const sl = document.getElementById(slId);
+  const vi = document.getElementById(viId);
+  sl.oninput = () => { vi.value = sl.value; setMass(isM, +sl.value); };
+  vi.onblur  = () => {
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(vi.value) || 0));
+    vi.value = v; sl.value = v; setMass(isM, v);
+  };
+  vi.onkeydown = e => { if (e.key === 'Enter') vi.blur(); };
+}
+function setMass(isM, val) {
+  if (isM) M_kg = val / 1000; else m_kg = val / 1000;
+  resetSim(); updatePill(); fillTable();
+}
+bindSlider('slM','viM',true);
+bindSlider('slm','vim',false);
+
+// ═══════════════════════════════════════════════
+//  DRAG INTERACTION
+// ═══════════════════════════════════════════════
+function getLayout() {
+  const cnv = document.getElementById('simCanvas');
+  const W = cnv.width, H = cnv.height;
+  const tY = Math.round(H * 0.42), tX1 = 65, tX2 = W - 95, tH = 14;
+  const pR = 18, pX = tX2 + 24, pY = tY - 14;
+  const glW = 62, glH = 30, glX0 = tX1 + 15;
+  const hmR = 14;
+  const glX  = glX0 + s_sim * SCALE;
+  const hmCx = pX;
+  const hmCy = pY + pR + hmR + 5 + s_sim * SCALE;
+  const maxFall = (H - 32 - pY - pR - hmR * 2 - 12) / SCALE;
+  return {W,H,tY,tX1,tX2,tH,pR,pX,pY,glW,glH,glX0,glX,hmR,hmCx,hmCy,maxFall};
+}
+
+function getCanvasXY(e) {
+  const cnv = document.getElementById('simCanvas');
+  const rect = cnv.getBoundingClientRect();
+  const scX = cnv.width / rect.width, scY = cnv.height / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - rect.left) * scX, y: (src.clientY - rect.top) * scY };
+}
+
+function hitTest(mx, my) {
+  const L = getLayout();
+  if (mx >= L.glX-8 && mx <= L.glX+L.glW+8 && my >= L.tY-L.glH-8 && my <= L.tY+6)
+    return 'glider';
+  const dx = mx - L.hmCx, dy = my - L.hmCy;
+  if (Math.sqrt(dx*dx + dy*dy) <= L.hmR + 12) return 'mass';
+  return null;
+}
+
+function onDragStart(e) {
+  if (ended) return;
+  const {x, y} = getCanvasXY(e);
+  const tgt = hitTest(x, y);
+  if (!tgt) return;
+  e.preventDefault();
+  isDragging = true; dragTarget = tgt;
+  dragStartMouse = (tgt === 'glider') ? x : y;
+  dragStartS = s_sim;
+  if (isPlaying) { cancelAnimationFrame(animId); isPlaying = false;
+    const b = document.getElementById('playBtn');
+    b.textContent = '▶ เริ่ม'; b.classList.remove('playing'); }
+  t_sim = 0; v_sim = 0; s_initial = s_sim; dots = []; lastDotT = -0.01;
+  document.getElementById('status-txt').textContent = '✋ ลากเพื่อเลื่อน — ปล่อยแล้วกด ▶';
+  draw();
+}
+
+function onDragMove(e) {
+  const {x, y} = getCanvasXY(e);
+  if (isDragging) {
+    e.preventDefault();
+    const L = getLayout();
+    let newS = (dragTarget === 'glider')
+      ? dragStartS + (x - dragStartMouse) / SCALE
+      : dragStartS + (y - dragStartMouse) / SCALE;
+    newS = Math.max(0, Math.min(L.maxFall * 0.95, newS));
+    s_sim = newS; s_initial = newS;
+    updateReadout(); draw();
+  } else {
+    const newH = hitTest(x, y);
+    if (newH !== isHovering) {
+      isHovering = newH;
+      document.getElementById('simCanvas').style.cursor = newH ? 'grab' : 'default';
+      if (!isPlaying) draw();
+    }
+  }
+}
+
+function onDragEnd() {
+  if (isDragging) {
+    isDragging = false; dragTarget = null;
+    document.getElementById('status-txt').textContent = 'ปล่อยแล้ว — กด ▶ เริ่ม';
+    document.getElementById('simCanvas').style.cursor = isHovering ? 'grab' : 'default';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  CANVAS DRAWING — REALISTIC
+// ═══════════════════════════════════════════════
+function rRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function arrowLine(ctx, x1, y1, x2, y2, col, lw) {
+  const ang = Math.atan2(y2-y1, x2-x1), hl = 8;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(ang-Math.PI/6), y2-hl*Math.sin(ang-Math.PI/6));
+  ctx.lineTo(x2-hl*Math.cos(ang+Math.PI/6), y2-hl*Math.sin(ang+Math.PI/6));
+  ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+}
+
+function drawTrack(ctx, L) {
+  const {tX1, tX2, tY, tH, W, H} = L;
+  // ── Lab bench ───────────────────────────────────
+  const bY = H - 26;
+  const bGrad = ctx.createLinearGradient(0, bY, 0, H);
+  bGrad.addColorStop(0,'#4a3728'); bGrad.addColorStop(0.4,'#5c4030'); bGrad.addColorStop(1,'#2d1f14');
+  ctx.fillStyle = bGrad; ctx.fillRect(0, bY, W, H-bY);
+  ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,bY); ctx.lineTo(W,bY); ctx.stroke();
+  // Wood grain
+  ctx.strokeStyle='rgba(255,255,255,0.03)'; ctx.lineWidth=1;
+  for(let gx=0; gx<W; gx+=20) {
+    ctx.beginPath(); ctx.moveTo(gx, bY); ctx.lineTo(gx+10, H); ctx.stroke();
+  }
+
+  // ── Support legs ────────────────────────────────
+  const legXs = [tX1+90, tX1+230, tX1+370];
+  legXs.forEach(lx => {
+    if (lx < tX2) {
+      const lGrad = ctx.createLinearGradient(lx-6,0,lx+6,0);
+      lGrad.addColorStop(0,'#374151'); lGrad.addColorStop(0.4,'#6b7280'); lGrad.addColorStop(1,'#374151');
+      ctx.fillStyle = lGrad; ctx.fillRect(lx-6, tY+tH, 12, bY-tY-tH-2);
+      ctx.fillStyle='#2d3748'; ctx.fillRect(lx-16, bY-8, 32, 8); // foot
+    }
+  });
+
+  // ── Track shadow ─────────────────────────────────
+  ctx.shadowBlur = 14; ctx.shadowColor='rgba(0,0,0,0.55)'; ctx.shadowOffsetY = 7;
+
+  // ── Track body (aluminum) ────────────────────────
+  const tGrad = ctx.createLinearGradient(0, tY, 0, tY+tH);
+  tGrad.addColorStop(0,'#c8d2de'); tGrad.addColorStop(0.25,'#8fa3b8');
+  tGrad.addColorStop(0.7,'#6b7280'); tGrad.addColorStop(1,'#4b5563');
+  ctx.fillStyle = tGrad;
+  rRect(ctx, tX1, tY, tX2-tX1, tH, 3); ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // Top shine
+  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fillRect(tX1+2, tY+1, tX2-tX1-4, 3);
+
+  // Air holes (tiny dots every 5px on surface)
+  ctx.fillStyle='rgba(0,0,0,0.22)';
+  for(let hx=tX1+10; hx<tX2-5; hx+=5) {
+    ctx.beginPath(); ctx.arc(hx, tY+tH/2, 1, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ── Ruler marks on track face ───────────────────
+  ctx.strokeStyle='rgba(40,40,40,0.45)'; ctx.lineWidth=0.8;
+  for(let cm=0; cm*SCALE/100+tX1 < tX2; cm++) {
+    const mx = tX1 + cm*SCALE/100;
+    const isMaj = cm%10===0, isMid = cm%5===0;
+    const mH = isMaj?8:(isMid?5:3);
+    ctx.beginPath(); ctx.moveTo(mx, tY); ctx.lineTo(mx, tY-mH); ctx.stroke();
+    if(isMaj && cm>0) {
+      ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.font='7px Share Tech Mono'; ctx.textAlign='center';
+      ctx.fillText(cm+'cm', mx, tY-10);
+    }
+  }
+
+  // ── Left wall ────────────────────────────────────
+  const wGrad = ctx.createLinearGradient(tX1-12,0,tX1,0);
+  wGrad.addColorStop(0,'#1f2937'); wGrad.addColorStop(0.6,'#374151'); wGrad.addColorStop(1,'#4b5563');
+  ctx.fillStyle=wGrad; ctx.fillRect(tX1-12, tY-38, 12, 58);
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+  for(let hy=tY-36; hy<tY+20; hy+=9) {
+    ctx.beginPath(); ctx.moveTo(tX1-12,hy); ctx.lineTo(tX1,hy+8); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+function drawPulley(ctx, L) {
+  const {pX, pY, pR, tY} = L;
+  // Mount bracket
+  const brGrad = ctx.createLinearGradient(pX-9,0,pX+9,0);
+  brGrad.addColorStop(0,'#1f2937'); brGrad.addColorStop(0.5,'#4b5563'); brGrad.addColorStop(1,'#1f2937');
+  ctx.fillStyle=brGrad;
+  ctx.fillRect(pX-9, tY-48, 18, 44);
+  ctx.fillRect(pX-16, tY-48, 32, 11);
+
+  // Housing ring
+  ctx.beginPath(); ctx.arc(pX, pY, pR+6, 0, Math.PI*2);
+  const hGrad = ctx.createRadialGradient(pX,pY,pR-2, pX,pY,pR+6);
+  hGrad.addColorStop(0,'#374151'); hGrad.addColorStop(1,'#1f2937');
+  ctx.fillStyle=hGrad; ctx.fill();
+
+  // Outer groove
+  ctx.beginPath(); ctx.arc(pX, pY, pR+2, 0, Math.PI*2);
+  ctx.strokeStyle='#6b7280'; ctx.lineWidth=2.5; ctx.stroke();
+
+  // Wheel body
+  const wGrad = ctx.createRadialGradient(pX-5,pY-5,2, pX,pY,pR);
+  wGrad.addColorStop(0,'#d1d5db'); wGrad.addColorStop(0.5,'#9ca3af'); wGrad.addColorStop(1,'#6b7280');
+  ctx.beginPath(); ctx.arc(pX, pY, pR, 0, Math.PI*2);
+  ctx.fillStyle=wGrad; ctx.fill();
+
+  // Rotating spokes
+  ctx.save(); ctx.translate(pX, pY); ctx.rotate(pulleyAngle);
+  ctx.strokeStyle='rgba(55,65,81,0.85)'; ctx.lineWidth=2.5;
+  for(let i=0; i<6; i++) {
+    const ang = i*Math.PI/3;
+    ctx.beginPath();
+    ctx.moveTo(4*Math.cos(ang), 4*Math.sin(ang));
+    ctx.lineTo((pR-4)*Math.cos(ang), (pR-4)*Math.sin(ang));
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Inner hub
+  ctx.beginPath(); ctx.arc(pX, pY, pR*0.3, 0, Math.PI*2);
+  ctx.fillStyle='#374151'; ctx.fill();
+  ctx.strokeStyle='#9ca3af'; ctx.lineWidth=1; ctx.stroke();
+
+  // Groove shadow
+  ctx.beginPath(); ctx.arc(pX, pY, pR, 0, Math.PI*2);
+  ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2; ctx.stroke();
+}
+
+function drawGlider(ctx, L) {
+  const {glX, tY, glW, glH} = L;
+  const held  = isDragging && dragTarget === 'glider';
+  const hover = !isDragging && isHovering === 'glider';
+
+  // Air cushion glow
+  if (isPlaying || v_sim > 0.003) {
+    ctx.shadowBlur=16; ctx.shadowColor=held?'rgba(251,191,36,0.5)':'rgba(56,189,248,0.45)';
+    ctx.shadowOffsetY=6;
+  } else if (hover) {
+    ctx.shadowBlur=10; ctx.shadowColor='rgba(125,211,252,0.4)'; ctx.shadowOffsetY=0;
+  }
+
+  // 3D top face (isometric hint)
+  const td = 9; // depth
+  ctx.beginPath();
+  ctx.moveTo(glX, tY-glH); ctx.lineTo(glX+glW, tY-glH);
+  ctx.lineTo(glX+glW-td, tY-glH-td); ctx.lineTo(glX-td+td, tY-glH-td); ctx.closePath();
+  ctx.fillStyle = held?'rgba(253,211,77,0.45)':hover?'rgba(125,211,252,0.3)':'rgba(147,197,253,0.2)';
+  ctx.fill();
+  ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // Front face
+  const fGrad = ctx.createLinearGradient(glX, tY-glH, glX, tY);
+  if (held) { fGrad.addColorStop(0,'#fcd34d'); fGrad.addColorStop(1,'#d97706'); }
+  else if (hover) { fGrad.addColorStop(0,'#93c5fd'); fGrad.addColorStop(1,'#2563eb'); }
+  else { fGrad.addColorStop(0,'#60a5fa'); fGrad.addColorStop(1,'#1e40af'); }
+  rRect(ctx, glX, tY-glH, glW, glH, 5); ctx.fillStyle=fGrad; ctx.fill();
+
+  // Border
+  ctx.strokeStyle = held?'#fde68a':hover?'#bfdbfe':'#93c5fd';
+  ctx.lineWidth=1.8; rRect(ctx, glX, tY-glH, glW, glH, 5); ctx.stroke();
+
+  // Shine stripe
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(glX+4, tY-glH+3, glW-8, 5);
+
+  // Air holes on bottom
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  for(let hx=glX+9; hx<glX+glW-7; hx+=10) {
+    ctx.beginPath(); ctx.arc(hx, tY-4, 2, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Mass label
+  ctx.fillStyle='#fff'; ctx.font='bold 13px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(mode===3?'2M':'M', glX+glW/2, tY-glH/2+5);
+  ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='9px Share Tech Mono';
+  ctx.fillText((getGlider()*1000).toFixed(0)+'g', glX+glW/2, tY-5);
+
+  // Hook on top-right
+  const hkX = glX+glW-12, hkY = tY-glH;
+  ctx.strokeStyle = held?'#fde68a':hover?'#bfdbfe':'rgba(255,255,255,0.5)';
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(hkX, hkY); ctx.lineTo(hkX, hkY-7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(hkX, hkY-9, 3, 0, Math.PI*2);
+  ctx.strokeStyle=held?'#fde68a':hover?'#bfdbfe':'rgba(255,255,255,0.4)';
+  ctx.lineWidth=1.5; ctx.stroke();
+
+  // Hover hint
+  if (hover && !isPlaying && !isDragging) {
+    ctx.fillStyle='rgba(125,211,252,0.9)'; ctx.font='bold 10px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('⟷ ลาก', glX+glW/2, tY-glH-16);
+  }
+
+  // Velocity arrow
+  if (v_sim > 0.004) {
+    const vLen = Math.min(v_sim*110, 70);
+    arrowLine(ctx, glX+glW+4, tY-glH/2, glX+glW+4+vLen, tY-glH/2, '#4ade80', 2.5);
+    ctx.fillStyle='#4ade80'; ctx.font='bold 11px Share Tech Mono'; ctx.textAlign='left';
+    ctx.fillText('v', glX+glW+vLen+8, tY-glH/2+4);
+  }
+}
+
+function drawHangingMass(ctx, L) {
+  const {pX, pY, pR, hmR, hmCx, hmCy} = L;
+  const held  = isDragging && dragTarget === 'mass';
+  const hover = !isDragging && isHovering === 'mass';
+  const isTwoM = mode === 2;
+  const cylH = isTwoM ? 36 : 26;
+  const eRY  = hmR * 0.38;
+  const cyTop = hmCy - cylH/2;
+
+  // String to pulley
+  // (drawn externally in draw())
+
+  // Drop shadow
+  ctx.shadowBlur=8; ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowOffsetX=3;
+
+  // Bottom ellipse
+  ctx.beginPath();
+  ctx.ellipse(hmCx, cyTop+cylH, hmR, eRY, 0, 0, Math.PI*2);
+  ctx.fillStyle = held?'#92400e':hover?'#1e3a8a':'#1f2937'; ctx.fill();
+
+  // Cylinder body
+  const cGrad = ctx.createLinearGradient(hmCx-hmR,0,hmCx+hmR,0);
+  if (held) {
+    cGrad.addColorStop(0,'#b45309'); cGrad.addColorStop(0.3,'#fcd34d'); cGrad.addColorStop(1,'#92400e');
+  } else if (hover) {
+    cGrad.addColorStop(0,'#1e40af'); cGrad.addColorStop(0.3,'#60a5fa'); cGrad.addColorStop(1,'#1e3a8a');
+  } else {
+    cGrad.addColorStop(0,'#1f2937'); cGrad.addColorStop(0.35,'#6b7280'); cGrad.addColorStop(1,'#111827');
+  }
+  ctx.fillStyle=cGrad; ctx.fillRect(hmCx-hmR, cyTop, hmR*2, cylH);
+  ctx.shadowBlur=0; ctx.shadowOffsetX=0;
+
+  // Top ellipse
+  ctx.beginPath();
+  ctx.ellipse(hmCx, cyTop, hmR, eRY, 0, 0, Math.PI*2);
+  ctx.fillStyle = held?'#fde68a':hover?'#93c5fd':'#9ca3af'; ctx.fill();
+  ctx.strokeStyle = held?'#fef3c7':hover?'#bfdbfe':'#d1d5db'; ctx.lineWidth=1; ctx.stroke();
+
+  // Decorative ring
+  ctx.beginPath();
+  ctx.ellipse(hmCx, cyTop+cylH/2, hmR, eRY*0.7, 0, 0, Math.PI*2);
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Label
+  ctx.fillStyle='#fff'; ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(mode===2?'2m':'m', hmCx, cyTop+cylH/2+4);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px Share Tech Mono';
+  ctx.fillText((getHanging()*1000).toFixed(1)+'g', hmCx, cyTop+cylH+eRY+12);
+
+  // Force arrows
+  const gL = Math.min(22+v_sim*50,46);
+  arrowLine(ctx, hmCx, cyTop+cylH+eRY+2, hmCx, cyTop+cylH+eRY+gL, '#fbbf24', 2);
+  ctx.fillStyle='#fbbf24'; ctx.font='10px Sarabun'; ctx.textAlign='left';
+  ctx.fillText('mg', hmCx+6, cyTop+cylH+eRY+gL/2+4);
+  arrowLine(ctx, hmCx, cyTop-eRY-2, hmCx, cyTop-eRY-18, '#f472b6', 2);
+  ctx.fillStyle='#f472b6'; ctx.font='10px Sarabun'; ctx.textAlign='right';
+  ctx.fillText('T', hmCx-5, cyTop-eRY-7);
+
+  // Hover hint
+  if (hover && !isPlaying && !isDragging) {
+    ctx.fillStyle='rgba(125,211,252,0.9)'; ctx.font='bold 10px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('↕ ลาก', hmCx, cyTop-eRY-26);
+  }
+}
+
+function draw() {
+  const cnv = document.getElementById('simCanvas');
+  const ctx = cnv.getContext('2d');
+  const L = getLayout();
+  const {W,H,tY,tX1,tX2,tH,pR,pX,pY,glW,glH,glX0,glX,hmR,hmCx,hmCy} = L;
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#040710'); bg.addColorStop(1,'#0a0e1a');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Subtle grid
+  ctx.strokeStyle='rgba(30,58,95,0.18)'; ctx.lineWidth=0.5;
+  for(let gx=0;gx<W;gx+=60){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=0;gy<H;gy+=60){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+  // Track + bench + legs
+  drawTrack(ctx, L);
+
+  // Position dots (on track centre)
+  dots.forEach((dot,i) => {
+    const dx = glX0 + glW/2 + dot.s * SCALE;
+    const dy = tY + tH/2;
+    ctx.beginPath(); ctx.arc(dx,dy,9,0,Math.PI*2);
+    ctx.fillStyle='rgba(251,146,60,0.13)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(dx,dy,4.5,0,Math.PI*2);
+    ctx.fillStyle='#fb923c'; ctx.fill();
+    if(i%2===0 || i===dots.length-1){
+      ctx.fillStyle='rgba(251,146,60,0.8)'; ctx.font='9px Share Tech Mono'; ctx.textAlign='center';
+      ctx.fillText(dot.lbl+'s', dx, dy-13);
+    }
+  });
+
+  // Pulley
+  drawPulley(ctx, L);
+
+  // String (horizontal to pulley then vertical)
+  const strY = tY - glH + 5;
+  const hkX  = glX + glW - 12;
+  ctx.beginPath();
+  ctx.moveTo(hkX, strY);
+  ctx.lineTo(pX, strY);
+  ctx.lineTo(pX, pY + pR);
+  ctx.lineTo(hmCx, hmCy - hmR*0.38 - 2);
+  ctx.strokeStyle='rgba(230,230,230,0.9)'; ctx.lineWidth=1.8; ctx.stroke();
+
+  // Glider
+  drawGlider(ctx, L);
+
+  // Hanging mass
+  drawHangingMass(ctx, L);
+
+  // Displacement ruler (shows Δs from start)
+  const travel = s_sim - s_initial;
+  if (travel > 0.006) {
+    const rY = tY + tH + 16;
+    const rx0 = glX0 + glW/2 + s_initial * SCALE;
+    const rx1 = rx0 + travel * SCALE;
+    ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1; ctx.setLineDash([5,3]);
+    ctx.beginPath(); ctx.moveTo(rx0,rY); ctx.lineTo(rx1,rY); ctx.stroke();
+    ctx.setLineDash([]);
+    [rx0,rx1].forEach(rx=>{
+      ctx.beginPath(); ctx.moveTo(rx,rY-4); ctx.lineTo(rx,rY+4);
+      ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1; ctx.stroke();
+    });
+    ctx.fillStyle='#fbbf24'; ctx.font='10px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillText('Δs='+(travel*100).toFixed(1)+'cm', (rx0+rx1)/2, rY+14);
+  }
+
+  // Starting position marker
+  if (s_initial > 0.006) {
+    const sx = glX0 + glW/2 + s_initial * SCALE;
+    ctx.strokeStyle='rgba(129,140,248,0.6)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(sx, tY-glH-22); ctx.lineTo(sx, tY+tH+4); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(129,140,248,0.85)'; ctx.font='9px Share Tech Mono'; ctx.textAlign='center';
+    ctx.fillText('เริ่ม', sx, tY-glH-26);
+  }
+
+  // Top-right info overlay
+  const a = getAccel();
+  ctx.fillStyle='rgba(56,189,248,0.9)'; ctx.font='11px Share Tech Mono'; ctx.textAlign='right';
+  ctx.fillText('a = '+a.toFixed(4)+' m/s²', W-12, 20);
+  ctx.fillStyle='rgba(148,163,184,0.65)'; ctx.font='10px Share Tech Mono';
+  ctx.fillText('t = '+t_sim.toFixed(2)+' s', W-12, 34);
+  ctx.fillText('v = '+(v_sim*100).toFixed(2)+' cm/s', W-12, 47);
+
+  // Mode label
+  const mLbls=['','กรณีที่ 1: M & m','กรณีที่ 2: M & 2m','กรณีที่ 3: 2M & m'];
+  const mCols=['','#818cf8','#66bb6a','#fb923c'];
+  ctx.fillStyle=mCols[mode]; ctx.font='bold 11px Sarabun'; ctx.textAlign='left';
+  ctx.fillText(mLbls[mode], 12, 18);
+
+  // Initial hint (idle state)
+  if (!isPlaying && t_sim===0 && s_sim<0.004 && !isDragging && !ended) {
+    ctx.fillStyle='rgba(148,163,184,0.5)'; ctx.font='12px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('👆 คลิกแกลิเดอร์หรือมวลแขวน แล้วลากเพื่อเลื่อนตำแหน่งก่อนเริ่ม', W/2, H-42);
+  }
+
+  // End message
+  if (ended) {
+    ctx.fillStyle='rgba(251,146,60,0.9)'; ctx.font='bold 15px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('🏁 มวล m ถึงพื้น — รีเซ็ตเพื่อทดลองใหม่', W/2, H-45);
+  }
+}
+
+// ─── Readout ──────────────────────────────────
+function updateReadout() {
+  const a = getAccel(), T = getTens();
+  document.getElementById('rv-a').textContent = a.toFixed(4);
+  document.getElementById('rv-T').textContent = (T*1000).toFixed(3);
+  document.getElementById('rv-v').textContent = (v_sim*100).toFixed(2);
+  document.getElementById('rv-s').textContent = (s_sim*100).toFixed(2);
+  document.getElementById('rv-t').textContent = t_sim.toFixed(2);
+}
+
+// ─── Section switcher ─────────────────────────
+function showSec(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'sim') setTimeout(resizeCanvas, 10);
+}
+
+// ─── Quiz hints ───────────────────────────────
+function toggleHint(id) {
+  document.getElementById(id).classList.toggle('show');
+}
+
+// ─── Canvas resize ────────────────────────────
+function resizeCanvas() {
+  const cnv = document.getElementById('simCanvas');
+  const rect = cnv.parentElement.getBoundingClientRect();
+  cnv.width  = Math.round(rect.width)  || 600;
+  cnv.height = Math.round(rect.height) || 380;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════
+//  EXERCISE CHECKER
+// ═══════════════════════════════════════════════
+let exScore = 0;
+const exDone = {};  // track which exercises are done
+
+function near(val, target, pct) {
+  if (!isFinite(val) || isNaN(val)) return false;
+  return Math.abs(val - target) / Math.abs(target) <= pct;
+}
+
+function markInput(id, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('ok',  ok);
+  el.classList.toggle('err', !ok);
+}
+
+function showFeedback(id, ok, msg) {
+  const el = document.getElementById(id);
+  el.className = 'ex-feedback ' + (ok ? 'ok' : 'err');
+  el.innerHTML = (ok ? '✅ ' : '❌ ') + msg;
+}
+
+function addScore(exId) {
+  if (!exDone[exId]) { exDone[exId] = true; exScore++; updateScore(); }
+}
+
+function updateScore() {
+  document.getElementById('sc-num').textContent = exScore + ' / 8';
+}
+
+function toggleSol(id) { document.getElementById(id).classList.toggle('show'); }
+
+// ── ข้อ 1 ──
+function checkEx1() {
+  const aAns = parseFloat(document.getElementById('ex1-a').value);
+  const tAns = parseFloat(document.getElementById('ex1-T').value);
+  const aOk = near(aAns, 0.15906, 0.05);
+  const tOk = near(tAns, 31.81,   0.05);
+  markInput('ex1-a', aOk); markInput('ex1-T', tOk);
+  if (aOk && tOk) {
+    showFeedback('ex1-fb', true, 'ถูกต้อง! a = 0.159 m/s², T = 31.8 mN');
+    document.getElementById('ex1').classList.add('correct');
+    addScore('ex1');
+  } else {
+    let msg = 'ลองใหม่: ';
+    if (!aOk) msg += 'a ยังไม่ถูก ';
+    if (!tOk) msg += 'T ยังไม่ถูก ';
+    showFeedback('ex1-fb', false, msg + '(ผิดพลาดได้ ±5%)');
+    document.getElementById('ex1').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 2 ──
+function checkEx2() {
+  const aAns = parseFloat(document.getElementById('ex2-a').value);
+  const rAns = parseFloat(document.getElementById('ex2-r').value);
+  const a2   = (0.0066 * 9.8) / (0.200 + 0.0066); // 0.3130
+  const ratio = a2 / 0.15906;
+  const aOk = near(aAns, a2,    0.05);
+  const rOk = near(rAns, ratio, 0.05);
+  markInput('ex2-a', aOk); markInput('ex2-r', rOk);
+  if (aOk && rOk) {
+    showFeedback('ex2-fb', true, 'ถูกต้อง! a₂ ≈ 0.313 m/s², อัตราส่วน ≈ 1.97 ≈ 2');
+    document.getElementById('ex2').classList.add('correct');
+    addScore('ex2');
+  } else {
+    showFeedback('ex2-fb', false, 'ลองใหม่: ' + (!aOk?'a₂ ':'') + (!rOk?'อัตราส่วน ':'')+  'ยังไม่ถูก');
+    document.getElementById('ex2').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 3 ──
+function checkEx3() {
+  const mAns = parseFloat(document.getElementById('ex3-m').value);
+  const mTrue = (0.50 * 100) / (9.8 - 0.50) * 1000; // in grams: 5.376 g
+  const ok = near(mAns, mTrue, 0.05);
+  markInput('ex3-m', ok);
+  if (ok) {
+    showFeedback('ex3-fb', true, 'ถูกต้อง! m = ' + mTrue.toFixed(1) + ' g');
+    document.getElementById('ex3').classList.add('correct');
+    addScore('ex3');
+  } else {
+    showFeedback('ex3-fb', false, 'ลองใหม่ใช้สูตร m = aM / (g − a) ค่าใกล้เคียง ' + mTrue.toFixed(1) + ' g');
+    document.getElementById('ex3').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 4 ──
+function checkEx4() {
+  const vAns = parseFloat(document.getElementById('ex4-v').value);
+  const sAns = parseFloat(document.getElementById('ex4-s').value);
+  const vTrue = 0.159 * 3.0 * 100; // cm/s = 47.7
+  const sTrue = 0.5 * 0.159 * 9.0 * 100; // cm = 71.55
+  const vOk = near(vAns, vTrue, 0.05);
+  const sOk = near(sAns, sTrue, 0.05);
+  markInput('ex4-v', vOk); markInput('ex4-s', sOk);
+  if (vOk && sOk) {
+    showFeedback('ex4-fb', true, 'ถูกต้อง! v = 47.7 cm/s, s = 71.6 cm');
+    document.getElementById('ex4').classList.add('correct');
+    addScore('ex4');
+  } else {
+    showFeedback('ex4-fb', false, 'ลองใหม่: ' + (!vOk?'v ':'') + (!sOk?'s ':'') + 'ยังไม่ถูก');
+    document.getElementById('ex4').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 5 ──
+function checkEx5() {
+  const tAns = parseFloat(document.getElementById('ex5-t').value);
+  const tTrue = Math.sqrt(2 * 0.200 / 0.159); // 1.586 s
+  const ok = near(tAns, tTrue, 0.05);
+  markInput('ex5-t', ok);
+  if (ok) {
+    showFeedback('ex5-fb', true, 'ถูกต้อง! t = ' + tTrue.toFixed(2) + ' s');
+    document.getElementById('ex5').classList.add('correct');
+    addScore('ex5');
+  } else {
+    showFeedback('ex5-fb', false, 'ลองใหม่ใช้สูตร t = √(2s/a) ค่าประมาณ ' + tTrue.toFixed(2) + ' s');
+    document.getElementById('ex5').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 6 ──
+function checkEx6() {
+  const vAns = parseFloat(document.getElementById('ex6-v').value);
+  const vTrue = Math.sqrt(2 * 0.159 * 0.300) * 100; // cm/s ≈ 30.9
+  const ok = near(vAns, vTrue, 0.05);
+  markInput('ex6-v', ok);
+  if (ok) {
+    showFeedback('ex6-fb', true, 'ถูกต้อง! v = ' + vTrue.toFixed(1) + ' cm/s');
+    document.getElementById('ex6').classList.add('correct');
+    addScore('ex6');
+  } else {
+    showFeedback('ex6-fb', false, 'ลองใหม่ใช้ v² = 2as ค่าประมาณ ' + vTrue.toFixed(1) + ' cm/s');
+    document.getElementById('ex6').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 7: Odd Number Rule ──
+// s positions: 0, 2.0, 7.9, 17.9, 31.8 cm
+// Δs: 2.0, 5.9, 10.0, 13.9
+function checkEx7() {
+  const d1 = parseFloat(document.getElementById('ex7-d1').value);
+  const d2 = parseFloat(document.getElementById('ex7-d2').value);
+  const d3 = parseFloat(document.getElementById('ex7-d3').value);
+  const d4 = parseFloat(document.getElementById('ex7-d4').value);
+  const ans = [d1, d2, d3, d4];
+  const tgt = [2.0, 5.9, 10.0, 13.9];
+  const ok  = ans.map((v,i) => near(v, tgt[i], 0.08));
+  ['ex7-d1','ex7-d2','ex7-d3','ex7-d4'].forEach((id,i) => markInput(id, ok[i]));
+  const allOk = ok.every(v => v);
+  if (allOk) {
+    showFeedback('ex7-fb', true,
+      'ถูกต้อง! Δs = 2.0 : 5.9 : 10.0 : 13.9 ≈ 1 : 3 : 5 : 7 → Odd Number Rule ✓');
+    document.getElementById('ex7').classList.add('correct');
+    addScore('ex7');
+  } else {
+    const wrongs = ok.map((v,i)=>v?'':('Δs'+(i+1))).filter(s=>s);
+    showFeedback('ex7-fb', false, 'ยังไม่ถูก: ' + wrongs.join(', ') + ' (Δs = ผลต่างของตำแหน่ง)');
+    document.getElementById('ex7').classList.add('wrong');
+  }
+}
+
+// ── ข้อ 8: F_net vs mg ──
+function checkEx8() {
+  // Case 1: M=0.200, m=0.0033, a=0.159
+  const f1t  = 0.2033 * 0.159;  // 0.03232
+  const mg1t = 0.0033 * 9.8;    // 0.03234
+  // Case 2: M=0.200, mh=0.0066, a=0.313
+  const f2t  = 0.2066 * 0.313;  // 0.06467
+  const mg2t = 0.0066 * 9.8;    // 0.06468
+  // Case 3: M=0.400, m=0.0033, a=0.080
+  const f3t  = 0.4033 * 0.080;  // 0.03226
+  const mg3t = 0.0033 * 9.8;    // 0.03234
+
+  const vals = [
+    [parseFloat(document.getElementById('ex8-f1').value),  f1t],
+    [parseFloat(document.getElementById('ex8-mg1').value), mg1t],
+    [parseFloat(document.getElementById('ex8-f2').value),  f2t],
+    [parseFloat(document.getElementById('ex8-mg2').value), mg2t],
+    [parseFloat(document.getElementById('ex8-f3').value),  f3t],
+    [parseFloat(document.getElementById('ex8-mg3').value), mg3t],
+  ];
+  const ids = ['ex8-f1','ex8-mg1','ex8-f2','ex8-mg2','ex8-f3','ex8-mg3'];
+  const oks = vals.map(([v,t]) => near(v, t, 0.06));
+  ids.forEach((id,i) => markInput(id, oks[i]));
+  const allOk = oks.every(v=>v);
+  if (allOk) {
+    showFeedback('ex8-fb', true,
+      'ถูกต้อง! F_net = mg ทั้ง 3 กรณี → ยืนยัน F = ma ของนิวตัน ✓');
+    document.getElementById('ex8').classList.add('correct');
+    addScore('ex8');
+  } else {
+    const wrongs = oks.map((v,i)=>v?'':ids[i]).filter(s=>s);
+    showFeedback('ex8-fb', false, 'ยังไม่ถูก: ' + wrongs.length + ' ช่อง ลองตรวจสอบอีกครั้ง');
+    document.getElementById('ex8').classList.add('wrong');
+  }
+}
+
+// ─── Init ─────────────────────────────────────
+requestAnimationFrame(() => {
+  resizeCanvas();
+  updatePill();
+  updateReadout();
+  fillTable();
+  // Attach drag & hover events
+  const c = document.getElementById('simCanvas');
+  c.addEventListener('mousedown',  onDragStart);
+  c.addEventListener('mousemove',  onDragMove);
+  c.addEventListener('mouseup',    onDragEnd);
+  c.addEventListener('mouseleave', onDragEnd);
+  c.addEventListener('touchstart', e => { onDragStart(e); }, { passive: false });
+  c.addEventListener('touchmove',  e => { onDragMove(e);  }, { passive: false });
+  c.addEventListener('touchend',   onDragEnd);
+});
+</script>
+</body>
+</html>

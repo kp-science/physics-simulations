@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<!-- © 2568 KP Science simulation | Vertical Gun on Car | Demo 02-03 -->
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science – ปืนแนวดิ่งบนรถ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;
+  --acc:#38bdf8;--acc2:#818cf8;--acc3:#34d399;--acc4:#fb923c;--acc5:#f472b6;
+  --txt:#e2e8f0;--mut:#94a3b8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--txt);font-family:'Sarabun','TH Sarabun New',sans-serif;
+  font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+/* Header */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);
+  padding:13px 20px;display:flex;align-items:center;gap:14px;}
+header .ico{font-size:1.9rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--acc);}
+header p{font-size:.8rem;color:var(--mut);margin-top:2px;}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--acc);color:var(--acc);
+  padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;white-space:nowrap;}
+
+/* Nav */
+nav{display:flex;gap:4px;padding:8px 20px;background:#0f172a;
+  border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--mut);
+  padding:6px 16px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;
+  font-size:.82rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--acc);color:var(--acc);}
+nav button.active{background:var(--acc);border-color:var(--acc);color:#0a0e1a;}
+
+/* Tab */
+.tab{display:none;}
+.tab.active{display:block;animation:fi .3s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* ── Simulation Layout ── */
+#ts .wrap{display:grid;grid-template-columns:1fr 285px;height:calc(100vh - 118px);min-height:480px;}
+@media(max-width:768px){#ts .wrap{grid-template-columns:1fr;height:auto;}}
+
+/* Canvas */
+#cvw{position:relative;background:#040810;overflow:hidden;}
+#cv{display:block;width:100%;height:100%;}
+
+/* Frame toggle overlay */
+.ftog{position:absolute;top:10px;right:10px;display:flex;gap:3px;
+  background:rgba(4,8,16,.9);border:1px solid var(--border);border-radius:8px;padding:4px;}
+.fb{padding:4px 10px;border-radius:5px;border:none;cursor:pointer;
+  font-family:'Sarabun',sans-serif;font-size:.73rem;font-weight:700;
+  background:transparent;color:var(--mut);transition:.2s;}
+.fb.on{background:var(--acc2);color:#fff;}
+
+/* Side panel */
+#sp{background:var(--panel);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;}
+
+/* Scenario */
+.s-wrap{padding:11px 12px;border-bottom:1px solid var(--border);}
+.s-wrap h3{font-size:.8rem;color:var(--acc);margin-bottom:8px;}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.sb{padding:7px 4px;border:1px solid var(--border);background:transparent;
+  border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;
+  font-size:.72rem;color:var(--mut);text-align:center;line-height:1.45;transition:.2s;}
+.sb:hover{border-color:var(--acc);color:var(--txt);}
+.sb.sc{background:rgba(56,189,248,.1);border-color:var(--acc);color:var(--acc);font-weight:700;}
+.sb.sb2{background:rgba(251,146,60,.1);border-color:var(--acc4);color:var(--acc4);font-weight:700;}
+.sb.sc2{background:rgba(244,114,182,.1);border-color:var(--acc5);color:var(--acc5);font-weight:700;}
+
+/* Predict */
+.p-wrap{padding:11px 12px;border-bottom:1px solid var(--border);}
+.p-wrap h3{font-size:.8rem;color:var(--acc4);margin-bottom:6px;}
+.pq{color:var(--txt);font-size:.81rem;line-height:1.5;margin-bottom:7px;}
+.pcs{display:flex;flex-direction:column;gap:5px;margin-bottom:6px;}
+.pc{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:6px;
+  border:1px solid var(--border);cursor:pointer;font-size:.79rem;color:var(--mut);transition:.2s;}
+.pc:hover:not(.lk){border-color:var(--acc);color:var(--txt);}
+.pc.sel{border-color:var(--acc2);color:var(--acc2);background:rgba(129,140,248,.07);}
+.pc.ok{border-color:var(--acc3);color:var(--acc3);background:rgba(52,211,153,.07);}
+.pc.ng{border-color:#f87171;color:#f87171;background:rgba(248,113,113,.07);}
+.pc.lk{cursor:default;}
+.hbtn{width:100%;padding:5px;background:transparent;border:1px dashed var(--border);
+  border-radius:5px;color:var(--mut);font-family:'Sarabun',sans-serif;font-size:.74rem;
+  cursor:pointer;transition:.2s;}
+.hbtn:hover{border-color:var(--acc4);color:var(--acc4);}
+.hbox{background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.35);border-radius:6px;
+  padding:8px;font-size:.76rem;color:var(--acc4);line-height:1.65;margin-top:5px;display:none;}
+.rbox{border-radius:6px;padding:7px 9px;font-size:.77rem;line-height:1.55;margin-top:6px;display:none;}
+.rbox.ok{background:rgba(52,211,153,.07);border:1px solid var(--acc3);color:var(--acc3);}
+.rbox.ng{background:rgba(248,113,113,.07);border:1px solid #f87171;color:#f87171;}
+
+/* Controls */
+.c-wrap{padding:11px 12px;border-bottom:1px solid var(--border);}
+.c-wrap h3{font-size:.8rem;color:var(--acc);margin-bottom:8px;}
+.cbtns{display:flex;gap:6px;margin-bottom:10px;}
+.btn{padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;
+  font-weight:700;font-size:.82rem;transition:.15s;}
+.bpl{background:#166534;color:#fff;flex:1;}
+.bpl:hover{background:#16a34a;}
+.bpl.on{background:#991b1b;}
+.bpl.on:hover{background:#dc2626;}
+.brs{background:#1e3a5f;color:var(--acc);border:1px solid var(--border);}
+.brs:hover{background:#1e40af;}
+.slr{display:flex;align-items:center;gap:5px;margin-bottom:7px;}
+.slr .sym{font-size:.76rem;color:var(--acc);width:22px;flex-shrink:0;font-weight:700;}
+.slr .lbl{font-size:.74rem;color:var(--mut);width:68px;flex-shrink:0;}
+.slr input[type=range]{flex:1;accent-color:var(--acc);cursor:pointer;}
+.vi{width:44px;padding:2px 4px;background:var(--panel2);border:1.5px solid var(--acc2);
+  border-radius:4px;color:var(--acc3);font-weight:700;font-size:.79rem;text-align:center;
+  -moz-appearance:textfield;flex-shrink:0;}
+.vi::-webkit-outer-spin-button,.vi::-webkit-inner-spin-button{-webkit-appearance:none;}
+.vi:focus{outline:none;border-color:var(--acc);}
+.slr .un{font-size:.7rem;color:var(--mut);min-width:30px;text-align:right;}
+.or{display:flex;align-items:center;justify-content:space-between;font-size:.74rem;
+  color:var(--mut);margin-bottom:4px;}
+.or label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.spdr{display:flex;align-items:center;gap:7px;padding-top:7px;border-top:1px solid var(--border);}
+.spdr span{font-size:.72rem;color:var(--mut);}
+
+/* Readout */
+.ro{padding:11px 12px;flex:1;}
+.ro h3{font-size:.8rem;color:var(--acc3);margin-bottom:8px;}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.rc{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 8px;}
+.rl{font-size:.68rem;color:var(--mut);margin-bottom:2px;}
+.rv{font-family:'Share Tech Mono',monospace;font-size:.93rem;}
+.runit{font-size:.66rem;color:var(--mut);}
+.rf{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;
+  margin-top:6px;font-size:.79rem;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+
+/* ── Theory Tab ── */
+.th{max-width:860px;margin:0 auto;padding:22px 20px;}
+.ts{margin-bottom:26px;}
+.ts h2{color:var(--acc);font-size:1rem;margin-bottom:10px;padding-bottom:5px;
+  border-bottom:1px solid var(--border);}
+.ts p{color:var(--txt);font-size:.87rem;line-height:1.75;margin-bottom:8px;}
+.kb{background:rgba(56,189,248,.07);border-left:3px solid var(--acc);padding:9px 13px;
+  border-radius:0 7px 7px 0;margin:10px 0;font-size:.85rem;line-height:1.65;color:var(--txt);}
+.eq{background:var(--panel2);border:1px solid var(--border);border-radius:7px;
+  padding:11px 14px;margin:8px 0;font-family:'Share Tech Mono',monospace;
+  font-size:.87rem;color:var(--acc3);line-height:2.1;}
+.eqlb{color:var(--mut);font-family:'Sarabun',sans-serif;font-size:.74rem;margin-bottom:3px;font-style:italic;}
+.cmg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0;}
+@media(max-width:560px){.cmg{grid-template-columns:1fr;}}
+.cmc{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:12px;}
+.cmc.gf{border-color:var(--acc);}.cmc.cf{border-color:var(--acc2);}
+.cmc h4{font-size:.81rem;font-weight:700;margin-bottom:6px;}
+.cmc.gf h4{color:var(--acc);}.cmc.cf h4{color:var(--acc2);}
+.cmc p{font-size:.79rem;color:var(--mut);line-height:1.65;}
+.tc{width:100%;display:block;border-radius:8px;border:1px solid var(--border);
+  background:#060a14;margin:10px 0;}
+.mctag{display:inline-block;background:rgba(248,113,113,.1);border:1px solid #f87171;
+  color:#f87171;font-size:.69rem;padding:2px 7px;border-radius:4px;margin-bottom:7px;}
+.note{color:var(--mut);font-size:.79rem;margin-top:4px;padding:7px 10px;
+  background:rgba(148,163,184,.05);border-radius:6px;border:1px solid var(--border);}
+
+footer{text-align:center;padding:10px;color:var(--mut);font-size:.71rem;
+  border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ico">🚂</div>
+  <div>
+    <h1>ปืนแนวดิ่งบนรถ</h1>
+    <p>Demo 02-03 · การอิสระของส่วนประกอบความเร็ว · Physics ม.4–5</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ══════════ SIMULATION TAB ══════════ -->
+<div id="tab-sim" class="tab active" id="ts">
+<div style="display:grid;grid-template-columns:1fr 285px;height:calc(100vh - 118px);min-height:480px;" id="simwrap">
+
+  <!-- Canvas area -->
+  <div id="cvw">
+    <canvas id="cv"></canvas>
+    <div class="ftog">
+      <button class="fb on" id="fb-g" onclick="setFrame('ground')">🌍 กรอบพื้นดิน</button>
+      <button class="fb" id="fb-c" onclick="setFrame('car')">🚂 กรอบรถ</button>
+    </div>
+  </div>
+
+  <!-- Side panel -->
+  <div id="sp">
+
+    <!-- Scenario -->
+    <div class="s-wrap">
+      <h3>🔧 สถานการณ์</h3>
+      <div class="sg">
+        <button class="sb sc" id="sb-c" onclick="setScen('const')">✅ รถคงที่<br><small>v = ค่าคงที่</small></button>
+        <button class="sb" id="sb-b" onclick="setScen('brake')">🔴 รถเบรก<br><small>a = −4 m/s²</small></button>
+        <button class="sb" id="sb-a" onclick="setScen('accel')">🟡 รถเร่ง<br><small>a = +4 m/s²</small></button>
+      </div>
+    </div>
+
+    <!-- Predict -->
+    <div class="p-wrap">
+      <h3>🎯 ทำนาย (Predict)</h3>
+      <div class="pq">หลังยิง ลูกบอลจะตกที่:</div>
+      <div class="pcs">
+        <div class="pc" id="pc0" onclick="selP(0)">⬅ หน้ารถ (Ahead)</div>
+        <div class="pc" id="pc1" onclick="selP(1)">⬆⬇ บนปากกระบอก</div>
+        <div class="pc" id="pc2" onclick="selP(2)">➡ หลังรถ (Behind)</div>
+      </div>
+      <button class="hbtn" id="hbtn" onclick="toggleHint()">💡 แสดงคำใบ้</button>
+      <div class="hbox" id="hbox"></div>
+      <div class="rbox" id="rbox"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="c-wrap">
+      <h3>⚙️ ตัวแปรควบคุม</h3>
+      <div class="cbtns">
+        <button class="btn bpl" id="pbtn" onclick="togglePlay()">▶ เริ่ม</button>
+        <button class="btn brs" onclick="doReset()">↺ รีเซ็ต</button>
+      </div>
+
+      <div class="slr">
+        <span class="sym">v<sub>x</sub></span>
+        <span class="lbl">ความเร็วรถ</span>
+        <input type="range" id="sl-vc" min="0" max="20" step="0.5" value="8">
+        <input class="vi" type="number" id="vi-vc" min="0" max="20" step="0.5" value="8">
+        <span class="un">m/s</span>
+      </div>
+
+      <div class="slr">
+        <span class="sym">v<sub>y0</sub></span>
+        <span class="lbl">ความเร็วยิง</span>
+        <input type="range" id="sl-vy" min="5" max="30" step="0.5" value="15">
+        <input class="vi" type="number" id="vi-vy" min="5" max="30" step="0.5" value="15">
+        <span class="un">m/s</span>
+      </div>
+
+      <div class="or">
+        <span>แสดงเวกเตอร์ความเร็ว</span>
+        <label><input type="checkbox" id="cbv" checked style="accent-color:#34d399"> เปิด</label>
+      </div>
+      <div class="or">
+        <span>แสดงเส้นทาง (Trail)</span>
+        <label><input type="checkbox" id="cbt" checked style="accent-color:#f472b6"> เปิด</label>
+      </div>
+
+      <div class="spdr">
+        <span>⏩ ความเร็ว:</span>
+        <input type="range" id="sl-sp" min="0.1" max="3" step="0.1" value="1"
+               style="flex:1;accent-color:#fb923c">
+        <span id="spv" style="font-family:monospace;color:#fb923c;font-size:.78rem;min-width:28px;">1×</span>
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div class="ro">
+      <h3>📊 ค่าที่วัดได้</h3>
+      <div class="rg">
+        <div class="rc">
+          <div class="rl">เวลา t</div>
+          <div class="rv" id="rdt" style="color:#38bdf8">—</div>
+          <div class="runit">s</div>
+        </div>
+        <div class="rc">
+          <div class="rl">ความสูง y</div>
+          <div class="rv" id="rdy" style="color:#fb923c">—</div>
+          <div class="runit">m</div>
+        </div>
+        <div class="rc">
+          <div class="rl">vₓ ลูกบอล</div>
+          <div class="rv" id="rdvx" style="color:#818cf8">—</div>
+          <div class="runit">m/s</div>
+        </div>
+        <div class="rc">
+          <div class="rl">vᵧ ลูกบอล</div>
+          <div class="rv" id="rdvy" style="color:#34d399">—</div>
+          <div class="runit">m/s</div>
+        </div>
+      </div>
+      <div class="rf">
+        <span class="dot" id="stD" style="background:#94a3b8"></span>
+        <span id="stM">รอเริ่มการทดลอง</span>
+      </div>
+      <div class="rf" id="rl" style="display:none">
+        <div class="rl">ผลการตก</div>
+        <div id="rlv" style="font-weight:700;margin-top:3px;font-size:.81rem"></div>
+      </div>
+      <div class="rf" style="margin-top:5px;font-size:.74rem;color:var(--mut)">
+        t<sub>air</sub> = <span id="rta" style="color:#818cf8;font-family:monospace">—</span> s
+        &nbsp;|&nbsp;
+        h<sub>max</sub> = <span id="rhm" style="color:#fb923c;font-family:monospace">—</span> m
+      </div>
+    </div>
+
+  </div><!-- /sp -->
+</div><!-- /simwrap -->
+</div>
+
+<!-- ══════════ THEORY TAB ══════════ -->
+<div id="tab-theory" class="tab">
+<div class="th">
+
+  <div class="ts">
+    <h2>🎯 แนวคิดและ Misconception</h2>
+    <span class="mctag">⚠️ Misconception ที่พบบ่อย</span>
+    <p>นักเรียนหลายคนเชื่อว่า เมื่อยิงลูกบอลขึ้นตรงๆ จากรถที่วิ่ง ลูกบอลจะ "ค้างอยู่กับที่" ในอากาศ แล้วรถจะ "วิ่งออกข้างหน้า" → ลูกบอลตกหลังรถ</p>
+    <div class="kb">
+      💡 <strong>ความจริง:</strong> ก่อนยิง ลูกบอลอยู่บนรถจึงมีความเร็วแนวนอน v<sub>x</sub> = v<sub>car</sub> อยู่แล้ว
+      หลังยิง ไม่มีแรงในแนวนอนกระทำต่อลูกบอล (ละเลยแรงต้านอากาศ)
+      → <strong>ความเร็วแนวนอนของลูกบอลคงที่ตลอด = v<sub>car</sub></strong>
+      → ลูกบอลตกกลับบนรถพอดี
+    </div>
+  </div>
+
+  <div class="ts">
+    <h2>📐 การแยกส่วนประกอบความเร็ว</h2>
+    <canvas id="tc1" class="tc" height="185"></canvas>
+    <div class="cmg">
+      <div class="cmc gf">
+        <h4>🌍 กรอบอ้างอิงพื้นดิน</h4>
+        <p>ลูกบอลมีทั้ง v<sub>x</sub> (แนวนอน, คงที่) และ v<sub>y</sub> (แนวดิ่ง, เปลี่ยนเพราะ g)
+        เส้นทางจึงเป็น <strong>พาราโบลา</strong></p>
+      </div>
+      <div class="cmc cf">
+        <h4>🚂 กรอบอ้างอิงรถ</h4>
+        <p>ลบ v<sub>car</sub> ออก เห็นว่าลูกบอลเคลื่อนที่ <strong>ขึ้น–ลงแนวดิ่งเท่านั้น</strong>
+        เหมือนยิงในรถหยุดนิ่ง</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ts">
+    <h2>📝 สมการการเคลื่อนที่</h2>
+    <div class="eq">
+      <div class="eqlb">แนวนอน — ไม่มีแรง → ความเร็วคงที่ (กฎนิวตันข้อ 1)</div>
+      vₓ = v<sub>car</sub> = ค่าคงที่<br>
+      x(t) = x₀ + v<sub>car</sub> · t
+    </div>
+    <div class="eq">
+      <div class="eqlb">แนวดิ่ง — แรงโน้มถ่วง → มีความเร่ง g ลงด้านล่าง</div>
+      v<sub>y</sub>(t) = v<sub>y0</sub> − g·t<br>
+      y(t) = v<sub>y0</sub>·t − ½g·t²
+    </div>
+    <div class="eq">
+      <div class="eqlb">เวลาในอากาศ (t<sub>air</sub>) และความสูงสูงสุด (h<sub>max</sub>)</div>
+      t<sub>air</sub> = 2v<sub>y0</sub> / g &nbsp;&nbsp;&nbsp; h<sub>max</sub> = v<sub>y0</sub>² / (2g)
+    </div>
+    <p class="note">📌 ขอบเขต: ละเลยแรงต้านอากาศ, พื้นราบ, g = 9.8 m/s² (หลักสูตรแกนกลาง 2560)</p>
+  </div>
+
+  <div class="ts">
+    <h2>🔄 เปรียบเทียบเส้นทาง 2 กรอบอ้างอิง</h2>
+    <canvas id="tc2" class="tc" height="230"></canvas>
+  </div>
+
+  <div class="ts">
+    <h2>🔬 ผลเมื่อรถเบรกหรือเร่งหลังยิง</h2>
+    <p>หลังจากยิงลูกบอลออกไปแล้ว <strong>ไม่มีแรงใดมาเปลี่ยน v<sub>x</sub> ของลูกบอล</strong>
+    ดังนั้น v<sub>x,ball</sub> = v<sub>car ตอนยิง</sub> = ค่าคงที่เสมอ</p>
+    <canvas id="tc3" class="tc" height="155"></canvas>
+    <p style="color:var(--mut);font-size:.82rem;margin-top:4px">
+    ลองเปลี่ยน "สถานการณ์" และสลับกรอบอ้างอิงใน Simulation tab เพื่อดูผลจริง!</p>
+  </div>
+
+</div>
+</div>
+
+<footer>KP Science simulation · Demo 02-03 · ปืนแนวดิ่งบนรถ · อ้างอิง: Halliday, Resnick &amp; Krane / หลักสูตรแกนกลาง 2560</footer>
+
+<script>
+// ════════════════════════════════════════════
+// PHYSICS CONSTANTS
+// ════════════════════════════════════════════
+const G   = 9.8;
+const APT = 1.4;  // approach time before fire (s)
+// Car width/height/wheel/funnel in meters (visual)
+const CW=3.2, CH=0.9, WR=0.44, FH=0.85;
+
+const AAFTER = {const:0, brake:-4, accel:4};
+const CIDX   = {const:1, brake:0, accel:2};
+
+const HINTS = {
+  const: '🔍 หลังยิงแล้ว มีแรงอะไรกระทำในแนวนอนต่อลูกบอลบ้างไหม?<br>ถ้าไม่มีแรง → ความเร็วแนวนอน v<sub>x</sub> ของลูกบอลจะเป็นอย่างไร?',
+  brake: '🔍 รถเบรก → v<sub>car</sub> ลดลง<br>แต่ลูกบอลที่อยู่กลางอากาศ มีแรงอะไรมาเปลี่ยน v<sub>x</sub> ของมันได้ไหม?<br>เปรียบเทียบ v<sub>x,ball</sub> กับ v<sub>car</sub> หลังเบรก',
+  accel: '🔍 รถเร่ง → v<sub>car</sub> เพิ่มขึ้น<br>แต่ลูกบอลที่อยู่กลางอากาศ มีแรงอะไรมาเปลี่ยน v<sub>x</sub> ของมันได้ไหม?<br>เปรียบเทียบ v<sub>x,ball</sub> กับ v<sub>car</sub> หลังเร่ง'
+};
+const REVS = {
+  const:{ok:'✅ ถูกต้อง! รถวิ่งคงที่ → ไม่มีแรงแนวนอน → v_x ลูกบอล = v_car ตลอด → ตกบนปากกระบอก',
+         ng:'❌ ลองใหม่: รถวิ่งคงที่ → ไม่มีแรงแนวนอน → v_x คงที่ = v_car → ลูกบอลตกบนรถ'},
+  brake:{ok:'✅ ถูก! รถเบรก → รถช้าลง แต่ v_x ลูกบอลไม่เปลี่ยน → ลูกบอล "แซง" รถ → ตกหน้ารถ',
+         ng:'❌ รถเบรก → รถช้าลง แต่ v_x ลูกบอลไม่เปลี่ยน → ลูกบอล "แซง" → ตกหน้ารถ'},
+  accel:{ok:'✅ ถูก! รถเร่ง → รถเร็วขึ้น แต่ v_x ลูกบอลไม่เปลี่ยน → รถ "แซง" ลูกบอล → ตกหลังรถ',
+         ng:'❌ รถเร่ง → รถเร็วขึ้น แต่ v_x ลูกบอลไม่เปลี่ยน → รถ "แซง" → ลูกบอลตกหลังรถ'}
+};
+
+// ════════════════════════════════════════════
+// GLOBAL STATE
+// ════════════════════════════════════════════
+let frame='ground', scen='const';
+let playing=false, animId=null, lastTs=null, spd=1;
+let pSel=null, pRev=false, hOn=false;
+let S={};
+let tG=[], tC=[];  // trails: ground-world / car-relative
+
+const getVc = ()=>parseFloat(document.getElementById('sl-vc').value);
+const getVy = ()=>parseFloat(document.getElementById('sl-vy').value);
+
+// ════════════════════════════════════════════
+// INIT & SCALE
+// ════════════════════════════════════════════
+function calcScale(vc,vy,W,H){
+  const tAir = 2*vy/G;
+  const hDist = vc*(tAir+APT)+8;
+  const mH    = vy*vy/(2*G)+3;
+  const sx    = W*0.82/Math.max(hDist,1);
+  const sy    = H*0.62/Math.max(mH,1);
+  return Math.max(7, Math.min(sx,sy,30));
+}
+
+function initSim(){
+  const vc=getVc(), vy=getVy();
+  const cv=document.getElementById('cv');
+  const W=cv.width, H=cv.height;
+  if(!W||!H) return;
+
+  const SC=calcScale(vc,vy,W,H);
+  const GY=H*0.80;
+  const fireX=0.28*W/SC;
+  const fireY=CH+WR*2+FH;
+  const carStartX=fireX-vc*APT;
+
+  S={phase:'approach',t:0,
+     carX:carStartX,carVx:vc,
+     ballX:0,ballY:0,ballVx:0,ballVy:0,
+     fireX,fireY,vc0:vc,vy0:vy,SC,GY};
+  tG=[]; tC=[];
+
+  // Theory readout
+  const tAir=2*vy/G, hmax=vy*vy/(2*G);
+  document.getElementById('rta').textContent=tAir.toFixed(2);
+  document.getElementById('rhm').textContent=hmax.toFixed(2);
+  setSt('#94a3b8','รอเริ่มการทดลอง');
+  document.getElementById('rl').style.display='none';
+  updateRO();
+}
+
+// ════════════════════════════════════════════
+// PHYSICS UPDATE
+// ════════════════════════════════════════════
+function update(dt){
+  const s=S;
+  if(s.phase==='approach'){
+    s.carX+=s.carVx*dt;
+    if(s.carX>=s.fireX){
+      s.carX=s.fireX;
+      s.phase='flight'; s.t=0;
+      s.ballX=s.fireX; s.ballY=s.fireY;
+      s.ballVx=s.vc0;  s.ballVy=s.vy0;
+      setSt('#34d399','🔥 ยิงแล้ว!');
+    }
+  } else if(s.phase==='flight'){
+    s.t+=dt;
+    const a=AAFTER[scen];
+    // Car: clamp once stopped (brake)
+    const tC2=scen==='brake'?Math.min(s.t,s.vc0/4):s.t;
+    s.carVx=Math.max(0,s.vc0+a*tC2);
+    s.carX =s.fireX+s.vc0*tC2+0.5*a*tC2*tC2;
+    // Ball: no horizontal force
+    s.ballX =s.fireX+s.ballVx*s.t;
+    s.ballVy=s.vy0-G*s.t;
+    s.ballY =s.fireY+s.vy0*s.t-0.5*G*s.t*s.t;
+    // Trail (ground-world + car-relative)
+    tG.push({x:s.ballX,y:s.ballY});
+    tC.push({x:s.ballX-s.carX,y:s.ballY});
+    if(tG.length>700){tG.shift();tC.shift();}
+    // Landing
+    if(s.ballY<=s.fireY&&s.t>0.08){
+      s.ballY=s.fireY; s.phase='landed';
+      playing=false;
+      const b=document.getElementById('pbtn');
+      b.textContent='▶ เริ่มใหม่'; b.classList.remove('on');
+      revealP(); showLand();
+    }
+  }
+}
+
+function showLand(){
+  const diff=S.ballX-S.carX, ab=Math.abs(diff);
+  let msg,clr;
+  if(ab<0.5)    {msg=`✅ ตกบนปากกระบอก (Δx=${ab.toFixed(2)} m)`;clr='#34d399';}
+  else if(diff>0){msg=`⬅ ตกหน้ารถ (Δx=${ab.toFixed(2)} m)`;clr='#fb923c';}
+  else          {msg=`➡ ตกหลังรถ (Δx=${ab.toFixed(2)} m)`;clr='#f472b6';}
+  const el=document.getElementById('rl');
+  el.style.display='block';
+  document.getElementById('rlv').style.color=clr;
+  document.getElementById('rlv').textContent=msg;
+  setSt('#38bdf8','ลูกบอลตกแล้ว!');
+}
+
+// ════════════════════════════════════════════
+// MAIN DRAW
+// ════════════════════════════════════════════
+function draw(){
+  const cv=document.getElementById('cv');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,s=S;
+  if(!s.SC) return;
+
+  const SC=s.SC, GY=s.GY;
+  // Camera
+  let camX = (frame==='car')
+    ? s.carX-W*0.5/SC
+    : s.carX-W*0.32/SC;
+
+  const wx=x=>(x-camX)*SC;
+  const wy=y=>GY-y*SC;
+
+  // Clear
+  ctx.clearRect(0,0,W,H);
+
+  // Sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,GY);
+  sky.addColorStop(0,'#030710'); sky.addColorStop(1,'#060e1e');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,GY);
+  // Underground
+  ctx.fillStyle='#0b1724'; ctx.fillRect(0,GY,W,H-GY);
+
+  // Subtle grid
+  ctx.strokeStyle='rgba(56,189,248,0.04)'; ctx.lineWidth=1;
+  for(let m=2;m*SC<GY;m+=5){
+    ctx.beginPath();ctx.moveTo(0,wy(m));ctx.lineTo(W,wy(m));ctx.stroke();
+  }
+
+  // Ground line
+  ctx.strokeStyle='#1e3355'; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();
+
+  // Rail
+  ctx.strokeStyle='#283e55'; ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(0,GY-6);ctx.lineTo(W,GY-6);ctx.stroke();
+
+  // Sleepers (world-anchored)
+  ctx.strokeStyle='#182c3e'; ctx.lineWidth=1.5;
+  const spc=1.5;
+  const sm=Math.floor(camX/spc)*spc;
+  for(let m=sm;m<camX+W/SC+spc;m+=spc){
+    const px=wx(m);
+    ctx.beginPath();ctx.moveTo(px,GY-15);ctx.lineTo(px,GY-1);ctx.stroke();
+  }
+
+  // ── Trail ──
+  if(document.getElementById('cbt').checked){
+    const td=frame==='car'?tC:tG;
+    const ox=frame==='car'?s.carX:0;
+    if(td.length>1){
+      ctx.save();
+      ctx.strokeStyle='#f472b6';ctx.lineWidth=2.5;
+      ctx.shadowColor='#f472b6';ctx.shadowBlur=6;
+      ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.beginPath();
+      ctx.moveTo(wx(td[0].x+ox),wy(td[0].y));
+      for(let i=1;i<td.length;i++) ctx.lineTo(wx(td[i].x+ox),wy(td[i].y));
+      ctx.stroke();ctx.restore();
+    }
+  }
+
+  // ── Car ──
+  drawCar(ctx,wx(s.carX),GY,SC,scen);
+
+  // Car velocity arrow (non-const)
+  if(scen!=='const'&&s.phase==='flight'){
+    const cpx=wx(s.carX);
+    const cpy=GY-(CH+WR*2)*SC*0.55;
+    const clr=scen==='brake'?'#fb923c':'#f472b6';
+    arw(ctx,cpx,cpy,cpx+s.carVx*1.8,cpy,clr,`v_car=${s.carVx.toFixed(1)}`);
+  }
+
+  // ── Ball ──
+  if(s.phase!=='approach'){
+    const bx=wx(s.ballX), by=wy(s.ballY);
+
+    // Ground shadow
+    ctx.save();ctx.fillStyle='rgba(0,0,0,.22)';
+    ctx.beginPath();ctx.ellipse(bx,GY-2,10,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
+
+    // Vertical dashed projection
+    ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(56,189,248,.18)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx,GY);ctx.stroke();ctx.restore();
+
+    // Δx marker (non-const in flight)
+    if(scen!=='const'&&s.phase==='flight'){
+      const cfx=wx(s.carX);
+      const gap=Math.abs(bx-cfx);
+      if(gap>14){
+        ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(251,146,60,.4)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cfx,by);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
+        ctx.fillStyle='rgba(251,146,60,.8)';ctx.font='10px "Share Tech Mono",monospace';
+        ctx.fillText(`Δx=${Math.abs(S.ballX-S.carX).toFixed(1)}m`,(cfx+bx)/2-25,by-8);
+      }
+    }
+
+    // Glow
+    ctx.save();
+    const grd=ctx.createRadialGradient(bx,by,0,bx,by,18);
+    grd.addColorStop(0,'rgba(56,189,248,.28)');grd.addColorStop(1,'rgba(56,189,248,0)');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(bx,by,18,0,Math.PI*2);ctx.fill();ctx.restore();
+
+    // Ball
+    ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(bx,by,9,0,Math.PI*2);ctx.fill();ctx.restore();
+
+    // Fire flash
+    if(s.phase==='flight'&&s.t<0.2){
+      const al=1-s.t/0.2;
+      ctx.save();ctx.fillStyle=`rgba(251,146,60,${al*0.55})`;
+      ctx.beginPath();ctx.arc(wx(s.fireX),wy(s.fireY),18*al,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+
+    // Velocity vectors
+    if(document.getElementById('cbv').checked&&s.phase==='flight'){
+      const sc2=2.1;
+      if(Math.abs(s.ballVx)>0.1) arw(ctx,bx,by,bx+s.ballVx*sc2,by,'#818cf8',`vₓ=${s.ballVx.toFixed(0)}`);
+      arw(ctx,bx,by,bx,by-s.ballVy*sc2,'#34d399',`vᵧ=${s.ballVy.toFixed(0)}`);
+    }
+  }
+
+  // ── HUD ──
+  ctx.fillStyle=frame==='ground'?'rgba(56,189,248,.82)':'rgba(129,140,248,.82)';
+  ctx.font='bold 12px Sarabun,sans-serif';
+  ctx.fillText(frame==='ground'?'🌍 กรอบพื้นดิน':'🚂 กรอบรถ',10,24);
+  const scL={const:'✅ รถคงที่',brake:'🔴 รถเบรก (a=−4 m/s²)',accel:'🟡 รถเร่ง (a=+4 m/s²)'};
+  const scC={const:'rgba(56,189,248,.6)',brake:'rgba(251,146,60,.75)',accel:'rgba(244,114,182,.75)'};
+  ctx.fillStyle=scC[scen];ctx.font='11px Sarabun,sans-serif';
+  ctx.fillText(scL[scen],10,42);
+  if(s.phase!=='approach'){
+    ctx.fillStyle='rgba(148,163,184,.7)';ctx.font='11px "Share Tech Mono",monospace';
+    ctx.fillText(`t = ${s.t.toFixed(2)} s`,10,60);
+    // Show note about frame in car frame
+    if(frame==='car'){
+      ctx.fillStyle='rgba(129,140,248,.55)';ctx.font='10px Sarabun,sans-serif';
+      ctx.fillText('(ลูกบอลอยู่เหนือรถตลอด → trail แนวดิ่ง)',10,H-15);
+    }
+  }
+}
+
+// ── Car drawing ──
+function drawCar(ctx,cx,GY,SC,sc){
+  const cw=CW*SC,ch=CH*SC,wr=WR*SC,fh=FH*SC;
+  const bTop=GY-wr*2-ch;
+  // Body
+  ctx.save();ctx.fillStyle='#162540';ctx.strokeStyle='#38bdf8';ctx.lineWidth=1.5;
+  rr(ctx,cx-cw/2,bTop,cw,ch,5);ctx.fill();ctx.stroke();ctx.restore();
+  // Wheels
+  [-0.3,0.3].forEach(fr=>{
+    const wx2=cx+fr*cw;
+    ctx.save();ctx.fillStyle='#0a1828';ctx.strokeStyle='#38bdf8';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(wx2,GY-wr,wr,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(56,189,248,.4)';ctx.lineWidth=1;
+    for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+      ctx.beginPath();ctx.moveTo(wx2,GY-wr);
+      ctx.lineTo(wx2+Math.cos(a)*wr*.65,GY-wr+Math.sin(a)*wr*.65);ctx.stroke();
+    }
+    ctx.restore();
+  });
+  // Funnel
+  const ft=bTop-fh,fwt=.64*SC,fwb=.28*SC;
+  ctx.save();ctx.fillStyle='rgba(251,146,60,.14)';ctx.strokeStyle='#fb923c';
+  ctx.lineWidth=2;ctx.shadowColor='#fb923c';ctx.shadowBlur=7;
+  ctx.beginPath();
+  ctx.moveTo(cx-fwt,ft);ctx.lineTo(cx+fwt,ft);
+  ctx.lineTo(cx+fwb,bTop);ctx.lineTo(cx-fwb,bTop);ctx.closePath();
+  ctx.fill();ctx.stroke();ctx.restore();
+  // Direction arrow
+  ctx.save();ctx.fillStyle='rgba(56,189,248,.65)';
+  ctx.font=`${Math.max(10,13*SC/20)}px sans-serif`;
+  ctx.fillText('▶',cx+cw*.2,bTop+ch*.72);ctx.restore();
+  // Brake/accel label
+  if(sc==='brake'){
+    ctx.save();ctx.fillStyle='#fb923c';ctx.font=`${Math.max(9,11*SC/20)}px Sarabun,sans-serif`;
+    ctx.fillText('🔴 BRAKE',cx-22,bTop-6);ctx.restore();
+  } else if(sc==='accel'){
+    ctx.save();ctx.fillStyle='#f472b6';ctx.font=`${Math.max(9,11*SC/20)}px Sarabun,sans-serif`;
+    ctx.fillText('🟡 ACCEL',cx-22,bTop-6);ctx.restore();
+  }
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);
+  ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
+function arw(ctx,x1,y1,x2,y2,col,lbl){
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  if(len<3) return;
+  const ang=Math.atan2(dy,dx),hl=8;
+  ctx.save();ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2;
+  ctx.shadowColor=col;ctx.shadowBlur=5;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*Math.cos(ang-.4),y2-hl*Math.sin(ang-.4));
+  ctx.lineTo(x2-hl*Math.cos(ang+.4),y2-hl*Math.sin(ang+.4));
+  ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;ctx.font='10px "Share Tech Mono",monospace';
+  ctx.fillText(lbl,x2+4,y2-3);ctx.restore();
+}
+
+// ════════════════════════════════════════════
+// ANIMATION LOOP
+// ════════════════════════════════════════════
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05)*spd;
+  lastTs=ts;
+  update(dt); draw(); updateRO();
+  if(playing) animId=requestAnimationFrame(loop);
+}
+
+function togglePlay(){
+  if(S.phase==='landed'){doReset();return;}
+  playing=!playing;
+  const b=document.getElementById('pbtn');
+  if(playing){
+    lastTs=null;animId=requestAnimationFrame(loop);
+    b.textContent='⏸ หยุด';b.classList.add('on');
+    setSt('#34d399','กำลังทดลอง...');
+  } else {
+    cancelAnimationFrame(animId);
+    b.textContent='▶ เริ่ม';b.classList.remove('on');
+    setSt('#fb923c','หยุดชั่วคราว');
+  }
+}
+
+function doReset(){
+  cancelAnimationFrame(animId);
+  playing=false;lastTs=null;
+  const b=document.getElementById('pbtn');
+  b.textContent='▶ เริ่ม';b.classList.remove('on');
+  pSel=null;pRev=false;
+  [0,1,2].forEach(i=>document.getElementById('pc'+i).className='pc');
+  document.getElementById('rbox').style.display='none';
+  initSim();draw();
+}
+
+// ════════════════════════════════════════════
+// UI
+// ════════════════════════════════════════════
+function showTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory') setTimeout(()=>{drawTC1();drawTC2();drawTC3();},50);
+}
+
+function setFrame(f){
+  frame=f;
+  document.getElementById('fb-g').classList.toggle('on',f==='ground');
+  document.getElementById('fb-c').classList.toggle('on',f==='car');
+  if(!playing) draw();
+}
+
+function setScen(sc){
+  scen=sc;
+  document.getElementById('sb-c').className='sb';
+  document.getElementById('sb-b').className='sb';
+  document.getElementById('sb-a').className='sb';
+  const clsMap={const:'sb sc',brake:'sb sb2',accel:'sb sc2'};
+  document.getElementById('sb-'+sc.charAt(0)).className=clsMap[sc];
+  if(hOn) document.getElementById('hbox').innerHTML=HINTS[sc];
+  doReset();
+}
+
+function selP(i){
+  if(pRev) return;
+  pSel=i;
+  [0,1,2].forEach(j=>document.getElementById('pc'+j).className='pc'+(j===i?' sel':''));
+}
+
+function toggleHint(){
+  hOn=!hOn;
+  document.getElementById('hbox').style.display=hOn?'block':'none';
+  document.getElementById('hbox').innerHTML=HINTS[scen];
+  document.getElementById('hbtn').textContent=hOn?'💡 ซ่อนคำใบ้':'💡 แสดงคำใบ้';
+}
+
+function revealP(){
+  if(pRev) return;
+  pRev=true;
+  const ci=CIDX[scen];
+  [0,1,2].forEach(i=>document.getElementById('pc'+i).classList.add('lk'));
+  document.getElementById('pc'+ci).classList.add('ok');
+  if(pSel!==null&&pSel!==ci) document.getElementById('pc'+pSel).classList.add('ng');
+  const rv=document.getElementById('rbox');
+  const isOk=pSel===ci;
+  const msg=REVS[scen];
+  rv.className='rbox '+(isOk?'ok':'ng');
+  rv.textContent=isOk?msg.ok:(pSel===null?msg.ng.replace('❌ ','📌 '):msg.ng);
+  rv.style.display='block';
+}
+
+function updateRO(){
+  const s=S;
+  const fl=s.phase!=='approach';
+  document.getElementById('rdt').textContent=fl?s.t.toFixed(2):'—';
+  document.getElementById('rdy').textContent=fl?Math.max(0,s.ballY-s.fireY).toFixed(2):'—';
+  document.getElementById('rdvx').textContent=fl?s.ballVx.toFixed(1):'—';
+  document.getElementById('rdvy').textContent=fl?s.ballVy.toFixed(1):'—';
+}
+
+function setSt(col,msg){
+  document.getElementById('stD').style.background=col;
+  document.getElementById('stM').textContent=msg;
+}
+
+// ════════════════════════════════════════════
+// RESIZE
+// ════════════════════════════════════════════
+function resizeCv(){
+  const cv=document.getElementById('cv');
+  const w=document.getElementById('cvw');
+  cv.width=w.clientWidth||700;
+  cv.height=w.clientHeight||480;
+  initSim();draw();
+}
+
+// ════════════════════════════════════════════
+// THEORY CANVASES
+// ════════════════════════════════════════════
+function drawTC1(){
+  const cv=document.getElementById('tc1');
+  const W=cv.width=cv.offsetWidth||800, H=cv.height=185;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,H);
+
+  const cx=W*.35, cy=H*.58;
+  const vxL=130, vyL=95;
+
+  // Title
+  ctx.fillStyle='rgba(148,163,184,.7)';ctx.font='12px Sarabun,sans-serif';
+  ctx.fillText('การแยกส่วนประกอบความเร็ว — ณ จุดที่ยิง',10,18);
+
+  // Ball
+  ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=12;
+  ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);ctx.fill();ctx.restore();
+
+  // vx
+  arw(ctx,cx,cy,cx+vxL,cy,'#818cf8','vₓ = v_car (คงที่)');
+  // vy
+  arw(ctx,cx,cy,cx,cy-vyL,'#34d399','v_y0 (แนวดิ่ง)');
+  // Dashed resultant box
+  ctx.save();ctx.strokeStyle='rgba(56,189,248,.35)';ctx.lineWidth=1.2;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(cx+vxL,cy);ctx.lineTo(cx+vxL,cy-vyL);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy-vyL);ctx.lineTo(cx+vxL,cy-vyL);ctx.stroke();
+  ctx.restore();
+  // Resultant
+  arw(ctx,cx,cy,cx+vxL,cy-vyL,'#38bdf8','|v| รวม');
+
+  // g arrow
+  const gx=W*.84, gy1=H*.12, gy2=H*.72;
+  ctx.save();ctx.strokeStyle='#fb923c';ctx.fillStyle='#fb923c';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(gx,gy1);ctx.lineTo(gx,gy2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(gx,gy2);ctx.lineTo(gx-6,gy2-11);ctx.lineTo(gx+6,gy2-11);
+  ctx.closePath();ctx.fill();
+  ctx.font='11px Sarabun,sans-serif';ctx.fillText('g = 9.8 m/s²',gx-50,gy1-5);
+  ctx.restore();
+
+  // Note
+  ctx.fillStyle='rgba(148,163,184,.5)';ctx.font='10px Sarabun,sans-serif';
+  ctx.fillText('หลังยิง: vₓ คงที่, vy เปลี่ยนเพราะ g',10,H-6);
+}
+
+function drawTC2(){
+  const cv=document.getElementById('tc2');
+  const W=cv.width=cv.offsetWidth||800, H=cv.height=230;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,H);
+
+  const half=W/2, gY=H-42;
+
+  // Divider
+  ctx.save();ctx.strokeStyle='#1e3a5f';ctx.lineWidth=1;ctx.setLineDash([5,5]);
+  ctx.beginPath();ctx.moveTo(half,8);ctx.lineTo(half,H-8);ctx.stroke();ctx.restore();
+
+  // Headers
+  ctx.font='bold 12px Sarabun,sans-serif';
+  ctx.fillStyle='#38bdf8';ctx.fillText('🌍 กรอบพื้นดิน → เส้นทาง พาราโบลา',8,20);
+  ctx.fillStyle='#818cf8';ctx.fillText('🚂 กรอบรถ → เส้นทาง แนวดิ่ง',half+8,20);
+
+  // === Ground frame ===
+  {
+    const ox=0, carPx=ox+55, startY=gY-50, maxRise=90, totalX=115;
+    // Ground
+    ctx.strokeStyle='#283e55';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(ox+10,gY);ctx.lineTo(ox+half-10,gY);ctx.stroke();
+    // Car (moving, shown at end)
+    miniCar(ctx,carPx+totalX,gY,52,'#38bdf8');
+    // Trail: parabola
+    ctx.save();ctx.strokeStyle='#f472b6';ctx.lineWidth=2.5;
+    ctx.shadowColor='#f472b6';ctx.shadowBlur=6;ctx.lineCap='round';
+    ctx.beginPath();
+    for(let i=0;i<=60;i++){
+      const t=i/60;
+      const px=carPx+t*totalX;
+      const py=startY-maxRise*4*t*(1-t);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();ctx.restore();
+    // Ball at peak
+    ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(carPx+totalX/2,startY-maxRise,6.5,0,Math.PI*2);ctx.fill();ctx.restore();
+    // Caption
+    ctx.fillStyle='#f472b6';ctx.font='bold 11px Sarabun,sans-serif';
+    ctx.fillText('เส้นทางโค้ง (Parabola)',ox+8,H-10);
+  }
+
+  // === Car frame ===
+  {
+    const ox=half, carPx=ox+half/2, startY=gY-50, maxRise=90;
+    // Ground
+    ctx.strokeStyle='#283e55';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(ox+10,gY);ctx.lineTo(ox+half-10,gY);ctx.stroke();
+    // Car (stationary)
+    miniCar(ctx,carPx,gY,52,'#818cf8');
+    // Trail: vertical
+    ctx.save();ctx.strokeStyle='#f472b6';ctx.lineWidth=2.5;
+    ctx.shadowColor='#f472b6';ctx.shadowBlur=6;
+    ctx.beginPath();
+    ctx.moveTo(carPx,startY);
+    for(let i=0;i<=40;i++){
+      const t=i/40;
+      ctx.lineTo(carPx,startY-maxRise*Math.sin(t*Math.PI));
+    }
+    ctx.stroke();ctx.restore();
+    // Ball at peak
+    ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(carPx,startY-maxRise,6.5,0,Math.PI*2);ctx.fill();ctx.restore();
+    // Caption
+    ctx.fillStyle='#f472b6';ctx.font='bold 11px Sarabun,sans-serif';
+    ctx.fillText('เส้นทางตรง (Vertical)',ox+8,H-10);
+    // Arrows showing v_y
+    arw(ctx,carPx+15,startY-maxRise/2,carPx+15,startY-maxRise+10,'#34d399','');
+    ctx.fillStyle='rgba(52,211,153,.7)';ctx.font='10px Sarabun,sans-serif';
+    ctx.fillText('v_y',carPx+20,startY-maxRise/2);
+  }
+}
+
+function drawTC3(){
+  const cv=document.getElementById('tc3');
+  const W=cv.width=cv.offsetWidth||800, H=cv.height=155;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#060a14';ctx.fillRect(0,0,W,H);
+
+  const th=W/3, gY=H-32;
+
+  const cases=[
+    {id:'sb-c',lbl:'✅ รถคงที่',clr:'#38bdf8',bDx:.48,cDx:.48,res:'ตกบนรถ ✅'},
+    {id:'sb-b',lbl:'🔴 รถเบรก',clr:'#fb923c',bDx:.60,cDx:.30,res:'ตกหน้ารถ ⬅'},
+    {id:'sb-a',lbl:'🟡 รถเร่ง',clr:'#f472b6',bDx:.40,cDx:.65,res:'ตกหลังรถ ➡'}
+  ];
+
+  cases.forEach((c,i)=>{
+    const ox=i*th;
+    // Divider
+    if(i>0){
+      ctx.save();ctx.strokeStyle='#1e3a5f';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(ox,5);ctx.lineTo(ox,H-5);ctx.stroke();ctx.restore();
+    }
+    // Ground
+    ctx.strokeStyle='#283e55';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(ox+6,gY);ctx.lineTo(ox+th-6,gY);ctx.stroke();
+    // Car (triangle marker)
+    const carPx=ox+c.cDx*th;
+    ctx.save();ctx.strokeStyle=c.clr;ctx.fillStyle=c.clr+'30';ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(carPx-14,gY-6);ctx.lineTo(carPx+14,gY-6);
+    ctx.lineTo(carPx,gY-22);ctx.closePath();
+    ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle=c.clr;ctx.font='10px Sarabun,sans-serif';
+    ctx.fillText('🚂',carPx-8,gY-6);
+    // Ball
+    const ballPx=ox+c.bDx*th;
+    ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(ballPx,gY-6,5.5,0,Math.PI*2);ctx.fill();ctx.restore();
+    // Labels
+    ctx.fillStyle=c.clr;ctx.font='bold 11px Sarabun,sans-serif';
+    ctx.fillText(c.lbl,ox+5,18);
+    ctx.fillStyle='#e2e8f0';ctx.font='11px Sarabun,sans-serif';
+    ctx.fillText(c.res,ox+5,H-8);
+  });
+}
+
+function miniCar(ctx,cx,gY,sz,clr){
+  const cw=sz,ch=sz*.3,wr=sz*.14,bT=gY-wr*2-ch;
+  ctx.save();ctx.fillStyle='#162540';ctx.strokeStyle=clr;ctx.lineWidth=1.5;
+  rr(ctx,cx-cw/2,bT,cw,ch,3);ctx.fill();ctx.stroke();
+  [-0.3,0.3].forEach(f=>{
+    ctx.fillStyle='#0a1828';ctx.strokeStyle=clr;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(cx+f*cw,gY-wr,wr,0,Math.PI*2);ctx.fill();ctx.stroke();
+  });
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════
+// DOM READY
+// ════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  // Slider sync
+  [{sl:'sl-vc',vi:'vi-vc'},{sl:'sl-vy',vi:'vi-vy'}].forEach(({sl,vi})=>{
+    const s=document.getElementById(sl), v=document.getElementById(vi);
+    s.addEventListener('input',()=>{
+      v.value=s.value;
+      if(!playing){cancelAnimationFrame(animId);initSim();draw();}
+    });
+    v.addEventListener('blur',()=>{
+      let val=Math.max(+s.min,Math.min(+s.max,parseFloat(v.value)||0));
+      v.value=val;s.value=val;
+      if(!playing){cancelAnimationFrame(animId);initSim();draw();}
+    });
+  });
+
+  // Speed
+  document.getElementById('sl-sp').addEventListener('input',e=>{
+    spd=parseFloat(e.target.value);
+    document.getElementById('spv').textContent=spd.toFixed(1)+'×';
+  });
+
+  // Checkboxes
+  ['cbv','cbt'].forEach(id=>{
+    document.getElementById(id).addEventListener('change',()=>{if(!playing)draw();});
+  });
+
+  // Responsive layout
+  const mq=window.matchMedia('(max-width:768px)');
+  function applyLayout(q){
+    const w=document.getElementById('simwrap');
+    if(q.matches){
+      w.style.gridTemplateColumns='1fr';
+      w.style.height='auto';
+    } else {
+      w.style.gridTemplateColumns='1fr 285px';
+      w.style.height='calc(100vh - 118px)';
+    }
+  }
+  applyLayout(mq);
+  mq.addEventListener('change',applyLayout);
+
+  window.addEventListener('resize',()=>{resizeCv();});
+  setTimeout(()=>{resizeCv();},100);
+});
+</script>
+</body>
+</html>

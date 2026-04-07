@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Demo 01-09 Bulldozer on Moving Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+  --cA:#38bdf8;   /* bulldozer A = blue */
+  --cB:#fb923c;   /* bulldozer B = orange */
+  --cS:#a78bfa;   /* sheet = purple */
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+/* ── Header ── */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:2px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:2.2rem;}
+header h1{font-size:1.35rem;font-weight:700;color:var(--accent4);}
+header p{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+header .badge{margin-left:auto;background:#2a1a0a;border:1px solid var(--accent4);color:var(--accent4);padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:600;white-space:nowrap;}
+
+/* ── Nav ── */
+nav{display:flex;gap:3px;padding:7px 16px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 13px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.8rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent4);color:var(--accent4);}
+nav button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a;}
+
+/* ── Sections ── */
+.section{display:none;}
+.section.active{display:block;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* ── Control Bar ── */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn{padding:5px 14px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.82rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;}
+.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}
+.btn-reset{background:#0d47a1;color:#fff;}
+.btn-reset:hover{background:#1565c0;}
+.btn-mode{background:var(--panel2);color:var(--muted);border:1px solid var(--border);padding:4px 11px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:600;font-family:'Sarabun',sans-serif;transition:.15s;}
+.btn-mode.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.btn-mode:hover:not(.active){border-color:var(--accent2);color:var(--accent2);}
+.sep{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+.cbar-lbl{font-size:0.75rem;color:var(--muted);}
+
+/* ── Body Layout ── */
+.sim-body{display:flex;height:calc(100vh - 144px);overflow:hidden;}
+.left-col{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.right-col{width:275px;background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex-shrink:0;}
+
+.canvas-wrap{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.canvas-wrap canvas{display:block;width:100%;border:1px solid var(--border);border-radius:7px;background:#060b14;}
+.canvas-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:700;}
+.graph-wrap{flex:1;padding:8px 10px;min-height:0;}
+.graph-wrap canvas{display:block;width:100%;height:100%;border:1px solid var(--border);border-radius:7px;background:#060b14;}
+
+/* ── Slider ── */
+.sl-group{display:flex;flex-direction:column;gap:5px;}
+.sl-row{display:flex;align-items:center;gap:6px;}
+.sl-lbl{font-size:0.8rem;flex-shrink:0;min-width:48px;font-weight:700;}
+.sl-range{flex:1;cursor:pointer;min-width:0;}
+.sl-unit{font-size:0.7rem;color:var(--muted);min-width:24px;text-align:right;flex-shrink:0;}
+.val-input{width:52px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);}
+
+/* ── Panel cards ── */
+.card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.card h4{font-size:0.8rem;font-weight:700;margin-bottom:7px;}
+.readout-row{display:flex;align-items:baseline;gap:5px;margin-bottom:4px;}
+.r-lbl{font-size:0.78rem;min-width:36px;}
+.r-val{font-family:'Share Tech Mono',monospace;font-size:1.05rem;font-weight:700;flex:1;}
+.r-unit{font-size:0.7rem;color:var(--muted);}
+
+/* ── Velocity bar comparison ── */
+.vbar-wrap{background:#0a1020;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:6px;}
+.vbar-row{display:flex;align-items:center;gap:6px;}
+.vbar-lbl{font-size:0.75rem;min-width:26px;font-weight:700;}
+.vbar-track{flex:1;height:14px;background:#111827;border-radius:7px;overflow:hidden;position:relative;}
+.vbar-fill{height:100%;border-radius:7px;transition:width .15s;}
+.vbar-val{font-family:'Share Tech Mono',monospace;font-size:0.82rem;min-width:54px;text-align:right;}
+
+/* ── Formula live ── */
+.formula-live{background:#060b14;border:1px solid var(--border);border-radius:7px;padding:8px 10px;text-align:center;}
+.formula-live .eq{font-family:'Share Tech Mono',monospace;font-size:1.05rem;color:var(--accent3);}
+.formula-live .hint{font-size:0.72rem;color:var(--muted);margin-top:3px;}
+
+/* ── Theory ── */
+.theory-body{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:900px;}
+.tbox{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.8rem;line-height:1.65;}
+.tbox h4{color:var(--accent4);font-size:0.85rem;margin-bottom:7px;}
+.formula{font-family:'Share Tech Mono',monospace;font-size:0.87rem;color:var(--accent3);background:#0a1628;padding:4px 8px;border-radius:5px;margin:4px 0;display:block;}
+.theory-note{font-size:0.77rem;color:var(--muted);line-height:1.55;}
+.case-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.case-row:last-child{border-bottom:none;}
+.case-icon{font-size:1.2rem;flex-shrink:0;}
+.chip{display:inline-block;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:700;margin:1px;}
+.chip-b{background:#0e3a5f;color:var(--cA);}
+.chip-o{background:#3a1a0a;color:var(--cB);}
+.chip-p{background:#1a0a3a;color:var(--cS);}
+
+/* ── Quiz ── */
+.quiz-body{padding:14px;display:flex;flex-direction:column;gap:10px;max-width:700px;}
+.q-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.q-card h4{color:var(--accent4);font-size:0.87rem;margin-bottom:8px;}
+.q-opt{display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:0.82rem;margin-bottom:2px;transition:.15s;}
+.q-opt:hover{background:#1e3050;}
+.q-opt input{margin-top:2px;accent-color:var(--accent4);}
+.q-btn{padding:5px 13px;border:none;border-radius:6px;background:var(--accent2);color:#fff;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.8rem;margin-top:5px;}
+.q-result{font-size:0.8rem;margin-top:5px;padding:6px 10px;border-radius:6px;}
+.q-result.ok{background:#0a3a1a;color:var(--accent3);}
+.q-result.no{background:#3a0a0a;color:#ff8080;}
+
+footer{background:#0f172a;border-top:1px solid var(--border);padding:5px 16px;font-size:0.67rem;color:var(--muted);text-align:center;}
+@media(max-width:768px){.sim-body{flex-direction:column;}.right-col{width:100%;border-left:none;border-top:1px solid var(--border);}.theory-body{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚜</div>
+  <div>
+    <h1>Demo 01-09 — Bulldozer on Moving Sheet (การบวกความเร็ว)</h1>
+    <p>Chapter 2: Linear Kinematics &nbsp;|&nbsp; The Video Encyclopedia of Physics Demonstrations &nbsp;|&nbsp; Berg, Univ. of Maryland 1992</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showTab('quiz',this)">✏️ แบบฝึกหัด</button>
+</nav>
+
+<!-- ══════════ TAB: Simulation ══════════ -->
+<div id="tab-sim" class="section active">
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="sep"></div>
+    <span class="cbar-lbl">มุมมอง:</span>
+    <button class="btn-mode active" id="frm-ground" onclick="setFrame('ground')">🌍 ห้องทดลอง</button>
+    <button class="btn-mode" id="frm-sheet" onclick="setFrame('sheet')">📄 กระดาษ</button>
+    <div class="sep"></div>
+    <span class="cbar-lbl">ความเร็ว Sim:</span>
+    <input type="range" id="simSpd" min="0.2" max="5" step="0.1" value="1"
+      style="width:65px;accent-color:var(--accent4);"
+      oninput="simSpd=+this.value;document.getElementById('spdLbl').textContent=simSpd.toFixed(1)+'×'">
+    <span id="spdLbl" style="font-size:0.78rem;color:var(--accent4);min-width:28px;">1.0×</span>
+  </div>
+
+  <div class="sim-body">
+    <!-- ── Left: Canvases ── -->
+    <div class="left-col">
+      <div class="canvas-wrap" style="flex:0 0 auto;">
+        <div class="canvas-lbl">🚜 ฉาก — <span id="frame-lbl" style="color:var(--accent2)">มุมมองห้องทดลอง (Ground Frame)</span></div>
+        <canvas id="cScene" height="230"></canvas>
+      </div>
+      <div class="graph-wrap">
+        <div class="canvas-lbl">📈 กราฟ x-t เปรียบเทียบ (ตำแหน่ง vs เวลา)</div>
+        <canvas id="cGraph"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Right: Controls ── -->
+    <div class="right-col">
+
+      <!-- v1 & v2 sliders -->
+      <div class="card">
+        <h4 style="color:var(--accent4);">⚙️ ตั้งค่าความเร็ว</h4>
+        <div class="sl-group">
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px;">v₁ — ความเร็ว bulldozer เทียบกับพื้นผิวที่มันอยู่</div>
+          <div class="sl-row">
+            <span class="sl-lbl" style="color:var(--cA);">v₁</span>
+            <input class="sl-range" type="range" id="sl-v1" min="0" max="10" step="0.5" value="3"
+              style="accent-color:var(--cA);" oninput="syncSlider('v1')">
+            <input class="val-input" type="number" id="vi-v1" min="0" max="10" step="0.5" value="3" onblur="syncInput('v1')">
+            <span class="sl-unit">m/s</span>
+          </div>
+
+          <div style="font-size:0.72rem;color:var(--muted);margin:6px 0 2px;">v₂ — ความเร็วกระดาษเทียบกับโต๊ะ (+ = ทิศเดียวกัน, − = ตรงข้าม)</div>
+          <div class="sl-row">
+            <span class="sl-lbl" style="color:var(--cS);">v₂</span>
+            <input class="sl-range" type="range" id="sl-v2" min="-8" max="8" step="0.5" value="2"
+              style="accent-color:var(--cS);" oninput="syncSlider('v2')">
+            <input class="val-input" type="number" id="vi-v2" min="-8" max="8" step="0.5" value="2" onblur="syncInput('v2')">
+            <span class="sl-unit">m/s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formula live display -->
+      <div class="formula-live">
+        <div class="eq" id="eq-display">v_B = 3 + 2 = <span style="color:var(--accent4)">5</span> m/s</div>
+        <div class="hint">v_B(โต๊ะ) = v₁ + v₂</div>
+      </div>
+
+      <!-- Velocity bar comparison -->
+      <div class="card">
+        <h4 style="color:var(--accent);">📊 เปรียบเทียบความเร็ว (ห้องทดลอง)</h4>
+        <div class="vbar-wrap">
+          <div class="vbar-row">
+            <span class="vbar-lbl" style="color:var(--cA);">A</span>
+            <div class="vbar-track">
+              <div class="vbar-fill" id="barA" style="background:var(--cA);width:37.5%;"></div>
+            </div>
+            <span class="vbar-val" id="barAVal" style="color:var(--cA);">3.0 m/s</span>
+          </div>
+          <div class="vbar-row">
+            <span class="vbar-lbl" style="color:var(--cB);">B</span>
+            <div class="vbar-track">
+              <div class="vbar-fill" id="barB" style="background:var(--cB);width:62.5%;"></div>
+            </div>
+            <span class="vbar-val" id="barBVal" style="color:var(--cB);">5.0 m/s</span>
+          </div>
+          <div class="vbar-row">
+            <span class="vbar-lbl" style="color:var(--cS);">v₂</span>
+            <div class="vbar-track" style="position:relative;">
+              <div id="barV2neg" class="vbar-fill" style="background:var(--cS);width:0%;position:absolute;right:50%;border-radius:7px 0 0 7px;"></div>
+              <div id="barV2pos" class="vbar-fill" style="background:var(--cS);width:12.5%;position:absolute;left:50%;border-radius:0 7px 7px 0;"></div>
+              <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.3);"></div>
+            </div>
+            <span class="vbar-val" id="barV2Val" style="color:var(--cS);">2.0 m/s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Readout -->
+      <div class="card">
+        <h4 style="color:var(--accent);">📟 ค่าปัจจุบัน</h4>
+        <div class="readout-row">
+          <span class="r-lbl" style="color:var(--t-col,#ce93d8)">t</span>
+          <span class="r-val" id="ro-t" style="color:#ce93d8;">0.00</span>
+          <span class="r-unit">s</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-lbl" style="color:var(--cA)">x_A</span>
+          <span class="r-val" id="ro-xA" style="color:var(--cA);">0.00</span>
+          <span class="r-unit">m</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-lbl" style="color:var(--cB)">x_B</span>
+          <span class="r-val" id="ro-xB" style="color:var(--cB);">0.00</span>
+          <span class="r-unit">m</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-lbl" style="color:var(--cA)">v_A</span>
+          <span class="r-val" id="ro-vA" style="color:var(--cA);">3.0</span>
+          <span class="r-unit">m/s</span>
+        </div>
+        <div class="readout-row">
+          <span class="r-lbl" style="color:var(--cB)">v_B</span>
+          <span class="r-val" id="ro-vB" style="color:var(--cB);">5.0</span>
+          <span class="r-unit">m/s</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB: Theory ══════════ -->
+<div id="tab-theory" class="section">
+  <div class="theory-body">
+
+    <div class="tbox" style="grid-column:1/-1;">
+      <h4>📖 Demo 01-09: Bulldozer on Moving Sheet (หน้า 26–27)</h4>
+      ใช้ toy bulldozer 2 ตัว ที่มีความเร็วเท่ากัน (<b>v₁</b>) เทียบกับพื้นผิวที่มันอยู่<br>
+      • <span class="chip chip-b">Bulldozer A</span> วิ่งบน<b>โต๊ะ</b> ความเร็วในห้องทดลอง = v₁<br>
+      • <span class="chip chip-o">Bulldozer B</span> วิ่งบน<b>กระดาษ</b> ซึ่งถูกดึงด้วยความเร็ว v₂ — ความเร็วใน<b>ห้องทดลอง</b> = v₁ + v₂<br><br>
+      นี่คือหลักการ <b>Galilean Velocity Addition</b> — ความเร็วจะบวกกันเมื่อเปลี่ยน frame อ้างอิง
+    </div>
+
+    <div class="tbox">
+      <h4>📐 สมการหลัก</h4>
+      <span class="formula">v_B(โต๊ะ) = v₁ + v₂</span>
+      <span class="formula">x_A(t) = x_A₀ + v₁ · t</span>
+      <span class="formula">x_B(t) = x_B₀ + (v₁ + v₂) · t</span>
+      <div class="theory-note" style="margin-top:6px;">
+        กราฟ x-t ของ A: ความชัน = v₁<br>
+        กราฟ x-t ของ B: ความชัน = v₁ + v₂<br>
+        เมื่อ v₂ = 0 → ทั้งคู่มีความชันเท่ากัน (ขนานกัน)
+      </div>
+    </div>
+
+    <div class="tbox">
+      <h4>🔄 กรณีต่างๆ ของ v₂</h4>
+      <div class="case-row">
+        <span class="case-icon">▶▶</span>
+        <div><b>v₂ > 0</b> (กระดาษเคลื่อนไปทางเดียวกัน)<br>
+        <span class="theory-note">v_B = v₁ + v₂ → B วิ่งเร็วกว่า A</span></div>
+      </div>
+      <div class="case-row">
+        <span class="case-icon">▶▶</span>
+        <div><b>v₂ = 0</b> (กระดาษหยุดนิ่ง)<br>
+        <span class="theory-note">v_B = v₁ → B วิ่งเท่ากับ A (side by side)</span></div>
+      </div>
+      <div class="case-row">
+        <span class="case-icon">◀▶</span>
+        <div><b>v₂ < 0</b> (กระดาษเคลื่อนทิศตรงข้าม)<br>
+        <span class="theory-note">v_B = v₁ − |v₂| → B วิ่งช้ากว่า A</span></div>
+      </div>
+      <div class="case-row">
+        <span class="case-icon">◀▶</span>
+        <div><b>v₂ = −v₁</b> (กระดาษเร็วเท่ากันแต่สวนทาง)<br>
+        <span class="theory-note">v_B = 0 → B หยุดนิ่งในห้องทดลอง!</span></div>
+      </div>
+    </div>
+
+    <div class="tbox">
+      <h4>🌍 เปลี่ยน Frame of Reference</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+        <tr style="color:var(--muted);border-bottom:1px solid var(--border);">
+          <td style="padding:4px 6px;"></td>
+          <td style="padding:4px 6px;color:var(--cA);">v ของ A</td>
+          <td style="padding:4px 6px;color:var(--cB);">v ของ B</td>
+          <td style="padding:4px 6px;color:var(--cS);">v ของกระดาษ</td>
+        </tr>
+        <tr style="border-bottom:1px solid #1e3a5f;">
+          <td style="padding:4px 6px;color:var(--text);">ห้องทดลอง</td>
+          <td style="padding:4px 6px;color:var(--cA);">v₁</td>
+          <td style="padding:4px 6px;color:var(--cB);">v₁ + v₂</td>
+          <td style="padding:4px 6px;color:var(--cS);">v₂</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 6px;color:var(--text);">กระดาษ</td>
+          <td style="padding:4px 6px;color:var(--cA);">v₁ − v₂</td>
+          <td style="padding:4px 6px;color:var(--cB);">v₁</td>
+          <td style="padding:4px 6px;color:var(--cS);">0</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="tbox">
+      <h4>🛠️ อุปกรณ์ (Equipment)</h4>
+      <div class="theory-note">
+        1. Two battery-powered toy bulldozers (ทำงานที่ความเร็วเท่ากัน)<br>
+        2. Long sheet of paper/plastic — มีเส้นกริดระยะห่างเท่ากัน<br>
+        3. Rollers สำหรับดึงกระดาษ (หรือดึงด้วยมือ)<br><br>
+        → กระดาษเปรียบเหมือน <b>frame of reference ที่เคลื่อนที่</b><br>
+        → เส้นกริดบนกระดาษช่วยวัดตำแหน่งใน sheet frame
+      </div>
+    </div>
+
+    <div class="tbox">
+      <h4>💡 ตัวอย่างในชีวิตจริง</h4>
+      <div class="case-row" style="padding:5px 0;">
+        <span class="case-icon">✈️</span>
+        <div class="theory-note"><b>เครื่องบิน</b>: ลมหนุน/ต้าน<br>v_ground = v_plane + v_wind</div>
+      </div>
+      <div class="case-row" style="padding:5px 0;">
+        <span class="case-icon">🏊</span>
+        <div class="theory-note"><b>ว่ายน้ำในแม่น้ำ</b>:<br>v_bank = v_swim + v_current</div>
+      </div>
+      <div class="case-row" style="padding:5px 0;border:none;">
+        <span class="case-icon">🚶</span>
+        <div class="theory-note"><b>เดินบนบันไดเลื่อน</b>:<br>v_floor = v_walk + v_escalator</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ TAB: Quiz ══════════ -->
+<div id="tab-quiz" class="section">
+  <div class="quiz-body">
+
+    <div class="q-card">
+      <h4>❓ ข้อ 1: Bulldozer B วิ่งบนกระดาษด้วย v₁ = 4 m/s กระดาษถูกดึงด้วย v₂ = 3 m/s (ทิศเดียวกัน) ความเร็วของ B ในห้องทดลองคือเท่าใด?</h4>
+      <label class="q-opt"><input type="radio" name="q1" value="a"> ก) 3 m/s</label>
+      <label class="q-opt"><input type="radio" name="q1" value="b"> ข) 4 m/s</label>
+      <label class="q-opt"><input type="radio" name="q1" value="c"> ค) 7 m/s</label>
+      <label class="q-opt"><input type="radio" name="q1" value="d"> ง) 12 m/s</label>
+      <button class="q-btn" onclick="checkQ(1,'c')">ตรวจคำตอบ</button>
+      <div id="qr1"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 2: ถ้าดึงกระดาษด้วย v₂ = −4 m/s (ทิศตรงข้าม bulldozer) และ v₁ = 4 m/s ความเร็ว B ในห้องทดลองคือเท่าใด?</h4>
+      <label class="q-opt"><input type="radio" name="q2" value="a"> ก) 8 m/s</label>
+      <label class="q-opt"><input type="radio" name="q2" value="b"> ข) 4 m/s</label>
+      <label class="q-opt"><input type="radio" name="q2" value="c"> ค) −4 m/s</label>
+      <label class="q-opt"><input type="radio" name="q2" value="d"> ง) 0 m/s</label>
+      <button class="q-btn" onclick="checkQ(2,'d')">ตรวจคำตอบ</button>
+      <div id="qr2"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 3: เมื่อกระดาษหยุดนิ่ง (v₂ = 0) กราฟ x-t ของ bulldozer ทั้งสองจะเป็นอย่างไร?</h4>
+      <label class="q-opt"><input type="radio" name="q3" value="a"> ก) เส้นขนานกัน (ความชันเท่ากัน)</label>
+      <label class="q-opt"><input type="radio" name="q3" value="b"> ข) เส้นตัดกัน</label>
+      <label class="q-opt"><input type="radio" name="q3" value="c"> ค) เส้นโค้ง</label>
+      <label class="q-opt"><input type="radio" name="q3" value="d"> ง) เส้นเดียวกัน (ซ้อนทับ)</label>
+      <button class="q-btn" onclick="checkQ(3,'a')">ตรวจคำตอบ</button>
+      <div id="qr3"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 4: ในมุมมองของกระดาษ (sheet frame) ความเร็วของ bulldozer B คือเท่าใด?</h4>
+      <label class="q-opt"><input type="radio" name="q4" value="a"> ก) v₁ + v₂</label>
+      <label class="q-opt"><input type="radio" name="q4" value="b"> ข) v₂</label>
+      <label class="q-opt"><input type="radio" name="q4" value="c"> ค) v₁</label>
+      <label class="q-opt"><input type="radio" name="q4" value="d"> ง) 0</label>
+      <button class="q-btn" onclick="checkQ(4,'c')">ตรวจคำตอบ</button>
+      <div id="qr4"></div>
+    </div>
+
+    <div class="q-card">
+      <h4>❓ ข้อ 5: สิ่งที่การทดลองนี้สาธิตคืออะไร?</h4>
+      <label class="q-opt"><input type="radio" name="q5" value="a"> ก) Newton's Second Law</label>
+      <label class="q-opt"><input type="radio" name="q5" value="b"> ข) Galilean Velocity Addition (การบวกความเร็ว)</label>
+      <label class="q-opt"><input type="radio" name="q5" value="c"> ค) Conservation of Momentum</label>
+      <label class="q-opt"><input type="radio" name="q5" value="d"> ง) Simple Harmonic Motion</label>
+      <button class="q-btn" onclick="checkQ(5,'b')">ตรวจคำตอบ</button>
+      <div id="qr5"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>© 2568 KP Science simulation &nbsp;|&nbsp; Demo 01-09: Bulldozer on Moving Sheet &nbsp;|&nbsp; Ref: Berg (1992); Halliday, Resnick &amp; Krane, Fundamentals of Physics; Freier &amp; Anderson, Demonstration Handbook Mb-30</footer>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ─── CONSTANTS ─────────────────── */
+const TRACK = 18;    // track length in meters
+const SC    = 46;    // pixels per meter (base; adjusted on resize)
+const SHEET_GRID = 2.0; // grid spacing on sheet (meters)
+
+/* ─── STATE ─────────────────────── */
+let playing  = false;
+let animId   = null;
+let lastTs   = null;
+let simSpd   = 1.0;
+let frame    = 'ground'; // 'ground' | 'sheet'
+
+let t   = 0;
+let xA  = 1;        // bulldozer A position (ground)
+let xB  = 1;        // bulldozer B position (ground)
+let xSheet = 0;     // sheet left edge position (ground)
+let v1  = 3;
+let v2  = 2;
+
+let trailA = [];    // {t,x}
+let trailB = [];    // {t,x}
+const MAX_TRAIL = 800;
+
+/* ─── HELPERS ───────────────────── */
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+/* ─── SLIDER SYNC ───────────────── */
+function syncSlider(id){
+  const sl=document.getElementById('sl-'+id);
+  const vi=document.getElementById('vi-'+id);
+  vi.value=sl.value;
+  applyParam(id,parseFloat(sl.value));
+}
+function syncInput(id){
+  const vi=document.getElementById('vi-'+id);
+  const sl=document.getElementById('sl-'+id);
+  let val=clamp(parseFloat(vi.value)||0,+sl.min,+sl.max);
+  vi.value=val; sl.value=val;
+  applyParam(id,val);
+}
+function applyParam(id,val){
+  if(id==='v1') v1=val;
+  if(id==='v2') v2=val;
+  updateUI();
+  if(!playing) drawAll();
+}
+
+/* ─── PLAY / RESET ──────────────── */
+function togglePlay(){
+  playing=!playing;
+  const btn=document.getElementById('playBtn');
+  if(playing){
+    btn.textContent='⏸ หยุด'; btn.classList.add('playing');
+    lastTs=null; animId=requestAnimationFrame(loop);
+  } else {
+    btn.textContent='▶ เริ่ม'; btn.classList.remove('playing');
+    cancelAnimationFrame(animId); animId=null;
+  }
+}
+function resetSim(){
+  cancelAnimationFrame(animId); animId=null; playing=false; lastTs=null;
+  t=0; xA=1; xB=1; xSheet=0;
+  trailA=[]; trailB=[];
+  document.getElementById('playBtn').textContent='▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  updateUI(); drawAll();
+}
+function setFrame(f){
+  frame=f;
+  document.getElementById('frm-ground').classList.toggle('active',f==='ground');
+  document.getElementById('frm-sheet').classList.toggle('active',f==='sheet');
+  document.getElementById('frame-lbl').textContent =
+    f==='ground'?'มุมมองห้องทดลอง (Ground Frame)':'มุมมองกระดาษ (Sheet Frame)';
+  drawAll();
+}
+
+/* ─── MAIN LOOP ─────────────────── */
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,0.05)*simSpd;
+  lastTs=ts;
+
+  t      += dt;
+  xA     += v1  * dt;
+  xB     += (v1+v2) * dt;
+  xSheet += v2  * dt;
+
+  // Wrap bulldozers for looping display (modulo TRACK)
+  // Keep real accumulated value for graph, use wrapped for display
+  trailA.push({t,x:xA});
+  trailB.push({t,x:xB});
+  if(trailA.length>MAX_TRAIL){ trailA.shift(); trailB.shift(); }
+
+  updateUI();
+  drawAll();
+  animId=requestAnimationFrame(loop);
+}
+
+/* ─── UI UPDATES ────────────────── */
+function updateUI(){
+  const vB=v1+v2;
+  // Equation
+  const sign=v2>=0?'+':'-';
+  document.getElementById('eq-display').innerHTML=
+    `v_B = ${v1.toFixed(1)} ${sign} ${Math.abs(v2).toFixed(1)} = <span style="color:var(--accent4)">${vB.toFixed(1)}</span> m/s`;
+  // Readout
+  document.getElementById('ro-t').textContent=t.toFixed(2);
+  document.getElementById('ro-xA').textContent=(xA%TRACK).toFixed(2);
+  document.getElementById('ro-xB').textContent=((xB%TRACK+TRACK)%TRACK).toFixed(2);
+  document.getElementById('ro-vA').textContent=v1.toFixed(1);
+  document.getElementById('ro-vB').textContent=vB.toFixed(1);
+  // Bars
+  const maxV=Math.max(Math.abs(v1),Math.abs(vB),Math.abs(v2),0.1)*1.5;
+  document.getElementById('barA').style.width=clamp(Math.abs(v1)/maxV*100,0,100)+'%';
+  document.getElementById('barAVal').textContent=v1.toFixed(1)+' m/s';
+  document.getElementById('barB').style.width=clamp(Math.abs(vB)/maxV*100,0,100)+'%';
+  document.getElementById('barB').style.background=vB>=0?'var(--cB)':'#ff4444';
+  document.getElementById('barBVal').textContent=vB.toFixed(1)+' m/s';
+  // v2 bar (centered)
+  const v2frac=clamp(Math.abs(v2)/maxV*50,0,50);
+  if(v2>=0){
+    document.getElementById('barV2pos').style.width=v2frac+'%';
+    document.getElementById('barV2neg').style.width='0%';
+  } else {
+    document.getElementById('barV2neg').style.width=v2frac+'%';
+    document.getElementById('barV2pos').style.width='0%';
+  }
+  document.getElementById('barV2Val').textContent=v2.toFixed(1)+' m/s';
+}
+
+/* ─── DRAW ALL ──────────────────── */
+function drawAll(){
+  drawScene();
+  drawGraph();
+}
+
+/* ─── DRAW SCENE ────────────────── */
+function drawScene(){
+  const c=document.getElementById('cScene');
+  const W=c.width, H=c.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#060b14'; ctx.fillRect(0,0,W,H);
+
+  const sc=Math.max((W-60)/TRACK,30);
+
+  // Camera offset for sheet frame
+  let camOffset = 0;
+  if(frame==='sheet') camOffset = xSheet * sc;
+
+  const ox=30; // left margin in pixels
+
+  // ── Lane A: fixed table ──
+  const layA = H*0.28;
+  drawLaneTable(ctx,ox,layA,W,sc,camOffset);
+  // Tread marks of A
+  for(let i=0;i<trailA.length;i+=4){
+    const rx=trailA[i].x;
+    const sx=ox + (rx*sc - camOffset);
+    if(sx<ox||sx>W-10) continue;
+    ctx.beginPath(); ctx.arc(sx,layA,3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(56,189,248,${0.15+0.3*(i/trailA.length)})`; ctx.fill();
+  }
+  // Bulldozer A
+  const xA_disp = xA*sc - camOffset;
+  drawBulldozer(ctx, ox+xA_disp, layA-14, 78, '#38bdf8', 'A', v1, 1);
+
+  // ── Lane B: moving sheet + bulldozer B ──
+  const layB = H*0.72;
+  drawLaneSheet(ctx,ox,layB,W,sc,camOffset);
+  // Tread marks of B
+  for(let i=0;i<trailB.length;i+=4){
+    const rx=trailB[i].x;
+    const sx=ox + (rx*sc - camOffset);
+    if(sx<ox||sx>W-10) continue;
+    ctx.beginPath(); ctx.arc(sx,layB,3,0,Math.PI*2);
+    ctx.fillStyle=`rgba(251,146,60,${0.15+0.3*(i/trailB.length)})`; ctx.fill();
+  }
+  // Bulldozer B
+  const xB_disp = xB*sc - camOffset;
+  const vBdisplay = frame==='sheet'?(v1):(v1+v2);
+  drawBulldozer(ctx, ox+xB_disp, layB-14, 78, '#fb923c', 'B', vBdisplay, v1+v2<0?-1:1);
+
+  // ── Labels ──
+  ctx.save();
+  ctx.fillStyle='rgba(56,189,248,0.9)'; ctx.font='bold 11px Sarabun,sans-serif';
+  ctx.fillText('Lane A — บนโต๊ะ (โต๊ะหยุดนิ่ง)',8,layA-36);
+  ctx.fillStyle='rgba(251,146,60,0.9)';
+  ctx.fillText('Lane B — บนกระดาษ (กระดาษเคลื่อนที่)',8,layB-36);
+  ctx.restore();
+
+  // ── Separator ──
+  ctx.save(); ctx.strokeStyle='#1e3a5f'; ctx.lineWidth=1; ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
+}
+
+/* ─── Draw lane (table) ─────────── */
+function drawLaneTable(ctx,ox,cy,W,sc,camOff){
+  ctx.save();
+  // Surface
+  ctx.fillStyle='#111e30'; ctx.fillRect(ox,cy-16,W-ox,32);
+  // Fixed ruler marks
+  for(let m=0;m<=TRACK+2;m++){
+    const sx=ox+m*sc-camOff;
+    if(sx<ox||sx>W) continue;
+    ctx.beginPath(); ctx.moveTo(sx,cy+16); ctx.lineTo(sx,cy+22);
+    ctx.strokeStyle='#2a4a70'; ctx.lineWidth=1; ctx.stroke();
+    if(m%2===0){
+      ctx.fillStyle='#4a6080'; ctx.font='9px Share Tech Mono,monospace'; ctx.textAlign='center';
+      ctx.fillText(m+'m',sx,cy+30);
+    }
+  }
+  // Top/bottom edge
+  ctx.strokeStyle='#2a4a70'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(ox,cy-16); ctx.lineTo(W,cy-16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox,cy+16); ctx.lineTo(W,cy+16); ctx.stroke();
+  ctx.restore();
+}
+
+/* ─── Draw lane (sheet) ─────────── */
+function drawLaneSheet(ctx,ox,cy,W,sc,camOff){
+  ctx.save();
+  // Sheet background (scrolling)
+  ctx.fillStyle='#1a1030'; ctx.fillRect(ox,cy-16,W-ox,32);
+
+  // Scrolling grid on sheet
+  const sheetVisualOff = xSheet*sc; // how far sheet has moved visually
+  const gridPx = SHEET_GRID * sc;
+  // Start drawing lines from left, with offset
+  const startOff = ((sheetVisualOff - camOff) % gridPx + gridPx) % gridPx;
+  ctx.strokeStyle='rgba(167,139,250,0.5)'; ctx.lineWidth=1;
+  for(let gx=ox+startOff-gridPx*2; gx<W+gridPx; gx+=gridPx){
+    if(gx<ox) continue;
+    ctx.beginPath(); ctx.moveTo(gx,cy-16); ctx.lineTo(gx,cy+16); ctx.stroke();
+  }
+
+  // Edges
+  ctx.strokeStyle='#5a3a8a'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(ox,cy-16); ctx.lineTo(W,cy-16); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox,cy+16); ctx.lineTo(W,cy+16); ctx.stroke();
+
+  // v₂ arrow indicator (sheet velocity)
+  if(Math.abs(v2)>0.1){
+    const arrLen=Math.min(Math.abs(v2)*8,60);
+    const dir=v2>0?1:-1;
+    const ax=W-80, ay=cy;
+    ctx.strokeStyle='rgba(167,139,250,0.8)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax+dir*arrLen,ay); ctx.stroke();
+    ctx.save(); ctx.translate(ax+dir*arrLen,ay); ctx.rotate(dir>0?0:Math.PI);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,-5); ctx.lineTo(-10,5); ctx.closePath();
+    ctx.fillStyle='rgba(167,139,250,0.8)'; ctx.fill(); ctx.restore();
+    ctx.fillStyle='rgba(167,139,250,0.9)'; ctx.font='10px Sarabun,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('v₂='+v2.toFixed(1)+'m/s', ax+dir*arrLen/2, ay-10);
+  }
+  ctx.restore();
+}
+
+/* ─── Draw Bulldozer ────────────── */
+function drawBulldozer(ctx, px, groundY, width, color, label, vDisplay, dir=1){
+  ctx.save();
+  ctx.translate(px, groundY);
+  if(dir<0) { ctx.scale(-1,1); } // flip if going left
+
+  const w=width, h=32;
+  const trackH=8;
+
+  // Drop shadow
+  ctx.shadowColor=color; ctx.shadowBlur=10;
+
+  // Tracks (bottom)
+  ctx.fillStyle=darken(color,0.35);
+  ctx.beginPath(); ctx.roundRect(-w/2, h-trackH, w, trackH, 3); ctx.fill();
+  // Track wheels
+  for(let i=0;i<4;i++){
+    ctx.beginPath();
+    ctx.arc(-w/2+8+i*(w-16)/3, h-trackH/2, trackH/2-1, 0, Math.PI*2);
+    ctx.fillStyle=darken(color,0.5); ctx.fill();
+  }
+
+  ctx.shadowBlur=0;
+
+  // Main body
+  ctx.fillStyle=darken(color,0.2);
+  ctx.beginPath(); ctx.roundRect(-w/2+2, 4, w-4, h-trackH-4, 3); ctx.fill();
+
+  // Cab
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.roundRect(-w/4, 0, w*0.45, h-trackH-4, [4,4,0,0]); ctx.fill();
+
+  // Window
+  ctx.fillStyle='rgba(200,240,255,0.2)';
+  ctx.beginPath(); ctx.roundRect(-w/4+3, 3, w*0.45-6, 10, 2); ctx.fill();
+
+  // Blade (front)
+  ctx.fillStyle=lighten(color,0.2);
+  ctx.beginPath();
+  ctx.moveTo(w/2-2, 6); ctx.lineTo(w/2+10, 10);
+  ctx.lineTo(w/2+10, h-trackH-2); ctx.lineTo(w/2-2, h-trackH-2);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
+
+  // Label + velocity arrow (in un-flipped coords)
+  ctx.save();
+  // Name badge
+  ctx.fillStyle=color; ctx.font='bold 12px Sarabun,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(label, px, groundY-8);
+
+  // Velocity arrow
+  if(Math.abs(vDisplay)>0.05){
+    const realDir=vDisplay>=0?1:-1;
+    const arrowLen=Math.min(Math.abs(vDisplay)*9,80);
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    ctx.setLineDash([3,3]);
+    const arrowX=px+realDir*width*0.5;
+    ctx.beginPath(); ctx.moveTo(arrowX,groundY-20); ctx.lineTo(arrowX+realDir*arrowLen,groundY-20); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.save(); ctx.translate(arrowX+realDir*arrowLen,groundY-20); ctx.rotate(realDir>0?0:Math.PI);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-9,-4); ctx.lineTo(-9,4); ctx.closePath();
+    ctx.fillStyle=color; ctx.fill(); ctx.restore();
+    ctx.font='10px Share Tech Mono,monospace'; ctx.textAlign='center';
+    ctx.fillStyle=color;
+    ctx.fillText(vDisplay.toFixed(1)+'m/s', arrowX+realDir*arrowLen/2, groundY-26);
+  }
+  ctx.restore();
+}
+
+function darken(hex,frac){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.round(r*(1-frac)); g=Math.round(g*(1-frac)); b=Math.round(b*(1-frac));
+  return `rgb(${r},${g},${b})`;
+}
+function lighten(hex,frac){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.min(255,Math.round(r+(255-r)*frac));
+  g=Math.min(255,Math.round(g+(255-g)*frac));
+  b=Math.min(255,Math.round(b+(255-b)*frac));
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ─── DRAW x-t GRAPH ────────────── */
+function drawGraph(){
+  const c=document.getElementById('cGraph');
+  const W=c.width, H=c.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#060b14'; ctx.fillRect(0,0,W,H);
+
+  const ml=40,mr=12,mt=14,mb=28;
+  const gw=W-ml-mr, gh=H-mt-mb;
+
+  // Axes
+  ctx.save(); ctx.strokeStyle='#2a4060'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(ml,mt); ctx.lineTo(ml,mt+gh); ctx.lineTo(ml+gw,mt+gh); ctx.stroke();
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun,sans-serif';
+  ctx.textAlign='right'; ctx.fillText('x(m)',ml-2,mt+8);
+  ctx.textAlign='center'; ctx.fillText('t (s)',ml+gw,mt+gh+16);
+  ctx.restore();
+
+  if(trailA.length<2) return;
+
+  const tMax=Math.max(trailA[trailA.length-1].t,4);
+  const scT=gw/tMax;
+  const xMax=Math.max(
+    ...trailA.map(p=>Math.abs(p.x)),
+    ...trailB.map(p=>Math.abs(p.x)), TRACK
+  );
+  const scX=gh/xMax;
+
+  // Y-axis ticks
+  ctx.save(); ctx.strokeStyle='#2a4060'; ctx.lineWidth=0.5;
+  ctx.fillStyle='#94a3b8'; ctx.font='9px Share Tech Mono,monospace'; ctx.textAlign='right';
+  for(let yv=0;yv<=xMax;yv+=4){
+    const py=mt+gh-yv*scX;
+    if(py<mt) break;
+    ctx.beginPath(); ctx.moveTo(ml-3,py); ctx.lineTo(ml,py); ctx.stroke();
+    ctx.fillText(yv,ml-5,py+3);
+  }
+  // X-axis ticks
+  ctx.textAlign='center';
+  const nT=Math.min(Math.floor(tMax),8);
+  for(let i=1;i<=nT;i++){
+    const px=ml+i*(tMax/nT)*scT;
+    ctx.beginPath(); ctx.moveTo(px,mt+gh); ctx.lineTo(px,mt+gh+3); ctx.stroke();
+    ctx.fillText((i*(tMax/nT)).toFixed(1),px,mt+gh+12);
+  }
+  // Grid
+  ctx.strokeStyle='rgba(42,64,96,0.4)'; ctx.setLineDash([3,4]);
+  for(let yv=4;yv<=xMax;yv+=4){
+    const py=mt+gh-yv*scX;
+    if(py<mt) break;
+    ctx.beginPath(); ctx.moveTo(ml,py); ctx.lineTo(ml+gw,py); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Plot trail A
+  ctx.save(); ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2;
+  ctx.beginPath(); let first=true;
+  for(const p of trailA){
+    const px=ml+p.t*scT, py=mt+gh-Math.abs(p.x%TRACK)*scX;
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke(); ctx.restore();
+
+  // Plot trail B
+  ctx.save(); ctx.strokeStyle='#fb923c'; ctx.lineWidth=2;
+  ctx.beginPath(); first=true;
+  for(const p of trailB){
+    const px=ml+p.t*scT, py=mt+gh-Math.abs(p.x%TRACK)*scX;
+    first?(ctx.moveTo(px,py),first=false):ctx.lineTo(px,py);
+  }
+  ctx.stroke(); ctx.restore();
+
+  // Legend
+  ctx.save(); ctx.font='bold 11px Sarabun,sans-serif';
+  ctx.fillStyle='#38bdf8'; ctx.fillText('── A (v='+v1.toFixed(1)+')',ml+gw-130,mt+12);
+  ctx.fillStyle='#fb923c'; ctx.fillText('── B (v='+(v1+v2).toFixed(1)+')',ml+gw-50,mt+12);
+  // Slope labels
+  if(trailA.length>20 && playing){
+    ctx.font='10px Share Tech Mono,monospace';
+    ctx.fillStyle='rgba(56,189,248,0.7)'; ctx.fillText('slope='+v1.toFixed(1),ml+20,mt+12);
+    ctx.fillStyle='rgba(251,146,60,0.7)'; ctx.fillText('slope='+(v1+v2).toFixed(1),ml+80,mt+12);
+  }
+  ctx.restore();
+}
+
+/* ─── CANVAS SIZING ─────────────── */
+function initSizes(){
+  ['cScene','cGraph'].forEach(id=>{
+    const c=document.getElementById(id);
+    if(!c) return;
+    const r=c.getBoundingClientRect();
+    if(r.width>10){ c.width=Math.floor(r.width); }
+    if(id==='cGraph' && r.height>10){ c.height=Math.floor(r.height); }
+  });
+  drawAll();
+}
+
+/* ─── TAB SWITCHING ─────────────── */
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='sim') setTimeout(initSizes,30);
+}
+
+/* ─── QUIZ ──────────────────────── */
+const qAns={
+  1:{c:'✅ ถูก! v_B = v₁+v₂ = 4+3 = 7 m/s'},
+  2:{d:'✅ ถูก! v_B = v₁+v₂ = 4+(−4) = 0 m/s กระดาษสวนทางพอดี → B หยุดนิ่ง!'},
+  3:{a:'✅ ถูก! v₂=0 → v_B=v₁ → ความชัน x-t เท่ากัน → เส้นขนาน'},
+  4:{c:'✅ ถูก! ใน sheet frame กระดาษหยุดนิ่ง → B มีความเร็ว v₁ (เท่ากับที่วิ่งบนกระดาษ)'},
+  5:{b:'✅ ถูก! Galilean Velocity Addition: v_total = v_object + v_frame'},
+};
+const qHint={
+  1:{a:'3 m/s คือ v₂ ไม่ใช่ v_B',b:'4 m/s คือ v₁ ยังไม่รวม v₂',d:'12 = v₁×v₂ ต้องบวก ไม่ใช่คูณ'},
+  2:{a:'8 คือ v₁+|v₂| แต่ v₂ เป็นลบ',b:'4 คือ v₁ ไม่ได้รวม v₂',c:'−4 คือ v₂ ไม่ใช่ v_B'},
+  3:{b:'ตัดกันหมายถึงความเร็วต่างกัน',c:'โค้งหมายถึงมีความเร่ง a≠0',d:'ซ้อนทับต้องเริ่มต้นที่เดิมด้วย'},
+  4:{a:'v₁+v₂ คือมุมมองห้องทดลอง',b:'v₂ คือความเร็วกระดาษเทียบห้องทดลอง',d:'0 = กรณีหยุดนิ่งในห้องทดลอง'},
+  5:{a:'Newton 2nd Law คือ F=ma',c:'Momentum conservation คือ p₁+p₂=const',d:'SHM คือ x=A cosωt'},
+};
+function checkQ(n,correct){
+  const sel=document.querySelector(`input[name="q${n}"]:checked`);
+  const div=document.getElementById('qr'+n);
+  if(!sel){div.innerHTML='<div class="q-result" style="background:#1a2235;color:#94a3b8;">⚠️ กรุณาเลือกคำตอบ</div>';return;}
+  const ans=sel.value;
+  if(ans===correct){
+    div.innerHTML=`<div class="q-result ok">${qAns[n][correct]}</div>`;
+  } else {
+    const hint=qHint[n]&&qHint[n][ans]?qHint[n][ans]:'ลองทบทวนทฤษฎีอีกครั้ง';
+    div.innerHTML=`<div class="q-result no">❌ ไม่ถูก — ${hint}</div>`;
+  }
+}
+
+/* ─── INIT ──────────────────────── */
+window.addEventListener('load',()=>{
+  v1=parseFloat(document.getElementById('sl-v1').value)||3;
+  v2=parseFloat(document.getElementById('sl-v2').value)||2;
+  updateUI();
+  setTimeout(initSizes,80);
+});
+window.addEventListener('resize',()=>{
+  clearTimeout(window._rsz);
+  window._rsz=setTimeout(initSizes,80);
+});
+</script>
+</body>
+</html>

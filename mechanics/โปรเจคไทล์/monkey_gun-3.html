@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Monkey Gun</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --bullet-color: #fbbf24;
+  --bottle-color: #34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;}
+.hdr-icon{font-size:1.8rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.78rem;color:var(--muted);}
+.badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;white-space:nowrap;}
+
+/* NAV */
+nav{display:flex;gap:4px;padding:8px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.83rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+/* TABS */
+.tab-section{display:none;}
+.tab-section.active{display:flex;flex-direction:column;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* SIM LAYOUT */
+.sim-wrapper{display:flex;flex-direction:column;height:calc(100vh - 104px);}
+.canvas-area{flex:1;position:relative;background:#06090f;overflow:hidden;min-height:280px;}
+canvas{display:block;width:100%;height:100%;}
+
+/* CBAR */
+.cbar{background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.83rem;transition:.15s;}
+.btn-play{background:#14532d;color:#86efac;}
+.btn-play:hover{background:#166534;}
+.btn-play.playing{background:#7f1d1d;color:#fca5a5;}
+.btn-reset{background:#1e3a5f;color:#7dd3fc;}
+.btn-reset:hover{background:#1e40af;}
+.vsep{width:1px;height:22px;background:var(--border);flex-shrink:0;}
+.cbar-lbl{font-size:0.78rem;color:var(--muted);white-space:nowrap;}
+.sl-range{accent-color:var(--accent);cursor:pointer;flex:1;min-width:60px;max-width:90px;}
+.val-input{width:46px;padding:2px 4px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.8rem;text-align:center;-moz-appearance:textfield;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text);}
+.chk-row{display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--muted);cursor:pointer;white-space:nowrap;}
+.chk-row input{accent-color:var(--accent);cursor:pointer;}
+
+/* READOUT */
+.readout-bar{background:#0d1320;border-bottom:1px solid var(--border);padding:5px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+.ro-item{display:flex;align-items:center;gap:5px;}
+.ro-lbl{font-size:0.75rem;color:var(--muted);}
+.ro-val{font-family:'Share Tech Mono',monospace;font-size:0.82rem;color:var(--accent);min-width:55px;}
+.ro-val.hit{color:#4ade80;}
+.ro-val.miss{color:#f87171;}
+.ro-val.fly{color:var(--accent4);}
+
+/* CONTROLS PANEL */
+.ctrl-panel{background:var(--panel);border-top:1px solid var(--border);padding:8px 16px;display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
+@media(max-width:540px){.ctrl-panel{grid-template-columns:1fr;}}
+.sl-row{display:flex;align-items:center;gap:6px;}
+.sl-lbl{font-size:0.78rem;color:var(--muted);min-width:96px;flex-shrink:0;}
+.sl-lbl em{font-style:normal;color:var(--accent4);}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:26px;flex-shrink:0;}
+
+/* ===== THEORY TAB ===== */
+.theory-tab{overflow-y:auto;height:calc(100vh - 104px);}
+.theory-inner{max-width:860px;margin:0 auto;padding:24px 20px 40px;}
+.th-sec{margin-bottom:28px;}
+.th-sec h2{color:var(--accent);font-size:1.05rem;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.th-sec h3{color:var(--accent3);font-size:0.92rem;margin:14px 0 6px;}
+.th-sec p{color:var(--text);line-height:1.85;margin-bottom:8px;font-size:0.9rem;}
+.eq-box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:8px 0;font-family:'Share Tech Mono',monospace;font-size:0.84rem;color:var(--accent3);line-height:2;}
+.key-box{background:#1a2d1a;border:1px solid var(--accent3);border-radius:8px;padding:14px 18px;margin:10px 0;}
+.key-box p{color:var(--accent3);font-weight:600;}
+.insight-box{background:#1e2840;border:1px solid var(--accent);border-radius:8px;padding:14px 18px;margin:10px 0;}
+.insight-box p{color:var(--accent);}
+.warn-box{background:#2a1e10;border:1px solid var(--accent4);border-radius:8px;padding:12px 16px;margin:10px 0;}
+.warn-box p{color:var(--accent4);font-size:0.88rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:580px){.two-col{grid-template-columns:1fr;}}
+.mini-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.mini-card h4{color:var(--accent4);font-size:0.85rem;margin-bottom:6px;}
+.mini-card p{color:var(--muted);font-size:0.82rem;line-height:1.6;}
+/* THEORY VISUALS */
+.vis-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:14px 0;}
+.vis-wrap svg{display:block;width:100%;height:auto;}
+.fig-lbl{font-size:0.73rem;color:var(--muted);padding:7px 14px 3px;font-family:'Share Tech Mono',monospace;letter-spacing:0.03em;}
+.proof-wrap{position:relative;background:#05080f;}
+.proof-wrap canvas{width:100%;height:auto;display:block;}
+.loop-badge{position:absolute;top:7px;right:10px;background:#1a2235;border:1px solid var(--border);color:var(--muted);font-size:0.67rem;padding:2px 8px;border-radius:10px;font-family:'Share Tech Mono',monospace;}
+.comp-panel{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+.comp-panel>div{background:var(--panel);padding:10px 14px;}
+.comp-title{color:var(--accent);font-size:0.83rem;font-weight:700;margin-bottom:6px;}
+.comp-sub{color:var(--muted);font-size:0.78rem;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-icon">🔫</div>
+  <div>
+    <h1>Monkey Gun Simulation</h1>
+    <p>การเคลื่อนที่แบบโพรเจกไทล์ · การตกอิสระ · ความเป็นอิสระของการเคลื่อนที่</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 เนื้อหา/ทฤษฎี</button>
+</nav>
+
+<!-- ======================================================= SIM TAB -->
+<div class="tab-section active" id="tab-sim">
+  <div class="sim-wrapper">
+
+    <div class="canvas-area">
+      <canvas id="simCanvas"></canvas>
+    </div>
+
+    <!-- control bar -->
+    <div class="cbar">
+      <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+      <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+      <div class="vsep"></div>
+      <span class="cbar-lbl">ความเร็ว:</span>
+      <input class="sl-range" type="range" id="sl-speed" min="0.1" max="3" step="0.1" value="1">
+      <input class="val-input" type="number" id="vi-speed" min="0.1" max="3" step="0.1" value="1">
+      <span class="cbar-lbl">×</span>
+      <div class="vsep"></div>
+      <label class="chk-row"><input type="checkbox" id="chk-nograv"> เส้นทางถ้าไม่มีแรงโน้มถ่วง</label>
+      <label class="chk-row"><input type="checkbox" id="chk-dots" checked> จุดตำแหน่งทุก 0.1s</label>
+      <label class="chk-row"><input type="checkbox" id="chk-fall"> แสดง Δy การตก</label>
+    </div>
+
+    <!-- readout -->
+    <div class="readout-bar">
+      <div class="ro-item">
+        <span class="ro-lbl">t =</span>
+        <span class="ro-val" id="ro-t">0.000 s</span>
+      </div>
+      <div class="ro-item">
+        <span class="ro-lbl">🟡 กระสุน (x, y) =</span>
+        <span class="ro-val" id="ro-b">—</span>
+      </div>
+      <div class="ro-item">
+        <span class="ro-lbl">🟢 ขวด (x, y) =</span>
+        <span class="ro-val" id="ro-m">—</span>
+      </div>
+      <div class="ro-item">
+        <span class="ro-lbl">θ =</span>
+        <span class="ro-val" id="ro-theta">—</span>
+      </div>
+      <div class="ro-item">
+        <span class="ro-lbl">สถานะ:</span>
+        <span class="ro-val" id="ro-status">⏸ พร้อม</span>
+      </div>
+    </div>
+
+    <!-- parameter sliders -->
+    <div class="ctrl-panel">
+      <div class="sl-row">
+        <span class="sl-lbl"><em>v₀</em> ความเร็วต้น</span>
+        <input class="sl-range" type="range" id="sl-v0" min="4" max="25" step="0.5" value="12" style="max-width:none;flex:1;">
+        <input class="val-input" type="number" id="vi-v0" min="4" max="25" step="0.5" value="12">
+        <span class="sl-unit">m/s</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl"><em>D</em> ระยะแนวนอน</span>
+        <input class="sl-range" type="range" id="sl-dist" min="3" max="13" step="0.5" value="8" style="max-width:none;flex:1;">
+        <input class="val-input" type="number" id="vi-dist" min="3" max="13" step="0.5" value="8">
+        <span class="sl-unit">m</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl"><em>H_gun</em> ความสูงปืน</span>
+        <input class="sl-range" type="range" id="sl-hg" min="0.5" max="3.5" step="0.1" value="1.2" style="max-width:none;flex:1;">
+        <input class="val-input" type="number" id="vi-hg" min="0.5" max="3.5" step="0.1" value="1.2">
+        <span class="sl-unit">m</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-lbl"><em>H_target</em> ความสูงเป้า</span>
+        <input class="sl-range" type="range" id="sl-ht" min="2" max="8" step="0.1" value="5.5" style="max-width:none;flex:1;">
+        <input class="val-input" type="number" id="vi-ht" min="2" max="8" step="0.1" value="5.5">
+        <span class="sl-unit">m</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================================================= THEORY TAB -->
+<div class="tab-section theory-tab" id="tab-theory">
+  <div class="theory-inner">
+
+    <div class="th-sec">
+      <h2>🔫 Monkey Gun คืออะไร?</h2>
+      <p>การทดลอง <strong>Monkey Gun</strong> (หรือ Monkey and Hunter) เป็นการสาธิตคลาสสิกที่แสดงให้เห็นว่า <strong>องค์ประกอบการเคลื่อนที่แนวนอนและแนวตั้งเป็นอิสระต่อกัน</strong> และ <strong>แรงโน้มถ่วงกระทำต่อวัตถุทุกชนิดเท่ากัน</strong> โดยไม่ขึ้นกับสถานะการเคลื่อนที่เริ่มต้น</p>
+      <div class="key-box">
+        <p>🎯 แม้ขวดจะตกลงมาหลังถูกปล่อย กระสุนก็ยังชนขวดเสมอ — ไม่ว่าจะใช้ความเร็วต้น v₀ เท่าใดก็ตาม!</p>
+      </div>
+    </div>
+
+    <div class="th-sec">
+      <h2>⚙️ กลไกการทดลอง</h2>
+      <p>1. ท่อทองเหลืองเล็งตรงไปยัง <strong>ขวดพลาสติก</strong> ที่ห้อยอยู่กับ <strong>แม่เหล็กไฟฟ้า</strong></p>
+      <p>2. เมื่อเป่าลมเข้าท่อ ลูกดอกไม้ (กระสุน) ออกไปพร้อมกัน <strong>กระแทกแผ่นฟอยล์อลูมิเนียม</strong> ตัดวงจรแม่เหล็ก</p>
+      <p>3. แม่เหล็กดับ → ขวดเริ่มตกอิสระพร้อมกับกระสุนออกจากปาก → ทั้งสองตกภายใต้แรงโน้มถ่วงพร้อมกัน</p>
+
+      <!-- SETUP DIAGRAM SVG -->
+      <div class="vis-wrap" style="margin-top:14px;">
+        <div class="fig-lbl">📐 Fig.1 — แผนผังการทดลอง (v₀=12 m/s, D=8 m, H_gun=1.2 m, H_target=5.5 m)</div>
+        <svg viewBox="0 0 500 275" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="svgSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#04060e"/><stop offset="100%" stop-color="#0c1628"/></linearGradient>
+            <linearGradient id="svgGnd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#14532d"/><stop offset="100%" stop-color="#052e16"/></linearGradient>
+            <marker id="aB" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#38bdf8"/></marker>
+            <marker id="aBR" markerWidth="7" markerHeight="6" refX="1" refY="3" orient="auto"><polygon points="7,0 0,3 7,6" fill="#38bdf8"/></marker>
+            <marker id="aO" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#fb923c"/></marker>
+            <marker id="aG" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#34d399"/></marker>
+            <filter id="fGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+
+          <!-- sky + ground -->
+          <rect width="500" height="275" fill="url(#svgSky)"/>
+          <rect x="0" y="258" width="500" height="17" fill="url(#svgGnd)"/>
+          <line x1="0" y1="258" x2="500" y2="258" stroke="#4ade80" stroke-width="1.5"/>
+
+          <!-- grid + y-labels -->
+          <g stroke="#1e3a5f" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.5">
+            <line x1="52" y1="228" x2="488" y2="228"/>
+            <line x1="52" y1="198" x2="488" y2="198"/>
+            <line x1="52" y1="168" x2="488" y2="168"/>
+            <line x1="52" y1="138" x2="488" y2="138"/>
+            <line x1="52" y1="108" x2="488" y2="108"/>
+          </g>
+          <g fill="#3d4f63" font-size="9" font-family="Share Tech Mono" text-anchor="end">
+            <text x="49" y="232">1m</text><text x="49" y="202">2m</text>
+            <text x="49" y="172">3m</text><text x="49" y="142">4m</text><text x="49" y="112">5m</text>
+          </g>
+
+          <!-- gun stand -->
+          <rect x="90" y="222" width="6" height="36" fill="#374151" rx="1"/>
+          <rect x="106" y="222" width="6" height="36" fill="#374151" rx="1"/>
+          <rect x="83" y="215" width="36" height="8" fill="#4b5563" rx="1"/>
+
+          <!-- gun tube: origin (101,222), rotate -28.2° -->
+          <g transform="translate(101,222) rotate(-28.2)">
+            <rect x="0" y="-5" width="66" height="10" fill="#94a3b8" rx="2"/>
+            <rect x="60" y="-5" width="6" height="10" fill="#e2e8f0" rx="1"/>
+          </g>
+
+          <!-- v₀ arrow along tube direction -->
+          <line x1="101" y1="222" x2="147" y2="196" stroke="#fb923c" stroke-width="2" marker-end="url(#aO)"/>
+          <text x="152" y="205" fill="#fb923c" font-size="12" font-weight="bold" font-family="Sarabun">v₀</text>
+
+          <!-- θ arc (small arc 0→-28.2° at gun, r=24) -->
+          <path d="M 125 222 A 24 24 0 0 0 122 211" fill="none" stroke="#60a5fa" stroke-width="1.5"/>
+          <text x="128" y="220" fill="#60a5fa" font-size="10" font-family="Share Tech Mono">θ</text>
+
+          <!-- target pole -->
+          <rect x="333" y="12" width="8" height="246" fill="#374151" rx="1"/>
+
+          <!-- electromagnet (active/glowing) -->
+          <rect x="321" y="8" width="30" height="15" fill="#dc2626" rx="2" filter="url(#fGlow)"/>
+          <rect x="321" y="8" width="30" height="15" fill="none" stroke="#fca5a5" stroke-width="1" rx="2"/>
+          <text x="336" y="20" fill="#fbbf24" font-size="11" text-anchor="middle">⚡</text>
+
+          <!-- string -->
+          <line x1="336" y1="23" x2="336" y2="88" stroke="#fbbf24" stroke-width="1.5"/>
+
+          <!-- bottle at H_target=5.5m → py=258-165=93 -->
+          <rect x="326" y="88" width="20" height="30" fill="#065f46" stroke="#34d399" stroke-width="2" rx="3"/>
+          <rect x="331" y="83" width="10" height="7" fill="#10b981" rx="1"/>
+          <text x="352" y="101" fill="#34d399" font-size="9" font-family="Sarabun">ขวด</text>
+          <text x="352" y="112" fill="#34d399" font-size="8" font-family="Sarabun">H_target</text>
+
+          <!-- ghost bottle at collision y=2.70m → py=258-81=177 -->
+          <rect x="326" y="172" width="20" height="30" fill="none" stroke="#34d399" stroke-width="1.5" rx="3" stroke-dasharray="4,2" opacity="0.45"/>
+          <text x="352" y="188" fill="rgba(52,211,153,0.6)" font-size="8" font-family="Sarabun">ชนที่นี่</text>
+
+          <!-- no-gravity aim line (dashed orange) -->
+          <line x1="101" y1="222" x2="370" y2="70" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="7,4" opacity="0.55"/>
+          <text x="175" y="171" fill="rgba(251,146,60,0.75)" font-size="9" font-family="Sarabun" transform="rotate(-28.2,185,175)">ถ้าไม่มีแรงโน้มถ่วง</text>
+
+          <!-- parabola trajectory: points at t=0..0.757 step 0.1 -->
+          <!-- py(wy)=258-wy*30, px(wx)=52+wx*30; gun at world(1.5,1.2)→(97,222) -->
+          <polyline points="101,222 130,208 161,196 193,186 225,179 257,175 289,175 321,177 337,177"
+            fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- collision marker -->
+          <circle cx="337" cy="177" r="10" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3,2"/>
+          <circle cx="337" cy="177" r="3.5" fill="#fbbf24"/>
+          <text x="352" y="175" fill="#fbbf24" font-size="10" font-family="Sarabun" font-weight="bold">💥 ชน!</text>
+          <text x="352" y="186" fill="#fbbf24" font-size="8" font-family="Sarabun">y = 2.70 m</text>
+
+          <!-- start bullet -->
+          <circle cx="101" cy="222" r="5" fill="#fbbf24" opacity="0.8"/>
+
+          <!-- D double-arrow annotation -->
+          <line x1="101" y1="250" x2="337" y2="250" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#aB)" marker-start="url(#aBR)"/>
+          <text x="219" y="246" fill="#38bdf8" font-size="11" text-anchor="middle" font-family="Sarabun">D = 8 m</text>
+
+          <!-- H_gun annotation -->
+          <line x1="74" y1="258" x2="74" y2="222" stroke="#34d399" stroke-width="1.5" marker-end="url(#aG)"/>
+          <text x="69" y="242" fill="#34d399" font-size="8" font-family="Sarabun" text-anchor="middle">H_g</text>
+          <text x="69" y="252" fill="#34d399" font-size="8" font-family="Sarabun" text-anchor="middle">1.2m</text>
+
+          <!-- H_target annotation -->
+          <line x1="360" y1="258" x2="360" y2="93" stroke="#34d399" stroke-width="1.5" marker-end="url(#aG)"/>
+          <text x="374" y="188" fill="#34d399" font-size="8" font-family="Sarabun">H_t</text>
+          <text x="374" y="198" fill="#34d399" font-size="8" font-family="Sarabun">5.5m</text>
+
+          <!-- legend -->
+          <rect x="392" y="32" width="98" height="46" fill="#0d1322" rx="4" opacity="0.9"/>
+          <line x1="398" y1="44" x2="414" y2="44" stroke="#38bdf8" stroke-width="2.5"/>
+          <text x="418" y="48" fill="#38bdf8" font-size="8.5" font-family="Sarabun">วิถีโพรเจกไทล์</text>
+          <line x1="398" y1="58" x2="414" y2="58" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="418" y="62" fill="#fb923c" font-size="8.5" font-family="Sarabun">ไม่มีแรงโน้มถ่วง</text>
+          <line x1="398" y1="72" x2="414" y2="72" stroke="#34d399" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.6"/>
+          <text x="418" y="76" fill="#34d399" font-size="8.5" font-family="Sarabun" opacity="0.7">ตำแหน่งสุดท้าย</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="th-sec">
+      <h2>📐 สมการการเคลื่อนที่</h2>
+      <div class="two-col">
+        <div class="mini-card">
+          <h4>🟡 กระสุน (Projectile)</h4>
+          <p>ยิงจากจุด (x₀, y₀) ด้วยความเร็ว v₀ ที่มุม θ:</p>
+        </div>
+        <div class="mini-card">
+          <h4>🟢 ขวด (Falling Object)</h4>
+          <p>ปล่อยจากหยุดนิ่งที่ตำแหน่ง (D+x₀, H_target):</p>
+        </div>
+      </div>
+      <div class="eq-box">
+x_bullet(t) = x₀ + v₀·cos θ · t
+y_bullet(t) = y₀ + v₀·sin θ · t − ½g t²
+
+x_bottle(t) = D + x₀   <span style="color:var(--muted)">(คงที่)</span>
+y_bottle(t) = H_target − ½g t²
+      </div>
+    </div>
+
+    <div class="th-sec">
+      <h2>✅ การพิสูจน์ว่ากระสุนโดนขวดเสมอ</h2>
+      <p>เมื่อกระสุนเดินทางถึงแนวดิ่งใต้ขวด (x = D + x₀) ใช้เวลา:</p>
+      <div class="eq-box">t_hit = D / (v₀ · cos θ)</div>
+      <p>เนื่องจากปืนเล็งตรงไปที่ขวด: <strong>tan θ = (H_target − H_gun) / D</strong></p>
+      <p>จึงได้: <strong>v₀·sin θ · t_hit = (H_target − H_gun)</strong></p>
+      <div class="eq-box">
+y_bullet(t_hit) = H_gun + v₀·sin θ · t_hit − ½g t_hit²
+             <span style="color:var(--muted)">= H_gun + (H_target − H_gun) − ½g t_hit²</span>
+             = H_target − ½g t_hit²
+
+y_bottle(t_hit) = H_target − ½g t_hit²
+      </div>
+      <div class="key-box">
+        <p>∴ y_bullet(t_hit) = y_bottle(t_hit) ✓  กระสุนและขวดอยู่ที่ความสูงเดียวกันเสมอ!</p>
+      </div>
+      <div class="insight-box">
+        <p>💡 เหตุผลสำคัญ: ทั้งกระสุนและขวดตกลงจากแนวเดิม (ไม่มีแรงโน้มถ่วง) เป็นระยะ <strong>½gt²</strong> เท่ากันทุกประการ</p>
+      </div>
+
+      <!-- ANIMATED PROOF CANVAS -->
+      <div class="vis-wrap" style="margin-top:14px;">
+        <div class="fig-lbl">🎞 Fig.2 — Animation: ทั้งสองวัตถุตกลง ½gt² เท่ากันทุกขณะ (วนซ้ำอัตโนมัติ)</div>
+        <div class="proof-wrap">
+          <canvas id="proofCanvas" width="440" height="240"></canvas>
+          <div class="loop-badge">▶ AUTO LOOP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="th-sec">
+      <h2>⚠️ เงื่อนไขที่กระสุนพลาดขวด</h2>
+      <p>การพิสูจน์ข้างต้นถือว่ากระสุนถึงตำแหน่ง x ของขวดได้ทัน ถ้าความเร็วต้นน้อยเกินไป:</p>
+      <div class="warn-box">
+        <p>⚡ กระสุนตกถึงพื้นก่อนถึง x = D+x₀ หรือขวดตกถึงพื้นก่อนที่กระสุนจะมาถึง → <strong>พลาด</strong></p>
+      </div>
+      <p>เงื่อนไขให้ชน: <strong>t_hit &lt; t_ground</strong> โดยที่ t_ground = √(2·H_target/g)</p>
+      <div class="eq-box">v₀_min = D / (cos θ · √(2·H_target/g))</div>
+    </div>
+
+    <div class="th-sec">
+      <h2>📋 หลักการสำคัญที่ได้เรียนรู้</h2>
+      <div class="two-col">
+        <div class="mini-card">
+          <h4>1. ความเป็นอิสระของการเคลื่อนที่</h4>
+          <p>ความเร็วแนวนอน vₓ = v₀cosθ และแนวตั้ง vᵧ = v₀sinθ − gt ทำงานแยกกัน ไม่กระทบกันและกัน</p>
+        </div>
+        <div class="mini-card">
+          <h4>2. แรงโน้มถ่วงสากล</h4>
+          <p>ทั้งกระสุน (มีความเร็วต้น) และขวด (ตกจากหยุดนิ่ง) ได้รับความเร่ง g = 9.8 m/s² เท่ากันทุกประการ</p>
+        </div>
+        <div class="mini-card">
+          <h4>3. Frame of Reference</h4>
+          <p>ในกรอบที่ "ไม่มีแรงโน้มถ่วง" กระสุนเดินตรงชนขวด — แรงโน้มถ่วงเพียง "เลื่อน" ทั้งสองลงพร้อมกัน</p>
+        </div>
+        <div class="mini-card">
+          <h4>4. SUVAT Connection</h4>
+          <p>การตกของขวด: s = ½gt² ส่วนแนวตั้งกระสุน: Δy = v₀sinθ·t − ½gt² ต่างใช้สมการ s = ut + ½at²</p>
+        </div>
+      </div>
+
+      <!-- MOTION INDEPENDENCE SVG -->
+      <div class="vis-wrap" style="margin-top:14px;">
+        <div class="fig-lbl">📊 Fig.3 — ความเป็นอิสระของการเคลื่อนที่: x-motion vs y-motion</div>
+        <svg viewBox="0 0 500 195" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="aW" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#e2e8f0"/></marker>
+            <marker id="aP" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#a78bfa"/></marker>
+            <marker id="aY" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#fbbf24"/></marker>
+            <marker id="aGr" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0,0 7,3 0,6" fill="#34d399"/></marker>
+          </defs>
+          <rect width="500" height="195" fill="#0a0e1a"/>
+          <!-- divider -->
+          <line x1="245" y1="8" x2="245" y2="187" stroke="#1e3a5f" stroke-width="1"/>
+
+          <!-- ===== LEFT PANEL: x-motion (horizontal) ===== -->
+          <text x="122" y="22" fill="#38bdf8" font-size="11" font-weight="bold" font-family="Sarabun" text-anchor="middle">แนวนอน (x-direction)</text>
+
+          <!-- ground line -->
+          <line x1="10" y1="140" x2="234" y2="140" stroke="#4ade80" stroke-width="1"/>
+
+          <!-- bullet positions at t=0..0.6 (equal spacing → uniform motion) -->
+          <!-- vx=10.57, Δx=1.057m per 0.1s; scale ~19px/m -->
+          <!-- positions in px from left: 18, 38, 58, 78, 98, 118, 138 (spacing=20px) -->
+          <g fill="#fbbf24" stroke="#fde68a" stroke-width="1">
+            <circle cx="18" cy="120" r="6"/><circle cx="39" cy="120" r="6"/>
+            <circle cx="60" cy="120" r="6"/><circle cx="81" cy="120" r="6"/>
+            <circle cx="102" cy="120" r="6"/><circle cx="123" cy="120" r="6"/>
+            <circle cx="144" cy="120" r="6"/>
+          </g>
+          <!-- equal spacing brackets below -->
+          <g stroke="#38bdf8" stroke-width="1" fill="none">
+            <line x1="18" y1="148" x2="39" y2="148"/>
+            <line x1="18" y1="144" x2="18" y2="152"/>
+            <line x1="39" y1="144" x2="39" y2="152"/>
+            <line x1="60" y1="148" x2="81" y2="148"/>
+            <line x1="60" y1="144" x2="60" y2="152"/>
+            <line x1="81" y1="144" x2="81" y2="152"/>
+            <line x1="102" y1="148" x2="123" y2="148"/>
+            <line x1="102" y1="144" x2="102" y2="152"/>
+            <line x1="123" y1="144" x2="123" y2="152"/>
+          </g>
+          <text x="28" y="163" fill="#38bdf8" font-size="8" font-family="Sarabun" text-anchor="middle">Δx</text>
+          <text x="70" y="163" fill="#38bdf8" font-size="8" font-family="Sarabun" text-anchor="middle">Δx</text>
+          <text x="112" y="163" fill="#38bdf8" font-size="8" font-family="Sarabun" text-anchor="middle">Δx</text>
+          <!-- time labels -->
+          <g fill="#475569" font-size="7.5" font-family="Share Tech Mono" text-anchor="middle">
+            <text x="18" y="108">t=0</text><text x="60" y="108">0.2s</text>
+            <text x="102" y="108">0.4s</text><text x="144" y="108">0.6s</text>
+          </g>
+          <!-- label box -->
+          <rect x="160" y="94" width="72" height="42" fill="#0d1322" rx="4" opacity="0.95"/>
+          <text x="196" y="107" fill="#38bdf8" font-size="9" font-family="Share Tech Mono" text-anchor="middle">aₓ = 0</text>
+          <text x="196" y="120" fill="#fbbf24" font-size="9" font-family="Sarabun" text-anchor="middle">vₓ = const.</text>
+          <text x="196" y="132" fill="#muted" font-size="8" font-family="Sarabun" text-anchor="middle" fill="#94a3b8">ระยะห่างเท่ากัน</text>
+
+          <!-- ===== RIGHT PANEL: y-motion (vertical) ===== -->
+          <text x="372" y="22" fill="#38bdf8" font-size="11" font-weight="bold" font-family="Sarabun" text-anchor="middle">แนวตั้ง (y-direction)</text>
+          <text x="372" y="34" fill="#94a3b8" font-size="9" font-family="Sarabun" text-anchor="middle">ที่เวลา t = 0.5s, ½gt² = 1.23m</text>
+
+          <!-- left sub-column: BULLET y-motion -->
+          <text x="316" y="52" fill="#fbbf24" font-size="9" font-family="Sarabun" text-anchor="middle">🟡 กระสุน</text>
+          <!-- no-gravity bullet at byNG = 1.2+5.69*0.5 = 4.045m → svg: let's show relative positions -->
+          <!-- no-gravity marker (hollow) -->
+          <circle cx="316" cy="72" r="6" fill="none" stroke="rgba(251,146,60,0.6)" stroke-width="1.5" stroke-dasharray="2,2"/>
+          <text x="296" y="75" fill="rgba(251,146,60,0.55)" font-size="8" font-family="Sarabun" text-anchor="end">ไม่มีg</text>
+          <!-- Δy fall arrow (½gt²=1.23m, scale ~32px/m → 39px) -->
+          <line x1="316" y1="78" x2="316" y2="112" stroke="#a78bfa" stroke-width="2"/>
+          <polygon points="316,116 312,108 320,108" fill="#a78bfa"/>
+          <text x="328" y="100" fill="#a78bfa" font-size="8.5" font-family="Share Tech Mono">½gt²</text>
+          <!-- actual bullet position -->
+          <circle cx="316" cy="120" r="6" fill="#fbbf24" stroke="#fde68a" stroke-width="1"/>
+          <text x="296" y="123" fill="#fbbf24" font-size="8" font-family="Sarabun" text-anchor="end">จริง</text>
+
+          <!-- right sub-column: BOTTLE y-motion -->
+          <text x="432" y="52" fill="#34d399" font-size="9" font-family="Sarabun" text-anchor="middle">🟢 ขวด</text>
+          <!-- original position (hollow) -->
+          <circle cx="432" cy="58" r="6" fill="none" stroke="rgba(52,211,153,0.6)" stroke-width="1.5" stroke-dasharray="2,2"/>
+          <text x="452" y="61" fill="rgba(52,211,153,0.55)" font-size="8" font-family="Sarabun">เดิม</text>
+          <!-- same Δy fall arrow (same length=39px!) -->
+          <line x1="432" y1="64" x2="432" y2="98" stroke="#a78bfa" stroke-width="2"/>
+          <polygon points="432,102 428,94 436,94" fill="#a78bfa"/>
+          <text x="444" y="86" fill="#a78bfa" font-size="8.5" font-family="Share Tech Mono">½gt²</text>
+          <!-- actual bottle position -->
+          <rect x="424" y="100" width="16" height="22" fill="#065f46" stroke="#34d399" stroke-width="2" rx="2"/>
+
+          <!-- "equal" annotation between the two arrows -->
+          <line x1="330" y1="96" x2="420" y2="80" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
+          <text x="374" y="86" fill="#fbbf24" font-size="9" font-family="Sarabun" text-anchor="middle" font-weight="bold">= เท่ากัน!</text>
+
+          <!-- bottom label -->
+          <rect x="258" y="148" width="232" height="36" fill="#1a2e1a" rx="5" opacity="0.9"/>
+          <text x="374" y="162" fill="#34d399" font-size="10" font-family="Sarabun" text-anchor="middle" font-weight="bold">aᵧ = −g = −9.8 m/s²</text>
+          <text x="374" y="177" fill="#34d399" font-size="9" font-family="Sarabun" text-anchor="middle">(เท่ากันสำหรับกระสุนและขวด)</text>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const G = 9.8;
+const WW = 16;   // world width  (m)
+const WH = 10;   // world height (m)
+const PL = 52, PR = 24, PT = 24, PB = 44;  // canvas padding px
+
+// ============================================================
+// STATE
+// ============================================================
+let isPlaying = false, t = 0, animId = null, lastTs = null, simSpeed = 1;
+let phase = 'ready'; // 'ready' | 'running' | 'hit' | 'miss'
+let hitEffect = 0, missTimer = 0;
+let dotsBullet = [], dotsBottle = [], nextDotT = 0;
+let prev_bx = 0, prev_by = 0, prev_my = 0;
+
+// params
+let v0 = 12, dist = 8, h_gun = 1.2, h_target = 5.5;
+let x_gun = 1.5, y_gun, x_target, y_target, theta;
+
+// live positions
+let bx, by, mx, my;
+
+// ============================================================
+// DERIVED PARAMS
+// ============================================================
+function computeParams() {
+  y_gun    = h_gun;
+  x_target = x_gun + dist;
+  y_target = h_target;
+  theta    = Math.atan2(y_target - y_gun, x_target - x_gun);
+}
+
+function initState() {
+  computeParams();
+  t = 0; phase = 'ready'; hitEffect = 0; missTimer = 0;
+  dotsBullet = []; dotsBottle = []; nextDotT = 0;
+  bx = x_gun; by = y_gun;
+  mx = x_target; my = y_target;
+  prev_bx = bx; prev_by = by; prev_my = my;
+  updateReadout(); draw();
+}
+
+// ============================================================
+// CANVAS UTILS
+// ============================================================
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function wx(wx_) { return PL + (wx_ / WW) * (canvas.width  - PL - PR); }
+function wy(wy_) { return canvas.height - PB - (wy_ / WH) * (canvas.height - PT - PB); }
+function ws(n)   { return (n / WW) * (canvas.width - PL - PR); }
+
+// ============================================================
+// DRAW
+// ============================================================
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Sky
+  const skyG = ctx.createLinearGradient(0, 0, 0, wy(0));
+  skyG.addColorStop(0, '#04060e');
+  skyG.addColorStop(1, '#0c1628');
+  ctx.fillStyle = skyG;
+  ctx.fillRect(0, 0, W, wy(0));
+
+  // Y-axis ruler
+  ctx.textAlign = 'right';
+  ctx.font = `${Math.max(9,ws(0.28))}px Share Tech Mono`;
+  for (let h = 0; h <= WH; h += 1) {
+    if (h > 0 && h < WH) {
+      ctx.strokeStyle = 'rgba(30,58,95,0.25)';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(PL, wy(h)); ctx.lineTo(W - PR, wy(h)); ctx.stroke();
+      ctx.fillStyle = '#334155';
+      ctx.fillText(h + 'm', PL - 4, wy(h) + 4);
+    }
+  }
+
+  // Ground
+  const gy0 = wy(0);
+  const gG = ctx.createLinearGradient(0, gy0, 0, gy0 + 40);
+  gG.addColorStop(0, '#14532d'); gG.addColorStop(1, '#052e16');
+  ctx.fillStyle = gG;
+  ctx.fillRect(0, gy0, W, H - gy0);
+  ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PL, gy0); ctx.lineTo(W - PR, gy0); ctx.stroke();
+
+  // ===== GUN STAND =====
+  const gx_c = wx(x_gun), gy_c = wy(y_gun);
+  const legH = wy(0) - gy_c;
+  // legs
+  ctx.fillStyle = '#374151';
+  ctx.fillRect(gx_c - ws(0.3), gy_c, ws(0.1), legH);
+  ctx.fillRect(gx_c + ws(0.2), gy_c, ws(0.1), legH);
+  // table top
+  ctx.fillStyle = '#4b5563';
+  ctx.fillRect(gx_c - ws(0.45), gy_c - ws(0.07), ws(0.9), ws(0.14));
+
+  // ===== GUN TUBE =====
+  ctx.save();
+  ctx.translate(gx_c, gy_c);
+  ctx.rotate(-theta);
+  const tLen = ws(1.3), tH = ws(0.12);
+  const tGrad = ctx.createLinearGradient(0, -tH/2, 0, tH/2);
+  tGrad.addColorStop(0, '#94a3b8'); tGrad.addColorStop(1, '#475569');
+  ctx.fillStyle = tGrad;
+  ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+  ctx.fillRect(0, -tH/2, tLen, tH);
+  ctx.strokeRect(0, -tH/2, tLen, tH);
+  // muzzle highlight
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(tLen - ws(0.05), -tH/2, ws(0.05), tH);
+  ctx.restore();
+
+  // Angle label
+  ctx.font = `${Math.max(9,ws(0.27))}px Share Tech Mono`;
+  ctx.fillStyle = '#60a5fa'; ctx.textAlign = 'left';
+  const degStr = (theta * 180 / Math.PI).toFixed(1) + '°';
+  ctx.fillText('θ='+degStr, gx_c + ws(0.5), gy_c - ws(0.2));
+
+  // ===== TARGET STAND (pole) =====
+  const tx_c = wx(x_target);
+  const poleTop = PT * 0.5;
+  ctx.fillStyle = '#374151';
+  ctx.fillRect(tx_c - ws(0.07), poleTop, ws(0.14), wy(0) - poleTop);
+  ctx.strokeStyle = '#4b5563'; ctx.lineWidth = 1;
+  ctx.strokeRect(tx_c - ws(0.07), poleTop, ws(0.14), wy(0) - poleTop);
+
+  // Electromagnet head
+  const emW = ws(0.55), emH = ws(0.28);
+  const emX = tx_c - emW/2, emY = poleTop;
+  const emActive = phase === 'ready';
+  const emColor = emActive ? '#dc2626' : '#3f1a1a';
+  ctx.fillStyle = emColor;
+  ctx.strokeStyle = emActive ? '#fca5a5' : '#4b2a2a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(emX, emY, emW, emH, 3); ctx.fill(); ctx.stroke();
+  // Glow when active
+  if (emActive) {
+    ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  ctx.fillStyle = '#fbbf24'; ctx.textAlign = 'center';
+  ctx.font = `bold ${Math.max(9,emH*0.65)}px Sarabun`;
+  ctx.fillText(emActive ? '⚡' : '○', tx_c, emY + emH * 0.72);
+
+  // String (in ready phase)
+  if (phase === 'ready') {
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(tx_c, emY + emH); ctx.lineTo(wx(mx), wy(my) - ws(0.3)); ctx.stroke();
+  }
+
+  // Vertical reference line under target
+  if (phase === 'running') {
+    ctx.strokeStyle = 'rgba(148,163,184,0.18)'; ctx.lineWidth = 1; ctx.setLineDash([5,5]);
+    ctx.beginPath(); ctx.moveTo(tx_c, PT); ctx.lineTo(tx_c, wy(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ===== NO-GRAVITY PATH =====
+  if (document.getElementById('chk-nograv').checked) {
+    ctx.strokeStyle = 'rgba(251,146,60,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([7,4]);
+    ctx.beginPath();
+    ctx.moveTo(wx(x_gun), wy(y_gun));
+    const extT = 2.2;
+    ctx.lineTo(wx(x_gun + v0*Math.cos(theta)*extT), wy(y_gun + v0*Math.sin(theta)*extT));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(251,146,60,0.75)';
+    ctx.font = `${Math.max(8,ws(0.26))}px Sarabun`; ctx.textAlign = 'left';
+    ctx.fillText('ถ้าไม่มีแรงโน้มถ่วง', wx(x_gun + v0*Math.cos(theta)*0.8)+4, wy(y_gun + v0*Math.sin(theta)*0.8)-4);
+  }
+
+  // ===== TRAJECTORY DOTS =====
+  if (document.getElementById('chk-dots').checked) {
+    dotsBullet.forEach(d => {
+      ctx.beginPath(); ctx.arc(wx(d.x), wy(d.y), 4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(251,191,36,0.65)'; ctx.fill();
+      ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1; ctx.stroke();
+    });
+    dotsBottle.forEach(d => {
+      ctx.beginPath(); ctx.arc(wx(d.x), wy(d.y), 4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(52,211,153,0.65)'; ctx.fill();
+      ctx.strokeStyle = '#34d399'; ctx.lineWidth = 1; ctx.stroke();
+    });
+  }
+
+  // ===== Δy annotation =====
+  if (document.getElementById('chk-fall').checked && phase === 'running' && t > 0.05) {
+    const fallDist = 0.5 * G * t * t;
+    const noGravY  = y_gun + v0 * Math.sin(theta) * t;
+    if (fallDist < 3 && bx < x_target) {
+      ctx.strokeStyle = 'rgba(129,140,248,0.6)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(wx(bx), wy(noGravY)); ctx.lineTo(wx(bx), wy(by)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#818cf8'; ctx.font = `${Math.max(8,ws(0.25))}px Sarabun`; ctx.textAlign = 'right';
+      ctx.fillText(`Δy=${fallDist.toFixed(2)}m`, wx(bx)-3, wy((noGravY+by)/2)+4);
+
+      // Same for bottle
+      ctx.strokeStyle = 'rgba(52,211,153,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(wx(mx)-ws(0.2), wy(y_target)); ctx.lineTo(wx(mx)-ws(0.2), wy(my)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#34d399'; ctx.textAlign = 'right';
+      ctx.fillText(`Δy=${fallDist.toFixed(2)}m`, wx(mx)-ws(0.25), wy((y_target+my)/2)+4);
+    }
+  }
+
+  // ===== BULLET =====
+  if (phase === 'running' || phase === 'hit') {
+    const bcx = wx(bx), bcy = wy(by);
+    const bR = Math.max(5,ws(0.18));
+    const bG2 = ctx.createRadialGradient(bcx-bR*0.3, bcy-bR*0.3, bR*0.1, bcx, bcy, bR);
+    bG2.addColorStop(0, '#fef9c3'); bG2.addColorStop(1, '#f59e0b');
+    ctx.beginPath(); ctx.arc(bcx, bcy, bR, 0, Math.PI*2);
+    ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 14;
+    ctx.fillStyle = bG2; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // ===== BOTTLE =====
+  if (phase !== 'hit' || hitEffect > 0.25) {
+    const bW = Math.max(14, ws(0.32)), bH = Math.max(22, ws(0.55));
+    const bcX = wx(mx), bcY = wy(my);
+    ctx.save();
+    ctx.globalAlpha = phase === 'hit' ? Math.min(1, hitEffect) : 1;
+    ctx.fillStyle = '#065f46'; ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bcX-bW/2, bcY-bH/2, bW, bH, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath(); ctx.roundRect(bcX-bW/4, bcY-bH/2-bH*0.18, bW/2, bH*0.18, 2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ===== HIT EFFECT =====
+  if (phase === 'hit' && hitEffect > 0) {
+    const ecx = wx(bx), ecy = wy(by);
+    const ef = hitEffect;
+    ctx.save(); ctx.globalAlpha = ef;
+    for (let i = 0; i < 10; i++) {
+      const ang = (i/10)*Math.PI*2;
+      const r   = ws(0.9) * (1 - ef*0.6);
+      const pR  = Math.max(3, ws(0.12) * ef);
+      ctx.beginPath(); ctx.arc(ecx + Math.cos(ang)*r, ecy + Math.sin(ang)*r, pR, 0, Math.PI*2);
+      ctx.fillStyle = i%2===0 ? '#fef08a' : '#f97316'; ctx.fill();
+    }
+    // shockwave ring
+    ctx.beginPath(); ctx.arc(ecx, ecy, ws(0.5) * (1.5 - ef), 0, Math.PI*2);
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3*(1-ef)+1; ctx.stroke();
+    ctx.restore();
+
+    if (ef > 0.4) {
+      ctx.save(); ctx.globalAlpha = (ef-0.4)/0.6;
+      ctx.font = `bold ${Math.max(18,ws(0.9))}px Sarabun`;
+      ctx.fillStyle = '#4ade80'; ctx.textAlign = 'center';
+      ctx.shadowColor='#4ade80'; ctx.shadowBlur=12;
+      ctx.fillText('💥 ชน!', ecx, ecy - ws(0.65));
+      ctx.restore();
+    }
+  }
+
+  // ===== MISS OVERLAY =====
+  if (phase === 'miss') {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0,0,W,H);
+    ctx.font = `bold ${Math.max(16,ws(0.85))}px Sarabun`;
+    ctx.fillStyle = '#f87171'; ctx.textAlign = 'center';
+    ctx.shadowColor='#ef4444'; ctx.shadowBlur=10;
+    ctx.fillText('❌ กระสุนพลาด — ขวดตกถึงพื้นก่อน', W/2, H*0.42);
+    ctx.shadowBlur=0;
+    ctx.font = `${Math.max(11,ws(0.5))}px Sarabun`;
+    ctx.fillStyle = '#fca5a5';
+    ctx.fillText('ลอง เพิ่ม v₀ หรือ ลด ระยะ D', W/2, H*0.42 + ws(0.7));
+  }
+
+  // Legend (when dots visible)
+  if (document.getElementById('chk-dots').checked && (dotsBullet.length > 0 || dotsBottle.length > 0)) {
+    ctx.textAlign = 'right'; ctx.font = `${Math.max(9,ws(0.27))}px Sarabun`;
+    ctx.fillStyle = '#fbbf24'; ctx.fillText('● กระสุน', W-PR-2, PT+14);
+    ctx.fillStyle = '#34d399'; ctx.fillText('● ขวด',   W-PR-2, PT+28);
+  }
+}
+
+// ============================================================
+// PHYSICS UPDATE
+// ============================================================
+function physicsUpdate(dt) {
+  if (phase !== 'running') return;
+
+  prev_bx = bx; prev_by = by; prev_my = my;
+  t += dt;
+  computeParams();
+
+  bx = x_gun + v0 * Math.cos(theta) * t;
+  by = y_gun + v0 * Math.sin(theta) * t - 0.5 * G * t * t;
+  mx = x_target;
+  my = y_target - 0.5 * G * t * t;
+
+  // dots every 0.1s
+  if (t >= nextDotT) {
+    if (by > 0 && bx < WW) dotsBullet.push({x: bx, y: by});
+    if (my > 0)             dotsBottle.push({x: mx, y: my});
+    nextDotT += 0.1;
+  }
+
+  // === Collision: bullet crossing x_target vertical ===
+  if (prev_bx < x_target && bx >= x_target) {
+    const frac     = (x_target - prev_bx) / Math.max(0.0001, bx - prev_bx);
+    const by_cross = prev_by + frac * (by - prev_by);
+    const my_cross = prev_my + frac * (my - prev_my);
+    if (Math.abs(by_cross - my_cross) < 0.55) {
+      bx = x_target; by = by_cross; mx = x_target; my = my_cross;
+      phase = 'hit'; hitEffect = 1.0;
+      return;
+    }
+  }
+
+  // Miss: bottle hits ground
+  if (my <= 0) { my = 0; phase = 'miss'; return; }
+  // Miss: bullet hits ground or overshoots
+  if (by <= 0 || bx > WW + 1) { phase = 'miss'; return; }
+}
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * simSpeed;
+  lastTs = ts;
+
+  physicsUpdate(dt);
+
+  if (phase === 'hit') {
+    hitEffect = Math.max(0, hitEffect - dt * 1.4);
+    if (hitEffect <= 0) stopAnim();
+  }
+  if (phase === 'miss') {
+    stopAnim();
+  }
+
+  draw();
+  updateReadout();
+
+  if (isPlaying) animId = requestAnimationFrame(loop);
+}
+
+function stopAnim() {
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+}
+
+function togglePlay() {
+  if (phase === 'hit' || phase === 'miss') { resetSim(); return; }
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    if (phase === 'ready') phase = 'running';
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด'; btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม'; btn.classList.remove('playing');
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  initState();
+}
+
+// ============================================================
+// READOUT
+// ============================================================
+function updateReadout() {
+  computeParams();
+  document.getElementById('ro-t').textContent = t.toFixed(3) + ' s';
+  document.getElementById('ro-theta').textContent = (theta*180/Math.PI).toFixed(1) + '°';
+  if (phase !== 'ready') {
+    document.getElementById('ro-b').textContent = `(${bx.toFixed(2)}, ${by.toFixed(2)}) m`;
+    document.getElementById('ro-m').textContent = `(${mx.toFixed(2)}, ${my.toFixed(2)}) m`;
+  } else {
+    document.getElementById('ro-b').textContent = '—';
+    document.getElementById('ro-m').textContent = '—';
+  }
+  const st = document.getElementById('ro-status');
+  if (phase === 'ready')   { st.textContent='⏸ พร้อม';       st.className='ro-val'; }
+  else if (phase === 'running') { st.textContent='▶ บินอยู่…'; st.className='ro-val fly'; }
+  else if (phase === 'hit')     { st.textContent='💥 ชน!';     st.className='ro-val hit'; }
+  else if (phase === 'miss')    { st.textContent='❌ พลาด';    st.className='ro-val miss'; }
+}
+
+// ============================================================
+// TAB SWITCH
+// ============================================================
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') startProofAnim();
+  else stopProofAnim();
+}
+
+// ============================================================
+// CANVAS RESIZE
+// ============================================================
+const ro = new ResizeObserver(() => {
+  const c = canvas.parentElement;
+  canvas.width  = c.clientWidth  || 800;
+  canvas.height = c.clientHeight || 450;
+  if (!isPlaying) draw();
+});
+
+// ============================================================
+// SLIDER WIRING
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  const cfg = [
+    { s:'sl-v0',    v:'vi-v0',    cb: val => { v0      = val; } },
+    { s:'sl-dist',  v:'vi-dist',  cb: val => { dist    = val; } },
+    { s:'sl-hg',    v:'vi-hg',    cb: val => { h_gun   = val; } },
+    { s:'sl-ht',    v:'vi-ht',    cb: val => { h_target= val; } },
+    { s:'sl-speed', v:'vi-speed', cb: val => { simSpeed= val; } },
+  ];
+
+  cfg.forEach(({ s, v, cb }) => {
+    const sEl = document.getElementById(s);
+    const vEl = document.getElementById(v);
+    if (!sEl || !vEl) return;
+
+    sEl.addEventListener('input', () => {
+      const val = parseFloat(sEl.value);
+      vEl.value = val; cb(val);
+      if (!isPlaying) { initState(); }
+    });
+    vEl.addEventListener('blur', () => {
+      let val = Math.max(+sEl.min, Math.min(+sEl.max, parseFloat(vEl.value) || 0));
+      vEl.value = val; sEl.value = val; cb(val);
+      if (!isPlaying) { initState(); }
+    });
+    vEl.addEventListener('keydown', e => { if (e.key === 'Enter') vEl.blur(); });
+  });
+
+  document.querySelectorAll('#chk-nograv,#chk-dots,#chk-fall').forEach(c => {
+    c.addEventListener('change', () => { if (!isPlaying) draw(); });
+  });
+
+  ro.observe(canvas.parentElement);
+  const c = canvas.parentElement;
+  canvas.width  = c.clientWidth  || 800;
+  canvas.height = c.clientHeight || 450;
+  initState();
+});
+
+// ============================================================
+// PROOF CANVAS ANIMATION (theory tab)
+// ============================================================
+const PC = {
+  v0:12, dist:7.5, hGun:1.2, hTarget:5.5, g:9.8
+};
+// t_hit=0.72s < t_ground=1.06s → ชนก่อนตกถึงพื้น
+PC.theta  = Math.atan2(PC.hTarget - PC.hGun, PC.dist);
+PC.vx     = PC.v0 * Math.cos(PC.theta);
+PC.vy0    = PC.v0 * Math.sin(PC.theta);
+PC.tHit   = PC.dist / PC.vx;
+const GX  = 0.8;   // gun world-x (เว้นขอบซ้าย)
+
+let pT=0, pAnimId=null, pLastTs=null, pPhase='run', pPause=0;
+
+function startProofAnim() {
+  if (pAnimId) return;
+  pT=0; pPhase='run'; pPause=0; pLastTs=null;
+  if (!document.getElementById('proofCanvas')) return;
+  pAnimId = requestAnimationFrame(proofLoop);
+}
+function stopProofAnim() {
+  if (pAnimId) { cancelAnimationFrame(pAnimId); pAnimId=null; }
+}
+function proofLoop(ts) {
+  if (!pLastTs) pLastTs=ts;
+  const dt = Math.min((ts-pLastTs)/1000, 0.05);
+  pLastTs = ts;
+  if (pPhase==='run') {
+    pT += dt * 0.52;
+    if (pT >= PC.tHit) { pT=PC.tHit; pPhase='pause'; pPause=0; }
+  } else {
+    pPause += dt;
+    if (pPause > 1.6) { pT=0; pPhase='run'; pLastTs=null; }
+  }
+  drawProof();
+  pAnimId = requestAnimationFrame(proofLoop);
+}
+
+function drawProof() {
+  const c = document.getElementById('proofCanvas');
+  if (!c) return;
+  const p = c.getContext('2d');
+  const W=c.width, H=c.height;   // 440 x 240
+
+  // world → canvas transforms (เว้นขอบขวา 50px สำหรับ label)
+  const ox=42, oy=H-26;
+  const sx=(W-ox-50)/(GX + PC.dist + 0.8);
+  const sy=(H-52)/(PC.hTarget+1.3);
+  const ppx = x => ox + x*sx;
+  const ppy = y => oy - y*sy;
+
+  const t   = pT;
+  const bxW = GX + PC.vx*t;
+  const byW = PC.hGun + PC.vy0*t - 0.5*PC.g*t*t;
+  const byNG= PC.hGun + PC.vy0*t;       // no-gravity bullet y
+  const myW = Math.max(0, PC.hTarget - 0.5*PC.g*t*t);
+  const fall= 0.5*PC.g*t*t;
+
+  p.clearRect(0,0,W,H);
+
+  // sky
+  const sky=p.createLinearGradient(0,0,0,ppy(0));
+  sky.addColorStop(0,'#04060e'); sky.addColorStop(1,'#0c1628');
+  p.fillStyle=sky; p.fillRect(0,0,W,ppy(0));
+
+  // ground
+  p.fillStyle='#14532d'; p.fillRect(0,ppy(0),W,H-ppy(0));
+  p.strokeStyle='#4ade80'; p.lineWidth=1.5; p.setLineDash([]);
+  p.beginPath(); p.moveTo(0,ppy(0)); p.lineTo(W,ppy(0)); p.stroke();
+
+  // grid
+  for(let h=1;h<=Math.ceil(PC.hTarget+1);h++){
+    p.strokeStyle='rgba(30,58,95,0.18)'; p.lineWidth=0.5;
+    p.beginPath(); p.moveTo(ox,ppy(h)); p.lineTo(W-6,ppy(h)); p.stroke();
+    p.fillStyle='#2d3f55'; p.font='8px Share Tech Mono'; p.textAlign='right';
+    p.fillText(h+'m', ox-3, ppy(h)+3);
+  }
+
+  // gun stand
+  p.fillStyle='#4b5563'; p.fillRect(ppx(GX)-18,ppy(PC.hGun)-4,36,8);
+  p.fillStyle='#374151';
+  p.fillRect(ppx(GX)-10,ppy(PC.hGun)+4,6,ppy(0)-ppy(PC.hGun)-4);
+  p.fillRect(ppx(GX)+4,ppy(PC.hGun)+4,6,ppy(0)-ppy(PC.hGun)-4);
+  p.save(); p.translate(ppx(GX),ppy(PC.hGun)); p.rotate(-PC.theta);
+  p.fillStyle='#94a3b8'; p.fillRect(0,-5,52,10); p.restore();
+
+  // target pole
+  const TX = ppx(GX+PC.dist);
+  p.fillStyle='#374151'; p.fillRect(TX-4,12,8,ppy(0)-12);
+
+  // electromagnet
+  const emOn = t<0.02;
+  p.fillStyle=emOn?'#dc2626':'#2d1010'; p.strokeStyle=emOn?'#fca5a5':'#3d1a1a'; p.lineWidth=1;
+  p.beginPath(); p.roundRect(TX-16,8,32,16,2); p.fill(); p.stroke();
+  p.fillStyle='#fbbf24'; p.font='11px Sarabun'; p.textAlign='center';
+  p.fillText(emOn?'⚡':'○', TX, 21);
+
+  // string at t≈0
+  if (t<0.02){
+    p.strokeStyle='#fbbf24'; p.lineWidth=1.5;
+    p.beginPath(); p.moveTo(TX,24); p.lineTo(TX,ppy(PC.hTarget)-13); p.stroke();
+  }
+
+  // ===== AIM LINE (no-gravity path) — dashed orange =====
+  const ext=PC.hTarget+(PC.hTarget-PC.hGun)/PC.dist*0.3;
+  p.strokeStyle='rgba(251,146,60,0.38)'; p.lineWidth=1.5; p.setLineDash([6,4]);
+  p.beginPath(); p.moveTo(ppx(GX),ppy(PC.hGun)); p.lineTo(ppx(GX+PC.dist+0.3),ppy(ext)); p.stroke();
+  p.setLineDash([]);
+
+  // ===== ORIGINAL BOTTLE LEVEL (dashed horizontal green) =====
+  if(t>0.06){
+    p.strokeStyle='rgba(52,211,153,0.28)'; p.lineWidth=1; p.setLineDash([4,4]);
+    p.beginPath(); p.moveTo(TX-22,ppy(PC.hTarget)); p.lineTo(TX+22,ppy(PC.hTarget)); p.stroke();
+    p.setLineDash([]);
+    p.beginPath(); p.arc(TX,ppy(PC.hTarget),3,0,Math.PI*2);
+    p.fillStyle='rgba(52,211,153,0.35)'; p.fill();
+  }
+
+  // ===== NO-GRAVITY BULLET dot (hollow, on aim line) =====
+  if(t>0.06 && pPhase!=='pause'){
+    p.beginPath(); p.arc(ppx(bxW),ppy(byNG),5.5,0,Math.PI*2);
+    p.fillStyle='rgba(251,146,60,0.15)'; p.fill();
+    p.strokeStyle='rgba(251,146,60,0.55)'; p.lineWidth=1.5; p.stroke();
+  }
+
+  // ===== Δy EQUAL ARROWS =====
+  if(t>0.1 && fall>0.12 && pPhase!=='pause'){
+    const col='#a78bfa';
+    // bullet: arrow to the LEFT of bullet pos (ขวาสุดเขตปลอดภัย)
+    const ngY=ppy(byNG), actBY=ppy(byW);
+    if(actBY>ngY+8){
+      drawΔArr(p, ppx(bxW)-14, ngY, actBY, col, '½gt²', 'left');
+    }
+    // bottle: arrow to the RIGHT of TX (เขตขอบขวา)
+    const orgY=ppy(PC.hTarget), actMY=ppy(myW);
+    if(actMY>orgY+8){
+      drawΔArr(p, TX+14, orgY, actMY, col, '½gt²', 'right');
+    }
+    // "= กัน!" label ตรงกลาง
+    if(actBY>ngY+16 && actMY>orgY+16){
+      const midY=((ngY+actBY)/2+(orgY+actMY)/2)/2;
+      p.fillStyle='#fbbf24'; p.font='bold 10px Sarabun'; p.textAlign='center';
+      p.fillText('= กัน!', (ppx(bxW)+TX)/2, midY+4);
+    }
+  }
+
+  // ===== BULLET =====
+  if(pPhase!=='pause'){
+    p.beginPath(); p.arc(ppx(bxW),ppy(byW),7,0,Math.PI*2);
+    const bg=p.createRadialGradient(ppx(bxW)-2,ppy(byW)-2,1,ppx(bxW),ppy(byW),7);
+    bg.addColorStop(0,'#fef9c3'); bg.addColorStop(1,'#f59e0b');
+    p.fillStyle=bg; p.shadowColor='#fbbf24'; p.shadowBlur=10; p.fill();
+    p.shadowBlur=0; p.strokeStyle='#fde68a'; p.lineWidth=1; p.stroke();
+  }
+
+  // ===== BOTTLE =====
+  if(pPhase!=='pause'){
+    const bW=16,bH=22,bcY=ppy(myW);
+    p.fillStyle='#065f46'; p.strokeStyle='#34d399'; p.lineWidth=2;
+    p.beginPath(); p.roundRect(TX-bW/2,bcY-bH/2,bW,bH,3); p.fill(); p.stroke();
+    p.fillStyle='#10b981';
+    p.beginPath(); p.roundRect(TX-bW/4,bcY-bH/2-bH*0.18,bW/2,bH*0.18,2); p.fill();
+  }
+
+  // ===== COLLISION FLASH =====
+  if(pPhase==='pause'){
+    const ef=Math.max(0,1-pPause/0.85);
+    const ecy=ppy(myW);
+    p.save(); p.globalAlpha=ef;
+    for(let i=0;i<10;i++){
+      const ang=(i/10)*Math.PI*2, r=28*(1-ef*0.5);
+      p.beginPath(); p.arc(TX+Math.cos(ang)*r,ecy+Math.sin(ang)*r,4,0,Math.PI*2);
+      p.fillStyle=i%2===0?'#fef08a':'#f97316'; p.fill();
+    }
+    p.beginPath(); p.arc(TX,ecy,22*(1.5-ef*0.8),0,Math.PI*2);
+    p.strokeStyle='#fbbf24'; p.lineWidth=2.5; p.stroke();
+    p.restore();
+    if(ef>0.25){
+      p.save(); p.globalAlpha=(ef-0.25)/0.75;
+      p.font='bold 13px Sarabun'; p.fillStyle='#4ade80'; p.textAlign='center';
+      p.shadowColor='#4ade80'; p.shadowBlur=14;
+      p.fillText('💥 ½gt² เท่ากัน → ชนกัน!', W/2, ecy-22);
+      p.restore();
+    }
+  }
+
+  // time label
+  p.fillStyle='#3d4f63'; p.font='9px Share Tech Mono'; p.textAlign='left';
+  p.fillText('t = '+(pPhase==='pause'?PC.tHit.toFixed(2):t.toFixed(2))+' s', 7,15);
+
+  // aim line label
+  p.fillStyle='rgba(251,146,60,0.55)'; p.font='9px Sarabun'; p.textAlign='left';
+  p.fillText('— ไม่มีแรงโน้มถ่วง', ppx(GX)+4, ppy(PC.hGun+(PC.hTarget-PC.hGun)*0.3)+12);
+}
+
+function drawΔArr(p, x, y1, y2, col, lbl, side) {
+  if(y2<=y1+6) return;
+  p.strokeStyle=col; p.lineWidth=2; p.setLineDash([]);
+  p.beginPath(); p.moveTo(x,y1+1); p.lineTo(x,y2-6); p.stroke();
+  p.fillStyle=col;
+  p.beginPath(); p.moveTo(x,y2); p.lineTo(x-4,y2-8); p.lineTo(x+4,y2-8); p.fill();
+  p.beginPath(); p.moveTo(x-4,y1); p.lineTo(x+4,y1); p.stroke();
+  p.font='bold 8.5px Share Tech Mono'; p.textAlign=side==='right'?'left':'right';
+  p.fillStyle=col;
+  p.fillText(lbl, side==='right'?x+6:x-6, (y1+y2)/2+3);
+}
+</script>
+</body>
+</html>

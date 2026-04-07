@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sailing Upwind — แล่นทวนลม | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;--warn:#f87171;--text:#e2e8f0;--muted:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;white-space:nowrap}
+
+nav{display:flex;gap:4px;padding:8px 20px;background:#0f172a;border-bottom:1px solid var(--border)}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── SIM TAB ─────────────────────────────── */
+#sim-canvas-wrap{position:relative;width:100%;height:420px;background:#060d1f;border-bottom:1px solid var(--border);overflow:hidden}
+#simCanvas{display:block;width:100%;height:100%}
+
+.canvas-overlay{position:absolute;top:10px;right:10px;background:rgba(10,14,26,.88);border:1px solid var(--border);border-radius:8px;padding:10px 13px;min-width:136px;pointer-events:none}
+.ov-row{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;font-size:.78rem}
+.ov-row .lbl{color:var(--muted)}
+.ov-row .val{font-family:'Share Tech Mono',monospace;font-weight:700}
+.ov-sep{border-top:1px solid var(--border);margin:6px 0}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.82rem;transition:.15s}
+.btn-play{background:#1b5e20;color:#fff}.btn-play:hover{background:#2e7d32}.btn-play.playing{background:#b71c1c}
+.btn-reset{background:#0d47a1;color:#fff}.btn-reset:hover{background:#1565c0}
+.btn-preset{background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;transition:.15s}
+.btn-preset:hover{border-color:var(--accent);color:var(--accent)}
+.preset-label{font-size:.75rem;color:var(--muted)}
+.speed-row{display:flex;align-items:center;gap:6px;margin-left:auto}
+.speed-row label{font-size:.75rem;color:var(--muted)}
+#sl-speed{accent-color:var(--accent);width:70px}
+
+.sliders-wrap{background:var(--panel);border-bottom:1px solid var(--border);padding:12px 20px}
+.sl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px 24px}
+.sl-row{display:flex;align-items:center;gap:8px}
+.sl-sym{font-size:.9rem;color:var(--accent);font-style:italic;min-width:20px;font-weight:700;text-align:center}
+.sl-label{font-size:.79rem;color:var(--muted);min-width:96px;flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.val-input{width:50px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.82rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent)}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:24px}
+.hint-tag{font-size:.7rem;padding:2px 7px;border-radius:10px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.hint-ok{color:var(--accent3);border-color:var(--accent3);background:rgba(52,211,153,.08)}
+.hint-warn{color:var(--accent4);border-color:var(--accent4);background:rgba(251,146,60,.08)}
+
+.info-cards{display:flex;gap:8px;padding:9px 20px;overflow-x:auto;background:var(--panel2);border-bottom:1px solid var(--border);scrollbar-width:thin}
+.icard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:7px 12px;min-width:105px;text-align:center;flex-shrink:0;cursor:default}
+.icard .clbl{font-size:.71rem;color:var(--muted);margin-bottom:2px}
+.icard .cval{font-size:1.05rem;font-family:'Share Tech Mono',monospace;font-weight:700}
+
+/* ── THEORY TAB ──────────────────────────── */
+.theory-wrap{max-width:860px;margin:0 auto;padding:24px 20px}
+.theory-sec{margin-bottom:30px}
+.theory-sec h2{color:var(--accent);font-size:1rem;font-weight:700;margin-bottom:13px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.theory-sec p{color:var(--muted);line-height:1.75;font-size:.88rem;margin-bottom:8px}
+.theory-sec p strong{color:var(--text)}
+
+.diag-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin:14px 0;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.diag-card canvas{border-radius:6px;flex-shrink:0}
+.diag-text{flex:1;min-width:180px}
+
+.step-list{list-style:none;margin-top:6px}
+.step-list li{display:flex;gap:9px;margin-bottom:9px}
+.step-num{background:var(--accent);color:#0a0e1a;font-weight:700;border-radius:50%;width:21px;height:21px;display:flex;align-items:center;justify-content:center;font-size:.77rem;flex-shrink:0;margin-top:1px}
+.step-body{color:var(--muted);font-size:.86rem;line-height:1.65}
+.step-body strong{color:var(--text)}
+
+.fbox{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--accent3);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0}
+.fbox .feq{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;margin-bottom:3px}
+.fbox .fdesc{font-size:.78rem;color:var(--muted)}
+
+.opt-box{background:rgba(52,211,153,.08);border:1px solid var(--accent3);border-radius:8px;padding:10px 14px;margin:10px 0}
+.opt-box strong{color:var(--accent3)}
+.opt-box .odesc{font-size:.83rem;color:var(--muted);line-height:1.65;margin-top:4px}
+
+.theory-table{width:100%;border-collapse:collapse;font-size:.83rem;margin-top:10px}
+.theory-table th{padding:8px 12px;text-align:left;color:var(--accent);font-weight:700;border-bottom:2px solid var(--border)}
+.theory-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--muted)}
+.theory-table tr.highlight td{color:var(--accent3);background:rgba(52,211,153,.05)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⛵</div>
+  <div>
+    <h1>Sailing Upwind — แล่นทวนลม</h1>
+    <p>การแยกเวกเตอร์แรงและบทบาทของคีล · กลศาสตร์ ม.4–5</p>
+  </div>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ═══════════ SIMULATION TAB ═══════════ -->
+<div id="tab-sim" class="tab-section active">
+
+  <div id="sim-canvas-wrap">
+    <canvas id="simCanvas"></canvas>
+    <div class="canvas-overlay">
+      <div class="ov-row"><span class="lbl">θ แนวเคลื่อนที่</span><span class="val" id="ov-psi" style="color:var(--accent4)">45°</span></div>
+      <div class="ov-row"><span class="lbl">δ มุมใบเรือ</span><span class="val" id="ov-delta" style="color:var(--accent)">22°</span></div>
+      <div class="ov-sep"></div>
+      <div class="ov-row"><span class="lbl">F_forward</span><span class="val" id="ov-ff" style="color:var(--accent3)">–</span></div>
+      <div class="ov-row"><span class="lbl">v_boat</span><span class="val" id="ov-vu" style="color:var(--accent4)">–</span></div>
+      <div class="ov-sep"></div>
+      <div class="ov-row"><span class="lbl">ประสิทธิภาพ</span><span class="val" id="ov-eff" style="color:var(--accent2)">–</span></div>
+    </div>
+  </div>
+
+  <div class="cbar">
+    <button id="playBtn" class="btn btn-play" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <span class="preset-label">Preset:</span>
+    <button class="btn-preset" onclick="applyPreset(40,20,15)">Close-hauled</button>
+    <button class="btn-preset" onclick="applyPreset(45,22,15)">ค่าเริ่มต้น</button>
+    <button class="btn-preset" onclick="applyPreset(55,27,18)">Optimal 55°</button>
+    <button class="btn-preset" onclick="applyPreset(45,5,15)">❌ Stall</button>
+    <div class="speed-row">
+      <label>ความเร็ว:</label>
+      <input type="range" id="sl-speed" min="0.2" max="3" step="0.1" value="1">
+      <span id="lbl-speed" class="mono" style="font-size:.78rem;color:var(--accent)">1.0×</span>
+    </div>
+  </div>
+
+  <div class="sliders-wrap">
+    <div class="sl-grid">
+      <div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent4)">θ</span>
+          <span class="sl-label">แนวการเคลื่อนที่ (จากทิศลม)</span>
+          <input class="sl-range" type="range" id="sl-psi" min="20" max="85" step="1" value="45" style="accent-color:var(--accent4)">
+          <input class="val-input" type="number" id="vi-psi" min="20" max="85" step="1" value="45">
+          <span class="sl-unit">°</span>
+          <span class="hint-tag hint-ok" id="hint-psi">ทวนลมดี</span>
+        </div>
+      </div>
+      <div>
+        <div class="sl-row">
+          <span class="sl-sym">δ</span>
+          <span class="sl-label">มุมใบเรือ (จากทิศลม)</span>
+          <input class="sl-range" id="sl-delta" type="range" min="3" max="65" step="1" value="22">
+          <input class="val-input" type="number" id="vi-delta" min="3" max="65" step="1" value="22">
+          <span class="sl-unit">°</span>
+          <span class="hint-tag hint-ok" id="hint-delta">≈ ค่าเหมาะสม</span>
+        </div>
+      </div>
+      <div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent2)">V</span>
+          <span class="sl-label">ความเร็วลม</span>
+          <input class="sl-range" id="sl-vw" style="accent-color:var(--accent2)" type="range" min="3" max="30" step="1" value="15">
+          <input class="val-input" type="number" id="vi-vw" min="3" max="30" step="1" value="15">
+          <span class="sl-unit">m/s</span>
+          <span class="hint-tag hint-ok" id="hint-vw">ลมแรง</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-cards">
+    <div class="icard"><div class="clbl">F_sail</div><div class="cval" id="c-fsail" style="color:var(--accent)">–</div></div>
+    <div class="icard"><div class="clbl">F_forward</div><div class="cval" id="c-ffwd" style="color:var(--accent3)">–</div></div>
+    <div class="icard"><div class="clbl">F_keel</div><div class="cval" id="c-fkeel" style="color:var(--warn)">–</div></div>
+    <div class="icard"><div class="clbl">v_boat</div><div class="cval" id="c-vb" style="color:var(--accent)">–</div></div>
+    <div class="icard"><div class="clbl">v_upwind</div><div class="cval" id="c-vu" style="color:var(--accent4)">–</div></div>
+    <div class="icard"><div class="clbl">δ เหมาะสม</div><div class="cval" id="c-dopt" style="color:var(--accent2)">–</div></div>
+  </div>
+</div>
+
+<!-- ═══════════ THEORY TAB ═══════════ -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-sec">
+      <h2>⚡ เรือใบแล่นทวนลมได้อย่างไร?</h2>
+      <p>หลายคนเข้าใจผิดว่าเรือใบสามารถแล่น<strong>ตามลม</strong>ได้เท่านั้น แต่ในความเป็นจริง เมื่อตั้งใบเรือถูกต้อง เรือสามารถแล่นมีองค์ประกอบความเร็ว<strong>ทวนทิศทางที่ลมพัดมา</strong> ได้ โดยอาศัยหลักการสำคัญสองอย่าง:</p>
+      <p>① <strong>แรงตั้งฉากกับผิวใบ</strong> จากลมที่พัดเฉียง — คล้ายแรงยกของปีกเครื่องบิน<br>
+         ② <strong>คีลเรือ</strong> (keel) หรือล้อสเก็ตที่หมุนได้ทิศเดียว — ป้องกันการเลื่อนข้าง ทำให้เรือวิ่งได้เฉพาะไปข้างหน้า</p>
+      <div class="diag-card">
+        <canvas id="dg1" width="240" height="190" style="background:#060d1f"></canvas>
+        <div class="diag-text">
+          <ul class="step-list">
+            <li><div class="step-num">1</div><div class="step-body">ลมพัดเฉียงมาจาก<strong>ด้านหัวเรือ</strong> ทำมุม ψ กับทิศเดินเรือ</div></li>
+            <li><div class="step-num">2</div><div class="step-body">ใบเรือตั้งมุม δ กับกงเรือ สร้าง<strong>แรง F_sail</strong> ตั้งฉากกับผิวใบ</div></li>
+            <li><div class="step-num">3</div><div class="step-body">คีล/ล้อต้านแรงข้าง → <strong>F_forward</strong> ขับเรือไปข้างหน้า</div></li>
+            <li><div class="step-num">4</div><div class="step-body">ความเร็วเรือ v_boat มี<strong>องค์ประกอบ v_upwind</strong> ทวนทิศลม</div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="theory-sec">
+      <h2>🌬️ แรงลมบนใบเรือ — Normal Force on Sail</h2>
+      <p>เมื่อลมพัดกระทบใบเรือที่ตั้งเฉียง ลมสร้าง<strong>แรงตั้งฉากกับผิวใบ</strong> (F_sail) ทิศชี้ไปด้านที่ลมพัดออก (leeward)</p>
+      <div class="diag-card">
+        <canvas id="dg2" width="240" height="210" style="background:#060d1f"></canvas>
+        <div class="diag-text">
+          <div class="fbox">
+            <div class="feq">F_sail = k · V_wind · sin(ψ − δ)</div>
+            <div class="fdesc">มีค่า > 0 เฉพาะเมื่อ ψ > δ (มุมลมมากกว่ามุมใบ)</div>
+          </div>
+          <p>ถ้า δ ≥ ψ: ลมพัดขนานหรือผ่านด้านหลังใบ → ไม่เกิดแรง (stall)</p>
+          <p>ถ้า δ เล็กเกินไป: F_sail มาก แต่ F_forward = F_sail × sin(δ) น้อยมาก</p>
+          <p><strong>จุดสำคัญ:</strong> แรงลม F_sail ชี้ตั้งฉากกับใบ ไม่ใช่ตามทิศลม</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="theory-sec">
+      <h2>⚙️ การแยกแรงตามแกนกงเรือ</h2>
+      <p>F_sail ถูกแยกออกเป็น 2 ส่วนตามแกนของเรือ:</p>
+      <div class="diag-card">
+        <canvas id="dg3" width="240" height="210" style="background:#060d1f"></canvas>
+        <div class="diag-text">
+          <div class="fbox">
+            <div class="feq">F_forward = F_sail · sin(δ)</div>
+            <div class="fdesc">↑ ขับเรือไปข้างหน้า (ตามกงเรือ)</div>
+          </div>
+          <div class="fbox" style="border-left-color:var(--warn);margin-top:6px">
+            <div class="feq" style="color:var(--warn)">F_keel = F_sail · cos(δ)</div>
+            <div class="fdesc">← แรงข้าง — ถูกต้านทั้งหมดโดยคีล/ล้อ</div>
+          </div>
+          <div class="opt-box">
+            <strong>🎯 มุมใบเรือที่เหมาะสม</strong>
+            <div class="odesc">
+              F_forward = k·V·sin(ψ−δ)·sin(δ)<br>
+              สูงสุดเมื่อ <strong>δ_optimal = ψ / 2</strong><br>
+              เช่น ψ=45° → δ_opt = 22.5°<br>
+              เช่น ψ=60° → δ_opt = 30°
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="theory-sec">
+      <h2>🧭 องค์ประกอบความเร็วทวนลม</h2>
+      <p>เนื่องจากเรือวิ่งไปตามทิศหัวเรือ ซึ่งทำมุม ψ กับทิศที่ลมพัดมา ความเร็วเรือจึงมีองค์ประกอบในทิศทวนลม:</p>
+      <div class="fbox"><div class="feq">v_upwind = v_boat · cos(ψ)</div><div class="fdesc">เป็นบวกเสมอเมื่อ ψ &lt; 90° (ลมมาจากด้านหน้า-ข้าง)</div></div>
+      <p>ยิ่ง ψ น้อย (ลมยิ่งมาจากด้านหัว) v_upwind ยิ่งมาก แต่กลับยิ่งยากที่จะสร้าง F_forward ได้เพียงพอ เรือใบจริงจะ <strong>tack</strong> (เดินเป็นซิกแซก) แทนที่จะตัดตรงขึ้นไปตามลม</p>
+    </div>
+
+    <div class="theory-sec">
+      <h2>📊 สรุปสถานการณ์การแล่นเรือ</h2>
+      <table class="theory-table">
+        <thead>
+          <tr><th>สถานการณ์</th><th>มุมลม ψ</th><th>ทวนลม?</th><th>δ ที่ดีที่สุด</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Running — วิ่งตามลม</td><td>~180°</td><td style="color:var(--warn)">✗ ไม่ทวน</td><td>~90°</td></tr>
+          <tr><td>Broad reach</td><td>~120-160°</td><td style="color:var(--warn)">✗ ไม่ทวน</td><td>60–80°</td></tr>
+          <tr><td>Beam reach — ลมขวาง</td><td>~90°</td><td style="color:var(--accent4)">~ เส้นกั้น</td><td>~45°</td></tr>
+          <tr class="highlight"><td><strong>Close-hauled — ทวนลม ⬅</strong></td><td><strong>30°–60°</strong></td><td style="color:var(--accent3)">✓ ทวนลม</td><td><strong>ψ/2</strong></td></tr>
+          <tr><td>Dead upwind (ψ&lt;25°)</td><td>&lt;25°</td><td style="color:var(--warn)">✗ F ไม่พอ</td><td>–</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ SCRIPT ═══════════ -->
+<script>
+// ──────────────────────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────────────────────
+let windAngle = 45;   // ψ degrees from bow (starboard side)
+let sailAngle = 22;   // δ degrees from centerline
+let windSpeed = 15;   // V m/s
+let animSpeed = 1.0;
+
+let isPlaying = false, animId = null, lastTs = null, t = 0;
+let particles = [];
+
+// Boat world position (canvas units)
+let boatWorldX = 0, boatWorldY = 0;
+let totalDist = 0;  // cumulative distance traveled
+let wakePoints = [];
+let wakeTick = 0;
+const MOVE_SCALE = 42;
+
+// ──────────────────────────────────────────────────────
+//  PHYSICS
+// ──────────────────────────────────────────────────────
+function calcPhysics(theta_d, delta_d, V) {
+  const θ = theta_d * Math.PI / 180;  // heading angle from wind direction
+  const δ = delta_d * Math.PI / 180;  // sail angle from wind direction
+
+  const aoa = θ - δ;                           // angle of attack (must be > 0)
+  const Fs = aoa > 0 ? V * Math.sin(δ) : 0;   // F_sail (normal force on sail)
+  const Ff = Fs * Math.sin(aoa);               // F_forward (along movement)
+  const Fk = Fs * Math.cos(aoa);               // F_keel (lateral, resisted)
+  const vb = Ff * 0.85;                        // v_boat
+  const vu = vb * Math.cos(θ);                 // upwind component
+
+  const dOpt = theta_d / 2;
+  const Ff_max = V * Math.pow(Math.sin(θ / 2), 2);
+  const eff = Ff_max > 0.001 ? Math.min(100, Math.round(Ff / Ff_max * 100)) : 0;
+
+  return { θ, δ, V, Fs, Ff, Fk, vb, vu, dOpt, eff, aoa };
+}
+
+// ──────────────────────────────────────────────────────
+//  WIND PARTICLES
+// ──────────────────────────────────────────────────────
+function spawnParticle(init = false) {
+  const canvas = document.getElementById('simCanvas');
+  const W = canvas.width || 800, H = canvas.height || 420;
+  // Wind always blows straight down
+  let x, y;
+  if (init) { x = Math.random() * W; y = Math.random() * H; }
+  else       { x = Math.random() * W; y = -6; }
+  particles.push({
+    x, y,
+    spd: 60 + Math.random() * 50,
+    age: init ? Math.random() * 3 : 0,
+    maxAge: 2.5 + Math.random() * 2,
+    alpha: 0.3 + Math.random() * 0.4
+  });
+}
+
+function initParticles() {
+  particles = [];
+  const n = Math.round((document.getElementById('simCanvas').width * 0.07) || 55);
+  for (let i = 0; i < n; i++) spawnParticle(true);
+}
+
+function updateParticles(dt) {
+  const canvas = document.getElementById('simCanvas');
+  const W = canvas.width, H = canvas.height;
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.age += dt;
+    p.y += p.spd * dt;   // straight down
+    if (p.age > p.maxAge || p.y > H + 20) {
+      particles.splice(i, 1);
+      spawnParticle(false);
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────
+//  DRAWING HELPERS
+// ──────────────────────────────────────────────────────
+function drawVector(ctx, ox, oy, vx, vy, color, label, lw = 2.5) {
+  const len = Math.sqrt(vx * vx + vy * vy);
+  if (len < 2) return;
+  const angle = Math.atan2(vy, vx);
+  const ex = ox + vx, ey = oy + vy;
+
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ex, ey);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Arrowhead
+  const hw = 7, hl = 14;
+  ctx.save();
+  ctx.translate(ex, ey);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-hl, -hw / 2);
+  ctx.lineTo(-hl, hw / 2);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+
+  if (label) {
+    ctx.fillStyle = color;
+    ctx.font = 'bold 11px Sarabun, sans-serif';
+    ctx.textBaseline = 'middle';
+    // Offset label perpendicular to arrow
+    const nx = -vy / len, ny = vx / len;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, ox + vx * 0.6 + nx * 14, oy + vy * 0.6 + ny * 14);
+  }
+}
+
+function drawDash(ctx, x1, y1, x2, y2, col = 'rgba(255,255,255,0.2)') {
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function labelAt(ctx, x, y, text, color, size = '11px', align = 'left') {
+  ctx.fillStyle = color;
+  ctx.font = `bold ${size} Sarabun, sans-serif`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+// ──────────────────────────────────────────────────────
+//  MAIN DRAW
+// ──────────────────────────────────────────────────────
+function drawSim() {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = boatWorldX, cy = boatWorldY;   // boat's actual canvas position
+
+  const phys = calcPhysics(windAngle, sailAngle, windSpeed);
+  const { θ, δ, Fs, Ff, Fk, vb, vu } = phys;
+  const FS = 9;
+
+  // ── Background ────────────────────────────────────────
+  ctx.fillStyle = '#060d1f';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Static grid ───────────────────────────────────────
+  const GS = 45;
+  ctx.strokeStyle = 'rgba(56,189,248,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W + GS; x += GS) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H + GS; y += GS) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // ── Wake trail (direct canvas coords) ────────────────
+  if (wakePoints.length > 2 && vb > 0.05) {
+    const n = wakePoints.length;
+    const perpX = Math.cos(θ), perpY = -Math.sin(θ);
+    ctx.save();
+    for (let i = 1; i < n; i++) {
+      const sx = wakePoints[i].x;
+      const sy = wakePoints[i].y;
+      const frac = 1 - i / n;
+      const sp = i * 0.22 + 0.8;
+      ctx.globalAlpha = frac * 0.22;
+      ctx.fillStyle = '#7dd3fc';
+      ctx.beginPath(); ctx.arc(sx, sy, sp * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx + perpX * sp * 1.6, sy + perpY * sp * 1.6, sp * 0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx - perpX * sp * 1.6, sy - perpY * sp * 1.6, sp * 0.45, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Wind particles (straight down) ────────────────────
+  ctx.save();
+  particles.forEach(p => {
+    const life = 1 - p.age / p.maxAge;
+    ctx.globalAlpha = p.alpha * life * 0.65;
+    ctx.fillStyle = '#7dd3fc';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = p.alpha * life * 0.18;
+    ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - 9); ctx.stroke();
+  });
+  ctx.restore();
+
+  // ── Wind reference axis (vertical dashed, fixed at canvas center) ──
+  const refX_fixed = W / 2;
+  ctx.save();
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(148,163,184,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(refX_fixed, 0); ctx.lineTo(refX_fixed, H); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ── Sail geometry (sail at angle δ from vertical) ──────
+  // Sail direction: (sinδ, cosδ) from center
+  const SAIL_LEN = 58;
+  const sdx = Math.sin(δ), sdy = Math.cos(δ);
+  const sx1 = cx - sdx * SAIL_LEN, sy1 = cy - sdy * SAIL_LEN;
+  const sx2 = cx + sdx * SAIL_LEN, sy2 = cy + sdy * SAIL_LEN;
+
+  // ── Incident wind arrows (straight down, 2 parallel) ───
+  const windLen = 70;
+  [0.3, 0.75].forEach(frac => {
+    const ax = cx + sdx * SAIL_LEN * frac + 12;
+    const ay = cy - sdy * SAIL_LEN * frac - windLen + 4;
+    drawVector(ctx, ax, ay, 0, windLen - 6, '#3b82f6', '', 1.8);
+  });
+  labelAt(ctx, cx + sdx * SAIL_LEN * 0.5 + 22,
+              cy - sdy * SAIL_LEN * 0.5 - windLen * 0.5 + 4,
+              'ทิศของลมตกกระทบ', '#60a5fa', '9px', 'left');
+
+  // ── Reflected wind arrows ────────────────────────────
+  // Incident (0,1) reflects off sail normal (-cosδ, sinδ):
+  // reflected = (sin2δ, cos2δ)
+  const refX = Math.sin(2 * δ), refY = Math.cos(2 * δ);
+  [0, 14].forEach(off => {
+    const ax = cx - sdx * 6 + off * 0.3;
+    const ay = cy + sdy * 6 + off * 0.15;
+    drawVector(ctx, ax, ay, refX * 62, refY * 62, '#3b82f6', '', 1.8);
+  });
+  labelAt(ctx, cx + refX * 42 + 8, cy + refY * 42 + 14,
+              'ทิศของลมท้อน', '#60a5fa', '9px', 'left');
+
+  // ── Boat ellipse (major axis along movement direction) ───
+  // Ellipse radiusY=52 is along +Y before rotation.
+  // We want +Y → stern direction (+sinθ, +cosθ), so rotate by -θ.
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-θ);
+  ctx.fillStyle = 'rgba(8, 15, 35, 0.6)';
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 0, 15, 52, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+  labelAt(ctx, cx + Math.cos(θ) * 22 - sdx * 22,
+              cy - Math.sin(θ) * 22 - sdy * 22,
+              'เรือ', '#64748b', '9px', 'right');
+
+  // ── δ angle arc (sail vs wind/vertical) ────────────────
+  // Arc from sail lower direction (π/2 − δ from +x) to straight down (π/2)
+  ctx.strokeStyle = '#fb923c';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 32, Math.PI / 2 - δ, Math.PI / 2, false);
+  ctx.stroke();
+  const dArcMid = Math.PI / 2 - δ / 2;
+  labelAt(ctx, cx + Math.cos(dArcMid) * 46, cy + Math.sin(dArcMid) * 46,
+              `มุม ${sailAngle}°`, '#fb923c', '9px', 'center');
+
+  // ── Sail bar (thick dark blue) ─────────────────────────
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(147,197,253,0.3)'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2); ctx.stroke();
+  ctx.lineCap = 'butt';
+  labelAt(ctx, sx2 + 8, sy2 + 6, 'ใบเรือ', '#93c5fd', '10px', 'left');
+
+  // ── Force vectors ──────────────────────────────────────
+  if (Fs > 0.05) {
+    const Fs_px = Math.min(Fs * FS, 120);
+    const Ff_px = Math.min(Ff * FS, 95);
+
+    // F direction: normal to sail, leeward = (-cosδ, sinδ)
+    const Fnx = -Math.cos(δ) * Fs_px;
+    const Fny =  Math.sin(δ) * Fs_px;
+
+    // F_forward along movement (-sinθ, -cosθ)
+    const mvX = -Math.sin(θ), mvY = -Math.cos(θ);
+    const Ffx = mvX * Ff_px, Ffy = mvY * Ff_px;
+
+    // F_keel residual = F_sail - F_forward
+    const Fkx = Fnx - Ffx, Fky = Fny - Ffy;
+
+    // Dashed parallelogram decomposition
+    drawDash(ctx, cx,       cy,       cx + Ffx, cy + Ffy, 'rgba(52,211,153,0.4)');
+    drawDash(ctx, cx + Ffx, cy + Ffy, cx + Fnx, cy + Fny, 'rgba(248,113,113,0.4)');
+    drawDash(ctx, cx,       cy,       cx + Fkx, cy + Fky, 'rgba(248,113,113,0.25)');
+    drawDash(ctx, cx + Fkx, cy + Fky, cx + Fnx, cy + Fny, 'rgba(52,211,153,0.25)');
+
+    // F_forward (green)
+    drawVector(ctx, cx, cy, Ffx, Ffy, '#34d399', '', 2.2);
+    labelAt(ctx, cx + Ffx * 0.55 + 5, cy + Ffy * 0.55 - 7, 'F_forward', '#34d399', '9px', 'left');
+
+    // F_keel residual (light red)
+    if (Math.sqrt(Fkx*Fkx + Fky*Fky) > 6) {
+      drawVector(ctx, cx, cy, Fkx, Fky, '#f87171', '', 1.8);
+      labelAt(ctx, cx + Fkx * 0.5 - 2, cy + Fky * 0.5 + 12, 'F_keel', '#f87171', '8px', 'center');
+    }
+
+    // Main F (red, bold — matches reference image)
+    drawVector(ctx, cx, cy, Fnx, Fny, '#ef4444', '', 4.5);
+    // "F" label near arrowhead
+    labelAt(ctx, cx + Fnx - 6, cy + Fny - 9, 'F', '#ef4444', '17px', 'right');
+
+  } else if (phys.aoa <= 0) {
+    ctx.fillStyle = 'rgba(248,113,113,0.85)';
+    ctx.font = 'bold 12px Sarabun, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('⚠ Stall — δ ≥ θ  ลมไม่กระทำแรงบนใบ', cx, cy - 85);
+  }
+
+  // ── Movement direction arrow (orange) ─────────────────
+  {
+    const arrowLen = 88;
+    const startX = cx + Math.sin(θ) * 20;
+    const startY = cy + Math.cos(θ) * 20;
+    const mdx = -Math.sin(θ) * arrowLen;
+    const mdy = -Math.cos(θ) * arrowLen;
+    drawVector(ctx, startX, startY, mdx, mdy, '#fb923c', '', 2.5);
+    const midX = startX + mdx * 0.38, midY = startY + mdy * 0.38;
+    const pX = -Math.cos(θ) * 10, pY = Math.sin(θ) * 10;
+    labelAt(ctx, midX + pX, midY + pY - 6,
+        'แนวการเคลื่อนที่', '#fb923c', '9px', midX < cx ? 'right' : 'left');
+  }
+
+  // ── θ angle arc (wind direction vs movement direction) ─
+  {
+    const arcR_t = 46;
+    ctx.strokeStyle = 'rgba(251,146,60,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    // "straight up" = -π/2 in canvas. Movement goes CCW by θ from up.
+    ctx.arc(cx, cy, arcR_t, -Math.PI / 2 - θ, -Math.PI / 2, false);
+    ctx.stroke();
+    const tArcMid = -Math.PI / 2 - θ / 2;
+    labelAt(ctx, cx + Math.cos(tArcMid) * (arcR_t + 14),
+               cy + Math.sin(tArcMid) * (arcR_t + 14),
+               `θ=${windAngle}°`, '#fb923c', '9px', 'center');
+  }
+
+  // ── Info badge (top-right) ────────────────────────────
+  {
+    const bx = W - 148, by = 12, bw = 140, bh = 72;
+    ctx.fillStyle = 'rgba(10,14,26,0.82)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 6); else ctx.rect(bx, by, bw, bh);
+    ctx.fill();
+    ctx.strokeStyle = '#1e3a5f'; ctx.lineWidth = 1; ctx.stroke();
+    labelAt(ctx, bx + 8, by + 12,  '🌬 ลมจากด้านบน (↓)',   '#3b82f6',  '9px', 'left');
+    labelAt(ctx, bx + 8, by + 28,  `V = ${windSpeed} m/s`,  '#818cf8',  '9px', 'left');
+    labelAt(ctx, bx + 8, by + 44,  `F = ${Fs.toFixed(2)}`,  '#ef4444',  '9px', 'left');
+    labelAt(ctx, bx + 8, by + 60,  `v_boat = ${vb.toFixed(2)}`, '#34d399', '9px', 'left');
+  }
+
+  // ── Status bar ────────────────────────────────────────
+  const dist = Math.round(totalDist / MOVE_SCALE * 10) / 10;
+  let statusTxt, statusCol;
+  if (phys.aoa <= 0) {
+    statusTxt = `❌ Stall — δ(${sailAngle}°) ≥ θ(${windAngle}°) ใบเรือไม่ทำงาน`;
+    statusCol = '#f87171';
+  } else if (vb > 0.1) {
+    statusTxt = `✅ เรือเคลื่อนที่ — v_boat=${vb.toFixed(2)}  F_fwd=${Ff.toFixed(2)}  ระยะ=${dist.toFixed(1)}  (θ=${windAngle}°, δ=${sailAngle}°, δ_opt=${phys.dOpt.toFixed(0)}°)`;
+    statusCol = '#34d399';
+  } else {
+    statusTxt = `⚠ แรงน้อยมาก — ลองปรับ δ ≈ ${phys.dOpt.toFixed(0)}°`;
+    statusCol = '#fb923c';
+  }
+  ctx.fillStyle = 'rgba(10,14,26,0.72)';
+  ctx.fillRect(0, H - 26, W, 26);
+  ctx.fillStyle = statusCol;
+  ctx.font = 'bold 12px Sarabun, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(statusTxt, W / 2, H - 13);
+}
+
+
+// ──────────────────────────────────────────────────────
+//  READOUT UPDATE
+// ──────────────────────────────────────────────────────
+function updateReadout() {
+  const p = calcPhysics(windAngle, sailAngle, windSpeed);
+
+  document.getElementById('ov-psi').textContent = windAngle + '°';
+  document.getElementById('ov-delta').textContent = sailAngle + '°';
+  document.getElementById('ov-ff').textContent = p.Ff.toFixed(2);
+  document.getElementById('ov-vu').textContent = p.vb.toFixed(2);
+  document.getElementById('ov-eff').textContent = p.eff + '%';
+
+  document.getElementById('c-fsail').textContent = p.Fs.toFixed(2);
+  document.getElementById('c-ffwd').textContent = p.Ff.toFixed(2);
+  document.getElementById('c-fkeel').textContent = p.Fk.toFixed(2);
+  document.getElementById('c-vb').textContent = p.vb.toFixed(2);
+  document.getElementById('c-vu').textContent = p.vu.toFixed(2);
+  document.getElementById('c-dopt').textContent = p.dOpt.toFixed(1) + '°';
+
+  // θ heading angle hint
+  const phEl = document.getElementById('hint-psi');
+  if (windAngle <= 30) { phEl.textContent = 'ทวนลมสูง'; phEl.className = 'hint-tag hint-ok'; }
+  else if (windAngle <= 55) { phEl.textContent = 'Close-hauled'; phEl.className = 'hint-tag hint-ok'; }
+  else if (windAngle <= 75) { phEl.textContent = 'Beam reach'; phEl.className = 'hint-tag hint-warn'; }
+  else { phEl.textContent = 'ลมด้านข้าง'; phEl.className = 'hint-tag hint-warn'; }
+
+  // Sail hint
+  const sdEl = document.getElementById('hint-delta');
+  const diff = Math.abs(sailAngle - p.dOpt);
+  if (diff <= 3) { sdEl.textContent = `✓ เหมาะสม (${p.dOpt.toFixed(0)}°)`; sdEl.className = 'hint-tag hint-ok'; }
+  else if (diff <= 8) { sdEl.textContent = `≈ ใกล้เหมาะสม (${p.dOpt.toFixed(0)}°)`; sdEl.className = 'hint-tag hint-warn'; }
+  else { sdEl.textContent = `เหมาะสม = ${p.dOpt.toFixed(0)}°`; sdEl.className = 'hint-tag hint-warn'; }
+
+  // Wind speed hint
+  const vwEl = document.getElementById('hint-vw');
+  if (windSpeed >= 20) vwEl.textContent = 'พายุ/แรงมาก';
+  else if (windSpeed >= 12) vwEl.textContent = 'ลมแรง';
+  else if (windSpeed >= 7) vwEl.textContent = 'ลมปานกลาง';
+  else vwEl.textContent = 'ลมเบา';
+}
+
+// ──────────────────────────────────────────────────────
+//  ANIMATION LOOP
+// ──────────────────────────────────────────────────────
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * animSpeed;
+  lastTs = ts;
+  t += dt;
+
+  // ── Move boat on canvas in direction (-sinθ, -cosθ) ──
+  const phys = calcPhysics(windAngle, sailAngle, windSpeed);
+  const movDist = phys.vb * MOVE_SCALE * dt;
+  boatWorldX += -Math.sin(phys.θ) * movDist;
+  boatWorldY += -Math.cos(phys.θ) * movDist;
+  totalDist += movDist;
+
+  // ── Wrap around canvas edges ──────────────────────────
+  const canvas = document.getElementById('simCanvas');
+  const W = canvas.width, H = canvas.height;
+  let wrapped = false;
+  if (boatWorldX < -70)  { boatWorldX += W + 140; wrapped = true; }
+  if (boatWorldX > W+70) { boatWorldX -= W + 140; wrapped = true; }
+  if (boatWorldY < -70)  { boatWorldY += H + 140; wrapped = true; }
+  if (boatWorldY > H+70) { boatWorldY -= H + 140; wrapped = true; }
+  if (wrapped) wakePoints = [];
+
+  // ── Record wake (canvas coords) ──────────────────────
+  wakeTick += dt;
+  if (wakeTick > 0.07) {
+    wakePoints.unshift({ x: boatWorldX, y: boatWorldY });
+    if (wakePoints.length > 70) wakePoints.pop();
+    wakeTick = 0;
+  }
+
+  updateParticles(dt);
+  drawSim();
+  updateReadout();
+  animId = requestAnimationFrame(loop);
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม';
+    btn.classList.remove('playing');
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false; t = 0; lastTs = null;
+  const canvas = document.getElementById('simCanvas');
+  boatWorldX = canvas.width / 2;
+  boatWorldY = canvas.height / 2 + 10;
+  wakePoints = []; wakeTick = 0; totalDist = 0;
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  initParticles();
+  drawSim();
+  updateReadout();
+}
+
+function applyPreset(psi, delta, V) {
+  windAngle = psi; sailAngle = delta; windSpeed = V;
+  document.getElementById('sl-psi').value = psi;
+  document.getElementById('vi-psi').value = psi;
+  document.getElementById('sl-delta').value = delta;
+  document.getElementById('vi-delta').value = delta;
+  document.getElementById('sl-vw').value = V;
+  document.getElementById('vi-vw').value = V;
+  if (!isPlaying) { drawSim(); updateReadout(); }
+}
+
+// ──────────────────────────────────────────────────────
+//  CANVAS RESIZE
+// ──────────────────────────────────────────────────────
+function resizeCanvas() {
+  const canvas = document.getElementById('simCanvas');
+  const wrap = document.getElementById('sim-canvas-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = 420;
+  // Re-center boat
+  boatWorldX = canvas.width / 2;
+  boatWorldY = canvas.height / 2 + 10;
+  wakePoints = [];
+  if (!isPlaying) { initParticles(); drawSim(); }
+}
+
+// ──────────────────────────────────────────────────────
+//  TAB SWITCHING
+// ──────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') setTimeout(drawTheoryDiagrams, 50);
+}
+
+// ──────────────────────────────────────────────────────
+//  THEORY DIAGRAMS
+// ──────────────────────────────────────────────────────
+function drawTheoryDiagrams() { drawDg1(); drawDg2(); drawDg3(); }
+
+function drawDg1() {
+  const c = document.getElementById('dg1'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.fillStyle = '#060d1f'; ctx.fillRect(0, 0, W, H);
+
+  const cx = 95, cy = 110;
+  // Water ripples
+  for (let r = 20; r < 90; r += 22) {
+    ctx.strokeStyle = `rgba(56,189,248,0.04)`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // Boat hull simple
+  ctx.fillStyle = '#1e3a5f'; ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 30); ctx.bezierCurveTo(cx+10, cy-10, cx+9, cy+14, cx, cy+20);
+  ctx.bezierCurveTo(cx-9, cy+14, cx-10, cy-10, cx, cy-30);
+  ctx.fill(); ctx.stroke();
+
+  // Sail (δ=22°)
+  const δ0 = 22 * Math.PI / 180;
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, cy - 5); ctx.lineTo(cx + Math.sin(δ0)*35, cy-5-Math.cos(δ0)*35); ctx.stroke();
+
+  // Wind arrows from upper-right
+  ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 1.5;
+  const ψ0 = 45 * Math.PI / 180;
+  for (let i = 0; i < 4; i++) {
+    const ox = W - 15 - i * 20, oy = 8 + i * 18;
+    const dx = -Math.sin(ψ0) * 30, dy = Math.cos(ψ0) * 30;
+    drawVector(ctx, ox, oy, dx, dy, '#7dd3fc', '', 1.5);
+  }
+  labelAt(ctx, W - 25, 12, 'ลม', '#7dd3fc', '9px', 'center');
+
+  // v_boat (forward = up)
+  drawVector(ctx, cx, cy, 0, -55, '#38bdf8', '', 2.2);
+  labelAt(ctx, cx + 4, cy - 30, 'v_boat', '#38bdf8', '9px', 'left');
+
+  // v_upwind (toward wind source)
+  const vux = Math.sin(ψ0) * 38, vuy = -Math.cos(ψ0) * 38;
+  drawVector(ctx, cx, cy, vux, vuy, '#fb923c', '', 1.8);
+  labelAt(ctx, cx + vux + 4, cy + vuy - 4, 'v_upwind', '#fb923c', '9px', 'left');
+
+  labelAt(ctx, cx, H - 6, 'มุมมองจากด้านบน', '#475569', '9px', 'center');
+}
+
+function drawDg2() {
+  const c = document.getElementById('dg2'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.fillStyle = '#060d1f'; ctx.fillRect(0, 0, W, H);
+
+  const cx = 110, cy = 130;
+  const δ = 22 * Math.PI / 180;
+  const ψ = 45 * Math.PI / 180;
+
+  // Keel line
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(148,163,184,0.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, 15); ctx.lineTo(cx, H - 15); ctx.stroke();
+  ctx.setLineDash([]);
+  labelAt(ctx, cx + 3, 22, 'กงเรือ', '#475569', '9px', 'left');
+
+  // Sail
+  const slen = 55;
+  const sex = Math.sin(δ) * slen, sey = -Math.cos(δ) * slen;
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + sex, cy + sey); ctx.stroke();
+  ctx.fillStyle = '#e2e8f0'; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+
+  // δ arc
+  ctx.strokeStyle = 'rgba(251,146,60,0.6)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, cy, 22, -Math.PI/2, -Math.PI/2 + δ, false); ctx.stroke();
+  labelAt(ctx, cx + 10, cy - 20, 'δ', '#fb923c', '11px', 'left');
+
+  // Wind vector hitting sail midpoint
+  const smx = cx + sex * 0.5, smy = cy + sey * 0.5;
+  const wlen = 50;
+  // Wind blows toward (-sinψ, cosψ) in canvas, but show it coming INTO sail from right
+  const wdx = -Math.sin(ψ) * wlen, wdy = Math.cos(ψ) * wlen;
+  drawVector(ctx, smx - wdx, smy - wdy, wdx, wdy, '#7dd3fc', '', 2);
+  labelAt(ctx, smx - wdx - 4, smy - wdy - 4, 'V_wind', '#7dd3fc', '9px', 'right');
+
+  // ψ arc (wind angle from keel/bow)
+  ctx.strokeStyle = 'rgba(56,189,248,0.5)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(smx - wdx, smy - wdy, 18, -Math.PI/2, -Math.PI/2 + ψ, false); ctx.stroke();
+  labelAt(ctx, smx - wdx + 5, smy - wdy - 10, 'ψ', '#38bdf8', '10px', 'left');
+
+  // F_sail: normal to sail, leeward direction = (-cosδ, -sinδ) in canvas
+  const Fs_len = 55;
+  const fnx = -Math.cos(δ) * Fs_len, fny = -Math.sin(δ) * Fs_len;
+  drawVector(ctx, smx, smy, fnx, fny, '#facc15', '', 2.5);
+  labelAt(ctx, smx + fnx + 4, smy + fny - 4, 'F_sail', '#facc15', '10px', 'left');
+  labelAt(ctx, smx + fnx + 4, smy + fny + 8, '(ตั้งฉากใบ)', '#facc15', '8px', 'left');
+
+  // Right-angle indicator on sail
+  const plen = 9;
+  const sx2 = Math.sin(δ) * plen, sy2 = -Math.cos(δ) * plen;
+  const nx2 = -Math.cos(δ) * plen, ny2 = -Math.sin(δ) * plen;
+  ctx.strokeStyle = 'rgba(250,204,21,0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(smx + sx2, smy + sy2);
+  ctx.lineTo(smx + sx2 + nx2, smy + sy2 + ny2);
+  ctx.lineTo(smx + nx2, smy + ny2);
+  ctx.stroke();
+}
+
+function drawDg3() {
+  const c = document.getElementById('dg3'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.fillStyle = '#060d1f'; ctx.fillRect(0, 0, W, H);
+
+  const cx = 105, cy = 135;
+  const δ = 22 * Math.PI / 180;
+  const F = 70;
+
+  const fnx = -Math.cos(δ) * F, fny = -Math.sin(δ) * F;
+  const Ff_px = F * Math.sin(δ);
+  const Fk_px = F * Math.cos(δ);
+
+  // Keel line
+  ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(148,163,184,0.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(cx, 10); ctx.lineTo(cx, H-10); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Parallelogram completion (dashed)
+  drawDash(ctx, fnx + cx, fny + cy, cx - Fk_px, fny + cy, 'rgba(248,113,113,0.2)');
+  drawDash(ctx, fnx + cx, fny + cy, cx + fnx, cy - Ff_px, 'rgba(52,211,153,0.2)');
+  drawDash(ctx, cx - Fk_px, fny + cy, cx - Fk_px, cy, 'rgba(248,113,113,0.15)');
+  drawDash(ctx, cx, cy - Ff_px, cx + fnx, cy - Ff_px, 'rgba(52,211,153,0.15)');
+
+  // F_sail (yellow)
+  drawVector(ctx, cx, cy, fnx, fny, '#facc15', '', 2.5);
+  labelAt(ctx, cx + fnx + 5, cy + fny + 4, 'F_sail', '#facc15', '10px', 'left');
+
+  // F_forward (green, up)
+  drawVector(ctx, cx, cy, 0, -Ff_px, '#34d399', '', 2.2);
+  labelAt(ctx, cx - 5, cy - Ff_px / 2, 'F_forward', '#34d399', '9px', 'right');
+
+  // F_keel (red, left) — show as blocked
+  drawVector(ctx, cx, cy, -Fk_px, 0, '#f87171', '', 2);
+  // Block line
+  ctx.strokeStyle = '#f87171'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(cx - Fk_px - 2, -9 + cy); ctx.lineTo(cx - Fk_px - 2, 9 + cy); ctx.stroke();
+  labelAt(ctx, cx - Fk_px / 2, cy + 16, 'F_keel (คีลต้าน)', '#f87171', '9px', 'center');
+
+  // Right-angle indicator
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx + 8, cy); ctx.lineTo(cx + 8, cy - 8); ctx.lineTo(cx, cy - 8); ctx.stroke();
+
+  // Mini boat
+  ctx.fillStyle = '#1e3a5f'; ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(cx, cy + 50, 7, 17, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  labelAt(ctx, cx, cy + 72, 'เรือ', '#64748b', '9px', 'center');
+
+  // δ angle label
+  labelAt(ctx, cx + Math.abs(fnx) * 0.35 + 4, cy + fny * 0.35 - 12, `δ=${22}°`, '#fb923c', '9px', 'center');
+}
+
+// ──────────────────────────────────────────────────────
+//  SLIDER SYNC + INIT
+// ──────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const slMap = { 'vi-psi': 'sl-psi', 'vi-delta': 'sl-delta', 'vi-vw': 'sl-vw' };
+
+  function syncVI(inp) {
+    const slId = slMap[inp.id];
+    if (!slId) return;
+    const sl = document.getElementById(slId);
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+
+  Object.entries(slMap).forEach(([viId, slId]) => {
+    const sl = document.getElementById(slId);
+    const inp = document.getElementById(viId);
+    if (!sl || !inp) return;
+    sl.addEventListener('input', () => { inp.value = +sl.value; });
+    inp.addEventListener('blur', () => syncVI(inp));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') syncVI(inp); });
+  });
+
+  document.getElementById('sl-psi').addEventListener('input', function() {
+    windAngle = +this.value;
+    if (!isPlaying) { drawSim(); updateReadout(); }
+  });
+  document.getElementById('sl-delta').addEventListener('input', function() {
+    sailAngle = +this.value;
+    if (!isPlaying) { drawSim(); updateReadout(); }
+  });
+  document.getElementById('sl-vw').addEventListener('input', function() {
+    windSpeed = +this.value;
+    if (!isPlaying) { drawSim(); updateReadout(); }
+  });
+  document.getElementById('sl-speed').addEventListener('input', function() {
+    animSpeed = +this.value;
+    document.getElementById('lbl-speed').textContent = animSpeed.toFixed(1) + '×';
+  });
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  initParticles();
+  drawSim();
+  updateReadout();
+});
+</script>
+</body>
+</html>

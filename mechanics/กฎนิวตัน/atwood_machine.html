@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atwood's Machine — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --text:#e2e8f0;--muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono','Courier New',monospace;}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:2rem;}
+header h1{font-size:1.4rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.82rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;white-space:nowrap;}
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 18px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.88rem;font-weight:600;white-space:nowrap;transition:.2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+.section{display:none;}
+.section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.btn{padding:6px 16px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.88rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;}.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}.btn-play.playing:hover{background:#c62828;}
+.btn-reset{background:#0d47a1;color:#fff;}.btn-reset:hover{background:#1565c0;}
+.sg{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--muted);}
+.sg input[type=range]{width:90px;accent-color:var(--accent);}
+#speedLbl,#gLbl{font-weight:700;min-width:30px;font-family:'Share Tech Mono',monospace;}
+#gLbl{color:var(--accent4);}
+/* SIM LAYOUT */
+#sec-sim{padding:14px 20px;}
+.sim-wrap{display:flex;gap:14px;flex-wrap:wrap;}
+.canvas-col{flex:1;min-width:300px;}
+.side-panel{width:238px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;}
+.canvas-box{background:#080c18;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+canvas{display:block;width:100%;height:auto;}
+/* CARDS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.card h3{font-size:0.76rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+/* READOUT */
+.rrow{display:flex;align-items:baseline;gap:6px;margin-bottom:7px;}
+.rlbl{font-size:0.8rem;min-width:94px;color:var(--muted);}
+.rval{font-family:'Share Tech Mono',monospace;font-size:1.08rem;font-weight:700;min-width:62px;text-align:right;}
+.runit{font-size:0.75rem;color:var(--muted);}
+/* SLIDERS */
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
+.sl-lbl{font-size:0.79rem;color:var(--muted);min-width:76px;}
+.sl-range{flex:1;cursor:pointer;accent-color:var(--accent);}
+.vi{width:52px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--border);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;}
+.vi::-webkit-outer-spin-button,.vi::-webkit-inner-spin-button{-webkit-appearance:none;}
+.vi:focus{outline:none;border-color:var(--accent);}
+.sl-unit{font-size:0.75rem;color:var(--muted);min-width:20px;}
+.status-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 13px;font-size:0.82rem;color:var(--muted);line-height:1.6;margin-top:10px;}
+.status-box b{color:var(--accent);}
+.obj-box{background:linear-gradient(135deg,#0c1f3a,#0f2744);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.83rem;line-height:1.8;}
+.obj-box strong{color:var(--accent);display:block;margin-bottom:3px;}
+/* FORMULA */
+.fml-box{background:#080c18;border:1px solid var(--accent2);border-radius:7px;padding:8px 13px;font-family:'Share Tech Mono',monospace;font-size:0.81rem;color:#c4b5fd;line-height:1.8;}
+.fml-box .live{color:#86efac;font-size:0.78rem;}
+/* THEORY */
+#sec-theory{padding:20px;}
+.th-wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+.th-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.th-card h2{font-size:1.05rem;font-weight:700;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.th-card p{line-height:1.8;color:var(--text);margin-bottom:10px;font-size:0.93rem;}
+.eq-box{background:#080c18;border:1px solid var(--accent2);border-radius:8px;padding:12px 18px;margin:12px 0;text-align:center;font-family:'Share Tech Mono',monospace;}
+.eq-box .eq{font-size:1.15rem;color:#e2e8f0;margin:3px 0;}
+.eq-box .sub{font-size:0.8rem;color:#94a3b8;margin-top:4px;}
+.step-list{counter-reset:step;list-style:none;padding:0;}
+.step-list li{counter-increment:step;display:flex;gap:12px;padding:8px 0;line-height:1.7;font-size:0.9rem;border-bottom:1px solid #1a2235;}
+.step-list li:last-child{border-bottom:none;}
+.step-list li::before{content:counter(step);background:var(--accent);color:#0a0e1a;font-weight:700;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;margin-top:2px;}
+.var-tbl{width:100%;border-collapse:collapse;font-size:0.87rem;}
+.var-tbl th{background:#080c18;color:var(--accent);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.var-tbl td{padding:8px 12px;border-bottom:1px solid #1a2235;}
+.var-tbl tr:hover td{background:#1a2235;}
+/* QUIZ */
+#sec-quiz{padding:20px;}
+.quiz-wrap{max-width:860px;margin:0 auto;}
+.quiz-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.quiz-hdr h2{font-size:1.05rem;font-weight:700;color:var(--accent);}
+.score-badge{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 16px;font-size:0.85rem;}
+#scoreDisplay{color:var(--accent3);font-weight:700;}
+.q-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:13px;}
+.q-num{display:inline-block;background:var(--accent);color:#0a0e1a;font-weight:700;border-radius:5px;padding:1px 8px;font-size:0.78rem;margin-bottom:8px;}
+.q-text{font-size:0.93rem;line-height:1.7;margin-bottom:11px;}
+.q-text .hi{color:var(--accent4);font-weight:700;}
+.choices{display:flex;flex-direction:column;gap:6px;}
+.ch{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.88rem;text-align:left;transition:.15s;}
+.ch:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.ch.correct{background:#14532d;border-color:#22c55e;color:#86efac;}
+.ch.wrong{background:#450a0a;border-color:#ef4444;color:#fca5a5;}
+.ch:disabled{cursor:default;}
+.cw{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.ci{background:var(--panel2);border:1.5px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-family:'Share Tech Mono',monospace;font-size:0.93rem;width:130px;}
+.ci:focus{outline:none;border-color:var(--accent);}
+.ck-btn{background:var(--accent2);color:#fff;border:none;padding:8px 16px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.88rem;}
+.ck-btn:hover{background:#6d28d9;}
+.fb{margin-top:10px;padding:10px 14px;border-radius:7px;font-size:0.88rem;line-height:1.6;display:none;}
+.fb.show{display:block;}
+.fb.ok{background:#14532d;border:1px solid #22c55e;color:#86efac;}
+.fb.no{background:#450a0a;border:1px solid #ef4444;color:#fca5a5;}
+.fb.info{background:#1e3a5f;border:1px solid var(--accent);color:#bae6fd;}
+.q-tag{display:inline-block;font-size:0.72rem;padding:2px 8px;border-radius:20px;margin-left:8px;font-weight:600;}
+.tag-c{background:#1e3a5f;color:var(--accent);}
+.tag-t{background:#2e1065;color:#c4b5fd;}
+.tag-m{background:#1c1917;color:#d4a373;}
+.quiz-footer{text-align:center;margin-top:18px;}
+.sa-btn{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:8px 24px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.88rem;}
+.sa-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* DATA */
+#sec-data{padding:20px;}
+.data-wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+.dc{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+.dc h2{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dr{display:flex;flex-direction:column;gap:4px;}
+.dr label{font-size:0.78rem;color:var(--muted);}
+.dinp{background:var(--panel2);border:1.5px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.9rem;width:100%;}
+.dinp:focus{outline:none;border-color:var(--accent);}
+.dres{background:#080c18;border:1px solid var(--accent2);border-radius:8px;padding:12px 16px;margin-top:10px;}
+.dres .drr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2235;font-size:0.87rem;}
+.dres .drr:last-child{border-bottom:none;}
+.drrl{color:var(--muted);}
+.drrv{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent3);}
+.calc-btn{width:100%;margin-top:10px;background:var(--accent);color:#0a0e1a;border:none;padding:9px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.9rem;}
+.calc-btn:hover{background:#7dd3fc;}
+.dtbl{width:100%;border-collapse:collapse;font-size:0.84rem;margin-top:10px;}
+.dtbl th{background:#080c18;color:var(--accent);padding:8px 10px;text-align:center;border:1px solid var(--border);}
+.dtbl td{padding:7px 10px;text-align:center;border:1px solid #1a2235;}
+.dtbl td input{background:transparent;border:none;color:var(--text);text-align:center;width:100%;font-family:'Share Tech Mono',monospace;font-size:0.84rem;}
+.dtbl td input:focus{outline:none;background:var(--panel2);border-radius:4px;}
+.add-row-btn{background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.82rem;font-family:'Sarabun',sans-serif;margin-top:8px;}
+.add-row-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+footer{text-align:center;padding:16px;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);margin-top:20px;}
+@media(max-width:768px){
+  .sim-wrap{flex-direction:column;}
+  .side-panel{width:100%;}
+  .dg{grid-template-columns:1fr;}
+  header .badge{display:none;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>Atwood's Machine — เครื่องจักรของแอตวูด</h1>
+    <p>การศึกษาแรงและความเร่ง · ฟิสิกส์ ม.4–5</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showTab('quiz',this)">✏️ แบบฝึกหัด</button>
+  <button onclick="showTab('data',this)">📊 บันทึกข้อมูล</button>
+</nav>
+
+<!-- ═══ TAB 1: SIMULATION ═══ -->
+<div id="sec-sim" class="section active">
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="sg">
+      <span>ความเร็ว</span>
+      <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+      <span id="speedLbl">1.0×</span>
+    </div>
+    <div class="sg" style="margin-left:auto;">
+      <span style="color:var(--accent4);font-size:0.8rem;">g =</span>
+      <input type="range" id="gSlider" min="1.0" max="10.0" step="0.1" value="9.8" style="width:80px;accent-color:var(--accent4);">
+      <span id="gLbl">9.80</span>
+      <span style="font-size:0.73rem;color:var(--muted);">m/s²</span>
+    </div>
+  </div>
+
+  <div class="sim-wrap">
+    <div class="canvas-col">
+      <div class="obj-box">
+        <strong>🎯 จุดประสงค์การเรียนรู้</strong>
+        สังเกตการเคลื่อนที่ของมวลสองก้อนที่เชื่อมด้วยเชือกผ่านรอก &nbsp;•&nbsp; มวลหนักกว่าตกลง มวลเบากว่าเลื่อนขึ้นระยะเท่ากัน &nbsp;•&nbsp; วิเคราะห์ความสัมพันธ์ระหว่างมวลและความเร่งตามกฎข้อที่ 2 ของนิวตัน
+      </div>
+      <div class="canvas-box">
+        <canvas id="simCanvas"></canvas>
+      </div>
+      <div class="status-box" id="statusBox">
+        ⚙️ ตั้งค่ามวลแล้วกด <b>เริ่ม</b> — ด้านขวา (M+m) จะตกลง ด้านซ้าย (M) จะเลื่อนขึ้นระยะเท่ากัน
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="card">
+        <h3>⚙️ ตั้งค่าระบบ</h3>
+        <div class="sl-row">
+          <span class="sl-lbl" style="color:#38bdf8;">M (มวลใหญ่)</span>
+          <input class="sl-range" type="range" id="sl-M" min="0.1" max="2.0" step="0.05" value="0.5">
+          <input class="vi" type="number" id="vi-M" min="0.1" max="2.0" step="0.05" value="0.5">
+          <span class="sl-unit">kg</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl" style="color:#fb923c;">m (rider)</span>
+          <input class="sl-range" type="range" id="sl-m" min="0.01" max="0.5" step="0.01" value="0.05">
+          <input class="vi" type="number" id="vi-m" min="0.01" max="0.5" step="0.01" value="0.05">
+          <span class="sl-unit">kg</span>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border);font-size:0.77rem;color:var(--muted);">
+          ซ้าย: <span style="color:#38bdf8;">M</span> เบากว่า → เลื่อนขึ้น<br>
+          ขวา: <span style="color:#fb923c;">M+m</span> หนักกว่า → ตกลง
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 ค่าตัวแปร</h3>
+        <div class="rrow">
+          <span class="rlbl" style="color:#34d399;">ความเร่ง a</span>
+          <span class="rval" id="rv-a" style="color:#34d399;">0.000</span>
+          <span class="runit">m/s²</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl" style="color:#facc15;">ความเร็ว v</span>
+          <span class="rval" id="rv-v" style="color:#facc15;">0.000</span>
+          <span class="runit">m/s</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl" style="color:#f472b6;">แรงตึงเชือก T</span>
+          <span class="rval" id="rv-T" style="color:#f472b6;">0.000</span>
+          <span class="runit">N</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl" style="color:var(--muted);">แรงสุทธิ Fₙₑₜ</span>
+          <span class="rval" id="rv-F" style="color:#e2e8f0;">0.000</span>
+          <span class="runit">N</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl" style="color:var(--muted);">เวลา t</span>
+          <span class="rval" id="rv-t" style="color:#e2e8f0;">0.00</span>
+          <span class="runit">s</span>
+        </div>
+        <div class="rrow">
+          <span class="rlbl" style="color:var(--muted);">การกระจัด s</span>
+          <span class="rval" id="rv-s" style="color:#e2e8f0;">0.000</span>
+          <span class="runit">m</span>
+        </div>
+      </div>
+
+      <div class="card" style="background:var(--panel2);">
+        <h3>🧮 สูตรสด</h3>
+        <div class="fml-box">
+          a = m·g / (2M + m)<br>
+          T = M(g + a)<br>
+          <span class="live" id="lv-formula">a = — m/s²</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: THEORY ═══ -->
+<div id="sec-theory" class="section">
+<div class="th-wrap">
+
+  <div class="th-card">
+    <h2>🔭 เครื่องจักรของแอตวูด คืออะไร?</h2>
+    <p>เครื่องจักรของแอตวูด (Atwood's Machine) ประดิษฐ์โดย George Atwood ในปี ค.ศ. 1784 ใช้ศึกษาการเคลื่อนที่ภายใต้แรงโน้มถ่วง ประกอบด้วยมวลสองก้อนแขวนด้วยเชือกเดียวกันผ่านรอก (pulley) ที่เบาและไร้แรงเสียดทาน</p>
+    <p>เมื่อมวลทั้งสองข้างเท่ากัน ระบบสมดุล ไม่มีการเคลื่อนที่ เมื่อเพิ่ม rider (<em>m</em>) ด้านหนึ่ง ด้านนั้นหนักกว่า จะตกลงด้วย<strong>ความเร่งคงที่</strong> ขณะที่อีกด้านจะเลื่อนขึ้นระยะเท่ากัน</p>
+
+    <!-- SVG Free Body Diagram -->
+    <div style="display:flex;justify-content:center;margin:14px 0;">
+      <svg width="520" height="310" viewBox="0 0 520 310" style="background:#080c18;border-radius:10px;border:1px solid var(--border);">
+        <!-- Ceiling -->
+        <rect x="0" y="0" width="520" height="18" fill="#1e3a5f"/>
+        <text x="260" y="13" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Sarabun,sans-serif">เพดาน</text>
+        <!-- Pulley support -->
+        <line x1="260" y1="18" x2="260" y2="46" stroke="#4a6080" stroke-width="3"/>
+        <!-- Pulley outer -->
+        <circle cx="260" cy="66" r="20" fill="url(#pg)"/>
+        <circle cx="260" cy="66" r="20" fill="none" stroke="#94a3b8" stroke-width="2"/>
+        <!-- Groove -->
+        <circle cx="260" cy="66" r="13" fill="none" stroke="#0a0e1a" stroke-width="4"/>
+        <circle cx="260" cy="66" r="13" fill="none" stroke="#475569" stroke-width="1.5"/>
+        <!-- Axle -->
+        <circle cx="260" cy="66" r="4" fill="#38bdf8"/>
+        <defs>
+          <radialGradient id="pg" cx="40%" cy="40%">
+            <stop offset="0%" stop-color="#64748b"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+          </radialGradient>
+          <marker id="aW" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#f472b6"/></marker>
+          <marker id="aG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#94a3b8"/></marker>
+          <marker id="aB" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#34d399"/></marker>
+        </defs>
+        <!-- Rope left: from mass top up to pulley left, arc over, right down to mass top -->
+        <path d="M 170 155 L 170 66 A 90 90 0 0 1 350 66 L 350 145"
+              fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="none"/>
+        <!-- Mass LEFT (M) – going UP -->
+        <rect x="130" y="155" width="80" height="60" rx="6" fill="#1e3a5f" stroke="#38bdf8" stroke-width="2"/>
+        <text x="170" y="187" text-anchor="middle" font-size="16" fill="#38bdf8" font-weight="bold" font-family="Sarabun,sans-serif">M</text>
+        <text x="170" y="203" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="Sarabun,sans-serif">มวลเบากว่า</text>
+        <!-- Mass RIGHT (M+m) – going DOWN -->
+        <rect x="306" y="145" width="88" height="70" rx="6" fill="#431407" stroke="#fb923c" stroke-width="2"/>
+        <text x="350" y="180" text-anchor="middle" font-size="14" fill="#fb923c" font-weight="bold" font-family="Sarabun,sans-serif">M+m</text>
+        <text x="350" y="198" text-anchor="middle" font-size="10" fill="#fdba74" font-family="Sarabun,sans-serif">มวลหนักกว่า</text>
+        <!-- Rider -->
+        <rect x="322" y="133" width="56" height="14" rx="3" fill="#92400e" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="350" y="143" text-anchor="middle" font-size="10" fill="#fcd34d" font-family="Sarabun,sans-serif">m (rider)</text>
+        <!-- T arrows -->
+        <line x1="170" y1="153" x2="170" y2="110" stroke="#f472b6" stroke-width="2" marker-end="url(#aW)"/>
+        <text x="178" y="128" font-size="12" fill="#f472b6" font-family="Sarabun,sans-serif">T ↑</text>
+        <line x1="350" y1="143" x2="350" y2="100" stroke="#f472b6" stroke-width="2" marker-end="url(#aW)"/>
+        <text x="356" y="118" font-size="12" fill="#f472b6" font-family="Sarabun,sans-serif">T ↑</text>
+        <!-- Weight arrows -->
+        <line x1="170" y1="217" x2="170" y2="268" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+        <text x="178" y="260" font-size="11" fill="#94a3b8" font-family="Sarabun,sans-serif">Mg ↓</text>
+        <line x1="350" y1="217" x2="350" y2="268" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+        <text x="356" y="260" font-size="11" fill="#94a3b8" font-family="Sarabun,sans-serif">(M+m)g ↓</text>
+        <!-- Acc arrows -->
+        <line x1="108" y1="215" x2="108" y2="165" stroke="#34d399" stroke-width="2" marker-end="url(#aB)"/>
+        <text x="68" y="188" font-size="11" fill="#34d399" font-family="Sarabun,sans-serif">a ↑ เลื่อนขึ้น</text>
+        <line x1="440" y1="165" x2="440" y2="215" stroke="#34d399" stroke-width="2" marker-end="url(#aB)"/>
+        <text x="446" y="193" font-size="11" fill="#34d399" font-family="Sarabun,sans-serif">a ↓ ตกลง</text>
+        <!-- Labels -->
+        <text x="260" y="298" text-anchor="middle" font-size="11" fill="#64748b" font-family="Sarabun,sans-serif">Free Body Diagram — เชือกเดียวผ่านรอก: ระยะเคลื่อนที่ซ้าย = ขวา</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="th-card">
+    <h2>📐 การ Derive สมการการเคลื่อนที่</h2>
+    <p>กำหนดทิศบวก = ทิศที่ระบบเคลื่อนที่ (ขวาลง / ซ้ายขึ้) ทั้งสองด้านมีความเร่ง a เดียวกัน แรงตึงเชือก T เท่ากันตลอดเชือก:</p>
+    <ul class="step-list">
+      <li><strong>ด้านซ้าย (M เคลื่อนขึ้น):</strong> T − Mg = Ma &ensp;→&ensp; <code style="color:#c4b5fd;">T = M(g + a) &nbsp;...(1)</code></li>
+      <li><strong>ด้านขวา (M+m เคลื่อนลง):</strong> (M+m)g − T = (M+m)a &ensp;→&ensp; <code style="color:#c4b5fd;">T = (M+m)(g − a) &nbsp;...(2)</code></li>
+      <li><strong>ตั้ง (1) = (2):</strong> M(g+a) = (M+m)(g−a) &ensp;→&ensp; Mg+Ma = Mg+mg−Ma−ma &ensp;→&ensp; 2Ma+ma = mg</li>
+      <li><strong>ผลลัพธ์:</strong> ได้ความเร่งและแรงตึงเชือกของระบบ</li>
+    </ul>
+    <div class="eq-box">
+      <div class="eq">a = mg / (2M + m)</div>
+      <div class="eq">T = M(g + a) = 2Mg(M+m) / (2M+m)</div>
+      <div class="sub">เมื่อ m ≪ 2M จะได้ a ≈ mg/2M → ความเร่งน้อยมาก วัดได้แม่นยำ</div>
+    </div>
+  </div>
+
+  <div class="th-card">
+    <h2>📋 ตารางสรุปตัวแปร</h2>
+    <table class="var-tbl">
+      <tr><th>สัญลักษณ์</th><th>ความหมาย</th><th>หน่วย SI</th><th>หมายเหตุ</th></tr>
+      <tr><td style="color:#38bdf8;">M</td><td>มวลใหญ่แต่ละข้าง (เท่ากัน)</td><td>kg</td><td>ด้านซ้ายเคลื่อนขึ้น</td></tr>
+      <tr><td style="color:#fb923c;">m</td><td>มวล rider (เพิ่มด้านขวา)</td><td>kg</td><td>ด้านขวาเคลื่อนลง</td></tr>
+      <tr><td style="color:#34d399;">a</td><td>ความเร่งของระบบ</td><td>m/s²</td><td>ค่าเดียวกันทั้งสองด้าน</td></tr>
+      <tr><td style="color:#f472b6;">T</td><td>แรงตึงเชือก</td><td>N</td><td>เท่ากันตลอดเชือก (รอกเบา)</td></tr>
+      <tr><td style="color:#94a3b8;">g</td><td>ความเร่งโน้มถ่วง</td><td>m/s²</td><td>≈ 9.8 m/s² ที่ผิวโลก</td></tr>
+      <tr><td style="color:#facc15;">v</td><td>ความเร็ว ณ เวลา t</td><td>m/s</td><td>v = at (เริ่มจากหยุดนิ่ง)</td></tr>
+      <tr><td style="color:#e2e8f0;">s</td><td>การกระจัด</td><td>m</td><td>s = ½at²</td></tr>
+    </table>
+  </div>
+
+  <div class="th-card">
+    <h2>💡 กรณีพิเศษ: นำ Rider ออกระหว่างการเคลื่อนที่</h2>
+    <p>เมื่อ rider <em>m</em> ถูกดึงออก (ผ่านห่วง) ขณะระบบเคลื่อนที่ด้วยความเร็ว v₀ — มวลกลับมาเท่ากันทั้งสองข้าง (M = M) แรงสุทธิ = 0 ระบบ<strong>เคลื่อนที่ต่อด้วยความเร็วคงที่ v₀</strong> นี่คือกฎความเฉื่อยของนิวตัน (กฎข้อที่ 1)</p>
+    <div class="eq-box">
+      <div class="eq">m = 0 → a = 0 → v = v₀ = คงที่</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ TAB 3: QUIZ ═══ -->
+<div id="sec-quiz" class="section">
+<div class="quiz-wrap">
+  <div class="quiz-hdr">
+    <h2>✏️ แบบฝึกหัด — เครื่องจักรของแอตวูด</h2>
+    <div class="score-badge">คะแนน: <span id="scoreDisplay">0</span> / <span id="totalDisplay">0</span></div>
+  </div>
+
+  <!-- Q1 MC -->
+  <div class="q-card" id="q1">
+    <span class="q-num">ข้อ 1</span><span class="q-tag tag-m">ปรนัย</span>
+    <div class="q-text">ระบบ Atwood's Machine อยู่ในสมดุลเมื่อมวลสองข้างเท่ากัน เพราะเหตุใด?</div>
+    <div class="choices">
+      <button class="ch" onclick="checkMC(this,'q1',false)">ก) แรงตึงเชือกเป็นศูนย์</button>
+      <button class="ch" onclick="checkMC(this,'q1',true)">ข) แรงสุทธิของระบบเป็นศูนย์ น้ำหนักสองด้านหักล้างกันพอดี</button>
+      <button class="ch" onclick="checkMC(this,'q1',false)">ค) ความเร่งโน้มถ่วงหายไปเมื่อมวลเท่ากัน</button>
+      <button class="ch" onclick="checkMC(this,'q1',false)">ง) เชือกดึงมวลขึ้นเท่ากับน้ำหนักทั้งหมด</button>
+    </div>
+    <div class="fb" id="fb-q1"></div>
+  </div>
+
+  <!-- Q2 MC -->
+  <div class="q-card" id="q2">
+    <span class="q-num">ข้อ 2</span><span class="q-tag tag-m">ปรนัย</span>
+    <div class="q-text">เมื่อมวล M ด้านซ้ายเลื่อนขึ้น 30 cm มวล M+m ด้านขวาจะเคลื่อนที่อย่างไร?</div>
+    <div class="choices">
+      <button class="ch" onclick="checkMC(this,'q2',false)">ก) เคลื่อนลง 60 cm เพราะหนักกว่า</button>
+      <button class="ch" onclick="checkMC(this,'q2',true)">ข) เคลื่อนลง 30 cm เท่ากัน เนื่องจากเชือกเส้นเดียวผ่านรอก</button>
+      <button class="ch" onclick="checkMC(this,'q2',false)">ค) เคลื่อนลง 15 cm เพราะมวลไม่เท่ากัน</button>
+      <button class="ch" onclick="checkMC(this,'q2',false)">ง) ยังอยู่นิ่ง</button>
+    </div>
+    <div class="fb" id="fb-q2"></div>
+  </div>
+
+  <!-- Q3 CALC -->
+  <div class="q-card" id="q3">
+    <span class="q-num">ข้อ 3</span><span class="q-tag tag-c">คำนวณ</span>
+    <div class="q-text">ระบบมี <span class="hi">M = 0.5 kg</span> แต่ละข้าง, <span class="hi">m = 0.1 kg</span> (rider), <span class="hi">g = 9.8 m/s²</span><br>จงหาความเร่งของระบบ (ทศนิยม 2 ตำแหน่ง)</div>
+    <div class="cw">
+      <input class="ci" type="number" id="ans-q3" placeholder="เช่น 0.89" step="0.01">
+      <span style="font-size:0.83rem;color:var(--muted);">m/s²</span>
+      <button class="ck-btn" onclick="checkCalc('q3',0.89,0.05,'a = (0.1×9.8)/(2×0.5+0.1) = 0.98/1.1 ≈ 0.89 m/s²')">ตรวจ</button>
+    </div>
+    <div class="fb" id="fb-q3"></div>
+  </div>
+
+  <!-- Q4 CALC -->
+  <div class="q-card" id="q4">
+    <span class="q-num">ข้อ 4</span><span class="q-tag tag-c">คำนวณ</span>
+    <div class="q-text">จากข้อ 3 (M = 0.5 kg, a ≈ 0.89 m/s²) จงหาแรงตึงเชือก T (ทศนิยม 2 ตำแหน่ง)</div>
+    <div class="cw">
+      <input class="ci" type="number" id="ans-q4" placeholder="เช่น 5.35" step="0.01">
+      <span style="font-size:0.83rem;color:var(--muted);">N</span>
+      <button class="ck-btn" onclick="checkCalc('q4',5.35,0.1,'T = M(g+a) = 0.5×(9.8+0.89) = 0.5×10.69 ≈ 5.35 N')">ตรวจ</button>
+    </div>
+    <div class="fb" id="fb-q4"></div>
+  </div>
+
+  <!-- Q5 THEORY -->
+  <div class="q-card" id="q5">
+    <span class="q-num">ข้อ 5</span><span class="q-tag tag-t">ทฤษฎี</span>
+    <div class="q-text">เมื่อ rider ถูกดึงออกขณะระบบกำลังเคลื่อนที่ ระบบจะเป็นอย่างไร และสอดคล้องกับกฎของนิวตันข้อใด?</div>
+    <div class="choices">
+      <button class="ch" onclick="checkMC(this,'q5',false)">ก) ระบบหยุดทันที เพราะแรงขับหายไป</button>
+      <button class="ch" onclick="checkMC(this,'q5',false)">ข) ระบบชะลอแล้วหยุด ตามกฎข้อที่ 2</button>
+      <button class="ch" onclick="checkMC(this,'q5',true)">ค) เคลื่อนที่ด้วยความเร็วคงที่ — กฎความเฉื่อย (ข้อที่ 1)</button>
+      <button class="ch" onclick="checkMC(this,'q5',false)">ง) เร่งขึ้นเพราะโมเมนตัมยังมีอยู่</button>
+    </div>
+    <div class="fb" id="fb-q5"></div>
+  </div>
+
+  <!-- Q6 CALC -->
+  <div class="q-card" id="q6">
+    <span class="q-num">ข้อ 6</span><span class="q-tag tag-c">คำนวณ</span>
+    <div class="q-text">ระบบมี M = 1.0 kg, m = 0.2 kg, g = 9.8 m/s² เริ่มจากหยุดนิ่ง<br>จงหา <strong>ความเร็วหลังจาก 3 วินาที</strong> (ทศนิยม 2 ตำแหน่ง)</div>
+    <div class="cw">
+      <input class="ci" type="number" id="ans-q6" placeholder="เช่น 2.67" step="0.01">
+      <span style="font-size:0.83rem;color:var(--muted);">m/s</span>
+      <button class="ck-btn" onclick="checkCalc('q6',2.67,0.1,'a=0.2×9.8/2.2=0.891 m/s² → v=at=0.891×3≈2.67 m/s')">ตรวจ</button>
+    </div>
+    <div class="fb" id="fb-q6"></div>
+  </div>
+
+  <!-- Q7 MC -->
+  <div class="q-card" id="q7">
+    <span class="q-num">ข้อ 7</span><span class="q-tag tag-m">ปรนัย</span>
+    <div class="q-text">เหตุใดเครื่องจักรของแอตวูดจึงนิยมใช้ <strong>M ขนาดใหญ่</strong> ทั้งสองข้าง แล้วเพิ่ม rider m ขนาดเล็ก?</div>
+    <div class="choices">
+      <button class="ch" onclick="checkMC(this,'q7',true)">ก) เพื่อให้ a มีค่าน้อย วัดการเคลื่อนที่ได้แม่นยำขึ้น</button>
+      <button class="ch" onclick="checkMC(this,'q7',false)">ข) เพื่อให้แรงตึงเชือกเป็นศูนย์</button>
+      <button class="ch" onclick="checkMC(this,'q7',false)">ค) เพราะมวลน้อยทำให้เชือกขาดง่าย</button>
+      <button class="ch" onclick="checkMC(this,'q7',false)">ง) เพื่อให้ระบบหยุดเร็วขึ้น</button>
+    </div>
+    <div class="fb" id="fb-q7"></div>
+  </div>
+
+  <!-- Q8 CALC -->
+  <div class="q-card" id="q8">
+    <span class="q-num">ข้อ 8</span><span class="q-tag tag-c">คำนวณ</span>
+    <div class="q-text">ระบบมี M = 0.8 kg, m = 0.04 kg, g = 9.8 m/s² เริ่มจากหยุดนิ่ง<br>จงหา <strong>การกระจัดใน 2 วินาที</strong> (ทศนิยม 3 ตำแหน่ง)</div>
+    <div class="cw">
+      <input class="ci" type="number" id="ans-q8" placeholder="เช่น 0.478" step="0.001">
+      <span style="font-size:0.83rem;color:var(--muted);">m</span>
+      <button class="ck-btn" onclick="checkCalc('q8',0.478,0.03,'a=0.04×9.8/1.64≈0.239 m/s² → s=½×0.239×4≈0.478 m')">ตรวจ</button>
+    </div>
+    <div class="fb" id="fb-q8"></div>
+  </div>
+
+  <div class="quiz-footer">
+    <button class="sa-btn" onclick="showAllAnswers()">🔓 แสดงเฉลยทั้งหมด</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ TAB 4: DATA ═══ -->
+<div id="sec-data" class="section">
+<div class="data-wrap">
+  <div class="dc">
+    <h2>🧮 คำนวณค่าทางทฤษฎี</h2>
+    <p style="font-size:0.84rem;color:var(--muted);margin-bottom:12px;">กรอก M, m, g, t เพื่อคำนวณค่าทุกตัวแปร</p>
+    <div class="dg">
+      <div class="dr"><label>M — มวลใหญ่แต่ละข้าง (kg)</label><input class="dinp" type="number" id="d-M" value="0.5" step="0.01" min="0.01"></div>
+      <div class="dr"><label>m — rider (kg)</label><input class="dinp" type="number" id="d-m" value="0.05" step="0.001" min="0.001"></div>
+      <div class="dr"><label>g — ความเร่งโน้มถ่วง (m/s²)</label><input class="dinp" type="number" id="d-g" value="9.8" step="0.01" min="0.1"></div>
+      <div class="dr"><label>t — เวลา (s)</label><input class="dinp" type="number" id="d-t" value="2.0" step="0.1" min="0.1"></div>
+    </div>
+    <button class="calc-btn" onclick="calcTheory()">⚡ คำนวณ</button>
+    <div class="dres" id="theory-result" style="display:none;">
+      <div class="drr"><span class="drrl">ความเร่ง a = mg/(2M+m)</span><span class="drrv" id="dr-a">—</span></div>
+      <div class="drr"><span class="drrl">แรงตึงเชือก T = M(g+a)</span><span class="drrv" id="dr-T">—</span></div>
+      <div class="drr"><span class="drrl">ความเร็วที่ t วินาที v = at</span><span class="drrv" id="dr-v">—</span></div>
+      <div class="drr"><span class="drrl">การกระจัดที่ t วินาที s = ½at²</span><span class="drrv" id="dr-s">—</span></div>
+      <div class="drr"><span class="drrl">แรงสุทธิ Fₙₑₜ = mg</span><span class="drrv" id="dr-F">—</span></div>
+    </div>
+  </div>
+
+  <div class="dc">
+    <h2>📋 ตารางบันทึกผลการทดลอง</h2>
+    <p style="font-size:0.84rem;color:var(--muted);margin-bottom:10px;">บันทึกค่าจาก simulation หรือการทดลองจริง เพื่อเปรียบเทียบ</p>
+    <table class="dtbl" id="dataTable">
+      <thead>
+        <tr><th>#</th><th>M (kg)</th><th>m (kg)</th><th>a ทฤษฎี (m/s²)</th><th>a ทดลอง (m/s²)</th><th>% ความคลาดเคลื่อน</th></tr>
+      </thead>
+      <tbody id="dataTbody">
+        <tr>
+          <td>1</td>
+          <td><input type="number" placeholder="0.50" step="0.01"></td>
+          <td><input type="number" placeholder="0.05" step="0.01"></td>
+          <td><input type="number" placeholder="คำนวณ" readonly style="color:var(--accent3);"></td>
+          <td><input type="number" placeholder="วัดได้" step="0.001" oninput="calcErr(this)"></td>
+          <td><input type="number" placeholder="—" readonly style="color:var(--accent4);"></td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="add-row-btn" onclick="addRow()">＋ เพิ่มแถว</button>
+    <div style="margin-top:10px;font-size:0.77rem;color:var(--muted);">% ความคลาดเคลื่อน = |a_exp − a_theory| / a_theory × 100</div>
+  </div>
+
+  <div class="dc">
+    <h2>💬 คำถามท้ายการทดลอง</h2>
+    <ol style="font-size:0.9rem;line-height:2.1;color:var(--text);padding-left:20px;">
+      <li>ค่าความเร่งทดลองต่างจากทฤษฎีอย่างไร? เพราะเหตุใด?</li>
+      <li>ถ้าเชือกและรอกมีมวล จะส่งผลต่อ a อย่างไร?</li>
+      <li>ถ้าเพิ่ม M สองเท่า (คงค่า m) ความเร่งจะเปลี่ยนไปอย่างไร? ยืนยันด้วยสมการ</li>
+      <li>แรงตึงเชือก T มีค่าเท่าไหร่เมื่อเทียบกับน้ำหนัก Mg? ทำไมจึงไม่เท่ากัน?</li>
+    </ol>
+  </div>
+</div>
+</div>
+
+<footer>อ้างอิง: Halliday, Resnick &amp; Krane — Physics, 5th Ed. | หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560) | KP Science simulation © 2568</footer>
+
+<script>
+// ════════════════════════════════════════
+//  TAB SWITCHING
+// ════════════════════════════════════════
+function showTab(name, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='sim') draw();
+}
+
+// ════════════════════════════════════════
+//  PHYSICS STATE
+// ════════════════════════════════════════
+let M=0.5, m=0.05, g=9.8;
+let simT=0, vel=0, disp=0;
+let isPlaying=false, lastTs=null, animId=null, speed=1.0;
+let stopped=false;
+
+function getAcc(){
+  const den=2*M+m;
+  return den>0?(m*g)/den:0;
+}
+function getTension(a){ return M*(g+a); }
+
+// ════════════════════════════════════════
+//  CANVAS GEOMETRY CONSTANTS
+// ════════════════════════════════════════
+const CANVAS_H=520;
+// Pulley
+const PY=70;       // pulley center Y
+const PR=46;       // pulley outer radius
+const GR=36;       // rope groove radius
+// Rope hangs at:
+//   leftRopeX  = canvasW/2 - GR
+//   rightRopeX = canvasW/2 + GR
+// Both masses hang directly below these X positions
+const INIT_TOP=300;  // initial top-Y of both masses
+const FLOOR_Y=CANVAS_H-16;
+const PIX_PER_M=115; // pixels per metre
+
+// ════════════════════════════════════════
+//  ANIMATION LOOP
+// ════════════════════════════════════════
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,0.05)*speed;
+  lastTs=ts;
+  const a=getAcc();
+  vel+=a*dt;
+  disp+=vel*dt;
+  simT+=dt;
+
+  // Check stop conditions (computed every frame based on current mass sizes)
+  const canvas=document.getElementById('simCanvas');
+  const W=canvas.width;
+  const rW=massW(M+m), rH=massH(M+m);
+  const rTopY=INIT_TOP+disp*PIX_PER_M;
+  const lTopY=INIT_TOP-disp*PIX_PER_M;
+  const minLeftTopY=PY+PR+8; // left mass must stay below pulley bottom
+
+  if(rTopY+rH>=FLOOR_Y-1){
+    // Right mass hits floor
+    disp=(FLOOR_Y-1-INIT_TOP-rH)/PIX_PER_M;
+    vel=0;
+    stopSim(true);
+    draw(); updateReadout(); return;
+  }
+  if(lTopY<=minLeftTopY){
+    disp=(INIT_TOP-minLeftTopY)/PIX_PER_M;
+    vel=0;
+    stopSim(false);
+    draw(); updateReadout(); return;
+  }
+
+  draw();
+  updateReadout();
+  animId=requestAnimationFrame(loop);
+}
+
+function stopSim(hitFloor){
+  cancelAnimationFrame(animId);
+  isPlaying=false; stopped=true;
+  const btn=document.getElementById('playBtn');
+  btn.textContent='▶ เริ่ม'; btn.classList.remove('playing');
+  const msg=hitFloor
+    ?'🏁 มวล (M+m) กระทบพื้น — กด <b>รีเซ็ต</b> เพื่อเริ่มใหม่'
+    :'🔝 มวล M ถึงระดับรอก — กด <b>รีเซ็ต</b>';
+  document.getElementById('statusBox').innerHTML=msg;
+}
+
+function togglePlay(){
+  if(stopped){ return; }
+  isPlaying=!isPlaying;
+  const btn=document.getElementById('playBtn');
+  if(isPlaying){
+    lastTs=null;
+    animId=requestAnimationFrame(loop);
+    btn.textContent='⏸ หยุด'; btn.classList.add('playing');
+    document.getElementById('statusBox').innerHTML='▶ กำลังเคลื่อนที่ — <span style="color:#fb923c;">M+m ตกลง</span> &nbsp;|&nbsp; <span style="color:#38bdf8;">M เลื่อนขึ้น</span>';
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent='▶ เริ่ม'; btn.classList.remove('playing');
+    document.getElementById('statusBox').innerHTML='⏸ หยุดชั่วคราว — กด <b>เริ่ม</b> ต่อ';
+  }
+}
+
+function resetSim(){
+  cancelAnimationFrame(animId);
+  isPlaying=false; stopped=false;
+  simT=0; vel=0; disp=0; lastTs=null;
+  const btn=document.getElementById('playBtn');
+  btn.textContent='▶ เริ่ม'; btn.classList.remove('playing');
+  document.getElementById('statusBox').innerHTML='⚙️ ตั้งค่ามวลแล้วกด <b>เริ่ม</b> — ด้านขวา (M+m) จะตกลง ด้านซ้าย (M) จะเลื่อนขึ้น';
+  updateReadout(); draw();
+}
+
+// ════════════════════════════════════════
+//  READOUT
+// ════════════════════════════════════════
+function updateReadout(){
+  const a=getAcc(), T=getTension(a);
+  document.getElementById('rv-a').textContent=a.toFixed(3);
+  document.getElementById('rv-v').textContent=vel.toFixed(3);
+  document.getElementById('rv-T').textContent=T.toFixed(3);
+  document.getElementById('rv-F').textContent=(m*g).toFixed(3);
+  document.getElementById('rv-t').textContent=simT.toFixed(2);
+  document.getElementById('rv-s').textContent=disp.toFixed(3);
+  document.getElementById('lv-formula').textContent=
+    `a = ${m.toFixed(3)}×${g.toFixed(2)} / (2×${M.toFixed(3)}+${m.toFixed(3)}) = ${a.toFixed(4)} m/s²`;
+}
+
+// ════════════════════════════════════════
+//  SLIDERS
+// ════════════════════════════════════════
+const v2s={'vi-M':'sl-M','vi-m':'sl-m'};
+function syncVi(inp){
+  const sl=document.getElementById(v2s[inp.id]);
+  if(!sl) return;
+  let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));
+  inp.value=v; sl.value=v; sl.dispatchEvent(new Event('input'));
+}
+function initSliders(){
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=document.getElementById(si), inp=document.getElementById(vi);
+    sl.addEventListener('input',()=>{ inp.value=parseFloat(sl.value); updateParams(); });
+    inp.addEventListener('blur',()=>syncVi(inp));
+  });
+  document.getElementById('speedSlider').addEventListener('input',function(){
+    speed=parseFloat(this.value);
+    document.getElementById('speedLbl').textContent=speed.toFixed(1)+'×';
+  });
+  document.getElementById('gSlider').addEventListener('input',function(){
+    g=parseFloat(this.value);
+    document.getElementById('gLbl').textContent=g.toFixed(2);
+    updateReadout(); if(!isPlaying) draw();
+  });
+}
+function updateParams(){
+  M=parseFloat(document.getElementById('sl-M').value);
+  m=parseFloat(document.getElementById('sl-m').value);
+  updateReadout(); if(!isPlaying) draw();
+}
+
+// ════════════════════════════════════════
+//  DRAW
+// ════════════════════════════════════════
+function massW(mass){ return Math.max(32,Math.min(58,30+mass*22)); }
+function massH(mass){ return Math.max(40,Math.min(82,36+mass*38)); }
+
+function draw(){
+  const canvas=document.getElementById('simCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=CANVAS_H;
+  canvas.height=H;
+
+  // ── Background ──
+  ctx.fillStyle='#080c18';
+  ctx.fillRect(0,0,W,H);
+
+  // ── Layout ──
+  const px=W/2;
+  const lRopeX=px-GR;   // left rope X (= left mass center X)
+  const rRopeX=px+GR;   // right rope X (= right mass center X)
+  const dispPx=disp*PIX_PER_M;
+
+  // Mass sizes
+  const lW=massW(M), lH=massH(M);
+  const rW=massW(M+m), rH=massH(M+m);
+
+  // Mass top positions
+  const lTopY=INIT_TOP-dispPx;   // left goes UP (decreasing Y)
+  const rTopY=INIT_TOP+dispPx;   // right goes DOWN (increasing Y)
+
+  // ── Ruler (far right side) ──
+  drawRuler(ctx, W-38, PY+PR+4, FLOOR_Y, dispPx);
+
+  // ── Floor ──
+  ctx.fillStyle='#1a2235';
+  ctx.fillRect(0,FLOOR_Y,W-38,H-FLOOR_Y);
+  ctx.strokeStyle='#2d4a6f'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,FLOOR_Y); ctx.lineTo(W-38,FLOOR_Y); ctx.stroke();
+  // Hatch
+  for(let x=10;x<W-38;x+=16){
+    ctx.strokeStyle='#243655'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,FLOOR_Y); ctx.lineTo(x+10,H); ctx.stroke();
+  }
+  ctx.fillStyle='#94a3b8'; ctx.font='9px Sarabun,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('พื้น',60,FLOOR_Y+10);
+
+  // ── Ceiling ──
+  ctx.fillStyle='#1e3a5f';
+  ctx.fillRect(0,0,W-38,20);
+  for(let x=14;x<W-38;x+=14){
+    ctx.strokeStyle='#2d4a6f'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x-8,20); ctx.stroke();
+  }
+
+  // ── Pulley support bracket ──
+  ctx.strokeStyle='#4a6080'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(px,20); ctx.lineTo(px,PY-PR); ctx.stroke();
+
+  // ── Rope (single path: left mass top → up → arc over pulley → down → right mass top) ──
+  ctx.beginPath();
+  ctx.moveTo(lRopeX, lTopY);           // top of left mass
+  ctx.lineTo(lRopeX, PY);              // going UP to pulley groove level
+  ctx.arc(px, PY, GR, Math.PI, 0, true); // arc OVER the top of pulley groove
+  ctx.lineTo(rRopeX, rTopY);           // going DOWN to top of right mass
+  ctx.strokeStyle='#d1d5db'; ctx.lineWidth=2.5;
+  ctx.stroke();
+
+  // ── Pulley ──
+  drawPulley(ctx, px, PY, PR, GR);
+
+  // ── Left mass (M) — BLUE — goes UP ──
+  drawMass(ctx, lRopeX-lW/2, lTopY, lW, lH, '#1a3050', '#38bdf8',
+    `M`, `${M.toFixed(2)} kg`, '#38bdf8', '#60a5fa');
+
+  // ── Right mass (M+m) — ORANGE — goes DOWN ──
+  drawMass(ctx, rRopeX-rW/2, rTopY, rW, rH, '#3d1206', '#fb923c',
+    `M+m`, `${(M+m).toFixed(2)} kg`, '#fb923c', '#fdba74');
+
+  // ── Rider on top of right mass ──
+  const ridH=Math.max(10,Math.min(26,m*230));
+  const ridW=rW*0.62;
+  const ridX=rRopeX-ridW/2;
+  const ridY=rTopY-ridH;
+  ctx.fillStyle='#78350f';
+  roundRect(ctx,ridX,ridY,ridW,ridH,3); ctx.fill();
+  ctx.strokeStyle='#fb923c'; ctx.lineWidth=1.5;
+  roundRect(ctx,ridX,ridY,ridW,ridH,3); ctx.stroke();
+  ctx.fillStyle='#fcd34d'; ctx.font=`bold ${Math.min(10,Math.max(8,ridH-2))}px Sarabun,sans-serif`;
+  ctx.textAlign='center';
+  ctx.fillText('m',rRopeX,ridY+ridH/2+4);
+
+  // ── Force arrows (only when moving) ──
+  if(isPlaying || disp>0.001){
+    const a=getAcc(), T=getTension(a);
+    const sc=0.55; // scale for visual
+
+    // T up left
+    drawArrow(ctx, lRopeX, lTopY, lRopeX, lTopY-T*sc, '#f472b6', 'T');
+    // Mg down left
+    drawArrow(ctx, lRopeX, lTopY+lH, lRopeX, lTopY+lH+M*g*sc*0.5, '#94a3b8', 'Mg');
+    // T up right
+    drawArrow(ctx, rRopeX, rTopY, rRopeX, rTopY-T*sc, '#f472b6', 'T');
+    // (M+m)g down right
+    drawArrow(ctx, rRopeX, rTopY+rH, rRopeX, rTopY+rH+(M+m)*g*sc*0.5, '#94a3b8', '(M+m)g');
+
+    // Acceleration arrows (on sides)
+    if(a>0.001){
+      drawArrow(ctx, lRopeX-lW/2-18, lTopY+lH*0.5, lRopeX-lW/2-18, lTopY+lH*0.5-36, '#34d399', 'a↑');
+      drawArrow(ctx, rRopeX+rW/2+18, rTopY+rH*0.4, rRopeX+rW/2+18, rTopY+rH*0.4+36, '#34d399', 'a↓');
+    }
+  }
+
+  // ── Displacement indicator on left rope ──
+  if(disp>0.005){
+    const midY1=INIT_TOP-dispPx/2;
+    ctx.fillStyle='rgba(250,204,21,0.85)';
+    ctx.font='bold 10px Share Tech Mono,monospace';
+    ctx.textAlign='right';
+    ctx.fillText(`${disp.toFixed(2)}m`, lRopeX-6, midY1+4);
+    // Bracket lines
+    ctx.strokeStyle='rgba(250,204,21,0.5)'; ctx.lineWidth=1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(lRopeX-2,INIT_TOP); ctx.lineTo(lRopeX-18,INIT_TOP); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lRopeX-2,lTopY); ctx.lineTo(lRopeX-18,lTopY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lRopeX-10,INIT_TOP); ctx.lineTo(lRopeX-10,lTopY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Info labels ──
+  ctx.fillStyle='#475569'; ctx.font='10px Share Tech Mono,monospace'; ctx.textAlign='left';
+  ctx.fillText(`t=${simT.toFixed(2)}s  v=${vel.toFixed(2)}m/s`, 8, H-5);
+}
+
+// ─── Pulley ───
+function drawPulley(ctx, px, py, pR, gR){
+  // Outer disk
+  const g2=ctx.createRadialGradient(px-pR*0.4,py-pR*0.4,2,px,py,pR);
+  g2.addColorStop(0,'#6b7c93'); g2.addColorStop(0.5,'#374151'); g2.addColorStop(1,'#111827');
+  ctx.beginPath(); ctx.arc(px,py,pR,0,Math.PI*2);
+  ctx.fillStyle=g2; ctx.fill();
+  ctx.strokeStyle='#9ca3af'; ctx.lineWidth=2; ctx.stroke();
+  // Spoke highlights
+  ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+    ctx.beginPath(); ctx.moveTo(px,py);
+    ctx.lineTo(px+Math.cos(a)*(pR-6),py+Math.sin(a)*(pR-6)); ctx.stroke();
+  }
+  // Groove (dark channel)
+  ctx.beginPath(); ctx.arc(px,py,gR+3,0,Math.PI*2);
+  ctx.strokeStyle='#0a0e1a'; ctx.lineWidth=6; ctx.stroke();
+  ctx.strokeStyle='#1f2937'; ctx.lineWidth=2; ctx.stroke();
+  // Groove inner highlight
+  ctx.beginPath(); ctx.arc(px,py,gR,0,Math.PI*2);
+  ctx.strokeStyle='#374151'; ctx.lineWidth=1.5; ctx.stroke();
+  // Axle
+  const ax=ctx.createRadialGradient(px-3,py-3,1,px,py,9);
+  ax.addColorStop(0,'#60a5fa'); ax.addColorStop(1,'#1d4ed8');
+  ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2);
+  ctx.fillStyle=ax; ctx.fill();
+  ctx.strokeStyle='#93c5fd'; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
+  ctx.fillStyle='#0a0e1a'; ctx.fill();
+}
+
+// ─── Mass block ───
+function drawMass(ctx, x, y, w, h, bgColor, borderColor, label1, label2, c1, c2){
+  const g2=ctx.createLinearGradient(x,y,x+w,y+h);
+  g2.addColorStop(0,lighten(bgColor,18)); g2.addColorStop(0.5,bgColor); g2.addColorStop(1,darken(bgColor,15));
+  ctx.fillStyle=g2; roundRect(ctx,x,y,w,h,7); ctx.fill();
+  ctx.strokeStyle=borderColor; ctx.lineWidth=2; roundRect(ctx,x,y,w,h,7); ctx.stroke();
+  // Sheen
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  roundRect(ctx,x+4,y+3,w-8,h/4,4); ctx.fill();
+  // Labels
+  const cx=x+w/2;
+  const fs1=Math.max(10,Math.min(15,w/4));
+  const fs2=Math.max(8,Math.min(11,w/5.5));
+  ctx.textAlign='center';
+  ctx.fillStyle=c1; ctx.font=`bold ${fs1}px Sarabun,sans-serif`;
+  ctx.fillText(label1,cx,y+h*0.45+fs1*0.35);
+  ctx.fillStyle=c2; ctx.font=`${fs2}px Share Tech Mono,monospace`;
+  ctx.fillText(label2,cx,y+h*0.72+fs2*0.35);
+}
+
+// ─── Arrow ───
+function drawArrow(ctx, x1, y1, x2, y2, color, label){
+  const dx=x2-x1, dy=y2-y1, len=Math.sqrt(dx*dx+dy*dy);
+  if(len<6) return;
+  ctx.strokeStyle=color; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang=Math.atan2(dy,dx);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-10*Math.cos(ang-0.38),y2-10*Math.sin(ang-0.38));
+  ctx.lineTo(x2-10*Math.cos(ang+0.38),y2-10*Math.sin(ang+0.38));
+  ctx.closePath(); ctx.fill();
+  if(label){
+    ctx.fillStyle=color; ctx.font='10px Sarabun,sans-serif'; ctx.textAlign='center';
+    const nx=dy<0?x2-14:x2+14;
+    ctx.fillText(label,nx,y2+(dy<0?0:12));
+  }
+}
+
+// ─── Ruler ───
+function drawRuler(ctx, rx, topY, botY, dispPx){
+  const rW=32, totalH=botY-topY;
+  // Background
+  ctx.fillStyle='#111827'; ctx.strokeStyle='#1e3a5f'; ctx.lineWidth=1;
+  ctx.fillRect(rx,topY,rW,totalH);
+  ctx.strokeRect(rx,topY,rW,totalH);
+
+  // Scale: totalH pixels = ?? metres
+  // Show in cm, 1 cm = totalH/200 pixels (assuming ~2m range)
+  const cmPx=totalH/200; // pixels per cm
+
+  for(let cm=0;cm<=200;cm++){
+    const ty=topY+cm*cmPx;
+    if(ty>botY) break;
+    if(cm%10===0){
+      ctx.strokeStyle='#3b82f6'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(rx,ty); ctx.lineTo(rx+rW,ty); ctx.stroke();
+      ctx.fillStyle='#3b82f6'; ctx.font='8px Share Tech Mono,monospace'; ctx.textAlign='right';
+      ctx.fillText(cm+'',rx-2,ty+3);
+    } else if(cm%5===0){
+      ctx.strokeStyle='#334155'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(rx+10,ty); ctx.lineTo(rx+rW,ty); ctx.stroke();
+    } else {
+      ctx.strokeStyle='#1a2d40'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(rx+18,ty); ctx.lineTo(rx+rW,ty); ctx.stroke();
+    }
+  }
+
+  // Marker showing current displacement
+  if(dispPx>1){
+    const markerY=topY+dispPx;
+    ctx.fillStyle='#facc15'; ctx.lineWidth=1.5;
+    ctx.strokeStyle='#facc15';
+    ctx.beginPath(); ctx.moveTo(rx,markerY); ctx.lineTo(rx+rW,markerY); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rx,markerY); ctx.lineTo(rx-4,markerY-4); ctx.lineTo(rx-4,markerY+4); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle='#facc15'; ctx.font='bold 8px Share Tech Mono,monospace'; ctx.textAlign='right';
+    ctx.fillText(`${(dispPx/cmPx).toFixed(1)}cm`,rx-6,markerY+3);
+  }
+
+  // Label
+  ctx.save(); ctx.translate(rx+rW/2+1,topY+totalH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#475569'; ctx.font='8px Sarabun,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('cm',0,0); ctx.restore();
+}
+
+// ─── Helpers ───
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16)+amt, gg=parseInt(hex.slice(3,5),16)+amt, b=parseInt(hex.slice(5,7),16)+amt;
+  return `rgb(${clamp(r,0,255)},${clamp(gg,0,255)},${clamp(b,0,255)})`;
+}
+function darken(hex,amt){ return lighten(hex,-amt); }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// ════════════════════════════════════════
+//  QUIZ
+// ════════════════════════════════════════
+let score=0, answered=new Set();
+const mcExp={
+  q1:'ถูกต้อง! เมื่อมวลสองข้างเท่ากัน แรงโน้มถ่วงทั้งสองด้านขนาดเท่ากันหักล้างกัน F_net = 0 → a = 0',
+  q2:'ถูกต้อง! เชือกเส้นเดียวต่อเนื่องผ่านรอก เมื่อด้านหนึ่งขึ้น xm อีกด้านลง xm เสมอ',
+  q5:'ถูกต้อง! เมื่อ m = 0 → F_net = 0 → a = 0 ระบบเคลื่อนที่ด้วยความเร็วคงที่ตามกฎข้อที่ 1 ของนิวตัน',
+  q7:'ถูกต้อง! a = mg/(2M+m) เมื่อ M ใหญ่มาก a มีค่าน้อย วัดตำแหน่งในเวลาสั้นๆ ได้แม่นยำขึ้น'
+};
+function checkMC(btn,qid,isOk){
+  if(answered.has(qid)) return;
+  answered.add(qid);
+  const btns=btn.parentElement.querySelectorAll('.ch');
+  btns.forEach(b=>b.disabled=true);
+  const fb=document.getElementById('fb-'+qid);
+  if(isOk){
+    btn.classList.add('correct'); score++; updateScore();
+    fb.textContent='✅ '+(mcExp[qid]||'ถูกต้อง!');
+    fb.className='fb show ok';
+  } else {
+    btn.classList.add('wrong');
+    btns.forEach(b=>{ if(b.onclick.toString().includes(',true)')) b.classList.add('correct'); });
+    fb.textContent='❌ ยังไม่ถูกต้อง — ตรวจสอบสมการ a = mg/(2M+m) และกฎของนิวตัน';
+    fb.className='fb show no';
+  }
+  document.getElementById('totalDisplay').textContent=answered.size;
+}
+function checkCalc(qid,correct,tol,exp){
+  if(answered.has(qid)) return;
+  const inp=document.getElementById('ans-'+qid);
+  const val=parseFloat(inp.value);
+  if(isNaN(val)){ alert('กรุณากรอกตัวเลข'); return; }
+  answered.add(qid);
+  inp.disabled=true;
+  const fb=document.getElementById('fb-'+qid);
+  if(Math.abs(val-correct)<=tol){
+    score++; updateScore();
+    fb.textContent='✅ ถูกต้อง! '+exp; fb.className='fb show ok';
+  } else {
+    fb.textContent=`❌ ยังไม่ถูก (คำตอบของคุณ: ${val}) — เฉลย: ${exp}`; fb.className='fb show no';
+  }
+  document.getElementById('totalDisplay').textContent=answered.size;
+}
+function updateScore(){ document.getElementById('scoreDisplay').textContent=score; }
+function showAllAnswers(){
+  const ans={q1:'ข)',q2:'ข)',q3:'0.89 m/s²',q4:'5.35 N',q5:'ค)',q6:'2.67 m/s',q7:'ก)',q8:'0.478 m'};
+  Object.entries(ans).forEach(([qid,a])=>{
+    if(!answered.has(qid)){
+      const fb=document.getElementById('fb-'+qid);
+      if(fb){ fb.textContent='📖 เฉลย: '+a; fb.className='fb show info'; }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+//  DATA TAB
+// ════════════════════════════════════════
+function calcTheory(){
+  const dM=parseFloat(document.getElementById('d-M').value)||0;
+  const dm=parseFloat(document.getElementById('d-m').value)||0;
+  const dg=parseFloat(document.getElementById('d-g').value)||9.8;
+  const dt=parseFloat(document.getElementById('d-t').value)||1;
+  if(dM<=0||dm<=0){ alert('กรุณากรอกค่า M และ m ที่มากกว่าศูนย์'); return; }
+  const a=(dm*dg)/(2*dM+dm);
+  const T=dM*(dg+a);
+  document.getElementById('dr-a').textContent=a.toFixed(4)+' m/s²';
+  document.getElementById('dr-T').textContent=T.toFixed(4)+' N';
+  document.getElementById('dr-v').textContent=(a*dt).toFixed(4)+' m/s';
+  document.getElementById('dr-s').textContent=(0.5*a*dt*dt).toFixed(4)+' m';
+  document.getElementById('dr-F').textContent=(dm*dg).toFixed(4)+' N';
+  document.getElementById('theory-result').style.display='block';
+}
+let rowCount=1;
+function addRow(){
+  rowCount++;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${rowCount}</td>
+    <td><input type="number" placeholder="0.50" step="0.01"></td>
+    <td><input type="number" placeholder="0.05" step="0.01"></td>
+    <td><input type="number" placeholder="คำนวณ" readonly style="color:var(--accent3);"></td>
+    <td><input type="number" placeholder="วัดได้" step="0.001" oninput="calcErr(this)"></td>
+    <td><input type="number" placeholder="—" readonly style="color:var(--accent4);"></td>`;
+  document.getElementById('dataTbody').appendChild(tr);
+}
+function calcErr(inp){
+  const cells=inp.closest('tr').querySelectorAll('input');
+  const aT=parseFloat(cells[2].value), aE=parseFloat(inp.value);
+  if(!isNaN(aT)&&aT!==0&&!isNaN(aE))
+    cells[4].value=Math.abs(aE-aT)/aT*100 + '';
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+window.addEventListener('load',()=>{
+  const canvas=document.getElementById('simCanvas');
+  function resize(){
+    canvas.width=canvas.parentElement.clientWidth||480;
+    draw();
+  }
+  initSliders(); updateReadout(); resize();
+  window.addEventListener('resize',resize);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 01-11 Reaction Time | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ══ CSS Variables ══════════════════════════════════════ */
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #fb923c;   /* orange — reaction/timing theme */
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #f472b6;
+  --accent5: #38bdf8;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --var-d:   #ffd54f;
+  --var-t:   #ce93d8;
+  --var-g:   #ffa726;
+}
+
+/* ══ Reset ══════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ══ Header ═════════════════════════════════════════════ */
+header {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+header .icon { font-size: 2rem; }
+header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+header p  { font-size: 0.82rem; color: var(--muted); }
+header .badge {
+  margin-left: auto;
+  background: #1e3a5f; border: 1px solid var(--accent);
+  color: var(--accent); padding: 3px 10px;
+  border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ══ Nav ════════════════════════════════════════════════ */
+nav {
+  display: flex; gap: 4px; padding: 10px 20px;
+  background: #0f172a; border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none; }
+nav button {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); padding: 7px 16px; border-radius: 8px;
+  cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-size: 0.85rem; font-weight: 600; white-space: nowrap;
+  transition: all .2s;
+}
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active {
+  background: var(--accent); border-color: var(--accent);
+  color: #0a0e1a;
+}
+
+/* ══ Sections ═══════════════════════════════════════════ */
+.section { display: none; }
+.section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; } }
+
+/* ══ Simulation Layout ══════════════════════════════════ */
+.sim-layout {
+  display: flex;
+  min-height: calc(100vh - 118px);
+}
+.canvas-area {
+  flex: 0 0 288px;
+  background: var(--panel2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 14px 12px; gap: 10px;
+}
+.control-area {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto; min-width: 0;
+}
+
+/* ══ Canvas ═════════════════════════════════════════════ */
+#simCanvas {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: block;
+  transition: border-color 0.3s;
+}
+#simCanvas.falling-active {
+  border-color: #ff4444;
+  box-shadow: 0 0 12px rgba(255,68,68,0.3);
+}
+
+/* ══ Phase Badge ════════════════════════════════════════ */
+.phase-badge {
+  padding: 5px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.3s;
+  letter-spacing: 0.02em;
+}
+.ph-ready   { background:#0d2240; color:var(--accent5); border:1px solid var(--accent5); }
+.ph-waiting { background:#2d1500; color:#ff9944; border:1px solid #ff9944;
+              animation: pblink .6s infinite alternate; }
+.ph-falling { background:#3d0808; color:#ff4444; border:1px solid #ff4444;
+              animation: pblink .35s infinite alternate; }
+.ph-result  { background:#0d2e1a; color:var(--accent3); border:1px solid var(--accent3); }
+.ph-done    { background:#1a103d; color:var(--accent2); border:1px solid var(--accent2); }
+@keyframes pblink { from { opacity:.65; } to { opacity:1; } }
+
+/* ══ Buttons ════════════════════════════════════════════ */
+.btn-action {
+  width: 100%; padding: 13px;
+  border: none; border-radius: 10px;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 1.05rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+}
+.btn-release {
+  background: linear-gradient(135deg, #1565c0, #0d47a1);
+  color: #fff; border: 1px solid #42a5f5;
+}
+.btn-release:hover { background: linear-gradient(135deg, #1976d2, #1565c0); }
+
+.btn-catch {
+  background: linear-gradient(135deg, #c62828, #b71c1c);
+  color: #fff; border: 1px solid #ef5350;
+  font-size: 1.2rem;
+  animation: catchglow .4s infinite alternate;
+}
+@keyframes catchglow {
+  from { box-shadow: 0 0 0 rgba(239,83,80,0); }
+  to   { box-shadow: 0 0 18px rgba(239,83,80,0.65); }
+}
+.btn-catch:disabled {
+  background: #333; color: #666; cursor: not-allowed;
+  animation: none; box-shadow: none;
+}
+.btn-next {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  color: #fff; border: 1px solid #66bb6a;
+}
+.btn-next:hover { background: linear-gradient(135deg, #2e7d32, #388e3c); }
+.btn-outline {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 0.85rem; padding: 7px 14px;
+  border-radius: 7px; cursor: pointer;
+  font-family: 'Sarabun', sans-serif;
+  font-weight: 600; transition: .15s;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══ Trial Progress ══════════════════════════════════════ */
+.trial-prog {
+  display: flex; align-items: center; gap: 8px;
+}
+.tdot {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 700;
+  border: 2px solid var(--border); color: var(--muted);
+  flex-shrink: 0; transition: all 0.3s;
+}
+.tdot.done    { border-color:var(--accent3); background:rgba(52,211,153,.15); color:var(--accent3); }
+.tdot.current { border-color:var(--accent); background:rgba(251,146,60,.15); color:var(--accent);
+                animation: pblink 1s infinite alternate; }
+.tdot.pending { border-color:var(--border); }
+.tline { flex:1; height:2px; background:var(--border); border-radius:2px; }
+
+/* ══ Result Cards ════════════════════════════════════════ */
+.rcard {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.rcard h4 {
+  font-size: 0.78rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 10px;
+}
+.rcard-big {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.val-big {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 2.2rem; font-weight: 700;
+}
+.val-unit { color: var(--muted); font-size: 0.9rem; }
+.val-sub  { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+
+/* ══ Trial Table ═════════════════════════════════════════ */
+.ttable {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+.ttable th {
+  background: var(--panel2); color: var(--muted);
+  padding: 6px 10px; text-align: center;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: 0.8rem;
+}
+.ttable td {
+  padding: 8px 10px; text-align: center;
+  border-bottom: 1px solid #141f32;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ttable tr:last-child td { border-bottom: none; }
+.tr-avg td {
+  font-weight: 700; color: var(--accent3);
+  background: rgba(52,211,153,0.04);
+  border-top: 1px solid rgba(52,211,153,0.2);
+}
+.td-num { color: var(--muted); font-family: 'Sarabun', sans-serif; }
+.td-d   { color: var(--var-d); }
+.td-t   { color: var(--var-t); }
+.td-avg { color: var(--accent3); }
+
+/* ══ Info Box ═══════════════════════════════════════════ */
+.infobox {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+  font-size: 0.82rem; color: var(--muted); line-height: 1.7;
+}
+.infobox b { color: var(--text); }
+
+/* ══ Theory Tab ══════════════════════════════════════════ */
+.theory-wrap { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+.theory-wrap h2 { font-size: 1.3rem; color: var(--accent); margin-bottom: 16px; }
+.theory-wrap h3 { font-size: 1.05rem; color: var(--accent5); margin: 22px 0 10px; }
+.theory-wrap p  { line-height: 1.85; color: var(--text); margin-bottom: 12px; }
+
+.eq-box {
+  background: var(--panel2); border: 1px solid var(--accent);
+  border-left: 4px solid var(--accent); border-radius: 8px;
+  padding: 16px 20px; margin: 14px 0;
+}
+.eq-row { display: flex; align-items: center; gap: 12px; margin: 7px 0; }
+.eq-lbl { font-size: 0.82rem; color: var(--muted); min-width: 90px; flex-shrink: 0; }
+.eq-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.1rem; color: var(--text);
+}
+.eq-hl { color: var(--accent3); font-weight: 700; }
+
+.ex-box {
+  background: #0a200f; border: 1px solid #1b5e20;
+  border-radius: 8px; padding: 14px 18px; margin: 12px 0;
+}
+.ex-box .ex-title { color: var(--accent3); font-weight: 700; margin-bottom: 8px; }
+.ex-box p { color: var(--text); line-height: 1.9; margin: 0; }
+
+.ref-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.85rem; margin-top: 10px;
+}
+.ref-table th {
+  background: var(--panel2); color: var(--muted);
+  padding: 7px 12px; text-align: center;
+  border: 1px solid var(--border);
+}
+.ref-table td {
+  padding: 6px 12px; text-align: center;
+  border: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ══ Quiz Tab ════════════════════════════════════════════ */
+.quiz-wrap { max-width: 680px; margin: 0 auto; padding: 24px 20px; }
+.quiz-wrap h2 { font-size: 1.3rem; color: var(--accent); margin-bottom: 20px; }
+.qcard {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 14px;
+}
+.q-num  { font-size: 0.75rem; color: var(--accent); font-weight: 700;
+           text-transform: uppercase; margin-bottom: 6px; }
+.q-text { font-size: 0.95rem; line-height: 1.75; margin-bottom: 12px; }
+.choice-list { list-style: none; }
+.choice-list li { margin: 5px 0; }
+.choice-list label {
+  display: flex; align-items: flex-start; gap: 8px;
+  cursor: pointer; padding: 7px 10px; border-radius: 6px;
+  border: 1px solid var(--border); transition: border-color .15s;
+  line-height: 1.55;
+}
+.choice-list label:hover { border-color: var(--accent5); }
+.choice-list input[type="radio"] { margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+.feedback {
+  display: none; margin-top: 10px;
+  padding: 8px 12px; border-radius: 6px; font-size: 0.88rem;
+}
+.fb-ok  { background: #0a2010; color: var(--accent3); border: 1px solid var(--accent3); }
+.fb-err { background: #2d0808; color: #ef9a9a; border: 1px solid #ef9a9a; }
+.btn-chk {
+  background: var(--accent); color: #0a0e1a;
+  border: none; border-radius: 8px;
+  padding: 8px 20px; font-family: 'Sarabun', sans-serif;
+  font-weight: 700; cursor: pointer; font-size: 0.88rem;
+  margin-top: 8px; transition: .15s;
+}
+.btn-chk:hover { filter: brightness(1.1); }
+.score-box {
+  background: var(--panel2); border: 1px solid var(--accent3);
+  border-radius: 10px; padding: 16px;
+  text-align: center; margin-top: 16px; display: none;
+}
+.score-box .sv {
+  font-size: 2.8rem; font-weight: 700; color: var(--accent3);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ══ Footer ══════════════════════════════════════════════ */
+footer {
+  background: var(--panel); border-top: 1px solid var(--border);
+  padding: 10px 20px; font-size: 0.73rem;
+  color: var(--muted); text-align: center;
+}
+
+/* ══ Responsive ══════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .sim-layout { flex-direction: column; }
+  .canvas-area { flex: none; width: 100%; border-right: none;
+                  border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════ -->
+<header>
+  <div class="icon">📏</div>
+  <div>
+    <h1>Demo 01-11 — Reaction Time: Falling Meter Stick</h1>
+    <p>การวัดเวลาตอบสนอง | Physics ม.4–6 | Free Fall: d = ½gt²</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('sim',this)">🎬 ทดลอง</button>
+  <button onclick="showSection('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showSection('quiz',this)">✏️ แบบฝึกหัด</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION — SIMULATION
+══════════════════════════════════════════════════════ -->
+<div class="section active" id="sec-sim">
+  <div class="sim-layout">
+
+    <!-- LEFT: Canvas -->
+    <div class="canvas-area">
+      <div class="phase-badge ph-ready" id="phaseBadge">⏳ พร้อม (ครั้งที่ 1)</div>
+      <canvas id="simCanvas" width="256" height="500"></canvas>
+      <div class="infobox" style="width:100%; font-size:0.78rem; text-align:center;">
+        คลิก <b>canvas</b> หรือปุ่ม <b style="color:#ff4444;">✋ จับ!</b> เมื่อเห็นไม้ตก
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls -->
+    <div class="control-area">
+
+      <!-- Trial progress -->
+      <div class="rcard">
+        <h4>ความคืบหน้าการทดลอง</h4>
+        <div class="trial-prog">
+          <div class="tdot current" id="dot-1">1</div>
+          <div class="tline"></div>
+          <div class="tdot pending" id="dot-2">2</div>
+          <div class="tline"></div>
+          <div class="tdot pending" id="dot-3">3</div>
+        </div>
+        <div style="margin-top:8px; font-size:0.85rem; color:var(--muted);">
+          ทดลองครั้งที่
+          <span id="trialLabel" style="color:var(--accent); font-weight:700;">1</span> / 3
+        </div>
+      </div>
+
+      <!-- Main action button -->
+      <button class="btn-action btn-release" id="actionBtn" onclick="handleAction()">
+        ▶ ปล่อยไม้เมตร
+      </button>
+
+      <!-- Current trial result (hidden until caught) -->
+      <div class="rcard" id="resultCard" style="display:none;">
+        <h4>ผลการทดลองครั้งนี้</h4>
+        <div class="rcard-big">
+          <span class="val-big" id="rD" style="color:var(--var-d);">—</span>
+          <span class="val-unit">cm</span>
+          <span style="color:var(--border); margin:0 6px;">|</span>
+          <span class="val-big" id="rT" style="color:var(--var-t); font-size:1.8rem;">—</span>
+          <span class="val-unit">ms</span>
+        </div>
+        <div class="val-sub">
+          ระยะตก <span id="rDsub" style="color:var(--var-d);">—</span> cm →
+          t<sub>react</sub> = <span id="rTsub" style="color:var(--var-t);">—</span> ms
+        </div>
+      </div>
+
+      <!-- Results table -->
+      <div class="rcard">
+        <h4>ตารางผลการทดลอง</h4>
+        <table class="ttable">
+          <thead>
+            <tr>
+              <th>ครั้งที่</th>
+              <th style="color:var(--var-d);">ระยะตก (cm)</th>
+              <th style="color:var(--var-t);">t<sub>react</sub> (ms)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="td-num">1</td>
+                <td class="td-d" id="td-d1">—</td>
+                <td class="td-t" id="td-t1">—</td></tr>
+            <tr><td class="td-num">2</td>
+                <td class="td-d" id="td-d2">—</td>
+                <td class="td-t" id="td-t2">—</td></tr>
+            <tr><td class="td-num">3</td>
+                <td class="td-d" id="td-d3">—</td>
+                <td class="td-t" id="td-t3">—</td></tr>
+            <tr class="tr-avg">
+              <td>เฉลี่ย</td>
+              <td class="td-avg" id="td-davg">—</td>
+              <td class="td-avg" id="td-tavg">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Equation reference -->
+      <div class="infobox">
+        <b>สูตร:</b> t<sub>react</sub> = √(2d / g) &nbsp;|&nbsp;
+        g = 9.81 m/s² &nbsp;|&nbsp; d วัดเป็น เมตร → × 1000 ได้ ms
+      </div>
+
+      <!-- Reset button -->
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn-outline" onclick="resetAll()">↺ เริ่มใหม่ทั้งหมด</button>
+      </div>
+
+    </div><!-- end control-area -->
+  </div><!-- end sim-layout -->
+</div><!-- end sec-sim -->
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION — THEORY
+══════════════════════════════════════════════════════ -->
+<div class="section" id="sec-theory">
+  <div class="theory-wrap">
+    <h2>📐 ทฤษฎี — เวลาตอบสนองและการตกอย่างอิสระ</h2>
+
+    <p>เมื่อปล่อยไม้เมตรให้ตกอย่างอิสระในแนวดิ่ง จะมีเพียงน้ำหนัก (mg) กระทำ
+    วัตถุจึงเคลื่อนที่ด้วยความเร่งคงที่ g = 9.81 m/s² ระยะทางที่ตกได้ใน t วินาที:</p>
+
+    <div class="eq-box">
+      <div class="eq-row">
+        <span class="eq-lbl">ระยะตก</span>
+        <span class="eq-val"><span class="eq-hl">d = ½ g t²</span></span>
+      </div>
+      <div class="eq-row">
+        <span class="eq-lbl">แก้หา t</span>
+        <span class="eq-val"><span class="eq-hl">t<sub>react</sub> = √(2d / g)</span></span>
+      </div>
+      <div class="eq-row">
+        <span class="eq-lbl">g (โลก)</span>
+        <span class="eq-val" style="color:var(--var-g);">9.81 m/s²</span>
+      </div>
+    </div>
+
+    <p>โดยที่ <b>d</b> คือระยะที่ไม้เมตรตกก่อนถูกจับ (วัดได้จากขีดเซนติเมตรที่มือ)
+    และ <b>t<sub>react</sub></b> คือ <i>เวลาตอบสนอง (Reaction Time)</i> ของผู้ทดลอง</p>
+
+    <h3>🧮 ตัวอย่างคำนวณ</h3>
+    <div class="ex-box">
+      <div class="ex-title">โจทย์: ไม้เมตรตกลงมา 22.0 cm ก่อนถูกจับ จงหาเวลาตอบสนอง</div>
+      <p>d = 22.0 cm = 0.220 m<br>
+         t = √(2 × 0.220 / 9.81)<br>
+         t = √(0.04485)<br>
+         <b style="color:var(--var-t);">t = 0.212 s = 212 ms</b></p>
+    </div>
+
+    <h3>📊 ตารางอ้างอิงเวลาตอบสนองของมนุษย์</h3>
+    <table class="ref-table">
+      <thead>
+        <tr><th>ระยะตก (cm)</th><th>t<sub>react</sub> (ms)</th><th>ระดับ</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>7.6</td><td>125</td>
+            <td style="color:#4fc3f7; font-family:'Sarabun',sans-serif;">ดีมาก (นักกีฬา)</td></tr>
+        <tr><td>11.3</td><td>152</td>
+            <td style="color:var(--accent3); font-family:'Sarabun',sans-serif;">ดี</td></tr>
+        <tr><td>18.0</td><td>192</td>
+            <td style="color:var(--accent); font-family:'Sarabun',sans-serif;">ปกติ</td></tr>
+        <tr><td>25.4</td><td>228</td>
+            <td style="color:#ffa726; font-family:'Sarabun',sans-serif;">ช้ากว่าเฉลี่ย</td></tr>
+        <tr><td>35.2</td><td>268</td>
+            <td style="color:#ef9a9a; font-family:'Sarabun',sans-serif;">ช้า</td></tr>
+      </tbody>
+    </table>
+
+    <h3>⚗️ วิธีทดลองจริงในห้องปฏิบัติการ</h3>
+    <p>
+      1. คนที่ 1 ถือไม้เมตรแนวดิ่ง ให้ขีด 0 อยู่ตรงกับมือของคนที่ 2<br>
+      2. คนที่ 2 วางนิ้วหัวแม่มือ + นิ้วชี้ตรงขีด 0 (พร้อมจับ ไม่แตะไม้)<br>
+      3. คนที่ 1 ปล่อยไม้<b>โดยไม่บอกล่วงหน้า</b><br>
+      4. คนที่ 2 จับไม้ให้เร็วที่สุด อ่านขีดที่มือ = ระยะตก d<br>
+      5. ทำซ้ำ 3 ครั้ง คำนวณค่าเฉลี่ย
+    </p>
+
+    <h3>🎯 ปัจจัยที่มีผลต่อ Reaction Time</h3>
+    <p><b style="color:#ef9a9a;">ทำให้ช้าลง:</b> ความเหนื่อย, ยา/แอลกอฮอล์, การฟุ้งซ่าน, อุณหภูมิต่ำ<br>
+       <b style="color:var(--accent3);">ทำให้เร็วขึ้น:</b> การฝึกซ้อมสม่ำเสมอ, ความตื่นตัว, อบอุ่นร่างกาย</p>
+
+    <p style="margin-top:20px; padding-top:12px; border-top:1px solid var(--border);
+              font-size:0.78rem; color:var(--muted);">
+      อ้างอิง: Halliday, Resnick &amp; Krane — <i>Physics</i> (10th ed.) |
+      หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560) | KP Science simulation 2568
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SECTION — QUIZ
+══════════════════════════════════════════════════════ -->
+<div class="section" id="sec-quiz">
+  <div class="quiz-wrap">
+    <h2>✏️ แบบฝึกหัด — Reaction Time &amp; Free Fall</h2>
+
+    <!-- Q1 -->
+    <div class="qcard">
+      <div class="q-num">ข้อที่ 1</div>
+      <div class="q-text">การทดลองนี้ใช้หลักฟิสิกส์ข้อใดในการคำนวณเวลาตอบสนอง?</div>
+      <ul class="choice-list">
+        <li><label><input type="radio" name="q1" value="a"> ก. โมเมนตัมและแรงดล</label></li>
+        <li><label><input type="radio" name="q1" value="b"> ข. การตกอย่างอิสระ (Free Fall)</label></li>
+        <li><label><input type="radio" name="q1" value="c"> ค. กฎการอนุรักษ์พลังงาน</label></li>
+        <li><label><input type="radio" name="q1" value="d"> ง. คลื่นแม่เหล็กไฟฟ้า</label></li>
+      </ul>
+      <button class="btn-chk" onclick="checkQ(1,'b',
+        '✅ ถูกต้อง! ใช้ d = ½gt² ซึ่งเป็นสมการการตกอย่างอิสระ',
+        '❌ ลองใหม่ — คิดดูว่าไม้เมตรตกด้วยแรงอะไร และสูตรอะไรใช้กับการตกแบบนี้?')">ตรวจ</button>
+      <div class="feedback" id="fb1"></div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="qcard">
+      <div class="q-num">ข้อที่ 2</div>
+      <div class="q-text">ไม้เมตรตกลงมา 20.0 cm ก่อนถูกจับ เวลาตอบสนองเป็นเท่าไร?
+        <small style="color:var(--muted);"> (g = 9.81 m/s²)</small></div>
+      <ul class="choice-list">
+        <li><label><input type="radio" name="q2" value="a"> ก. 149 ms</label></li>
+        <li><label><input type="radio" name="q2" value="b"> ข. 202 ms</label></li>
+        <li><label><input type="radio" name="q2" value="c"> ค. 178 ms</label></li>
+        <li><label><input type="radio" name="q2" value="d"> ง. 230 ms</label></li>
+      </ul>
+      <button class="btn-chk" onclick="checkQ(2,'b',
+        '✅ ถูกต้อง! t = √(2×0.20/9.81) = √(0.04077) ≈ 0.202 s = 202 ms',
+        '❌ ลองใหม่ — แทนค่า d = 0.20 m ลงใน t = √(2d/g)')">ตรวจ</button>
+      <div class="feedback" id="fb2"></div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="qcard">
+      <div class="q-num">ข้อที่ 3</div>
+      <div class="q-text">หากผู้ทดลองมีเวลาตอบสนอง 250 ms ไม้เมตรจะตกระยะเท่าใด?</div>
+      <ul class="choice-list">
+        <li><label><input type="radio" name="q3" value="a"> ก. 21.3 cm</label></li>
+        <li><label><input type="radio" name="q3" value="b"> ข. 25.0 cm</label></li>
+        <li><label><input type="radio" name="q3" value="c"> ค. 30.7 cm</label></li>
+        <li><label><input type="radio" name="q3" value="d"> ง. 40.5 cm</label></li>
+      </ul>
+      <button class="btn-chk" onclick="checkQ(3,'c',
+        '✅ ถูกต้อง! d = ½×9.81×(0.25)² = 0.3066 m ≈ 30.7 cm',
+        '❌ ลองใหม่ — แทน t = 0.250 s ลงใน d = ½gt²')">ตรวจ</button>
+      <div class="feedback" id="fb3"></div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="qcard">
+      <div class="q-num">ข้อที่ 4</div>
+      <div class="q-text">เหตุใดจึงต้องทำการทดลองหลายครั้งแล้วหาค่าเฉลี่ย?</div>
+      <ul class="choice-list">
+        <li><label><input type="radio" name="q4" value="a"> ก. เพื่อทำให้ค่า g เปลี่ยนแปลง</label></li>
+        <li><label><input type="radio" name="q4" value="b"> ข. เพราะกฎฟิสิกส์กำหนดให้ต้องทำ 3 ครั้ง</label></li>
+        <li><label><input type="radio" name="q4" value="c"> ค. เพื่อลด Random Error และเพิ่มความน่าเชื่อถือ</label></li>
+        <li><label><input type="radio" name="q4" value="d"> ง. เพื่อฝึกทักษะการอ่านไม้เมตร</label></li>
+      </ul>
+      <button class="btn-chk" onclick="checkQ(4,'c',
+        '✅ ถูกต้อง! การทำซ้ำหลายครั้งลด Random Error และเพิ่มความน่าเชื่อถือของผล',
+        '❌ ลองใหม่ — ทำไมนักวิทยาศาสตร์จึงทำการทดลองซ้ำหลายครั้งเสมอ?')">ตรวจ</button>
+      <div class="feedback" id="fb4"></div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="qcard">
+      <div class="q-num">ข้อที่ 5</div>
+      <div class="q-text">ค่าเวลาตอบสนองปกติของมนุษย์ที่ไม่ได้รับการฝึกฝนอยู่ในช่วงใด?</div>
+      <ul class="choice-list">
+        <li><label><input type="radio" name="q5" value="a"> ก. 10 – 50 ms</label></li>
+        <li><label><input type="radio" name="q5" value="b"> ข. 150 – 250 ms</label></li>
+        <li><label><input type="radio" name="q5" value="c"> ค. 500 – 800 ms</label></li>
+        <li><label><input type="radio" name="q5" value="d"> ง. 1,000 – 2,000 ms</label></li>
+      </ul>
+      <button class="btn-chk" onclick="checkQ(5,'b',
+        '✅ ถูกต้อง! ค่าปกติของมนุษย์ประมาณ 150–250 ms (ระยะตกประมาณ 11–31 cm)',
+        '❌ ลองใหม่ — คำนวณจากสูตร d = ½gt² ที่ระยะตก 11–31 cm ดู')">ตรวจ</button>
+      <div class="feedback" id="fb5"></div>
+    </div>
+
+    <div class="score-box" id="scoreBox">
+      <div style="color:var(--muted); font-size:0.85rem; margin-bottom:6px;">คะแนนของคุณ</div>
+      <div class="sv" id="scoreVal">—</div>
+      <div style="color:var(--muted); font-size:0.82rem;">จาก 5 ข้อ</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © 2568 KP Science simulation | Demo 01-11 Reaction Time |
+  อ้างอิง: Halliday, Resnick &amp; Krane — Physics | สูตร: d = ½gt², t = √(2d/g)
+</footer>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────────────────
+   NAVIGATION
+───────────────────────────────────────────────────────── */
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ─────────────────────────────────────────────────────────
+   POLYFILL: roundRect (for older browsers)
+───────────────────────────────────────────────────────── */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+    this.beginPath();
+    this.moveTo(x+r,y); this.lineTo(x+w-r,y);
+    this.arcTo(x+w,y,x+w,y+r,r); this.lineTo(x+w,y+h-r);
+    this.arcTo(x+w,y+h,x+w-r,y+h,r); this.lineTo(x+r,y+h);
+    this.arcTo(x,y+h,x,y+h-r,r); this.lineTo(x,y+r);
+    this.arcTo(x,y,x+r,y,r); this.closePath();
+  };
+}
+
+/* ─────────────────────────────────────────────────────────
+   PHYSICS CONSTANTS
+───────────────────────────────────────────────────────── */
+const G = 9.81; // m/s²
+
+/* ─────────────────────────────────────────────────────────
+   CANVAS SETUP
+───────────────────────────────────────────────────────── */
+const canvas = document.getElementById('simCanvas');
+const ctx    = canvas.getContext('2d');
+const CW = canvas.width;   // 256
+const CH = canvas.height;  // 500
+
+// Ruler geometry
+// 0 cm mark starts exactly at handY.
+// As ruler falls d cm, 0 cm mark is at handY + d*cmPx.
+// At handY (fixed), the reading = d  ← that IS the distance fallen.
+const cmPx  = 4.4;               // pixels per cm (100cm × 4.4 = 440px ≈ canvas height)
+const rulerW = 48;
+const rulerX = (CW - rulerW) / 2; // centre the ruler
+const handY  = 440;               // fixed catch-line y-position
+
+/* ─────────────────────────────────────────────────────────
+   PHASE DEFINITIONS
+───────────────────────────────────────────────────────── */
+const PH_READY   = 'ready';
+const PH_WAITING = 'waiting';
+const PH_FALLING = 'falling';
+const PH_RESULT  = 'result';
+const PH_DONE    = 'done';
+
+/* ─────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────── */
+let phase        = PH_READY;
+let currentTrial = 1;
+let offsetCm     = 0;     // distance ruler has fallen (cm)
+let simT         = 0;     // elapsed fall time (seconds)
+let animId       = null;
+let lastTs       = null;
+let running      = false;
+let jitterX      = 0;
+let dropTimer    = null;
+let earlyMsg     = '';
+let earlyMsgTimer = null;
+
+let trials = []; // { d_cm, t_ms } for each completed trial
+
+/* ─────────────────────────────────────────────────────────
+   DRAW FUNCTIONS
+───────────────────────────────────────────────────────── */
+function draw() {
+  // Clear
+  const bgGrad = ctx.createLinearGradient(0,0,0,CH);
+  bgGrad.addColorStop(0, '#0a0e1a');
+  bgGrad.addColorStop(1, '#0c1120');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, CW, CH);
+
+  drawRuler();
+  drawHandLine();
+  drawLabels();
+  if (earlyMsg) drawEarlyWarning();
+}
+
+function drawRuler() {
+  // 0 cm mark y-position: handY + offsetCm*cmPx
+  // 100 cm mark y-position: (handY + offsetCm*cmPx) - 100*cmPx
+  const jx = (phase === PH_WAITING) ? jitterX : 0;
+  const rx = rulerX + jx;
+
+  const y0   = handY + offsetCm * cmPx;   // 0 cm mark position
+  const yTop = y0 - 100 * cmPx;           // 100 cm mark position
+  const rH   = 100 * cmPx;                // ruler pixel height
+
+  // Clip drawing to canvas (ruler can extend off bottom)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, CW, CH); ctx.clip();
+
+  // ── Ruler body gradient ──
+  const rulerGrad = ctx.createLinearGradient(rx, 0, rx + rulerW, 0);
+  rulerGrad.addColorStop(0,   '#e8d49a');
+  rulerGrad.addColorStop(0.25,'#f7e8b8');
+  rulerGrad.addColorStop(0.75,'#f7e8b8');
+  rulerGrad.addColorStop(1,   '#d4bc7a');
+  ctx.fillStyle = rulerGrad;
+  ctx.fillRect(rx, yTop, rulerW, rH);
+
+  // ── Ruler border ──
+  ctx.strokeStyle = '#8a6820';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(rx, yTop, rulerW, rH);
+
+  // ── Tick marks ──
+  for (let cm = 0; cm <= 100; cm++) {
+    const ym = y0 - cm * cmPx;  // y of the cm mark
+    if (ym < -4 || ym > CH + 4) continue; // skip off-screen
+
+    let tLen, lw;
+    if      (cm % 10 === 0) { tLen = 18; lw = 1.5; }
+    else if (cm % 5  === 0) { tLen = 12; lw = 1.0; }
+    else                    { tLen =  6; lw = 0.6; }
+
+    ctx.strokeStyle = '#3a2400';
+    ctx.lineWidth   = lw;
+
+    // left ticks
+    ctx.beginPath(); ctx.moveTo(rx, ym); ctx.lineTo(rx + tLen, ym); ctx.stroke();
+    // right ticks
+    ctx.beginPath(); ctx.moveTo(rx+rulerW, ym); ctx.lineTo(rx+rulerW-tLen, ym); ctx.stroke();
+
+    // Numbers at every 10 cm (except 0)
+    if (cm % 10 === 0 && cm > 0) {
+      ctx.fillStyle   = '#2a1500';
+      ctx.font        = 'bold 8.5px Sarabun, sans-serif';
+      ctx.textAlign   = 'center';
+      ctx.fillText(cm, rx + rulerW/2, ym + 3.5);
+    }
+  }
+
+  // ── 0 cm label at bottom of ruler ──
+  if (y0 > 0 && y0 < CH) {
+    ctx.fillStyle = '#2a1500';
+    ctx.font      = 'bold 8px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('0', rx + rulerW/2, y0 - 3);
+  }
+
+  // ── Highlight at hand line (on ruler body) ──
+  if (handY >= yTop && handY <= y0) {
+    ctx.fillStyle = 'rgba(255,80,30,0.22)';
+    ctx.fillRect(rx, handY - 2, rulerW, 4);
+  }
+
+  ctx.restore();
+}
+
+function drawHandLine() {
+  const y = handY;
+  ctx.save();
+
+  // Glow
+  ctx.shadowColor = (phase === PH_FALLING) ? '#ff2200' : '#fb923c';
+  ctx.shadowBlur  = 10;
+
+  // Main line
+  ctx.beginPath();
+  ctx.moveTo(12, y); ctx.lineTo(CW - 12, y);
+  ctx.strokeStyle = (phase === PH_FALLING) ? '#ff3300' : '#fb923c';
+  ctx.lineWidth   = 2.5;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Arrow-pointers on sides
+  const ac = (phase === PH_FALLING) ? '#ff3300' : '#fb923c';
+  drawSideArrow(ctx, 14, y, 1,  ac);   // right-pointing (from left)
+  drawSideArrow(ctx, CW-14, y, -1, ac); // left-pointing (from right)
+
+  // Label above line
+  ctx.fillStyle   = (phase === PH_FALLING) ? '#ff3300' : '#fb923c';
+  ctx.font        = '600 9.5px Sarabun, sans-serif';
+  ctx.textAlign   = 'left';
+  ctx.fillText('✋ จุดจับ', 18, y - 6);
+
+  ctx.restore();
+}
+
+function drawSideArrow(ctx, x, y, dir, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + dir*10, y - 5);
+  ctx.lineTo(x + dir*10, y + 5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawLabels() {
+  // ── "จุดปล่อย" marker at top (READY/WAITING) ──
+  if (phase === PH_READY || phase === PH_WAITING) {
+    const ymark = handY;  // 0 cm is at handY when offsetCm = 0
+    // The ruler top (100cm) is at ymark - 100*cmPx = 440 - 440 = 0
+    // Show "จุดปล่อย (0 cm)" near top
+    const ytop = ymark - 100*cmPx + 14;
+    ctx.fillStyle = 'rgba(56,189,248,0.7)';
+    ctx.font      = '600 9px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('▲ 100 cm', CW/2, ytop);
+
+    // And at the hand line label on left: "0 cm"
+    ctx.fillStyle = 'rgba(56,189,248,0.55)';
+    ctx.fillText('0 cm ← เริ่ม', rulerX - 30, handY + 4);
+  }
+
+  // ── Distance readout below handY ──
+  if (phase !== PH_READY) {
+    const d = offsetCm;
+    const bx = CW/2, by = handY + 30;
+
+    ctx.fillStyle = 'rgba(8,12,24,0.82)';
+    ctx.roundRect(bx - 60, by - 13, 120, 24, 6);
+    ctx.fill();
+
+    ctx.fillStyle   = '#ffd54f';
+    ctx.font        = 'bold 14px "Share Tech Mono", monospace';
+    ctx.textAlign   = 'center';
+    ctx.fillText('d = ' + d.toFixed(1) + ' cm', bx, by + 5);
+  }
+
+  // ── WAITING phase: "⚠️" blink text ──
+  if (phase === PH_WAITING) {
+    const alpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(Date.now()/200));
+    ctx.fillStyle = `rgba(255,150,50,${alpha})`;
+    ctx.font      = '700 12px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏳ กำลังจะปล่อย...', CW/2, CH - 20);
+  }
+
+  // ── RESULT phase: final distance arrow ──
+  if (phase === PH_RESULT && offsetCm > 1) {
+    const dPx = offsetCm * cmPx; // pixels fallen
+    const ax  = rulerX - 18;     // arrow x
+
+    if (dPx > 20 && ax > 0) {
+      ctx.strokeStyle = '#ffd54f';
+      ctx.lineWidth   = 1.5;
+      ctx.setLineDash([3, 2]);
+
+      ctx.beginPath();
+      ctx.moveTo(ax, handY - dPx + 8);
+      ctx.lineTo(ax, handY - 8);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrowhead up
+      ctx.fillStyle = '#ffd54f';
+      ctx.beginPath();
+      ctx.moveTo(ax, handY - dPx);
+      ctx.lineTo(ax-4, handY-dPx+8);
+      ctx.lineTo(ax+4, handY-dPx+8);
+      ctx.fill();
+      // Arrowhead down
+      ctx.beginPath();
+      ctx.moveTo(ax, handY);
+      ctx.lineTo(ax-4, handY-8);
+      ctx.lineTo(ax+4, handY-8);
+      ctx.fill();
+
+      // Side label
+      const midY = handY - dPx/2;
+      ctx.fillStyle   = '#ffd54f';
+      ctx.font        = 'bold 9px "Share Tech Mono", monospace';
+      ctx.textAlign   = 'right';
+      ctx.fillText(offsetCm.toFixed(1)+'cm', ax - 4, midY + 4);
+    }
+  }
+}
+
+function drawEarlyWarning() {
+  ctx.fillStyle = 'rgba(200,30,30,0.88)';
+  ctx.roundRect(CW/2 - 80, CH/2 - 22, 160, 44, 10);
+  ctx.fill();
+  ctx.strokeStyle = '#ff4444';
+  ctx.lineWidth   = 1.5;
+  ctx.roundRect(CW/2 - 80, CH/2 - 22, 160, 44, 10);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font      = 'bold 13px Sarabun, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(earlyMsg, CW/2, CH/2 + 6);
+}
+
+/* ─────────────────────────────────────────────────────────
+   ANIMATION LOOP
+───────────────────────────────────────────────────────── */
+function masterLoop(ts) {
+  if (!running) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  if (phase === PH_WAITING) {
+    // jitter effect
+    jitterX = Math.sin(ts / 90) * 1.4;
+  }
+  else if (phase === PH_FALLING) {
+    simT    += dt;
+    offsetCm = 0.5 * G * 100 * simT * simT;  // cm = ½ × 981 cm/s² × t²
+
+    if (offsetCm >= 82) {
+      // Ruler fell too far — auto fail
+      offsetCm = 82;
+      autoFail();
+      return;
+    }
+  }
+
+  draw();
+  animId = requestAnimationFrame(masterLoop);
+}
+
+function startLoop() {
+  running = true;
+  lastTs  = null;
+  animId  = requestAnimationFrame(masterLoop);
+}
+
+function stopLoop() {
+  running = false;
+  cancelAnimationFrame(animId);
+}
+
+/* ─────────────────────────────────────────────────────────
+   PHASE TRANSITIONS
+───────────────────────────────────────────────────────── */
+function handleAction() {
+  if (phase === PH_READY)   { startDrop(); }
+  else if (phase === PH_WAITING) { tooEarlyClick(); }
+  else if (phase === PH_FALLING) { catchStick(); }
+  else if (phase === PH_RESULT)  { nextTrial(); }
+  else if (phase === PH_DONE)    { resetAll(); }
+}
+
+// READY → WAITING → FALLING
+function startDrop() {
+  phase  = PH_WAITING;
+  jitterX = 0;
+  updateUI();
+  startLoop();
+
+  const delay = 500 + Math.random() * 1200; // 500–1700 ms random delay
+  dropTimer = setTimeout(() => {
+    if (phase === PH_WAITING) beginFall();
+  }, delay);
+}
+
+function beginFall() {
+  clearTimeout(dropTimer);
+  phase  = PH_FALLING;
+  simT   = 0;
+  lastTs = null; // reset dt from this moment
+  canvas.classList.add('falling-active');
+  canvas.onclick = catchStick;
+  updateUI();
+  // loop is already running from startDrop
+}
+
+// User caught the stick
+function catchStick() {
+  if (phase !== PH_FALLING) return;
+  clearTimeout(dropTimer);
+  stopLoop();
+  canvas.classList.remove('falling-active');
+  canvas.onclick = null;
+
+  const d_cm = Math.max(offsetCm, 0);
+  const d_m  = d_cm / 100;
+
+  // Guard: minimum 1 cm (to avoid near-zero divide / NaN)
+  if (d_cm < 1.0) {
+    showEarlyMsg('⚠️ เร็วเกินไป!');
+    phase = PH_READY;
+    offsetCm = 0; simT = 0;
+    updateUI();
+    draw();
+    return;
+  }
+
+  const t_s  = Math.sqrt(2 * d_m / G);
+  const t_ms = t_s * 1000;
+
+  // Store
+  trials.push({ d_cm, t_ms });
+
+  // Update current result display
+  document.getElementById('rD').textContent    = d_cm.toFixed(1);
+  document.getElementById('rT').textContent    = Math.round(t_ms);
+  document.getElementById('rDsub').textContent = d_cm.toFixed(1);
+  document.getElementById('rTsub').textContent = Math.round(t_ms);
+  document.getElementById('resultCard').style.display = 'block';
+
+  // Update table row
+  const n = currentTrial;
+  document.getElementById(`td-d${n}`).textContent = d_cm.toFixed(1);
+  document.getElementById(`td-t${n}`).textContent = Math.round(t_ms);
+
+  // Mark trial dot as done
+  const dot = document.getElementById(`dot-${n}`);
+  dot.className = 'tdot done';
+  dot.textContent = '✓';
+
+  phase = PH_RESULT;
+  updateUI();
+  draw();
+}
+
+// User clicked during WAITING — too early
+function tooEarlyClick() {
+  clearTimeout(dropTimer);
+  stopLoop();
+  offsetCm = 0;
+  showEarlyMsg('⚠️ กดก่อนไม้ตก!');
+  phase = PH_READY;
+  updateUI();
+  draw();
+}
+
+function showEarlyMsg(msg) {
+  earlyMsg = msg;
+  clearTimeout(earlyMsgTimer);
+  draw();
+  earlyMsgTimer = setTimeout(() => { earlyMsg = ''; draw(); }, 1600);
+}
+
+function autoFail() {
+  stopLoop();
+  canvas.classList.remove('falling-active');
+  canvas.onclick = null;
+  showEarlyMsg('💨 ช้าเกินไป!');
+  setTimeout(() => {
+    offsetCm = 0; simT = 0;
+    phase = PH_READY;
+    updateUI();
+    draw();
+  }, 1400);
+}
+
+function nextTrial() {
+  if (currentTrial >= 3) {
+    finishAll();
+    return;
+  }
+  currentTrial++;
+  document.getElementById('trialLabel').textContent = currentTrial;
+  document.getElementById(`dot-${currentTrial}`).className = 'tdot current';
+  document.getElementById('resultCard').style.display = 'none';
+
+  // Reset for next trial
+  offsetCm = 0; simT = 0;
+  phase = PH_READY;
+  updateUI();
+  draw();
+}
+
+function finishAll() {
+  // Compute averages
+  if (trials.length === 0) return;
+  const avgD = trials.reduce((s,r) => s + r.d_cm, 0) / trials.length;
+  const avgT = trials.reduce((s,r) => s + r.t_ms, 0) / trials.length;
+
+  document.getElementById('td-davg').textContent = avgD.toFixed(1);
+  document.getElementById('td-tavg').textContent = Math.round(avgT);
+
+  phase = PH_DONE;
+  updateUI();
+  draw();
+}
+
+function resetAll() {
+  clearTimeout(dropTimer);
+  clearTimeout(earlyMsgTimer);
+  stopLoop();
+  canvas.classList.remove('falling-active');
+  canvas.onclick = null;
+
+  trials       = [];
+  currentTrial = 1;
+  offsetCm     = 0;
+  simT         = 0;
+  lastTs       = null;
+  jitterX      = 0;
+  earlyMsg     = '';
+  phase        = PH_READY;
+
+  // Reset table
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById(`td-d${i}`).textContent = '—';
+    document.getElementById(`td-t${i}`).textContent = '—';
+    const dot = document.getElementById(`dot-${i}`);
+    dot.className = i === 1 ? 'tdot current' : 'tdot pending';
+    dot.textContent = i;
+  }
+  document.getElementById('td-davg').textContent = '—';
+  document.getElementById('td-tavg').textContent = '—';
+  document.getElementById('trialLabel').textContent = '1';
+  document.getElementById('resultCard').style.display = 'none';
+
+  updateUI();
+  draw();
+}
+
+/* ─────────────────────────────────────────────────────────
+   UI UPDATE (button / badge text + style)
+───────────────────────────────────────────────────────── */
+function updateUI() {
+  const badge  = document.getElementById('phaseBadge');
+  const btn    = document.getElementById('actionBtn');
+  const n      = currentTrial;
+
+  const badgeMap = {
+    [PH_READY]:   ['ph-ready',   `⏳ พร้อม (ครั้งที่ ${n})`],
+    [PH_WAITING]: ['ph-waiting', '⏳ รอ...'],
+    [PH_FALLING]: ['ph-falling', '🔻 กำลังตก!'],
+    [PH_RESULT]:  ['ph-result',  '✅ จับได้!'],
+    [PH_DONE]:    ['ph-done',    '🎉 ครบ 3 ครั้ง'],
+  };
+
+  const [cls, txt] = badgeMap[phase] || ['ph-ready', '—'];
+  badge.className  = 'phase-badge ' + cls;
+  badge.textContent = txt;
+
+  if (phase === PH_READY) {
+    btn.className   = 'btn-action btn-release';
+    btn.textContent = '▶ ปล่อยไม้เมตร';
+    btn.disabled    = false;
+  } else if (phase === PH_WAITING) {
+    btn.className   = 'btn-action btn-catch';
+    btn.textContent = '✋ จับ! (รอ...)';
+    btn.disabled    = true;  // prevent cheating
+    // re-enable after 350ms so genuine click during fall isn't lost
+    setTimeout(() => {
+      if (phase === PH_WAITING || phase === PH_FALLING) btn.disabled = false;
+    }, 350);
+  } else if (phase === PH_FALLING) {
+    btn.className   = 'btn-action btn-catch';
+    btn.textContent = '✋ จับ!';
+    btn.disabled    = false;
+  } else if (phase === PH_RESULT) {
+    btn.className   = 'btn-action btn-next';
+    btn.textContent = currentTrial >= 3 ? '📊 ดูผลสรุป' : `▶ ทดลองครั้งที่ ${currentTrial + 1}`;
+    btn.disabled    = false;
+  } else if (phase === PH_DONE) {
+    btn.className   = 'btn-action btn-release';
+    btn.textContent = '↺ ทดลองใหม่';
+    btn.disabled    = false;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   QUIZ
+───────────────────────────────────────────────────────── */
+const quizAnswered = {};
+
+function checkQ(n, correct, okMsg, errMsg) {
+  const sel = document.querySelector(`input[name="q${n}"]:checked`);
+  const fb  = document.getElementById(`fb${n}`);
+  if (!sel) {
+    fb.style.display = 'block';
+    fb.className     = 'feedback fb-err';
+    fb.textContent   = '⚠️ กรุณาเลือกคำตอบก่อน';
+    return;
+  }
+  const ok = sel.value === correct;
+  quizAnswered[n] = ok;
+  fb.style.display = 'block';
+  fb.className     = 'feedback ' + (ok ? 'fb-ok' : 'fb-err');
+  fb.textContent   = ok ? okMsg : errMsg;
+
+  if (Object.keys(quizAnswered).length === 5) {
+    const score   = Object.values(quizAnswered).filter(Boolean).length;
+    const scoreBox = document.getElementById('scoreBox');
+    scoreBox.style.display = 'block';
+    document.getElementById('scoreVal').textContent = score + '/5';
+    if      (score >= 5) scoreBox.style.borderColor = '#34d399';
+    else if (score >= 3) scoreBox.style.borderColor = 'var(--accent)';
+    else                 scoreBox.style.borderColor = '#ef9a9a';
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────── */
+updateUI();
+draw();
+</script>
+</body>
+</html>

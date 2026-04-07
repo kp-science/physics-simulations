@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 01-10 Rolling Ball Incline | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --text:#e2e8f0;--muted:#94a3b8;
+  --var-x:#ffd54f;--var-v:#66bb6a;--var-a:#ffa726;--var-t:#ce93d8;
+}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono','Courier New',monospace;}
+
+/* ── Header ── */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:2rem;}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.73rem;font-weight:600;white-space:nowrap;}
+
+/* ── Nav ── */
+nav{display:flex;gap:4px;padding:7px 16px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav::-webkit-scrollbar{display:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 13px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.82rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+/* ── Section ── */
+.section{display:none;}.section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ── Control bar ── */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.btn{padding:6px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.83rem;transition:.15s;white-space:nowrap;}
+.btn-play{background:#1b5e20;color:#fff;}.btn-play:hover{background:#2e7d32;}.btn-play.playing{background:#b71c1c;}
+.btn-step{background:transparent;color:var(--accent);border:1px solid var(--accent);}.btn-step:hover{background:#1e3a5f;}
+.btn-reset{background:#0d47a1;color:#fff;}.btn-reset:hover{background:#1565c0;}
+.spd-grp{display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--muted);}
+.spd-grp input[type=range]{width:72px;accent-color:var(--accent);}
+.t-display{font-size:0.8rem;color:var(--muted);}
+
+/* ── Planet buttons ── */
+.planet-grp{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.planet-grp .plbl{font-size:0.75rem;color:var(--muted);}
+.planet-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-family:'Sarabun',sans-serif;transition:.15s;white-space:nowrap;}
+.planet-btn:hover{border-color:var(--accent4);color:var(--accent4);}
+.planet-btn.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a;font-weight:700;}
+
+/* ── Sim layout ── */
+.sim-layout{display:grid;grid-template-columns:1fr 272px;height:calc(100vh - 152px);min-height:480px;}
+.canvas-col{display:flex;flex-direction:column;padding:8px 10px;gap:7px;overflow:hidden;}
+.side-col{background:var(--panel);border-left:1px solid var(--border);padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;}
+
+/* ── Canvas ── */
+canvas{border-radius:7px;display:block;}
+#incCanvas{width:100%;border:1px solid var(--border);}
+.graphs-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;flex:1;min-height:0;}
+.graph-wrap{display:flex;flex-direction:column;gap:2px;}
+.graph-wrap label{font-size:0.7rem;color:var(--muted);text-align:center;}
+.graph-wrap canvas{width:100%;border:1px solid var(--border);border-radius:6px;min-height:0;}
+
+/* ── Readout ── */
+.rd-panel{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+.rd-title{font-size:0.74rem;color:var(--muted);margin-bottom:5px;font-weight:600;letter-spacing:.4px;}
+.rd-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;}
+.rd-lbl{font-size:0.79rem;}
+.rd-val{font-family:'Share Tech Mono',monospace;font-size:0.98rem;font-weight:700;}
+.rd-unit{font-size:0.72rem;color:var(--muted);margin-left:2px;}
+.formula-box{background:#0a0f1f;border:1px solid var(--accent2);border-radius:5px;padding:5px 9px;margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--accent2);text-align:center;line-height:1.5;}
+
+/* ── Sliders ── */
+.ctrl-title{font-size:0.74rem;color:var(--muted);font-weight:600;letter-spacing:.4px;margin-bottom:4px;}
+.sl-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+.sl-label{font-size:0.78rem;color:var(--muted);flex-shrink:0;}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;}
+.val-input{width:50px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.8rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text);}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:26px;}
+.param-info{font-size:0.72rem;color:var(--muted);padding-left:2px;line-height:1.7;}
+
+/* ── Flash + Δx panels ── */
+.sub-panel{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+.sub-title{font-size:0.74rem;color:var(--muted);font-weight:600;margin-bottom:6px;}
+.flash-row{display:flex;gap:5px;flex-wrap:wrap;}
+.flash-dot{width:22px;height:22px;border-radius:50%;background:#0f172a;border:1px solid #2d3748;transition:background .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#4b5563;font-weight:700;}
+.flash-dot.lit{background:#fef08a;border-color:#fbbf24;color:#713f12;box-shadow:0 0 10px #fef08a88;font-weight:700;}
+
+.dx-row{display:flex;align-items:center;gap:5px;margin-bottom:4px;}
+.dx-lbl{font-size:0.73rem;color:var(--muted);width:46px;flex-shrink:0;}
+.dx-bar-bg{flex:1;height:13px;background:#0f172a;border-radius:3px;overflow:hidden;}
+.dx-bar-fill{height:100%;border-radius:3px;transition:width .25s;}
+.dx-num{font-family:'Share Tech Mono',monospace;font-size:0.72rem;width:56px;text-align:right;flex-shrink:0;}
+
+/* ── Obj box ── */
+.obj-box{background:var(--panel2);border-left:3px solid var(--accent3);border-radius:0 6px 6px 0;padding:6px 10px;}
+.obj-box p{font-size:0.76rem;color:var(--muted);line-height:1.5;}
+
+/* ── Theory ── */
+.theory-body{padding:14px 18px;max-width:900px;margin:0 auto;}
+.eq-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:13px 16px;margin-bottom:12px;}
+.eq-box h3{font-size:0.9rem;color:var(--accent);margin-bottom:8px;}
+.eq-line{font-family:'Share Tech Mono',monospace;font-size:0.98rem;margin:4px 0;color:var(--text);}
+.eq-note{font-size:0.79rem;color:var(--muted);margin-top:6px;line-height:1.65;}
+.theory-table{width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0;}
+.theory-table th{background:#0f172a;color:var(--muted);font-weight:600;padding:6px 9px;border:1px solid var(--border);text-align:center;}
+.theory-table td{padding:6px 9px;border:1px solid var(--border);text-align:center;}
+.theory-table tr:nth-child(even) td{background:#0a0e1a;}
+
+/* ── Table tab ── */
+.tbl-body{padding:14px 18px;}
+.tbl-info{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:7px 12px;margin-bottom:9px;font-size:0.8rem;color:var(--muted);}
+.data-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+.data-table th{background:var(--panel2);padding:7px 9px;border:1px solid var(--border);color:var(--muted);font-weight:600;text-align:center;font-size:0.78rem;}
+.data-table td{padding:7px 9px;border:1px solid var(--border);text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.8rem;}
+.data-table tr:nth-child(even) td{background:#0a0e1a;}
+.data-table tr:nth-child(odd) td{background:#0f172a;}
+.tbl-note{font-size:0.76rem;color:var(--muted);margin-top:9px;line-height:1.6;}
+
+/* ── Quiz ── */
+.quiz-body{padding:14px 18px;max-width:700px;margin:0 auto;}
+.q-card{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:13px 15px;margin-bottom:12px;}
+.q-num{font-size:0.73rem;color:var(--muted);margin-bottom:4px;}
+.q-text{font-size:0.88rem;margin-bottom:9px;line-height:1.5;}
+.q-opts label{display:block;padding:6px 10px;margin:3px 0;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:.15s;font-size:0.85rem;}
+.q-opts label:hover{border-color:var(--accent);background:var(--panel2);}
+.q-opts input{margin-right:7px;}
+.q-feedback{font-size:0.81rem;padding:6px 10px;border-radius:6px;margin-top:6px;display:none;line-height:1.5;}
+.q-feedback.correct{background:#14532d;color:#86efac;display:block;}
+.q-feedback.wrong{background:#7f1d1d;color:#fca5a5;display:block;}
+.btn-check{background:var(--accent);color:#0a0e1a;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-weight:700;font-family:'Sarabun',sans-serif;font-size:0.82rem;margin-top:5px;}
+
+footer{text-align:center;padding:7px;font-size:0.73rem;color:var(--muted);border-top:1px solid var(--border);}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sim-layout{grid-template-columns:1fr;height:auto;}
+  .side-col{border-left:none;border-top:1px solid var(--border);}
+  .graphs-row{grid-template-columns:1fr;}
+  .planet-grp{margin-left:0;}
+  header h1{font-size:1.1rem;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⛷️</div>
+  <div>
+    <h1>Demo 01-10 : Rolling Ball Incline</h1>
+    <p>ลูกบอลกลิ้งลงระนาบเอียง — ความเร่งคงที่ &nbsp;a = g sin θ &nbsp;| ฟิสิกส์ ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('sim',this)">🎬 Simulation</button>
+  <button onclick="showSection('theory',this)">📐 ทฤษฎี</button>
+  <button onclick="showSection('table',this)">📊 ตารางข้อมูล</button>
+  <button onclick="showSection('quiz',this)">✏️ แบบฝึกหัด</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════
+     SIMULATION TAB
+══════════════════════════════════════════════════ -->
+<div id="sec-sim" class="section active">
+
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-step" onclick="stepForward()">⟩ ก้าวต่อไป</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="spd-grp">
+      <span>ความเร็ว</span>
+      <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+      <span id="speedLbl" class="mono" style="min-width:30px;">1.0×</span>
+    </div>
+    <div class="planet-grp">
+      <span class="plbl">🌐 g =</span>
+      <button class="planet-btn active" data-g="9.81"  onclick="setPlanet(this)">🌍 โลก</button>
+      <button class="planet-btn"        data-g="1.62"  onclick="setPlanet(this)">🌙 Luna</button>
+      <button class="planet-btn"        data-g="3.72"  onclick="setPlanet(this)">🔴 Mars</button>
+      <button class="planet-btn"        data-g="24.79" onclick="setPlanet(this)">⚡ Jupiter</button>
+    </div>
+    <div class="t-display">
+      t = <span class="mono" id="tDisplay" style="color:var(--var-t);">0.00</span> s
+    </div>
+  </div>
+
+  <div class="sim-layout">
+    <!-- Left: canvases -->
+    <div class="canvas-col">
+      <div class="obj-box">
+        <p>🎯 <strong style="color:var(--accent3);">จุดประสงค์:</strong>
+          สังเกตว่า Δx ของแต่ละช่วงเวลาเท่ากัน Δt เป็นไปตามอัตราส่วน <strong>1 : 3 : 5 : 7 : 9 : 11</strong>
+          ยืนยันว่า a = คงที่ &nbsp;|&nbsp; เปรียบเทียบบนดาวต่างกัน (กด planet) เพื่อดูว่า pattern ยังคงเป็น 1:3:5 เสมอ</p>
+      </div>
+      <canvas id="incCanvas" height="200"></canvas>
+      <div class="graphs-row">
+        <div class="graph-wrap">
+          <label style="color:var(--var-x);">▶ x–t &nbsp;(พาราโบลา)</label>
+          <canvas id="xtCanvas" height="148"></canvas>
+        </div>
+        <div class="graph-wrap">
+          <label style="color:var(--var-v);">▶ v–t &nbsp;(เส้นตรง)</label>
+          <canvas id="vtCanvas" height="148"></canvas>
+        </div>
+        <div class="graph-wrap">
+          <label style="color:var(--var-a);">▶ a–t &nbsp;(เส้นราบ)</label>
+          <canvas id="atCanvas" height="148"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: controls + readout -->
+    <div class="side-col">
+
+      <!-- Readout panel -->
+      <div class="rd-panel">
+        <div class="rd-title">📟 ค่าปัจจุบัน</div>
+        <div class="rd-row">
+          <span class="rd-lbl" style="color:var(--var-t);">t เวลา</span>
+          <span><span class="rd-val mono" id="rdT" style="color:var(--var-t);">0.000</span><span class="rd-unit">s</span></span>
+        </div>
+        <div class="rd-row">
+          <span class="rd-lbl" style="color:var(--var-x);">x การกระจัด</span>
+          <span><span class="rd-val mono" id="rdX" style="color:var(--var-x);">0.000</span><span class="rd-unit">m</span></span>
+        </div>
+        <div class="rd-row">
+          <span class="rd-lbl" style="color:var(--var-v);">v ความเร็ว</span>
+          <span><span class="rd-val mono" id="rdV" style="color:var(--var-v);">0.000</span><span class="rd-unit">m/s</span></span>
+        </div>
+        <div class="rd-row">
+          <span class="rd-lbl" style="color:var(--var-a);">a ความเร่ง</span>
+          <span><span class="rd-val mono" id="rdA" style="color:var(--var-a);">—</span><span class="rd-unit">m/s²</span></span>
+        </div>
+        <div class="formula-box" id="formulaBox">a = g · sin(θ) = —</div>
+      </div>
+
+      <!-- Sliders -->
+      <div>
+        <div class="ctrl-title">⚙️ ปรับมุมระนาบเอียง</div>
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--text);font-weight:700;min-width:14px;">θ</span>
+          <span class="sl-label" style="min-width:50px;">มุมเอียง</span>
+          <input class="sl-range" type="range" id="sl-ang" min="5" max="60" step="1" value="20">
+          <input class="val-input" type="number" id="vi-ang" min="5" max="60" step="1" value="20">
+          <span class="sl-unit">°</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label" style="min-width:14px;">L</span>
+          <span class="sl-label" style="min-width:50px;">ความยาว</span>
+          <input class="sl-range" type="range" id="sl-len" min="1" max="10" step="0.5" value="5">
+          <input class="val-input" type="number" id="vi-len" min="1" max="10" step="0.5" value="5">
+          <span class="sl-unit">m</span>
+        </div>
+        <div class="param-info">
+          g = <span id="gDisplay" style="color:var(--accent4);">9.81</span> m/s²
+          &nbsp;·&nbsp; sin(θ) = <span id="sinDisplay" style="color:var(--text);">0.342</span>
+          <br>Δt = <span id="dtDisplay" style="color:var(--var-t);">—</span> s
+          &nbsp;·&nbsp; t_end = <span id="tendDisplay" style="color:var(--var-t);">—</span> s
+        </div>
+      </div>
+
+      <!-- Flash lights -->
+      <div class="sub-panel">
+        <div class="sub-title">💡 แฟลช (ทุก Δt = t_end / 6)</div>
+        <div class="flash-row" id="flashRow">
+          <!-- built by JS -->
+        </div>
+      </div>
+
+      <!-- Δx bars -->
+      <div class="sub-panel">
+        <div class="sub-title">📏 ระยะ Δx ระหว่างแฟลช</div>
+        <div id="dxBars"></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;font-style:italic;">
+          อัตราส่วน&nbsp; 1 : 3 : 5 : 7 : 9 : 11
+        </div>
+      </div>
+
+    </div><!-- end side-col -->
+  </div><!-- end sim-layout -->
+</div><!-- end sec-sim -->
+
+
+<!-- ══════════════════════════════════════════════════
+     THEORY TAB
+══════════════════════════════════════════════════ -->
+<div id="sec-theory" class="section">
+  <div class="theory-body">
+
+    <div class="eq-box">
+      <h3>⚙️ ฟิสิกส์ระนาบเอียง (Inclined Plane)</h3>
+      <div class="eq-line" style="color:var(--var-a);">a &nbsp;= g sin θ</div>
+      <div style="height:10px;"></div>
+      <div class="eq-line" style="color:var(--var-x);">x &nbsp;= ½ a t²</div>
+      <div class="eq-line" style="color:var(--var-v);">v &nbsp;= a t</div>
+      <div class="eq-line" style="color:var(--var-a);">a &nbsp;= คงที่ (ตลอดการเคลื่อนที่)</div>
+      <div class="eq-note">
+        g = ความเร่งเนื่องจากแรงโน้มถ่วง (m/s²) &nbsp;|&nbsp; θ = มุมเอียงของระนาบเทียบกับแนวราบ<br>
+        สมมติลูกบอลเริ่มจากหยุดนิ่ง (u = 0) และไม่มีแรงเสียดทาน (frictionless)
+      </div>
+    </div>
+
+    <div class="eq-box">
+      <h3>📏 กฎเลขคี่ของ Galileo (Odd-Number Rule)</h3>
+      <div class="eq-line">Δxₙ &nbsp;= &nbsp;½ a Δt² (2n − 1)</div>
+      <div class="eq-note">
+        สำหรับ Δt คงที่ อัตราส่วนระยะทางในแต่ละช่วงเวลาเป็นเลขคี่เสมอ:<br>
+        Δx₁ : Δx₂ : Δx₃ : Δx₄ : Δx₅ : Δx₆ &nbsp;=&nbsp; 1 : 3 : 5 : 7 : 9 : 11
+      </div>
+      <div style="margin-top:10px;padding:10px;background:#0a0e1a;border-radius:6px;">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">pattern ตำแหน่ง &nbsp; x = ½a(nΔt)² &nbsp; (a=2, Δt=1 s)</div>
+        <!-- dots at x = 0,1,4,9,16,25,36 → scaled to 290px total -->
+        <div style="position:relative;height:18px;width:300px;">
+          <span style="position:absolute;left:0px;  top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 5px var(--accent);"></span>
+          <span style="position:absolute;left:8px;  top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+          <span style="position:absolute;left:32px; top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+          <span style="position:absolute;left:72px; top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+          <span style="position:absolute;left:128px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+          <span style="position:absolute;left:200px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+          <span style="position:absolute;left:288px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--accent3);display:inline-block;box-shadow:0 0 5px var(--accent3);"></span>
+        </div>
+        <div style="display:flex;gap:0;font-size:0.65rem;color:var(--muted);margin-top:4px;">
+          <span style="width:20px;">n=0</span>
+          <span style="width:24px;">|←1→|</span>
+          <span style="width:40px;text-align:center;">|←—3—→|</span>
+          <span style="width:56px;text-align:center;">|←——5——→|</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="eq-box">
+      <h3>📈 รูปร่างกราฟ</h3>
+      <table class="theory-table">
+        <tr><th>กราฟ</th><th>รูปร่าง</th><th>ความชัน / ความหมาย</th></tr>
+        <tr>
+          <td style="color:var(--var-x);">x–t</td>
+          <td>พาราโบลา (โค้งขึ้น)</td>
+          <td>x = ½at² → ฟังก์ชัน t² ความชันเพิ่มขึ้น = v เพิ่ม</td>
+        </tr>
+        <tr>
+          <td style="color:var(--var-v);">v–t</td>
+          <td>เส้นตรงผ่านจุดกำเนิด</td>
+          <td>ความชัน = a = คงที่ &nbsp;|&nbsp; พื้นที่ใต้กราฟ = x</td>
+        </tr>
+        <tr>
+          <td style="color:var(--var-a);">a–t</td>
+          <td>เส้นราบ (Horizontal)</td>
+          <td>a = g sin θ = const ตลอดเวลา</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="eq-box">
+      <h3>🌍 เปรียบเทียบดาวเคราะห์ (θ = 20°, L = 5 m)</h3>
+      <table class="theory-table">
+        <tr>
+          <th>ดาวเคราะห์</th>
+          <th>g (m/s²)</th>
+          <th style="color:var(--var-a);">a = g sin 20°</th>
+          <th style="color:var(--var-t);">t_end (s)</th>
+          <th>Δx₁ : Δx₂ : Δx₃</th>
+        </tr>
+        <tr>
+          <td>🌍 โลก</td>
+          <td>9.81</td>
+          <td style="color:var(--var-a);">3.355 m/s²</td>
+          <td style="color:var(--var-t);">1.726 s</td>
+          <td style="color:var(--accent3);">1 : 3 : 5</td>
+        </tr>
+        <tr>
+          <td>🌙 ดวงจันทร์</td>
+          <td>1.62</td>
+          <td style="color:var(--var-a);">0.554 m/s²</td>
+          <td style="color:var(--var-t);">4.245 s</td>
+          <td style="color:var(--accent3);">1 : 3 : 5</td>
+        </tr>
+        <tr>
+          <td>🔴 ดาวอังคาร</td>
+          <td>3.72</td>
+          <td style="color:var(--var-a);">1.272 m/s²</td>
+          <td style="color:var(--var-t);">2.801 s</td>
+          <td style="color:var(--accent3);">1 : 3 : 5</td>
+        </tr>
+        <tr>
+          <td>⚡ ดาวพฤหัสบดี</td>
+          <td>24.79</td>
+          <td style="color:var(--var-a);">8.478 m/s²</td>
+          <td style="color:var(--var-t);">1.085 s</td>
+          <td style="color:var(--accent3);">1 : 3 : 5</td>
+        </tr>
+      </table>
+      <div class="eq-note">
+        ⭐ อัตราส่วน Δx : 1:3:5:7... <strong>เหมือนกันทุกดาว</strong> เพราะขึ้นกับรูปแบบ n² ทางคณิตศาสตร์<br>
+        ลองกด planet ใน Simulation แล้วสังเกตดูว่า pattern ยังคงเหมือนเดิม!
+      </div>
+    </div>
+
+    <p style="font-size:0.73rem;color:var(--muted);margin-top:8px;">
+      อ้างอิง: Berg, R. (1992). <em>The Video Encyclopedia of Physics Demonstrations</em>, Demo 01-10.
+      Halliday, Resnick &amp; Krane, <em>Physics</em> 5th ed. หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560).
+    </p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TABLE TAB
+══════════════════════════════════════════════════ -->
+<div id="sec-table" class="section">
+  <div class="tbl-body">
+    <h2 style="font-size:1rem;color:var(--accent);margin-bottom:9px;">📊 ตารางข้อมูล — 7 จุดวัด (สำหรับพล็อตกราฟ)</h2>
+    <div class="tbl-info">
+      θ = <span id="tblTheta" style="color:var(--text);">20</span>° &ensp;|&ensp;
+      g = <span id="tblG" style="color:var(--accent4);">9.81</span> m/s² &ensp;|&ensp;
+      a = g sin θ = <span id="tblA" style="color:var(--var-a);">3.355</span> m/s² &ensp;|&ensp;
+      L = <span id="tblL" style="color:var(--var-x);">5.00</span> m &ensp;|&ensp;
+      Δt = <span id="tblDt" style="color:var(--var-t);">—</span> s
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>n</th>
+            <th style="color:var(--var-t);">t<br>(s)</th>
+            <th style="color:var(--var-x);">x = ½at²<br>(m)</th>
+            <th style="color:var(--var-x);">Δx<br>(m)</th>
+            <th>อัตราส่วน<br>Δx</th>
+            <th style="color:var(--var-v);">v_avg = Δx/Δt<br>(m/s)</th>
+            <th style="color:var(--var-v);">v_inst = at<br>(m/s)</th>
+            <th style="color:var(--var-a);">a<br>(m/s²)</th>
+          </tr>
+        </thead>
+        <tbody id="tableTbody"></tbody>
+      </table>
+    </div>
+    <div class="tbl-note">
+      💡 <strong>คำแนะนำการพล็อต:</strong><br>
+      ① พล็อต <span style="color:var(--var-x);">x</span> กับ <span style="color:var(--var-t);">t</span> → ควรได้พาราโบลา (x ∝ t²)<br>
+      ② พล็อต <span style="color:var(--var-v);">v_avg</span> กับ <span style="color:var(--var-t);">t</span> → ควรได้เส้นตรงผ่านจุดกำเนิด ความชัน = a<br>
+      ③ สังเกต <span style="color:var(--var-x);">Δx</span> ว่าเพิ่มขึ้นตามลำดับ 1 : 3 : 5 : 7 : 9 : 11
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     QUIZ TAB
+══════════════════════════════════════════════════ -->
+<div id="sec-quiz" class="section">
+  <div class="quiz-body">
+    <h2 style="font-size:1rem;color:var(--accent);margin-bottom:12px;">✏️ แบบฝึกหัด — ระนาบเอียงและความเร่งคงที่</h2>
+
+    <div class="q-card">
+      <div class="q-num">ข้อที่ 1</div>
+      <div class="q-text">ระนาบเอียงทำมุม 30° กับแนวราบ ที่ g = 9.81 m/s² ความเร่งของลูกบอลที่กลิ้งลงคือเท่าใด?</div>
+      <div class="q-opts">
+        <label><input type="radio" name="q1" value="a"> 9.81 m/s²</label>
+        <label><input type="radio" name="q1" value="b"> 4.91 m/s²</label>
+        <label><input type="radio" name="q1" value="c"> 8.50 m/s²</label>
+        <label><input type="radio" name="q1" value="d"> 6.93 m/s²</label>
+      </div>
+      <button class="btn-check" onclick="checkQ(1,'b','a = g sin30° = 9.81 × 0.500 = 4.905 ≈ 4.91 m/s²')">ตรวจคำตอบ</button>
+      <div class="q-feedback" id="fb1"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-num">ข้อที่ 2</div>
+      <div class="q-text">ถ้าเพิ่มมุมเอียงจาก 20° เป็น 40° ความเร่งของลูกบอลเปลี่ยนไปอย่างไร?</div>
+      <div class="q-opts">
+        <label><input type="radio" name="q2" value="a"> เพิ่มขึ้น 2 เท่าพอดี</label>
+        <label><input type="radio" name="q2" value="b"> เพิ่มขึ้น แต่ยังไม่ถึง 2 เท่า</label>
+        <label><input type="radio" name="q2" value="c"> เพิ่มขึ้นมากกว่า 2 เท่า</label>
+        <label><input type="radio" name="q2" value="d"> ไม่เปลี่ยน เพราะขึ้นกับ g เท่านั้น</label>
+      </div>
+      <button class="btn-check" onclick="checkQ(2,'b','a ∝ sin θ → sin(40°)/sin(20°) = 0.643/0.342 ≈ 1.88 เท่า ซึ่งน้อยกว่า 2 เนื่องจาก sin ไม่ใช่ฟังก์ชันเชิงเส้น')">ตรวจคำตอบ</button>
+      <div class="q-feedback" id="fb2"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-num">ข้อที่ 3</div>
+      <div class="q-text">อัตราส่วน Δx₁ : Δx₂ : Δx₃ : Δx₄ สำหรับ u = 0 และ Δt คงที่ คือ?</div>
+      <div class="q-opts">
+        <label><input type="radio" name="q3" value="a"> 1 : 2 : 3 : 4</label>
+        <label><input type="radio" name="q3" value="b"> 1 : 4 : 9 : 16</label>
+        <label><input type="radio" name="q3" value="c"> 1 : 3 : 5 : 7</label>
+        <label><input type="radio" name="q3" value="d"> 2 : 4 : 6 : 8</label>
+      </div>
+      <button class="btn-check" onclick="checkQ(3,'c','Δxₙ = ½a Δt²(2n−1) → n=1,2,3,4 → 1:3:5:7 (กฎเลขคี่ของ Galileo)')">ตรวจคำตอบ</button>
+      <div class="q-feedback" id="fb3"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-num">ข้อที่ 4</div>
+      <div class="q-text">ทดลองเดียวกัน (θ = 30°, L = 5 m) บนดวงจันทร์ g = 1.62 m/s² ลูกบอลใช้เวลาเดินทางตลอด L เท่าใด?</div>
+      <div class="q-opts">
+        <label><input type="radio" name="q4" value="a"> ≈ 1.4 s</label>
+        <label><input type="radio" name="q4" value="b"> ≈ 3.5 s</label>
+        <label><input type="radio" name="q4" value="c"> ≈ 7.0 s</label>
+        <label><input type="radio" name="q4" value="d"> ≈ 5.0 s</label>
+      </div>
+      <button class="btn-check" onclick="checkQ(4,'b','a = 1.62×sin30° = 0.81 m/s² → t = √(2L/a) = √(10/0.81) = √12.35 ≈ 3.51 s')">ตรวจคำตอบ</button>
+      <div class="q-feedback" id="fb4"></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-num">ข้อที่ 5</div>
+      <div class="q-text">กราฟใดบ่งบอกได้โดยตรงที่สุดว่าความเร่งมีค่าคงที่?</div>
+      <div class="q-opts">
+        <label><input type="radio" name="q5" value="a"> กราฟ x–t ที่เป็นพาราโบลา</label>
+        <label><input type="radio" name="q5" value="b"> กราฟ v–t ที่เป็นเส้นตรง</label>
+        <label><input type="radio" name="q5" value="c"> กราฟ a–t ที่เป็นเส้นราบ</label>
+        <label><input type="radio" name="q5" value="d"> ข้อ b และ c ถูกต้องทั้งคู่</label>
+      </div>
+      <button class="btn-check" onclick="checkQ(5,'c','กราฟ a–t เส้นราบ = a = const โดยตรง | v–t เส้นตรงก็บอกว่า dv/dt = const = a แต่ต้องคำนวณความชันก่อน | a–t ตอบได้โดยตรงที่สุด')">ตรวจคำตอบ</button>
+      <div class="q-feedback" id="fb5"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>Demo 01-10 Rolling Ball Incline &nbsp;·&nbsp; Berg (1992) Video Encyclopedia of Physics Demonstrations &nbsp;·&nbsp; KP Science simulation 2568</footer>
+
+<script>
+// ══════════════════════════════════════════════
+// PHYSICS CORE
+// ══════════════════════════════════════════════
+let g_planet  = 9.81;   // m/s²
+let angle_deg = 20;     // degrees
+let trackLen  = 5.0;    // metres
+
+function getA()   { return g_planet * Math.sin(angle_deg * Math.PI / 180); }
+function getTend(){ const a = getA(); return a > 0 ? Math.sqrt(2 * trackLen / a) : 1; }
+function getDt()  { return getTend() / 6; }
+function posAtT(t){ return 0.5 * getA() * t * t; }
+function velAtT(t){ return getA() * Math.min(t, getTend()); }
+
+// ══════════════════════════════════════════════
+// ANIMATION STATE
+// ══════════════════════════════════════════════
+let isPlaying  = false;
+let animId     = null;
+let lastTs     = null;
+let simT       = 0;
+let speed      = 1.0;
+let trailPts   = [];           // [{t, x}]
+let litFlashes = new Set();    // set of n ∈ {1..6}
+
+// ══════════════════════════════════════════════
+// SECTION SWITCH
+// ══════════════════════════════════════════════
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'table') buildTable();
+}
+
+// ══════════════════════════════════════════════
+// CANVAS RESIZE
+// ══════════════════════════════════════════════
+function resizeAll() {
+  ['incCanvas','xtCanvas','vtCanvas','atCanvas'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const w = Math.floor(c.parentElement.getBoundingClientRect().width);
+    if (w > 0) c.width = w;
+  });
+  drawAll();
+}
+window.addEventListener('resize', () => {
+  clearTimeout(window._rt);
+  window._rt = setTimeout(resizeAll, 150);
+});
+
+// ══════════════════════════════════════════════
+// ANIMATION LOOP
+// ══════════════════════════════════════════════
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05) * speed;
+  lastTs = ts;
+  simT += dt;
+
+  const xNow = posAtT(simT);
+  if (trailPts.length === 0 || simT - trailPts[trailPts.length-1].t > 0.07) {
+    trailPts.push({ t: simT, x: Math.min(xNow, trackLen) });
+    if (trailPts.length > 800) trailPts.shift();
+  }
+
+  processFlashes();
+
+  if (xNow >= trackLen) {
+    simT = getTend();
+    processFlashes();
+    drawAll(); updateReadout(); updateSubPanels();
+    stopSim();
+    return;
+  }
+
+  drawAll(); updateReadout(); updateSubPanels();
+  animId = requestAnimationFrame(loop);
+}
+
+function processFlashes() {
+  const dt2 = getDt();
+  for (let n = 1; n <= 6; n++) {
+    if (!litFlashes.has(n) && simT >= n * dt2 - 1e-9) {
+      litFlashes.add(n);
+    }
+  }
+}
+
+function stopSim() {
+  isPlaying = false;
+  cancelAnimationFrame(animId);
+  const btn = document.getElementById('playBtn');
+  btn.textContent = '▶ เริ่ม';
+  btn.classList.remove('playing');
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม';
+    btn.classList.remove('playing');
+  }
+}
+
+function stepForward() {
+  if (isPlaying) stopSim();
+  let nextN = null;
+  for (let n = 1; n <= 6; n++) {
+    if (!litFlashes.has(n)) { nextN = n; break; }
+  }
+  if (nextN === null) return;
+  simT = nextN * getDt();
+  const xS = Math.min(posAtT(simT), trackLen);
+  trailPts.push({ t: simT, x: xS });
+  processFlashes();
+  drawAll(); updateReadout(); updateSubPanels();
+}
+
+function resetSim() {
+  stopSim();
+  simT = 0;
+  trailPts = [];
+  litFlashes = new Set();
+  drawAll(); updateReadout(); updateSubPanels();
+}
+
+document.getElementById('speedSlider').oninput = function () {
+  speed = parseFloat(this.value);
+  document.getElementById('speedLbl').textContent = speed.toFixed(1) + '×';
+};
+
+// ══════════════════════════════════════════════
+// READOUT
+// ══════════════════════════════════════════════
+function updateReadout() {
+  const a  = getA();
+  const x  = Math.min(posAtT(simT), trackLen);
+  const v  = velAtT(simT);
+  const dt2 = getDt();
+  const tend = getTend();
+  const sinV = Math.sin(angle_deg * Math.PI / 180);
+
+  document.getElementById('rdT').textContent  = simT.toFixed(3);
+  document.getElementById('rdX').textContent  = x.toFixed(3);
+  document.getElementById('rdV').textContent  = v.toFixed(3);
+  document.getElementById('rdA').textContent  = a.toFixed(3);
+  document.getElementById('tDisplay').textContent = simT.toFixed(2);
+
+  document.getElementById('formulaBox').textContent =
+    `a = ${g_planet.toFixed(2)} × sin(${angle_deg}°)\n  = ${a.toFixed(4)} m/s²`;
+
+  document.getElementById('gDisplay').textContent   = g_planet.toFixed(2);
+  document.getElementById('sinDisplay').textContent = sinV.toFixed(4);
+  document.getElementById('dtDisplay').textContent  = dt2.toFixed(3);
+  document.getElementById('tendDisplay').textContent = tend.toFixed(3);
+}
+
+// ══════════════════════════════════════════════
+// FLASH DOTS  +  Δx BARS
+// ══════════════════════════════════════════════
+function buildFlashDots() {
+  const row = document.getElementById('flashRow');
+  row.innerHTML = '';
+  const dt2 = getDt();
+  for (let n = 1; n <= 6; n++) {
+    const d = document.createElement('div');
+    d.className = 'flash-dot' + (litFlashes.has(n) ? ' lit' : '');
+    d.id = 'fd' + n;
+    d.textContent = n;
+    d.title = 't = ' + (n * dt2).toFixed(3) + ' s  |  x = ' + posAtT(n * dt2).toFixed(3) + ' m';
+    row.appendChild(d);
+  }
+}
+
+function updateFlashDots() {
+  const dt2 = getDt();
+  for (let n = 1; n <= 6; n++) {
+    const d = document.getElementById('fd' + n);
+    if (!d) continue;
+    d.classList.toggle('lit', litFlashes.has(n));
+    d.title = 't = ' + (n * dt2).toFixed(3) + ' s  |  x = ' + posAtT(n * dt2).toFixed(3) + ' m';
+  }
+}
+
+function buildDxBars() {
+  const cont = document.getElementById('dxBars');
+  cont.innerHTML = '';
+  const a2  = getA();
+  const dt2 = getDt();
+  const dx1 = 0.5 * a2 * dt2 * dt2;   // Δx₁ = ½a·Δt²
+  const maxDx = dx1 * 11;              // n=6 → 2·6−1 = 11
+  for (let n = 1; n <= 6; n++) {
+    const dx  = dx1 * (2*n - 1);
+    const pct = maxDx > 0 ? (dx / maxDx) * 100 : 0;
+    const lit = litFlashes.has(n);
+    const hue = 195 - n * 20;
+    const col = lit ? `hsl(${hue},78%,57%)` : '#1e293b';
+    const row = document.createElement('div');
+    row.className = 'dx-row';
+    row.innerHTML = `
+      <span class="dx-lbl" style="color:${lit ? col : 'var(--muted)'};">Δx₍${n}₎</span>
+      <div class="dx-bar-bg">
+        <div class="dx-bar-fill" style="width:${pct.toFixed(1)}%;background:${col};"></div>
+      </div>
+      <span class="dx-num" style="color:${lit ? col : 'var(--muted)'};">${dx.toFixed(3)} m</span>`;
+    cont.appendChild(row);
+  }
+}
+
+function updateSubPanels() {
+  updateFlashDots();
+  buildDxBars();
+}
+
+// ══════════════════════════════════════════════
+// DRAW — INCLINE CANVAS
+// ══════════════════════════════════════════════
+function drawIncline() {
+  const c   = document.getElementById('incCanvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, W, H);
+
+  const ang  = angle_deg * Math.PI / 180;
+  const PL = 58, PR = 28, PT = 26, PB = 40;
+  const maxH = W - PL - PR;
+  const maxV = H - PT - PB;
+  const idealV = maxH * Math.tan(ang);
+  let hDist, vDrop;
+  if (idealV <= maxV) { hDist = maxH; vDrop = idealV; }
+  else                { vDrop = maxV; hDist = maxV / Math.tan(ang); }
+  // Centre incline horizontally
+  const offX = (maxH - hDist) / 2;
+  const sx = PL + offX,       sy = H - PB - vDrop;  // high end (start)
+  const ex = sx + hDist,      ey = H - PB;           // low  end
+
+  const normLen = Math.sqrt(hDist*hDist + vDrop*vDrop);
+  const dirX = hDist / normLen, dirY = vDrop / normLen;         // unit along incline (down)
+  const perpX = -vDrop / normLen, perpY = hDist / normLen;      // unit perpendicular (outward)
+
+  // ── Ground ──
+  ctx.beginPath();
+  ctx.moveTo(PL - 10, ey); ctx.lineTo(W - PR + 10, ey);
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.stroke();
+
+  // ── Vertical support (dashed) ──
+  ctx.beginPath();
+  ctx.moveTo(sx, sy); ctx.lineTo(sx, ey);
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+  // ── Incline track ──
+  ctx.beginPath();
+  ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
+  ctx.strokeStyle = '#4b5e7a'; ctx.lineWidth = 6;
+  ctx.lineCap = 'round'; ctx.stroke();
+  // rail highlight
+  ctx.beginPath();
+  ctx.moveTo(sx + perpX*1, sy + perpY*1); ctx.lineTo(ex + perpX*1, ey + perpY*1);
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+
+  // ── Angle arc at (ex, ey) ──
+  const arcR = Math.min(30, hDist * 0.12, 30);
+  ctx.beginPath();
+  ctx.arc(ex, ey, arcR, Math.PI, Math.PI + ang, false);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.stroke();
+  const midAng = Math.PI + ang / 2;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = 'bold 11px Sarabun,sans-serif'; ctx.textAlign = 'center';
+  const labelR = arcR + 14;
+  ctx.fillText('θ=' + angle_deg + '°',
+    ex + labelR * Math.cos(midAng),
+    ey + labelR * Math.sin(midAng));
+
+  // ── Axis labels ──
+  ctx.fillStyle = '#475569'; ctx.font = '9px Share Tech Mono,monospace';
+  ctx.textAlign = 'left'; ctx.fillText('x=0', sx - 2, sy - 8);
+  ctx.textAlign = 'center'; ctx.fillText('L=' + trackLen + 'm', (sx+ex)/2, ey + 16);
+
+  // ── Flash markers (tick marks perpendicular to incline) ──
+  const dt2 = getDt();
+  for (let n = 1; n <= 6; n++) {
+    const xF = posAtT(n * dt2);
+    if (xF > trackLen + 1e-6) break;
+    const frac = xF / trackLen;
+    const mx = sx + frac * hDist;
+    const my = sy + frac * vDrop;
+    const lit = litFlashes.has(n);
+
+    // tick mark
+    ctx.beginPath();
+    ctx.moveTo(mx - perpX*7, my - perpY*7);
+    ctx.lineTo(mx + perpX*7, my + perpY*7);
+    ctx.strokeStyle = lit ? '#fef08a' : '#2d3e52';
+    ctx.lineWidth = 2; ctx.stroke();
+
+    if (lit) {
+      ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#fef08a'; ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    ctx.fillStyle = lit ? '#fef08a' : '#334155';
+    ctx.font = '9px Share Tech Mono,monospace'; ctx.textAlign = 'center';
+    ctx.fillText('n' + n, mx, my - 10);
+  }
+
+  // ── Trail dots ──
+  for (const pt of trailPts) {
+    const frac = pt.x / trackLen;
+    const px = sx + frac * hDist, py = sy + frac * vDrop;
+    ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(56,189,248,0.28)'; ctx.fill();
+  }
+
+  // ── Ball ──
+  const xNow  = Math.min(posAtT(simT), trackLen);
+  const frac2 = xNow / trackLen;
+  const bx    = sx + frac2 * hDist;
+  const by    = sy + frac2 * vDrop;
+
+  const dt3      = getDt();
+  const justFlash = Array.from(litFlashes).some(n => Math.abs(simT - n*dt3) < 0.08);
+  if (justFlash) { ctx.shadowColor = '#fff176'; ctx.shadowBlur = 22; }
+
+  ctx.beginPath(); ctx.arc(bx, by, 11, 0, Math.PI*2);
+  const gr = ctx.createRadialGradient(bx-3, by-3, 1, bx, by, 11);
+  gr.addColorStop(0,   '#fde68a');
+  gr.addColorStop(0.65,'#d97706');
+  gr.addColorStop(1,   '#92400e');
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Velocity arrow ──
+  const vNow = velAtT(simT);
+  if (vNow > 0.05 && xNow < trackLen) {
+    const arrowLen = Math.min(vNow * 15, 65);
+    const ax = bx + dirX * (13 + arrowLen);
+    const ay = by + dirY * (13 + arrowLen);
+    ctx.beginPath();
+    ctx.moveTo(bx + dirX*13, by + dirY*13);
+    ctx.lineTo(ax, ay);
+    ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = 2.5; ctx.stroke();
+    // arrowhead
+    const iA = Math.atan2(ay - (by + dirY*13), ax - (bx + dirX*13));
+    const hl = 9, ha = 0.42;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - hl*Math.cos(iA-ha), ay - hl*Math.sin(iA-ha));
+    ctx.lineTo(ax - hl*Math.cos(iA+ha), ay - hl*Math.sin(iA+ha));
+    ctx.closePath(); ctx.fillStyle = '#66bb6a'; ctx.fill();
+  }
+
+  // ── Live label on ball ──
+  if (xNow > 0.001) {
+    ctx.fillStyle = '#ffd54f';
+    ctx.font = '10px Share Tech Mono,monospace'; ctx.textAlign = 'left';
+    ctx.fillText('x=' + xNow.toFixed(2) + 'm  v=' + vNow.toFixed(2) + 'm/s', bx+14, by-6);
+  }
+}
+
+// ══════════════════════════════════════════════
+// DRAW — GRAPHS
+// ══════════════════════════════════════════════
+function drawGraph(id, color, lblY, lblX, tMax, yMax, valueFn, flatVal) {
+  const c   = document.getElementById(id);
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  const PL=44, PR=10, PT=14, PB=28;
+  const gW = W-PL-PR, gH = H-PT-PB;
+  if (gW <= 0 || gH <= 0) return;
+
+  ctx.fillStyle = '#0a0e1a'; ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1a2a3a'; ctx.lineWidth = 0.8;
+  for (let i = 1; i <= 4; i++) {
+    ctx.beginPath(); ctx.moveTo(PL + i*gW/4, PT); ctx.lineTo(PL + i*gW/4, PT+gH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PL, PT + i*gH/4); ctx.lineTo(PL+gW, PT + i*gH/4); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#2d3e52'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(PL, PT); ctx.lineTo(PL, PT+gH); ctx.lineTo(PL+gW, PT+gH); ctx.stroke();
+
+  // Axis numbers
+  ctx.fillStyle = '#3d5060'; ctx.font = '8.5px Share Tech Mono,monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(yMax.toFixed(1), PL-3, PT+5);
+  ctx.fillText('0', PL-3, PT+gH+1);
+  ctx.textAlign = 'center';
+  ctx.fillText('0', PL, PT+gH+10);
+  ctx.fillText(tMax.toFixed(1), PL+gW, PT+gH+10);
+
+  // Axis labels
+  ctx.fillStyle = '#475569'; ctx.font = '8.5px Sarabun,sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText(lblX, PL+gW/2, PT+gH+22);
+  ctx.save(); ctx.translate(10, PT+gH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(lblY, 0, 0); ctx.restore();
+
+  // Current time marker
+  const tNow = Math.min(simT, tMax);
+  ctx.beginPath();
+  ctx.moveTo(PL + (tNow/tMax)*gW, PT);
+  ctx.lineTo(PL + (tNow/tMax)*gW, PT+gH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1; ctx.stroke();
+
+  if (flatVal !== undefined) {
+    // a-t graph: horizontal dashed line
+    const ry = PT + gH - (flatVal / yMax) * gH;
+    ctx.beginPath(); ctx.moveTo(PL, ry); ctx.lineTo(PL+gW, ry);
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+    // current a dot
+    ctx.beginPath(); ctx.arc(PL + (tNow/tMax)*gW, ry, 4, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+    return;
+  }
+
+  // Theoretical curve (faint guide)
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const tt = tMax * i / 80;
+    const yy = Math.min(valueFn(tt), yMax);
+    const px = PL + (tt/tMax)*gW;
+    const py = PT + gH - (yy/yMax)*gH;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = color + '33'; ctx.lineWidth = 1.2; ctx.stroke();
+
+  // Actual traced data
+  if (trailPts.length >= 2) {
+    ctx.beginPath();
+    for (let i = 0; i < trailPts.length; i++) {
+      const pt = trailPts[i];
+      const t2 = Math.min(pt.t, tMax);
+      const y2 = Math.min(valueFn(pt.t), yMax);
+      const px = PL + (t2/tMax)*gW;
+      const py = PT + gH - (y2/yMax)*gH;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+    const last = trailPts[trailPts.length-1];
+    const lpx = PL + (Math.min(last.t,tMax)/tMax)*gW;
+    const lpy = PT + gH - (Math.min(valueFn(last.t),yMax)/yMax)*gH;
+    ctx.beginPath(); ctx.arc(lpx, lpy, 4, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+  }
+}
+
+function drawGraphs() {
+  const tEnd = Math.max(getTend(), 0.01);
+  const a2   = getA();
+  const vEnd = velAtT(tEnd);
+
+  drawGraph('xtCanvas', '#ffd54f', 'x (m)', 't (s)',
+    tEnd, trackLen * 1.05,
+    t => posAtT(t));
+
+  drawGraph('vtCanvas', '#66bb6a', 'v (m/s)', 't (s)',
+    tEnd, Math.max(vEnd * 1.1, 0.01),
+    t => velAtT(t));
+
+  drawGraph('atCanvas', '#ffa726', 'a (m/s²)', 't (s)',
+    tEnd, Math.max(a2 * 2.2, 0.01),
+    null, a2);
+}
+
+function drawAll() { drawIncline(); drawGraphs(); }
+
+// ══════════════════════════════════════════════
+// TABLE
+// ══════════════════════════════════════════════
+function buildTable() {
+  const a2   = getA();
+  const dt2  = getDt();
+  const tend = getTend();
+
+  document.getElementById('tblTheta').textContent = angle_deg;
+  document.getElementById('tblG').textContent     = g_planet.toFixed(2);
+  document.getElementById('tblA').textContent     = a2.toFixed(4);
+  document.getElementById('tblL').textContent     = trackLen.toFixed(2);
+  document.getElementById('tblDt').textContent    = dt2.toFixed(4);
+
+  const tbody = document.getElementById('tableTbody');
+  tbody.innerHTML = '';
+  let prevX = 0;
+
+  for (let n = 0; n <= 6; n++) {
+    const t    = n * dt2;
+    const x    = posAtT(t);
+    const v    = velAtT(t);
+    const dx   = n === 0 ? null : x - prevX;
+    const vavg = n === 0 ? null : dx / dt2;
+    const ratio= n === 0 ? null : (2*n - 1);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);">${n}</td>
+      <td style="color:var(--var-t);">${t.toFixed(4)}</td>
+      <td style="color:var(--var-x);">${x.toFixed(4)}</td>
+      <td style="color:var(--var-x);">${n === 0 ? '—' : dx.toFixed(4)}</td>
+      <td style="color:#64748b;">${n === 0 ? '—' : ratio}</td>
+      <td style="color:var(--var-v);">${n === 0 ? '—' : vavg.toFixed(4)}</td>
+      <td style="color:var(--var-v);">${v.toFixed(4)}</td>
+      <td style="color:var(--var-a);">${a2.toFixed(4)}</td>`;
+    tbody.appendChild(tr);
+    prevX = x;
+  }
+}
+
+// ══════════════════════════════════════════════
+// SLIDERS
+// ══════════════════════════════════════════════
+const _v2s = { 'vi-ang':'sl-ang', 'vi-len':'sl-len' };
+
+function syncVal(inp) {
+  const sl = document.getElementById(_v2s[inp.id]);
+  if (!sl) return;
+  const v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+  inp.value = v; sl.value = v;
+  sl.dispatchEvent(new Event('input'));
+}
+
+function initSliders() {
+  ['sl-ang', 'sl-len'].forEach(sid => {
+    const sl = document.getElementById(sid);
+    const vi = document.getElementById(sid.replace('sl-', 'vi-'));
+    sl.addEventListener('input', () => { vi.value = sl.value; applyParams(); });
+    vi.addEventListener('blur',    () => syncVal(vi));
+    vi.addEventListener('keydown', e => { if (e.key === 'Enter') syncVal(vi); });
+  });
+}
+
+function applyParams() {
+  angle_deg = parseFloat(document.getElementById('sl-ang').value) || 20;
+  trackLen  = parseFloat(document.getElementById('sl-len').value) || 5;
+  resetSim();
+  buildFlashDots();
+  updateReadout();
+}
+
+// ══════════════════════════════════════════════
+// PLANET SELECTOR
+// ══════════════════════════════════════════════
+function setPlanet(btn) {
+  document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  g_planet = parseFloat(btn.dataset.g);
+  applyParams();
+}
+
+// ══════════════════════════════════════════════
+// QUIZ
+// ══════════════════════════════════════════════
+function checkQ(n, correct, explain) {
+  const chosen = document.querySelector(`input[name=q${n}]:checked`);
+  const fb = document.getElementById('fb' + n);
+  if (!chosen) {
+    fb.className = 'q-feedback wrong';
+    fb.textContent = 'กรุณาเลือกคำตอบก่อน';
+    return;
+  }
+  if (chosen.value === correct) {
+    fb.className = 'q-feedback correct';
+    fb.textContent = '✓ ถูกต้อง! ' + explain;
+  } else {
+    fb.className = 'q-feedback wrong';
+    fb.textContent = '✗ ยังไม่ถูก — ' + explain;
+  }
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+function init() {
+  document.getElementById('incCanvas').height = 200;
+  document.getElementById('xtCanvas').height  = 148;
+  document.getElementById('vtCanvas').height  = 148;
+  document.getElementById('atCanvas').height  = 148;
+
+  initSliders();
+  buildFlashDots();
+  buildDxBars();
+  updateReadout();
+
+  setTimeout(() => { resizeAll(); }, 80);
+}
+
+init();
+</script>
+</body>
+</html>

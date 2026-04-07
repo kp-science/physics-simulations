@@ -1,0 +1,1000 @@
+<!-- © 2568 โกเมน ปาปะโถ | KP Science simulation | สงวนลิขสิทธิ์ -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Bulldozer on Moving Sheet (2D)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --vec-sheet: #fb923c;
+  --vec-bul:   #38bdf8;
+  --vec-res:   #34d399;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono',monospace;}
+
+/* ─── HEADER ─── */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:13px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:1.9rem;}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.8rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;white-space:nowrap;}
+
+/* ─── NAV ─── */
+nav{display:flex;gap:4px;padding:9px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:.2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+/* ─── TAB ─── */
+.tab-section{display:none;}
+.tab-section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ─── SIM LAYOUT ─── */
+.sim-layout{display:grid;grid-template-columns:270px 1fr;height:calc(100vh - 114px);}
+
+/* ─── CONTROL PANEL ─── */
+.ctrl{background:var(--panel);border-right:1px solid var(--border);padding:13px;overflow-y:auto;display:flex;flex-direction:column;gap:11px;}
+.cs{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;}
+.cs h3{font-size:0.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;}
+
+/* sliders */
+.sl-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.sl-label{font-size:0.78rem;color:var(--muted);width:88px;flex-shrink:0;line-height:1.3;}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;height:4px;}
+.val-input{width:50px;padding:2px 5px;background:var(--bg);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text);}
+.sl-unit{font-size:0.7rem;color:var(--muted);width:26px;flex-shrink:0;}
+
+/* readout */
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.rd-item{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 9px;}
+.rd-lbl{font-size:0.7rem;color:var(--muted);margin-bottom:2px;}
+.rd-val{font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:700;}
+
+/* presets */
+.pre-btn{display:flex;align-items:flex-start;gap:7px;width:100%;padding:7px 9px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.8rem;text-align:left;transition:.15s;line-height:1.4;margin-bottom:5px;}
+.pre-btn:hover{border-color:var(--accent4);color:var(--accent4);}
+.pre-btn.sel{border-color:var(--accent4);background:rgba(251,146,60,.1);color:var(--accent4);}
+.pre-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.pre-hint{font-size:0.72rem;color:var(--accent3);margin-top:1px;font-family:'Share Tech Mono',monospace;}
+
+/* play btns */
+.play-row{display:flex;gap:6px;}
+.btn{padding:7px 12px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;flex:1;}
+.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}
+.btn-reset{background:#0d47a1;color:#fff;}
+.btn-reset:hover{background:#1565c0;}
+
+/* checkboxes */
+.chk-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;cursor:pointer;font-size:0.8rem;color:var(--muted);}
+.chk-row input{accent-color:var(--accent);cursor:pointer;}
+
+/* ─── CANVAS AREA ─── */
+.canvas-area{display:flex;flex-direction:column;overflow:hidden;}
+.canvas-wrap{flex:1;position:relative;overflow:hidden;}
+#simCanvas{width:100%;height:100%;display:block;}
+
+/* vector panel */
+.vec-panel{height:150px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:stretch;}
+#vecCanvas{flex:0 0 190px;border-right:1px solid var(--border);}
+.vec-legend{padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:5px;flex:1;}
+.vec-item{display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--muted);}
+.vec-dot{width:22px;height:3px;border-radius:2px;flex-shrink:0;}
+.angle-big{margin-left:auto;padding:0 20px;text-align:center;display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border);}
+.angle-big .lbl{font-size:0.7rem;color:var(--muted);margin-bottom:3px;}
+.angle-big .val{font-family:'Share Tech Mono',monospace;font-size:2rem;font-weight:700;color:var(--accent4);}
+.angle-big .sub{font-size:0.68rem;color:var(--muted);margin-top:1px;}
+
+/* ─── THEORY ─── */
+.theory-wrap{max-width:940px;margin:0 auto;padding:22px 18px;}
+.th-sec{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px;}
+.th-sec h2{color:var(--accent);font-size:1.05rem;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.th-sec p{color:var(--text);line-height:1.75;margin-bottom:8px;}
+.formula-box{background:var(--bg);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;margin:10px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:0.92rem;line-height:1.9;}
+.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px;}
+.sc-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:13px;text-align:center;}
+.sc-card h4{color:var(--accent4);font-size:0.83rem;font-weight:700;margin-bottom:6px;}
+.sc-card p{color:var(--muted);font-size:0.78rem;line-height:1.65;margin-top:7px;}
+.th-canvas{display:block;width:100%;border-radius:8px;background:var(--panel2);}
+.caption{text-align:center;font-size:0.75rem;color:var(--muted);margin-top:6px;}
+.concept-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;}
+.concept-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.concept-box h4{font-size:0.82rem;font-weight:700;margin-bottom:6px;}
+.concept-box ul{padding-left:14px;color:var(--muted);font-size:0.8rem;line-height:1.7;}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  .sim-layout{grid-template-columns:1fr;height:auto;}
+  .ctrl{max-height:380px;}
+  .canvas-area{height:380px;}
+  .sc-grid{grid-template-columns:1fr;}
+  .concept-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚜</div>
+  <div>
+    <h1>Bulldozer on Moving Sheet (2D)</h1>
+    <p>การบวกเวกเตอร์ความเร็วสองมิติ — Galilean Velocity Addition</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ══════════ TAB: SIMULATION ══════════ -->
+<div id="tab-sim" class="tab-section active">
+<div class="sim-layout">
+
+  <!-- CONTROL PANEL -->
+  <div class="ctrl">
+
+    <!-- Presets -->
+    <div class="cs">
+      <h3>📌 สถานการณ์ตัวอย่าง</h3>
+      <button class="pre-btn sel" id="pre0" onclick="setPreset(0)">
+        <span class="pre-icon">▪</span>
+        <div><div>กรณีพื้นฐาน — แผ่นนิ่ง</div><div class="pre-hint">α = 0.0° (ตรงข้ามแผ่น)</div></div>
+      </button>
+      <button class="pre-btn" id="pre1" onclick="setPreset(1)">
+        <span class="pre-icon">📐</span>
+        <div><div>สถานการณ์ที่ 1 — v<sub>sheet</sub> = 0.5×</div><div class="pre-hint">α ≈ 26.6° ≈ 27°</div></div>
+      </button>
+      <button class="pre-btn" id="pre2" onclick="setPreset(2)">
+        <span class="pre-icon">📐</span>
+        <div><div>สถานการณ์ที่ 2 — v<sub>sheet</sub> = 1.0×</div><div class="pre-hint">α = 45.0°</div></div>
+      </button>
+      <button class="pre-btn" id="pre3" onclick="setPreset(3)">
+        <span class="pre-icon">🎯</span>
+        <div><div>สถานการณ์ที่ 3 — θ = −45°, v<sub>sheet</sub> = 0.707×</div><div class="pre-hint">α = 0.0° (เส้นตรง!)</div></div>
+      </button>
+    </div>
+
+    <!-- Variables -->
+    <div class="cs">
+      <h3>🎛 ตัวแปร</h3>
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--vec-sheet)">v<sub>sheet</sub></span>
+        <input class="sl-range" type="range" id="sl-vs" min="0" max="2" step="0.01" value="0">
+        <input class="val-input" type="number" id="vi-vs" min="0" max="2" step="0.01" value="0">
+        <span class="sl-unit">×v<sub>b</sub></span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--vec-bul)">ทิศรถ θ<sub>b</sub></span>
+        <input class="sl-range" type="range" id="sl-th" min="-90" max="90" step="1" value="0">
+        <input class="val-input" type="number" id="vi-th" min="-90" max="90" step="1" value="0">
+        <span class="sl-unit">°</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--muted)">ความเร็ว ×</span>
+        <input class="sl-range" type="range" id="sl-spd" min="0.1" max="3" step="0.1" value="1">
+        <input class="val-input" type="number" id="vi-spd" min="0.1" max="3" step="0.1" value="1">
+        <span class="sl-unit">×</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5;">
+        θ<sub>b</sub> = 0° → ตรงข้ามแผ่น &nbsp;|&nbsp; ลบ = เบนซ้าย &nbsp;|&nbsp; บวก = เบนขวา
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="cs">
+      <h3>👁 แสดง</h3>
+      <label class="chk-row"><input type="checkbox" id="ck-lab" checked> <span style="color:var(--vec-res)">●</span> เส้นทาง Lab Frame (เส้นจริง)</label>
+      <label class="chk-row"><input type="checkbox" id="ck-sheet" checked> <span style="color:var(--vec-bul)">●</span> รอยบนแผ่น (Sheet Frame)</label>
+      <label class="chk-row"><input type="checkbox" id="ck-vec" checked> <span style="color:var(--accent)">●</span> ลูกศร Vector</label>
+      <label class="chk-row"><input type="checkbox" id="ck-ang" checked> <span style="color:var(--accent4)">●</span> แสดงมุม α</label>
+      <label class="chk-row"><input type="checkbox" id="ck-ref" checked> <span style="color:var(--muted)">●</span> เส้นอ้างอิง (+y)</label>
+    </div>
+
+    <!-- Play -->
+    <div class="cs">
+      <h3>▶ ควบคุม</h3>
+      <div class="play-row">
+        <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div class="cs">
+      <h3>📊 ผลลัพธ์</h3>
+      <div class="rd-grid">
+        <div class="rd-item">
+          <div class="rd-lbl">|v<sub>result</sub>|</div>
+          <div class="rd-val" id="rd-vr" style="color:var(--vec-res)">—</div>
+        </div>
+        <div class="rd-item">
+          <div class="rd-lbl">มุม α (จาก +y)</div>
+          <div class="rd-val" id="rd-ang" style="color:var(--accent4)">—</div>
+        </div>
+        <div class="rd-item">
+          <div class="rd-lbl">v<sub>x</sub> (→)</div>
+          <div class="rd-val" id="rd-vx" style="color:var(--muted)">—</div>
+        </div>
+        <div class="rd-item">
+          <div class="rd-lbl">v<sub>y</sub> (↑)</div>
+          <div class="rd-val" id="rd-vy" style="color:var(--muted)">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ctrl -->
+
+  <!-- CANVAS AREA -->
+  <div class="canvas-area">
+    <div class="canvas-wrap">
+      <canvas id="simCanvas"></canvas>
+    </div>
+
+    <!-- Vector Diagram + Angle -->
+    <div class="vec-panel">
+      <canvas id="vecCanvas" width="190" height="150"></canvas>
+      <div class="vec-legend">
+        <div style="font-size:.72rem;color:var(--accent);font-weight:700;margin-bottom:3px;">ไดอะแกรมเวกเตอร์ (Head-to-Tail)</div>
+        <div class="vec-item">
+          <div class="vec-dot" style="background:var(--vec-sheet)"></div>
+          <span>v⃗<sub>sheet</sub> — ความเร็วแผ่น (Lab frame)</span>
+        </div>
+        <div class="vec-item">
+          <div class="vec-dot" style="background:var(--vec-bul)"></div>
+          <span>v⃗<sub>bul</sub> — ความเร็วรถบนแผ่น</span>
+        </div>
+        <div class="vec-item">
+          <div class="vec-dot" style="background:var(--vec-res);"></div>
+          <span>v⃗<sub>result</sub> = v⃗<sub>sheet</sub> + v⃗<sub>bul</sub></span>
+        </div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">
+          v⃗<sub>result</sub> = (v<sub>sheet</sub> + v<sub>bul</sub>sinθ, v<sub>bul</sub>cosθ)
+        </div>
+      </div>
+      <div class="angle-big">
+        <div class="lbl">มุม α</div>
+        <div class="val" id="big-ang">—</div>
+        <div class="sub">จาก +y axis</div>
+      </div>
+    </div>
+
+  </div><!-- /canvas-area -->
+</div><!-- /sim-layout -->
+</div><!-- /tab-sim -->
+
+<!-- ══════════ TAB: THEORY ══════════ -->
+<div id="tab-theory" class="tab-section">
+<div class="theory-wrap">
+
+  <div class="th-sec">
+    <h2>📌 หลักการ: การบวกเวกเตอร์ความเร็ว (Galilean Velocity Addition)</h2>
+    <p>เมื่อวัตถุ (รถ) เคลื่อนที่บนแผ่นที่กำลังเคลื่อนที่ด้วยตัวเอง <strong style="color:var(--accent3)">ความเร็วของรถในกรอบห้องปฏิบัติการ (Lab frame)</strong> จะเป็น <strong style="color:var(--accent3)">ผลรวมเวกเตอร์</strong> ของความเร็วสองตัว:</p>
+    <div class="formula-box">
+v⃗<sub>result</sub> = v⃗<sub>bulldozer/sheet</sub> + v⃗<sub>sheet/lab</sub>
+
+&#x2022; v⃗<sub>result</sub> = (v<sub>sheet</sub> + v<sub>bul</sub>sinθ) x̂ + (v<sub>bul</sub>cosθ) ŷ
+&#x2022; |v⃗<sub>result</sub>| = √[ (v<sub>sheet</sub> + v<sub>bul</sub>sinθ)² + (v<sub>bul</sub>cosθ)² ]
+&#x2022; α = arctan( v<sub>x</sub> / v<sub>y</sub> )   [มุมเบี่ยงจาก +y axis]
+    </div>
+    <p>นี่คือ <strong style="color:var(--accent)">สัมพัทธภาพของกาลิเลโอ (Galilean Relativity)</strong> ที่ใช้ได้เมื่อความเร็วน้อยกว่าแสงมาก การแปลงกรอบอ้างอิงอย่างง่ายที่สุดในฟิสิกส์คลาสสิก</p>
+
+    <div class="concept-row">
+      <div class="concept-box">
+        <h4 style="color:var(--accent3)">🔭 Lab Frame (กรอบห้อง)</h4>
+        <ul>
+          <li>ผู้สังเกตยืนอยู่กับที่บนพื้น</li>
+          <li>เห็นแผ่นเคลื่อนที่ไปทางขวา</li>
+          <li>รถเคลื่อนที่ตามเส้นทแยง</li>
+          <li>วัดได้ v⃗<sub>result</sub> = ผลรวมเวกเตอร์</li>
+        </ul>
+      </div>
+      <div class="concept-box">
+        <h4 style="color:var(--vec-bul)">🚂 Sheet Frame (กรอบแผ่น)</h4>
+        <ul>
+          <li>ผู้สังเกตเคลื่อนที่ไปพร้อมกับแผ่น</li>
+          <li>เห็นแผ่นนิ่ง (ห้องเคลื่อนไปซ้าย)</li>
+          <li>รถเคลื่อนที่ตามทิศที่ตั้งไว้ (θ)</li>
+          <li>วัดได้เฉพาะ v⃗<sub>bul</sub></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="th-sec">
+    <h2>🎨 การบวกเวกเตอร์แบบ Head-to-Tail</h2>
+    <canvas id="tcMain" class="th-canvas" height="220"></canvas>
+    <p class="caption">วางหางของ v⃗<sub>bul</sub> ที่หัวของ v⃗<sub>sheet</sub> — เวกเตอร์ผลลัพธ์คือเส้นตรงจากหางแรกถึงหัวสุดท้าย</p>
+  </div>
+
+  <div class="th-sec">
+    <h2>🔬 สถานการณ์ทดลองทั้ง 3 กรณี</h2>
+    <div class="sc-grid">
+      <div class="sc-card">
+        <h4>📐 สถานการณ์ที่ 1</h4>
+        <canvas id="tc1" width="160" height="130" style="border-radius:6px;background:var(--bg);display:block;margin:0 auto;"></canvas>
+        <p>รถวิ่งตรงข้ามแผ่น (θ = 0°)<br>แผ่นเคลื่อน <strong style="color:var(--vec-sheet)">0.5×</strong> ความเร็วรถ<br>→ รถเบี่ยง <strong style="color:var(--accent4)">α ≈ 26.6° ≈ 27°</strong></p>
+      </div>
+      <div class="sc-card">
+        <h4>📐 สถานการณ์ที่ 2</h4>
+        <canvas id="tc2" width="160" height="130" style="border-radius:6px;background:var(--bg);display:block;margin:0 auto;"></canvas>
+        <p>รถวิ่งตรงข้ามแผ่น (θ = 0°)<br>แผ่นเคลื่อน <strong style="color:var(--vec-sheet)">1.0×</strong> ความเร็วรถ<br>→ รถเบี่ยง <strong style="color:var(--accent4)">α = 45.0°</strong></p>
+      </div>
+      <div class="sc-card">
+        <h4>🎯 สถานการณ์ที่ 3</h4>
+        <canvas id="tc3" width="160" height="130" style="border-radius:6px;background:var(--bg);display:block;margin:0 auto;"></canvas>
+        <p>รถหัน <strong style="color:var(--vec-bul)">ซ้าย 45°</strong><br>แผ่นเคลื่อน <strong style="color:var(--vec-sheet)">≈ 0.707×</strong> (= 1/√2)<br>→ รถเคลื่อน <strong style="color:var(--accent4)">ตรงข้ามเลย! α = 0°</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="th-sec">
+    <h2>🧭 เปรียบเทียบสองกรอบอ้างอิง (v<sub>sheet</sub> = 0.5×, θ = 0°)</h2>
+    <canvas id="tcFrame" class="th-canvas" height="200"></canvas>
+    <p style="margin-top:10px;">
+      <strong style="color:var(--accent3)">Lab Frame:</strong> เห็นรถเคลื่อนทแยง ~27° (เส้นสีเขียว)<br>
+      <strong style="color:var(--vec-bul)">Sheet Frame:</strong> เห็นรถเคลื่อนตรงข้ามในแนวตั้ง θ = 0° (เส้นสีฟ้า)
+    </p>
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:0.8rem;color:var(--muted);line-height:1.7;">
+      💡 <strong style="color:var(--accent)">สรุปสำคัญ:</strong> เส้นทางที่รถ "วาด" บนแผ่นกระดาษ (รอยสีฟ้า) จะเป็นเส้นตรงในทิศที่ตั้ง — 
+      แต่เส้นทางในห้อง (รอยสีเขียว) จะเป็นผลรวมเวกเตอร์ ทั้งสองเส้นทางถูกต้องในกรอบของตัวเองเสมอ
+    </div>
+  </div>
+
+  <div class="th-sec">
+    <h2>📋 ตารางสรุปผล</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+      <thead>
+        <tr style="background:var(--panel2);">
+          <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);color:var(--accent);">สถานการณ์</th>
+          <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);color:var(--vec-sheet);">v<sub>sheet</sub></th>
+          <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);color:var(--vec-bul);">θ<sub>b</sub></th>
+          <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);color:var(--vec-res);">|v<sub>result</sub>|</th>
+          <th style="padding:9px 12px;text-align:center;border:1px solid var(--border);color:var(--accent4);">α</th>
+          <th style="padding:9px 12px;text-align:left;border:1px solid var(--border);color:var(--muted);">ผลที่เห็น</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px 12px;border:1px solid var(--border);">พื้นฐาน</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--vec-sheet);">0</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;">0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-family:monospace;color:var(--vec-res);">1.00 v<sub>b</sub></td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--accent4);font-weight:700;">0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);color:var(--muted);">รถวิ่งตรงข้ามเท่านั้น</td>
+        </tr>
+        <tr style="background:rgba(251,146,60,.05);">
+          <td style="padding:8px 12px;border:1px solid var(--border);">สถานการณ์ 1</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--vec-sheet);">0.5×</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;">0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-family:monospace;color:var(--vec-res);">1.12 v<sub>b</sub></td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--accent4);font-weight:700;">26.6°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);color:var(--muted);">รถเบี่ยงขวา ~27°</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;border:1px solid var(--border);">สถานการณ์ 2</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--vec-sheet);">1.0×</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;">0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-family:monospace;color:var(--vec-res);">1.41 v<sub>b</sub></td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--accent4);font-weight:700;">45.0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);color:var(--muted);">รถเบี่ยงขวา 45°</td>
+        </tr>
+        <tr style="background:rgba(52,211,153,.05);">
+          <td style="padding:8px 12px;border:1px solid var(--border);">สถานการณ์ 3</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--vec-sheet);">0.707×</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;">−45°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;font-family:monospace;color:var(--vec-res);">0.71 v<sub>b</sub></td>
+          <td style="padding:8px 12px;border:1px solid var(--border);text-align:center;color:var(--accent4);font-weight:700;">0.0°</td>
+          <td style="padding:8px 12px;border:1px solid var(--border);color:var(--muted);">รถวิ่งตรงข้ามสนิท!</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:8px;">อ้างอิง: Halliday, Resnick & Krane — Physics Vol.1 | Demo 02-08, University of Maryland | หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560)</p>
+  </div>
+
+</div>
+</div><!-- /tab-theory -->
+
+
+<script>
+// ═══════════════════════════════════════
+//  STATE & PARAMS
+// ═══════════════════════════════════════
+let isPlaying = false, animId = null, lastTs = null;
+let simSpeed = 1.0;
+let vSheet = 0;       // sheet speed relative to v_bul (0-2)
+let thetaDeg = 0;     // bulldozer aim angle from +y, degrees (neg=left)
+const VB = 1.0;       // bulldozer speed (normalized = 1)
+
+// Position (canvas pixels)
+let bx, by, bx0, by0, sheetOffset;
+let trailLab = [];      // {x,y} in lab frame
+let trailSheetRel = []; // {xRel, y} where xRel = bx - sheetOffset
+
+const SCALE = 80; // px per physics unit
+
+// Canvas refs
+let sim, ctx, vec, vctx;
+
+// ═══════════════════════════════════════
+//  VELOCITY CALCULATION
+// ═══════════════════════════════════════
+function getVel() {
+  const th = thetaDeg * Math.PI / 180;
+  const vbx = VB * Math.sin(th);    // bulldozer on sheet, x component
+  const vby = VB * Math.cos(th);    // bulldozer on sheet, y component
+  const vsx = vSheet;               // sheet lab x
+  const vrx = vbx + vsx;            // resultant x
+  const vry = vby;                  // resultant y
+  const vmag = Math.sqrt(vrx*vrx + vry*vry);
+  const alpha = Math.atan2(vrx, vry) * 180 / Math.PI; // from +y
+  return { vbx, vby, vsx, vrx, vry, vmag, alpha };
+}
+
+// ═══════════════════════════════════════
+//  INIT / RESET
+// ═══════════════════════════════════════
+function initState() {
+  if (!sim) return;
+  const W = sim.width, H = sim.height;
+  bx0 = W * 0.25;
+  by0 = H * 0.82;
+  bx = bx0; by = by0;
+  sheetOffset = 0;
+  trailLab = [{x: bx, y: by}];
+  trailSheetRel = [{xRel: 0, y: by}];
+}
+
+// ═══════════════════════════════════════
+//  UPDATE
+// ═══════════════════════════════════════
+function update(dt) {
+  const { vrx, vry, vsx } = getVel();
+  const eff = dt * simSpeed;
+  bx += vrx * SCALE * eff;
+  by -= vry * SCALE * eff;   // canvas y inverted
+  sheetOffset += vsx * SCALE * eff;
+
+  trailLab.push({x: bx, y: by});
+  // sheet-relative: subtract sheet displacement
+  const xRel = bx - bx0 - sheetOffset;
+  trailSheetRel.push({xRel, y: by});
+
+  // Cap trail length
+  if (trailLab.length > 600) trailLab.shift();
+  if (trailSheetRel.length > 600) trailSheetRel.shift();
+
+  // Auto-reset if far off-screen
+  const W = sim.width, H = sim.height;
+  const margin = 120;
+  if (bx > W + margin || bx < -margin || by > H + margin || by < -H * 0.3) {
+    initState();
+  }
+}
+
+// ═══════════════════════════════════════
+//  DRAW HELPERS
+// ═══════════════════════════════════════
+function drawArrow(c, x1, y1, x2, y2, color, lw, hw) {
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  const ang = Math.atan2(dy, dx);
+  const hl = hw || 13;
+
+  c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2);
+  c.strokeStyle = color; c.lineWidth = lw||2; c.stroke();
+
+  c.save(); c.translate(x2,y2); c.rotate(ang);
+  c.beginPath(); c.moveTo(0,0); c.lineTo(-hl,-hl*0.38); c.lineTo(-hl,hl*0.38);
+  c.closePath(); c.fillStyle = color; c.fill(); c.restore();
+}
+
+function drawDot(c, x, y, r, color) {
+  c.beginPath(); c.arc(x, y, r, 0, Math.PI*2);
+  c.fillStyle = color; c.fill();
+}
+
+// ═══════════════════════════════════════
+//  MAIN DRAW
+// ═══════════════════════════════════════
+function draw() {
+  if (!sim || !ctx) return;
+  const W = sim.width, H = sim.height;
+  const { vbx, vby, vsx, vrx, vry, vmag, alpha } = getVel();
+
+  ctx.clearRect(0,0,W,H);
+
+  // ── Background sheet ──
+  drawSheet(W, H);
+
+  // ── Sheet trail (marks on sheet, scroll with sheet) ──
+  if (document.getElementById('ck-sheet').checked && trailSheetRel.length > 1) {
+    ctx.beginPath();
+    for (let i = 0; i < trailSheetRel.length; i++) {
+      const px = bx0 + trailSheetRel[i].xRel + sheetOffset;
+      const py = trailSheetRel[i].y;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = 'rgba(56,189,248,0.65)';
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // ── Lab frame trail ──
+  if (document.getElementById('ck-lab').checked && trailLab.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(trailLab[0].x, trailLab[0].y);
+    for (let i = 1; i < trailLab.length; i++) ctx.lineTo(trailLab[i].x, trailLab[i].y);
+    ctx.strokeStyle = 'rgba(52,211,153,0.8)';
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+
+  // ── Reference line (+y direction from start) ──
+  if (document.getElementById('ck-ref').checked) {
+    ctx.beginPath();
+    ctx.moveTo(bx0 + sheetOffset, by0);
+    ctx.lineTo(bx0 + sheetOffset, by0 - 110);
+    ctx.strokeStyle = 'rgba(148,163,184,0.25)';
+    ctx.lineWidth = 1; ctx.setLineDash([4,4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // ── Vectors ──
+  if (document.getElementById('ck-vec').checked) {
+    const sc = 55;
+    // v_sheet (orange)
+    if (Math.abs(vsx) > 0.01) {
+      drawArrow(ctx, bx, by, bx + vsx*sc, by, '#fb923c', 2.5, 12);
+      ctx.fillStyle = '#fb923c'; ctx.font = '600 11px Sarabun,sans-serif';
+      ctx.fillText('v_sheet', bx + vsx*sc + 5, by - 5);
+    }
+    // v_bul (blue) head-to-tail
+    const ax2 = bx + vsx*sc, ay2 = by;
+    drawArrow(ctx, ax2, ay2, ax2 + vbx*sc, ay2 - vby*sc, '#38bdf8', 2.5, 12);
+    ctx.fillStyle = '#38bdf8'; ctx.font = '600 11px Sarabun,sans-serif';
+    ctx.fillText('v_bul', ax2 + vbx*sc + 5, ay2 - vby*sc - 5);
+    // v_result (green)
+    drawArrow(ctx, bx, by, bx + vrx*sc, by - vry*sc, '#34d399', 3, 14);
+    ctx.fillStyle = '#34d399'; ctx.font = '700 12px Sarabun,sans-serif';
+    ctx.fillText('v_result', bx + vrx*sc + 6, by - vry*sc + 4);
+  }
+
+  // ── Angle arc ──
+  if (document.getElementById('ck-ang').checked && Math.abs(alpha) > 0.3) {
+    const r = 38;
+    const startA = -Math.PI/2;
+    const endA = startA + alpha*Math.PI/180;
+    ctx.beginPath();
+    ctx.arc(bx, by, r, Math.min(startA,endA), Math.max(startA,endA));
+    ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+    const midA = (startA + endA) / 2;
+    ctx.fillStyle = '#fb923c'; ctx.font = '700 11px Share Tech Mono,monospace';
+    ctx.fillText(Math.abs(alpha).toFixed(1)+'°', bx+(r+10)*Math.cos(midA)-6, by+(r+10)*Math.sin(midA)+4);
+  }
+
+  // ── Bulldozer ──
+  drawBulldozer(ctx, bx, by, thetaDeg);
+
+  // ── Corner info ──
+  const W2 = W - 8;
+  ctx.fillStyle = 'rgba(10,14,26,0.7)';
+  roundRect(ctx, W2-175, 8, 172, 28, 5);
+  ctx.fill();
+  ctx.fillStyle = '#38bdf8'; ctx.font = '600 11px Sarabun,sans-serif';
+  ctx.fillText('🔭 Lab Frame (กรอบห้อง)', W2-170, 27);
+
+  // ── Vector diagram ──
+  drawVecPanel();
+}
+
+function drawSheet(W, H) {
+  // Base
+  ctx.fillStyle = '#131d2e';
+  ctx.fillRect(0,0,W,H);
+  // Vertical lines scrolling with sheet
+  const sp = 36;
+  const off = ((sheetOffset % sp) + sp) % sp;
+  ctx.strokeStyle = '#1a2f4a'; ctx.lineWidth = 1;
+  for (let x = off - sp; x < W + sp; x += sp) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  // Horizontal lines fixed
+  ctx.strokeStyle = '#162236';
+  for (let y = 0; y < H; y += 36) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  // Sheet motion arrows at top
+  if (vSheet > 0.05) {
+    ctx.save(); ctx.globalAlpha = 0.3;
+    for (let x = 50; x < W-30; x += 70) {
+      drawArrow(ctx, x, 16, x+22, 16, '#fb923c', 1.5, 8);
+    }
+    ctx.globalAlpha = 1; ctx.restore();
+    ctx.fillStyle = 'rgba(251,146,60,0.5)'; ctx.font = '600 10px Sarabun,sans-serif';
+    ctx.fillText('แผ่นเคลื่อน →', 8, 20);
+  }
+}
+
+function drawBulldozer(c, x, y, deg) {
+  const th = deg * Math.PI / 180;
+  c.save(); c.translate(x,y); c.rotate(th);
+  const bw = 20, bh = 28;
+  // Tracks
+  c.fillStyle = '#374151';
+  c.fillRect(-bw/2-5,-bh/2,5,bh); c.fillRect(bw/2,-bh/2,5,bh);
+  // Body
+  c.fillStyle = '#f59e0b'; c.strokeStyle = '#fcd34d'; c.lineWidth = 1.5;
+  c.beginPath(); roundRectPath(c,-bw/2,-bh/2,bw,bh,4); c.fill(); c.stroke();
+  // Blade
+  c.fillStyle = '#9ca3af'; c.strokeStyle = '#d1d5db'; c.lineWidth = 1.2;
+  c.fillRect(-bw/2-3,-bh/2-7,bw+6,7); c.strokeRect(-bw/2-3,-bh/2-7,bw+6,7);
+  // Cab
+  c.fillStyle = '#1e40af'; c.fillRect(-7,-bh/2+3,14,12);
+  // Direction arrow
+  c.fillStyle = 'rgba(56,189,248,0.9)';
+  c.beginPath(); c.moveTo(0,-bh/2-18); c.lineTo(-4.5,-bh/2-10); c.lineTo(4.5,-bh/2-10);
+  c.closePath(); c.fill();
+  c.restore();
+}
+
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r);c.closePath();}
+function roundRectPath(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r);c.closePath();}
+
+// ═══════════════════════════════════════
+//  VECTOR DIAGRAM PANEL
+// ═══════════════════════════════════════
+function drawVecPanel() {
+  if (!vctx) return;
+  const W = vec.width, H = vec.height;
+  const { vbx, vby, vsx, vrx, vry } = getVel();
+  const sc = 52;
+
+  vctx.clearRect(0,0,W,H);
+  vctx.fillStyle = '#111827'; vctx.fillRect(0,0,W,H);
+
+  // Axis guides
+  const ox = W/2 - vrx*sc/2, oy = H/2 + vry*sc/2;
+  vctx.strokeStyle = '#1e3a5f'; vctx.lineWidth = 1; vctx.setLineDash([3,3]);
+  vctx.beginPath(); vctx.moveTo(ox,5); vctx.lineTo(ox,H-5); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(5,oy); vctx.lineTo(W-5,oy); vctx.stroke();
+  vctx.setLineDash([]);
+
+  // v_sheet
+  if (Math.abs(vsx) > 0.01) {
+    drawArrow(vctx, ox, oy, ox+vsx*sc, oy, '#fb923c', 2, 9);
+    vctx.fillStyle = '#fb923c'; vctx.font = '500 9px Sarabun,sans-serif';
+    vctx.fillText('vs', ox+vsx*sc/2-4, oy-4);
+  }
+  // v_bul (head-to-tail)
+  const p2x = ox+vsx*sc, p2y = oy;
+  drawArrow(vctx, p2x, p2y, p2x+vbx*sc, p2y-vby*sc, '#38bdf8', 2, 9);
+  vctx.fillStyle = '#38bdf8'; vctx.font = '500 9px Sarabun,sans-serif';
+  vctx.fillText('vb', p2x+vbx*sc/2+3, p2y-vby*sc/2-3);
+  // v_result
+  drawArrow(vctx, ox, oy, ox+vrx*sc, oy-vry*sc, '#34d399', 2.5, 11);
+  vctx.fillStyle = '#34d399'; vctx.font = '700 9px Sarabun,sans-serif';
+  vctx.fillText('vr', ox+vrx*sc/2-10, oy-vry*sc/2+4);
+
+  drawDot(vctx, ox, oy, 3, '#e2e8f0');
+}
+
+// ═══════════════════════════════════════
+//  READOUT
+// ═══════════════════════════════════════
+function updateReadout() {
+  const { vmag, alpha, vrx, vry } = getVel();
+  document.getElementById('rd-vr').textContent  = vmag.toFixed(3)+' vb';
+  document.getElementById('rd-ang').textContent = alpha.toFixed(1)+'°';
+  document.getElementById('rd-vx').textContent  = vrx.toFixed(3);
+  document.getElementById('rd-vy').textContent  = vry.toFixed(3);
+  document.getElementById('big-ang').textContent = Math.abs(alpha).toFixed(1)+'°';
+}
+
+// ═══════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts-lastTs)/1000, 0.05);
+  lastTs = ts;
+  update(dt); draw(); updateReadout();
+  animId = requestAnimationFrame(loop);
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด'; btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม'; btn.classList.remove('playing');
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false; lastTs = null;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = '▶ เริ่ม'; btn.classList.remove('playing');
+  initState(); draw(); updateReadout();
+}
+
+// ═══════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════
+const PRESETS = [
+  { vs:0,     th:0,   label:'พื้นฐาน' },
+  { vs:0.5,   th:0,   label:'สถานการณ์ 1 (27°)' },
+  { vs:1.0,   th:0,   label:'สถานการณ์ 2 (45°)' },
+  { vs:0.707, th:-45, label:'สถานการณ์ 3 (ตรง!)' }
+];
+function setPreset(idx) {
+  const p = PRESETS[idx];
+  vSheet = p.vs; thetaDeg = p.th;
+  ['sl-vs','vi-vs'].forEach(id => document.getElementById(id).value = vSheet);
+  ['sl-th','vi-th'].forEach(id => document.getElementById(id).value = thetaDeg);
+  document.querySelectorAll('.pre-btn').forEach((b,i) => b.classList.toggle('sel', i===idx));
+  resetSim();
+}
+
+// ═══════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════
+function resizeCanvas() {
+  const wrap = document.querySelector('.canvas-wrap');
+  if (!wrap || !sim) return;
+  sim.width  = wrap.clientWidth  || 800;
+  sim.height = wrap.clientHeight || 400;
+  if (!isPlaying) { initState(); draw(); }
+}
+
+// ═══════════════════════════════════════
+//  THEORY CANVAS HELPERS
+// ═══════════════════════════════════════
+function drawScenarioMini(canvasId, vs, thetaDeg) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const tc = c.getContext('2d');
+  const W = c.width, H = c.height;
+  tc.fillStyle = '#0a0e1a'; tc.fillRect(0,0,W,H);
+
+  const th = thetaDeg * Math.PI / 180;
+  const vbx = Math.sin(th), vby = Math.cos(th);
+  const vsx = vs, vrx = vbx+vsx, vry = vby;
+  const sc = 56, ox = W/2 - (vrx*sc)/2, oy = H*0.72;
+
+  // +y reference
+  tc.strokeStyle='rgba(148,163,184,.2)'; tc.lineWidth=1; tc.setLineDash([3,3]);
+  tc.beginPath(); tc.moveTo(ox,oy); tc.lineTo(ox,oy-72); tc.stroke(); tc.setLineDash([]);
+
+  if (Math.abs(vsx)>0.01) drawArrow(tc, ox, oy, ox+vsx*sc, oy, '#fb923c', 2, 8);
+  drawArrow(tc, ox+vsx*sc, oy, ox+vsx*sc+vbx*sc, oy-vby*sc, '#38bdf8', 2, 8);
+  drawArrow(tc, ox, oy, ox+vrx*sc, oy-vry*sc, '#34d399', 2.5, 10);
+  drawDot(tc, ox, oy, 3, '#e2e8f0');
+
+  // angle label
+  const alpha = Math.atan2(vrx, vry)*180/Math.PI;
+  if (Math.abs(alpha) > 0.2) {
+    tc.fillStyle='#fb923c'; tc.font='700 11px Share Tech Mono,monospace'; tc.textAlign='center';
+    tc.fillText(Math.abs(alpha).toFixed(1)+'°', ox+vrx*sc/2, oy-vry*sc/2-7);
+    tc.textAlign='left';
+  }
+}
+
+function drawMainTheoryCanvas() {
+  const c = document.getElementById('tcMain');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth || 860;
+  const tc = c.getContext('2d');
+  const W = c.width, H = c.height;
+  tc.fillStyle = '#1a2235'; tc.fillRect(0,0,W,H);
+
+  const cw = W/3;
+  const cases = [
+    {vs:0.5, th:0},
+    {vs:1.0, th:0},
+    {vs:0.707, th:-45}
+  ];
+  const titles = ['สถานการณ์ที่ 1','สถานการณ์ที่ 2','สถานการณ์ที่ 3'];
+  const subtitles = ['v_sheet = 0.5×, θ = 0°','v_sheet = 1.0×, θ = 0°','v_sheet = 0.71×, θ = -45°'];
+
+  cases.forEach(({vs, th}, i) => {
+    const ox = cw*i + cw/2;
+    const oy = H*0.7;
+    const sc = 68;
+    const theta = th * Math.PI/180;
+    const vbx = Math.sin(theta), vby = Math.cos(theta);
+    const vsx = vs, vrx = vbx+vsx, vry = vby;
+
+    // +y reference
+    tc.strokeStyle='rgba(148,163,184,.15)'; tc.lineWidth=1; tc.setLineDash([3,3]);
+    tc.beginPath(); tc.moveTo(ox,oy); tc.lineTo(ox,oy-90); tc.stroke(); tc.setLineDash([]);
+
+    if (Math.abs(vsx)>0.01) drawArrow(tc, ox, oy, ox+vsx*sc, oy, '#fb923c', 2.5, 10);
+    drawArrow(tc, ox+vsx*sc, oy, ox+vsx*sc+vbx*sc, oy-vby*sc, '#38bdf8', 2.5, 10);
+    drawArrow(tc, ox, oy, ox+vrx*sc, oy-vry*sc, '#34d399', 3, 12);
+    drawDot(tc, ox, oy, 3.5, '#e2e8f0');
+
+    const alpha = Math.atan2(vrx, vry)*180/Math.PI;
+    tc.fillStyle='#fb923c'; tc.font='700 12px Share Tech Mono,monospace'; tc.textAlign='center';
+    tc.fillText(Math.abs(alpha).toFixed(1)+'°', ox+vrx*sc*0.5, oy-vry*sc*0.5-9);
+
+    tc.fillStyle='#e2e8f0'; tc.font='700 12px Sarabun,sans-serif';
+    tc.fillText(titles[i], ox, 22);
+    tc.fillStyle='#94a3b8'; tc.font='11px Sarabun,sans-serif';
+    tc.fillText(subtitles[i], ox, 38);
+
+    if (i<2) {
+      tc.strokeStyle='#1e3a5f'; tc.lineWidth=1;
+      tc.beginPath(); tc.moveTo(cw*(i+1),0); tc.lineTo(cw*(i+1),H); tc.stroke();
+    }
+    tc.textAlign='left';
+  });
+
+  // Legend
+  [[20,'#fb923c','v_sheet'],[100,'#38bdf8','v_bul'],[185,'#34d399','v_result']].forEach(([x,col,lbl]) => {
+    tc.fillStyle=col; tc.fillRect(x,H-22,18,3);
+    tc.fillStyle='#94a3b8'; tc.font='10px Sarabun,sans-serif';
+    tc.fillText(lbl, x+22, H-16);
+  });
+}
+
+function drawFrameCanvas() {
+  const c = document.getElementById('tcFrame');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth || 860;
+  const tc = c.getContext('2d');
+  const W = c.width, H = c.height;
+  tc.fillStyle = '#1a2235'; tc.fillRect(0,0,W,H);
+
+  const vs = 0.5, sc = 70;
+  const vbx = 0, vby = 1, vsx = vs, vrx = vsx, vry = vby;
+
+  // LEFT: Lab Frame
+  const lox = W*0.2, loy = H*0.75;
+  // Sheet background
+  tc.fillStyle='#111827'; tc.fillRect(lox-90, loy-100, 180, 106);
+  tc.strokeStyle='#1a2f4a'; tc.lineWidth=1;
+  for (let x=lox-90; x<lox+90; x+=28) {
+    tc.beginPath(); tc.moveTo(x+15,loy-100); tc.lineTo(x,loy); tc.stroke();
+  }
+  // Lab trail
+  tc.strokeStyle='rgba(52,211,153,0.8)'; tc.lineWidth=2.5; tc.setLineDash([5,3]);
+  tc.beginPath(); tc.moveTo(lox,loy); tc.lineTo(lox+vrx*sc, loy-vry*sc); tc.stroke(); tc.setLineDash([]);
+  drawArrow(tc, lox, loy, lox+vrx*sc, loy-vry*sc, '#34d399', 2.5, 11);
+  // Bulldozer
+  tc.fillStyle='#f59e0b'; tc.fillRect(lox-9,loy-15,18,19);
+  tc.fillStyle='#9ca3af'; tc.fillRect(lox-11,loy-20,22,7);
+  // Sheet motion arrows
+  tc.fillStyle='rgba(251,146,60,0.45)'; tc.font='10px Sarabun,sans-serif';
+  tc.fillText('→ แผ่นเคลื่อน', lox-90, loy+16);
+
+  tc.textAlign='center';
+  tc.fillStyle='#34d399'; tc.font='700 12px Sarabun,sans-serif';
+  tc.fillText('Lab Frame', lox, H-6);
+  tc.fillStyle='#94a3b8'; tc.font='10px Sarabun,sans-serif';
+  tc.fillText('(ยืนกับที่บนพื้น)', lox, H-20);
+  const aLab = Math.atan2(vrx,vry)*180/Math.PI;
+  tc.fillStyle='#fb923c'; tc.font='700 11px Share Tech Mono,monospace';
+  tc.fillText('α = '+aLab.toFixed(1)+'°', lox, loy-vry*sc-10);
+
+  // Divider
+  tc.strokeStyle='#1e3a5f'; tc.lineWidth=1;
+  tc.beginPath(); tc.moveTo(W/2,0); tc.lineTo(W/2,H); tc.stroke();
+
+  // RIGHT: Sheet Frame
+  const rox = W*0.72, roy = H*0.75;
+  tc.fillStyle='#111827'; tc.fillRect(rox-90, roy-100, 180, 106);
+  tc.strokeStyle='#1a2f4a'; tc.lineWidth=1;
+  for (let x=rox-90; x<rox+90; x+=28) {
+    tc.beginPath(); tc.moveTo(x,roy-100); tc.lineTo(x,roy); tc.stroke();
+  }
+  // Sheet trail (straight up)
+  tc.strokeStyle='rgba(56,189,248,0.8)'; tc.lineWidth=2.5; tc.setLineDash([5,3]);
+  tc.beginPath(); tc.moveTo(rox,roy); tc.lineTo(rox, roy-vby*sc); tc.stroke(); tc.setLineDash([]);
+  drawArrow(tc, rox, roy, rox, roy-vby*sc, '#38bdf8', 2.5, 11);
+  // Bulldozer
+  tc.fillStyle='#f59e0b'; tc.fillRect(rox-9,roy-15,18,19);
+  tc.fillStyle='#9ca3af'; tc.fillRect(rox-11,roy-20,22,7);
+  // "room moves left" label
+  tc.fillStyle='rgba(148,163,184,0.4)'; tc.font='10px Sarabun,sans-serif';
+  tc.fillText('← ห้องเคลื่อน', rox-90, roy+16);
+
+  tc.fillStyle='#38bdf8'; tc.font='700 12px Sarabun,sans-serif';
+  tc.fillText('Sheet Frame', rox, H-6);
+  tc.fillStyle='#94a3b8'; tc.font='10px Sarabun,sans-serif';
+  tc.fillText('(เคลื่อนไปกับแผ่น)', rox, H-20);
+  tc.fillStyle='#fb923c'; tc.font='700 11px Share Tech Mono,monospace';
+  tc.fillText('α = 0.0°', rox, roy-vby*sc-10);
+
+  tc.textAlign='left';
+}
+
+// ═══════════════════════════════════════
+//  TAB SWITCH
+// ═══════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') {
+    setTimeout(() => {
+      drawMainTheoryCanvas();
+      drawScenarioMini('tc1', 0.5, 0);
+      drawScenarioMini('tc2', 1.0, 0);
+      drawScenarioMini('tc3', 0.707, -45);
+      drawFrameCanvas();
+    }, 60);
+  }
+  if (name === 'sim') { setTimeout(resizeCanvas, 60); }
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  sim = document.getElementById('simCanvas');
+  ctx = sim.getContext('2d');
+  vec = document.getElementById('vecCanvas');
+  vctx = vec.getContext('2d');
+
+  // Slider bindings
+  const bindings = [
+    { sl:'sl-vs', vi:'vi-vs', get:()=>vSheet, set:v=>{vSheet=v; resetSim();} },
+    { sl:'sl-th', vi:'vi-th', get:()=>thetaDeg, set:v=>{thetaDeg=v; resetSim();} },
+    { sl:'sl-spd',vi:'vi-spd',get:()=>simSpeed, set:v=>{simSpeed=v;} }
+  ];
+  bindings.forEach(({sl,vi,set}) => {
+    const s = document.getElementById(sl);
+    const v = document.getElementById(vi);
+    s.addEventListener('input', () => { v.value=parseFloat(s.value); set(parseFloat(s.value)); draw(); updateReadout(); });
+    v.addEventListener('blur', () => {
+      let val = Math.max(+s.min, Math.min(+s.max, parseFloat(v.value)||0));
+      v.value = val; s.value = val; set(val); draw(); updateReadout();
+    });
+    v.addEventListener('keydown', e => { if(e.key==='Enter') v.blur(); });
+  });
+
+  // Checkbox listeners
+  ['ck-lab','ck-sheet','ck-vec','ck-ang','ck-ref'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => { if (!isPlaying) draw(); });
+  });
+
+  window.addEventListener('resize', resizeCanvas);
+  setTimeout(resizeCanvas, 60);
+  initState(); draw(); updateReadout();
+});
+</script>
+
+<footer style="background:var(--panel);border-top:1px solid var(--border);padding:8px 20px;text-align:center;font-size:.7rem;color:var(--muted);">
+  © 2568 โกเมน ปาปะโถ | KP Science simulation | อ้างอิง: Halliday, Resnick &amp; Krane — Physics Vol.1 | Demo 02-08 (Univ. of Maryland) | หลักสูตรแกนกลาง 2551 (ปรับปรุง 2560)
+</footer>
+
+</body>
+</html>
