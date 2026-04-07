@@ -70,7 +70,7 @@
     overflow: hidden;
     position: relative;
   }
-  canvas { display: block; cursor: crosshair; }
+  canvas { display: block; cursor: crosshair; width: 100%; height: auto; touch-action: none; }
 
   .panel {
     width: 280px;
@@ -829,21 +829,35 @@ function draw1() {
 document.getElementById('mag1').addEventListener('input', draw1);
 document.getElementById('ang1').addEventListener('input', draw1);
 
-// Drag on canvas1
+// Drag on canvas1 (mouse + touch)
 let drag1 = false;
-c1.addEventListener('mousedown', e => { drag1 = true; });
-c1.addEventListener('mouseup', e => { drag1 = false; });
-c1.addEventListener('mousemove', e => {
-  if (!drag1) return;
+
+function applyDrag1(clientX, clientY) {
   const r = c1.getBoundingClientRect();
-  const mx = e.clientX - r.left - c1.width/2;
-  const my = -(e.clientY - r.top - c1.height/2);
+  const scaleX = c1.width  / r.width;
+  const scaleY = c1.height / r.height;
+  const mx = (clientX - r.left) * scaleX - c1.width/2;
+  const my = -((clientY - r.top) * scaleY - c1.height/2);
   const mag = Math.sqrt(mx*mx+my*my)/SCALE;
   const ang = ((r2d(Math.atan2(my, mx)) % 360) + 360) % 360;
   document.getElementById('mag1').value = Math.min(10, mag.toFixed(1));
   document.getElementById('ang1').value = Math.round(ang);
   draw1();
-});
+}
+
+// Mouse
+c1.addEventListener('mousedown', e => { drag1 = true; });
+c1.addEventListener('mouseup',   e => { drag1 = false; });
+c1.addEventListener('mousemove', e => { if (!drag1) return; applyDrag1(e.clientX, e.clientY); });
+
+// Touch
+c1.addEventListener('touchstart', e => { drag1 = true; e.preventDefault(); }, { passive: false });
+c1.addEventListener('touchend',   e => { drag1 = false; }, { passive: true });
+c1.addEventListener('touchmove',  e => {
+  if (!drag1) return;
+  e.preventDefault();
+  applyDrag1(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
 
 // ============================================================
 // TAB 2: ADDITION
