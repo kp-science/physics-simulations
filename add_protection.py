@@ -17,7 +17,7 @@ import re
 # ─── CONFIG ───────────────────────────────────────────────
 ROOT_DIR    = os.path.dirname(os.path.abspath(__file__))
 OWNER       = "โกเมน ปาปะโถ"
-SITE        = "komane67.github.io"
+SITE        = "kp-science.github.io"
 YEAR        = "2025"
 MARKER      = "KP-DOMAIN-PROTECTION"   # ใช้ตรวจว่าเพิ่มแล้วหรือยัง
 
