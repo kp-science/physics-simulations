@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Tape Timer (เครื่องเคาะสัญญาณเวลา)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+.mono { font-family: 'Share Tech Mono', monospace; }
+
+header { background: linear-gradient(135deg, #0f172a, #1e293b); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+header .icon { font-size: 2rem; }
+header h1 { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+header p { font-size: 0.85rem; color: var(--muted); }
+header .badge { margin-left: auto; background: #1e3a5f; border: 1px solid var(--accent); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+
+nav { display: flex; gap: 4px; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+nav button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.85rem; font-weight: 600; white-space: nowrap; transition: all .2s; }
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+
+.tab-section { display: none; padding: 16px 20px 40px; }
+.tab-section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.sim-wrap { display: grid; grid-template-columns: 1fr 340px; gap: 16px; max-width: 1300px; margin: 0 auto; }
+@media (max-width: 920px) { .sim-wrap { grid-template-columns: 1fr; } }
+
+.canvas-box {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px; position: relative; min-height: 440px;
+}
+#simCanvas { width: 100%; height: 420px; display: block; background: #060a14; border-radius: 8px; cursor: grab; }
+#simCanvas.dragging { cursor: grabbing; }
+
+.stopwatch-box {
+  position: absolute; top: 22px; left: 22px;
+  background: rgba(0,0,0,0.75); border: 2px solid var(--accent3);
+  border-radius: 10px; padding: 8px 14px; display: flex; align-items: center; gap: 10px;
+  backdrop-filter: blur(4px);
+}
+.stopwatch-box .sw-icon { font-size: 1.2rem; }
+.stopwatch-box .sw-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.5rem; font-weight: 700; color: var(--accent3);
+  text-shadow: 0 0 8px rgba(52,211,153,0.5);
+}
+.stopwatch-box.running { border-color: #ef4444; animation: pulse 1s infinite; }
+.stopwatch-box.running .sw-val { color: #ef4444; text-shadow: 0 0 8px rgba(239,68,68,0.6); }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+
+.side-panel { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.card h3 { font-size: 0.92rem; color: var(--accent); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+.cbar { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.btn { padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700; transition: .15s; font-size: 0.86rem; }
+.btn-reset { background: #0d47a1; color: #fff; }
+.btn-reset:hover { background: #1565c0; }
+.btn-rec { background: var(--accent4); color: #0a0e1a; }
+.btn-rec:hover { opacity: 0.85; }
+.btn-clear { background: #4a1a1a; color: #fca5a5; border: 1px solid #7f1d1d; }
+
+.mode-switch { display: flex; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.mode-switch button { background: transparent; border: none; color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.8rem; font-weight: 600; }
+.mode-switch button.active { background: var(--accent); color: #0a0e1a; }
+
+.freq-row { display: flex; gap: 6px; margin-top: 4px; }
+.freq-row button { flex: 1; padding: 6px; background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.82rem; }
+.freq-row button.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.r-item { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.r-item .lbl { font-size: 0.72rem; color: var(--muted); }
+.r-item .val { font-size: 1.05rem; font-weight: 700; color: var(--accent3); font-family: 'Share Tech Mono', monospace; }
+
+.hint { background: #1a2d3f; border-left: 3px solid var(--accent4); padding: 8px 10px; border-radius: 6px; font-size: 0.8rem; color: #fde68a; margin-top: 8px; }
+.hint strong { color: var(--accent4); }
+.hint-drag { background: #1a3320; border-left: 3px solid var(--accent3); color: #a7f3d0; }
+.hint-drag strong { color: var(--accent3); }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.data-table th { background: var(--panel2); color: var(--accent); padding: 6px 6px; border: 1px solid var(--border); font-weight: 700; font-size: 0.78rem; }
+.data-table td { padding: 4px 6px; border: 1px solid var(--border); text-align: center; color: var(--text); }
+.data-table td input { width: 56px; background: #060a14; border: 1px solid var(--border); color: var(--accent3); padding: 3px; border-radius: 4px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; }
+.data-table tfoot td { background: var(--panel2); color: var(--accent3); font-weight: 700; font-family: 'Share Tech Mono', monospace; }
+.del-btn { background: #7f1d1d; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+
+.summary { background: linear-gradient(135deg, #0f2a3f, #1a2235); border: 1px solid var(--accent); border-radius: 10px; padding: 12px; margin-top: 10px; }
+.summary .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85rem; }
+.summary .row span:last-child { font-family: 'Share Tech Mono', monospace; color: var(--accent3); font-weight: 700; }
+.summary .hi { color: var(--accent); font-size: 1rem; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px; }
+
+.theory-wrap { max-width: 920px; margin: 0 auto; }
+.theory-section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 14px; }
+.theory-section h2 { color: var(--accent); font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.theory-section h3 { color: var(--accent2); font-size: 0.95rem; margin: 10px 0 6px; }
+.theory-section p { color: var(--text); line-height: 1.75; margin-bottom: 8px; font-size: 0.92rem; }
+.theory-section ul { margin-left: 20px; color: var(--text); line-height: 1.8; font-size: 0.92rem; }
+.formula { background: #0a1628; border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin: 10px 0; text-align: center; font-family: 'Share Tech Mono', monospace; color: var(--accent3); font-size: 1.05rem; }
+.formula small { color: var(--muted); font-size: 0.7rem; display: block; margin-top: 4px; font-family: 'Sarabun', sans-serif; }
+
+.visual-box { background: #060a14; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin: 12px 0; }
+.visual-box canvas { width: 100%; display: block; background: #030712; border-radius: 6px; }
+.visual-caption { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+
+.key-box { background: #2a1f10; border-left: 4px solid var(--accent4); padding: 10px 14px; border-radius: 6px; margin: 10px 0; }
+.key-box strong { color: var(--accent4); }
+
+footer { text-align: center; padding: 16px; color: var(--muted); font-size: 0.78rem; border-top: 1px solid var(--border); margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⏱️</div>
+  <div>
+    <h1>เครื่องเคาะสัญญาณเวลา (Tape Timer)</h1>
+    <p>การทดลองเสมือนจริง — ลากเทปด้วยเมาส์เพื่อจำลองการทดลอง</p>
+  </div>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim', this)">🎬 Simulate</button>
+  <button onclick="showTab('theory', this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ===================== SIMULATE TAB ===================== -->
+<div id="tab-sim" class="tab-section active">
+
+  <div class="cbar">
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ตการทดลอง</button>
+    <div style="color:var(--muted); font-size:0.82rem;">
+      🖱️ <strong style="color:var(--accent3);">กดเมาส์บนเทป แล้วลากไปทางขวา</strong> เพื่อเริ่มการทดลอง — Stopwatch จะเริ่มทันที
+    </div>
+    <div style="flex:1"></div>
+    <div class="mode-switch">
+      <button id="modeManual" class="active" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+      <button id="modeAuto" onclick="setMode('auto')">⚡ บันทึกอัตโนมัติ</button>
+    </div>
+  </div>
+
+  <div class="sim-wrap">
+    <!-- Canvas + table -->
+    <div>
+      <div class="canvas-box">
+        <canvas id="simCanvas"></canvas>
+        <div class="stopwatch-box" id="swBox">
+          <span class="sw-icon">⏱️</span>
+          <span class="sw-val" id="swVal">0.00</span>
+          <span style="color:var(--muted); font-size:0.75rem;">s</span>
+        </div>
+      </div>
+
+      <!-- Data table -->
+      <div class="card" style="margin-top:12px;">
+        <h3>📊 ตารางบันทึกผล (Data and Analysis)</h3>
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th>Trial</th>
+              <th>เวลา (s)</th>
+              <th>จำนวนจุด</th>
+              <th>ระยะทาง (cm)</th>
+              <th>อัตราเร็ว (cm/s)</th>
+              <th>ลบ</th>
+            </tr>
+          </thead>
+          <tbody id="dataBody"></tbody>
+          <tfoot>
+            <tr>
+              <td>TOTAL</td>
+              <td id="totalTime">0.0</td>
+              <td id="totalDots">0</td>
+              <td colspan="2" style="text-align:right; color:var(--muted);">Avg velocity →</td>
+              <td id="avgVel" style="color:var(--accent4);">—</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="display:flex; gap:6px; margin-top:10px;">
+          <button class="btn btn-rec" id="recBtn" onclick="recordTrial()">📝 บันทึกผลล่าสุดลงตาราง</button>
+          <button class="btn btn-clear" onclick="clearData()">🗑️ ล้างตาราง</button>
+        </div>
+
+        <div class="summary">
+          <div class="row"><span>เวลาทั้งหมด (Total time)</span><span id="sumTime">0.0 s</span></div>
+          <div class="row"><span>จำนวนจุดทั้งหมด (Total dots, ไม่นับจุดแรก)</span><span id="sumDots">0</span></div>
+          <div class="row hi"><span>ช่วงเวลาระหว่างจุด (Total time / Total dots)</span><span id="sumInterval">— s</span></div>
+          <div class="row"><span>ค่าคาดหวัง 1/f</span><span id="sumExpect">0.02000 s (1/50)</span></div>
+        </div>
+
+        <div class="hint hint-drag">
+          <strong>🖱️ วิธีทำการทดลอง:</strong> (1) กดเมาส์ค้างไว้บนเทปกระดาษในพื้นที่จำลอง
+          (2) ลากเมาส์ไปทางขวา 3–4 วินาที — Stopwatch จะเริ่มจับเวลาอัตโนมัติ
+          (3) ปล่อยเมาส์เพื่อหยุด (4) กดปุ่ม "บันทึกผล" ทำซ้ำหลาย ๆ ครั้ง
+        </div>
+
+        <div class="hint">
+          <strong>💡 Hint:</strong> เมื่อนับจุดบนเทป <strong>อย่านับจุดแรก</strong> —
+          เพราะถ้ามีจุด <em>n+1</em> จุด จะมีช่วงเวลาระหว่างจุดเพียง <em>n</em> ช่วง (ระบบนี้นับให้อัตโนมัติ)
+        </div>
+      </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel">
+
+      <div class="card">
+        <h3>⚡ ความถี่ของเครื่องเคาะ</h3>
+        <div class="freq-row">
+          <button id="f50" class="active" onclick="setFreq(50)">50 Hz (ไทย)</button>
+          <button id="f60" onclick="setFreq(60)">60 Hz (US)</button>
+        </div>
+        <div style="font-size:0.72rem; color:var(--muted); margin-top:6px; text-align:center;">
+          ไฟฟ้าในไทยใช้ 50 Hz → <strong class="mono" style="color:var(--accent3);">1/50 = 0.02 s/จุด</strong>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📟 ผลการทดลองล่าสุด</h3>
+        <div class="readout">
+          <div class="r-item"><div class="lbl">เวลา (Stopwatch)</div><div class="val" id="rdTime">0.00 s</div></div>
+          <div class="r-item"><div class="lbl">จุดบนเทป (ไม่นับจุดแรก)</div><div class="val" id="rdDots">0</div></div>
+          <div class="r-item"><div class="lbl">ระยะทางที่ลาก</div><div class="val" id="rdDist">0.0 cm</div></div>
+          <div class="r-item"><div class="lbl">อัตราเร็ว</div><div class="val" id="rdVel" style="color:var(--accent4);">— cm/s</div></div>
+        </div>
+        <div style="margin-top:8px; font-size:0.78rem; color:var(--muted);">
+          โหมด <strong id="modeLabel" style="color:var(--accent);">บันทึกเอง</strong>:
+          <span id="modeHint">กดปุ่ม "บันทึกผลล่าสุดลงตาราง" เพื่อนำค่าลงตาราง</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📐 การคำนวณอัตราเร็ว</h3>
+        <div style="font-size:0.82rem; color:var(--text); line-height:1.7;">
+          <div class="mono" style="background:#060a14; padding:6px 8px; border-radius:6px; color:var(--accent3); text-align:center;">
+            v = ระยะทาง ÷ เวลา
+          </div>
+          <div style="margin-top:6px; color:var(--muted); font-size:0.75rem;">
+            ระยะทางวัดจากตำแหน่งจุดแรก → จุดสุดท้ายบนเทป
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== THEORY TAB ===================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-section">
+      <h2>🎯 เครื่องเคาะสัญญาณเวลาคืออะไร?</h2>
+      <p><strong>เครื่องเคาะสัญญาณเวลา (Tape Timer / Ticker Tape Timer)</strong>
+        เป็นอุปกรณ์วัดเวลาอย่างง่ายที่ใช้ศึกษาการเคลื่อนที่ของวัตถุ โดยอาศัยหลักการของ
+        <strong>คลื่นไฟฟ้ากระแสสลับ (AC)</strong> ที่สั่นด้วยความถี่คงที่ เช่น
+        <strong style="color:var(--accent3);">50 Hz ในประเทศไทย/ยุโรป</strong> หรือ 60 Hz ในสหรัฐฯ</p>
+      <p>ภายในเครื่องมีค้อนเคาะหรือโซ่หมุน เคาะลง<strong>กระดาษคาร์บอน</strong> ทำให้เกิด
+        <strong>จุด (dots)</strong> บนเทปกระดาษที่ดึงผ่าน โดยจุดแต่ละจุดห่างกันด้วย
+        <strong>ช่วงเวลาคงที่</strong> เท่ากับ 1 คาบของไฟฟ้า AC</p>
+
+      <div class="visual-box">
+        <canvas id="viz1" height="200"></canvas>
+        <div class="visual-caption">รูปที่ 1 — เทปกระดาษเคลื่อนผ่านเครื่อง ค้อนเคาะลงด้วยจังหวะคงที่ เกิดจุดบนเทป</div>
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>⚡ หลักการทำงาน: ความถี่ไฟฟ้า AC</h2>
+      <p>ไฟฟ้าบ้านเป็นกระแสสลับที่มีความถี่คงที่มาก ทำให้ค้อนเคาะแต่ละครั้งเกิดในช่วงเวลาที่<strong>เท่ากันเป๊ะ</strong>
+        ช่วงเวลานี้เรียกว่า <strong>คาบ (T)</strong> ซึ่งมีค่าเท่ากับ:</p>
+
+      <div class="formula">
+        T = 1 / f
+        <small>T = คาบ (วินาทีต่อจุด), f = ความถี่ไฟฟ้า (Hz)</small>
+      </div>
+
+      <ul>
+        <li><strong style="color:var(--accent3);">ไทย: 50 Hz</strong> → คาบ T = 1/50 = <span class="mono" style="color:var(--accent3);">0.02 s</span> ต่อ 1 จุด</li>
+        <li>สหรัฐ: 60 Hz → คาบ T = 1/60 ≈ <span class="mono" style="color:var(--accent3);">0.0167 s</span> ต่อ 1 จุด</li>
+      </ul>
+
+      <div class="visual-box">
+        <canvas id="viz2" height="140"></canvas>
+        <div class="visual-caption">รูปที่ 2 — คลื่น AC sine wave สั่นคงที่ → ค้อนเคาะลงในจังหวะเดียวกันทุก T วินาที</div>
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>🧮 การคำนวณในการทดลอง</h2>
+
+      <h3>1) ช่วงเวลาระหว่างจุด</h3>
+      <p>ดึงเทปผ่านเครื่องเป็นเวลาหนึ่ง แล้วนับจุด (ไม่นับจุดแรก):</p>
+      <div class="formula">
+        ช่วงเวลา/จุด = เวลารวม ÷ จำนวนจุดรวม
+        <small>Time interval per dot = Total time / Total dots</small>
+      </div>
+
+      <h3>2) อัตราเร็วในการดึงเทป</h3>
+      <p>วัดระยะทางที่เทปเคลื่อนที่ในช่วงเวลาที่จับ:</p>
+      <div class="formula">
+        v = s / t
+        <small>s = ระยะทางที่ลากได้ (cm), t = เวลาที่จับ (s) → v = อัตราเร็วเฉลี่ย (cm/s)</small>
+      </div>
+
+      <p>ตัวอย่างจากการทดลองจริงในใบงาน (6 trials × 3.0 s ที่ 50 Hz):</p>
+      <ul>
+        <li>จำนวนจุดในแต่ละ trial ควรใกล้เคียง 3.0 × 50 = <strong>150 จุด</strong></li>
+        <li>ค่าที่นับได้จริงในแต่ละครั้งอาจต่างกันเล็กน้อย (±2-3 จุด) จาก error การจับเวลา</li>
+        <li>เฉลี่ย: ช่วงเวลา/จุด ≈ 1/50 = <span class="mono" style="color:var(--accent3);">0.02 s</span></li>
+      </ul>
+
+      <div class="key-box">
+        <strong>📌 หมายเหตุ:</strong> การทำการทดลองซ้ำหลาย ๆ ครั้งแล้วหาค่าเฉลี่ย
+        ช่วยลด <em>random error</em> และทำให้ค่าที่ได้ใกล้เคียง <strong>1/f</strong> จริงมากขึ้น
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>❓ ทำไมต้องไม่นับจุดแรก?</h2>
+      <p>เพราะ <strong>"จำนวนจุด" กับ "จำนวนช่วงระหว่างจุด" ไม่เท่ากัน</strong> — ถ้ามีจุด n+1 จุด
+        จะมีช่วงห่างระหว่างจุดเพียง <strong>n</strong> ช่วงเท่านั้น</p>
+
+      <div class="visual-box">
+        <canvas id="viz3" height="130"></canvas>
+        <div class="visual-caption">รูปที่ 3 — 5 จุด มี 4 ช่วงระหว่างจุด (ตัดจุดแรก → นับ 4 จุด = 4 ช่วง ✓)</div>
+      </div>
+
+      <p>การ<strong>ตัดจุดแรกออก</strong> (เริ่มนับจากจุดที่ 2) ทำให้จำนวนจุดที่นับได้
+        เท่ากับจำนวนช่วงเวลาพอดี → คำนวณ <em>ช่วงเวลาเฉลี่ย/จุด</em> ได้ถูกต้อง</p>
+
+      <div class="formula">
+        ถ้านับได้ n จุด (ไม่นับจุดแรก) → เวลาที่ใช้ = n × T
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>🏃 การใช้ศึกษาการเคลื่อนที่</h2>
+      <p>เมื่อนำเครื่องเคาะสัญญาณเวลาไปติดกับรถทดลองหรือวัตถุที่เคลื่อนที่
+        เทปกระดาษจะถูกดึงตามไปด้วย ทำให้<strong>ระยะห่างระหว่างจุด</strong>
+        บอกถึงการเคลื่อนที่ของวัตถุในแต่ละช่วงเวลา:</p>
+
+      <div class="visual-box">
+        <canvas id="viz4" height="180"></canvas>
+        <div class="visual-caption">รูปที่ 4 — จุดห่างเท่ากัน = ความเร็วคงที่ | จุดห่างเพิ่มขึ้น = ความเร่ง | จุดห่างลดลง = ความหน่วง</div>
+      </div>
+
+      <div class="formula">
+        v = Δs / T
+        <small>ระยะห่างระหว่างจุดสองจุด ÷ คาบ T = ความเร็วเฉลี่ยในช่วงนั้น</small>
+      </div>
+
+      <ul>
+        <li><strong style="color:var(--accent3);">จุดห่างเท่ากัน</strong> → วัตถุเคลื่อนที่ด้วยความเร็วคงที่</li>
+        <li><strong style="color:var(--accent4);">จุดห่างเพิ่มขึ้นเรื่อย ๆ</strong> → วัตถุกำลังเร่งความเร็ว (acceleration)</li>
+        <li><strong style="color:var(--accent5);">จุดห่างลดลงเรื่อย ๆ</strong> → วัตถุกำลังลดความเร็ว (deceleration)</li>
+      </ul>
+    </div>
+
+    <div class="theory-section">
+      <h2>✅ ข้อดี - ข้อเสีย</h2>
+      <h3 style="color:var(--accent3);">✓ ข้อดี</h3>
+      <ul>
+        <li>อุปกรณ์ราคาถูก หาได้ง่ายในห้องปฏิบัติการ</li>
+        <li>ใช้หลักการความถี่ไฟฟ้า AC ที่คงที่มาก</li>
+        <li>ให้ข้อมูลทั้งเวลาและระยะทางในแผ่นเดียว ศึกษาการเคลื่อนที่ได้สะดวก</li>
+        <li>มีความแม่นยำสูงเมื่อวัดช่วงเวลาซ้ำ ๆ (repeatability ดี)</li>
+      </ul>
+      <h3 style="color:#f87171;">✗ ข้อเสีย</h3>
+      <ul>
+        <li>ความละเอียดของเวลาจำกัด (0.02 s ที่ 50 Hz)</li>
+        <li>แรงเสียดทานของเทปกระดาษรบกวนการเคลื่อนที่ของวัตถุ</li>
+        <li>จุดอาจซ้อนกันถ้าดึงเทปช้ามาก</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  KP Science simulation · Tape Timer Experiment · อ้างอิงจากใบงานห้องปฏิบัติการฟิสิกส์ (50 Hz มาตรฐานไทย)
+</footer>
+
+<script>
+/* ===================== STATE ===================== */
+let mode = 'manual';
+let freq = 50;          // Hz — Thailand standard
+let trials = [];
+
+// Drag / experiment state
+let isDragging = false;
+let dragStartTime = 0;
+let elapsedTime = 0;    // s
+let tapeOffset = 0;     // cm — how much tape has been pulled
+let lastMouseX = 0;
+let dots = [];          // dot positions in cm along the virtual tape
+let lastDotTime = 0;
+let hasResult = false;
+
+// Visual constants
+const pxPerCm = 5;      // 5 px = 1 cm
+
+/* ===================== TAB ===================== */
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') drawAllVisuals();
+}
+
+/* ===================== MODE / FREQ ===================== */
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeManual').classList.toggle('active', m === 'manual');
+  document.getElementById('modeAuto').classList.toggle('active', m === 'auto');
+  document.getElementById('modeLabel').textContent = m === 'manual' ? 'บันทึกเอง' : 'บันทึกอัตโนมัติ';
+  document.getElementById('modeHint').textContent = m === 'manual'
+    ? 'กดปุ่ม "บันทึกผลล่าสุดลงตาราง" เพื่อนำค่าลงตาราง'
+    : 'เมื่อปล่อยเมาส์ ค่าจะถูกบันทึกลงตารางอัตโนมัติ';
+}
+
+function setFreq(f) {
+  freq = f;
+  document.getElementById('f50').classList.toggle('active', f === 50);
+  document.getElementById('f60').classList.toggle('active', f === 60);
+  document.getElementById('sumExpect').textContent = (1/f).toFixed(5) + ' s (1/' + f + ')';
+  resetSim();
+  updateSummary();
+}
+
+/* ===================== RESET ===================== */
+function resetSim() {
+  isDragging = false;
+  elapsedTime = 0;
+  tapeOffset = 0;
+  dots = [];
+  lastDotTime = 0;
+  hasResult = false;
+  document.getElementById('simCanvas').classList.remove('dragging');
+  document.getElementById('swBox').classList.remove('running');
+  updateReadout();
+  draw();
+}
+
+/* ===================== DRAG EXPERIMENT ===================== */
+function startDrag(e) {
+  const canvas = document.getElementById('simCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+  const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+
+  // must start on the tape area (lower half)
+  if (y < canvas.height * 0.45 || y > canvas.height * 0.75) return;
+
+  isDragging = true;
+  dragStartTime = performance.now();
+  elapsedTime = 0;
+  tapeOffset = 0;
+  dots = [0]; // first dot at t=0
+  lastDotTime = 0;
+  lastMouseX = x;
+  hasResult = false;
+  canvas.classList.add('dragging');
+  document.getElementById('swBox').classList.add('running');
+
+  if (!animRunning) {
+    animRunning = true;
+    requestAnimationFrame(dragLoop);
+  }
+  e.preventDefault();
+}
+
+function moveDrag(e) {
+  if (!isDragging) return;
+  const canvas = document.getElementById('simCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+  const dx = x - lastMouseX;
+  if (dx > 0) {
+    tapeOffset += dx / pxPerCm;
+  }
+  lastMouseX = x;
+  e.preventDefault();
+}
+
+function endDrag(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  document.getElementById('simCanvas').classList.remove('dragging');
+  document.getElementById('swBox').classList.remove('running');
+  hasResult = true;
+
+  if (mode === 'auto' && dots.length > 1) {
+    autoRecord();
+  }
+  if (e) e.preventDefault();
+}
+
+let animRunning = false;
+function dragLoop() {
+  if (isDragging) {
+    elapsedTime = (performance.now() - dragStartTime) / 1000;
+
+    // generate dots at freq rate based on elapsed time
+    // but only record dot if tape has moved (otherwise dots overlap at same position)
+    const period = 1 / freq;
+    while (lastDotTime + period <= elapsedTime) {
+      lastDotTime += period;
+      dots.push(tapeOffset);
+    }
+
+    updateReadout();
+    draw();
+    requestAnimationFrame(dragLoop);
+  } else {
+    animRunning = false;
+    draw();
+    updateReadout();
+  }
+}
+
+/* ===================== READOUT ===================== */
+function updateReadout() {
+  document.getElementById('swVal').textContent = elapsedTime.toFixed(2);
+  document.getElementById('rdTime').textContent = elapsedTime.toFixed(2) + ' s';
+  const countNoFirst = Math.max(0, dots.length - 1);
+  document.getElementById('rdDots').textContent = countNoFirst;
+  document.getElementById('rdDist').textContent = tapeOffset.toFixed(1) + ' cm';
+  if (elapsedTime > 0 && tapeOffset > 0) {
+    const v = tapeOffset / elapsedTime;
+    document.getElementById('rdVel').textContent = v.toFixed(2) + ' cm/s';
+  } else {
+    document.getElementById('rdVel').textContent = '— cm/s';
+  }
+}
+
+/* ===================== RECORDING ===================== */
+function recordTrial() {
+  if (!hasResult && !isDragging) {
+    alert('ยังไม่มีผลการทดลอง — กดเมาส์บนเทปแล้วลากไปทางขวาก่อน');
+    return;
+  }
+  if (elapsedTime < 0.1) {
+    alert('เวลาน้อยเกินไป — ทดลองลากเทปให้นานกว่านี้');
+    return;
+  }
+  const count = Math.max(0, dots.length - 1);
+  const timeVal = +elapsedTime.toFixed(2);
+  const dist = +tapeOffset.toFixed(1);
+  const vel = +(dist / timeVal).toFixed(2);
+  trials.push({ time: timeVal, count, dist, vel });
+  renderTable();
+}
+
+function autoRecord() {
+  const count = Math.max(0, dots.length - 1);
+  const timeVal = +elapsedTime.toFixed(2);
+  const dist = +tapeOffset.toFixed(1);
+  const vel = timeVal > 0 ? +(dist / timeVal).toFixed(2) : 0;
+  trials.push({ time: timeVal, count, dist, vel });
+  renderTable();
+}
+
+function clearData() {
+  if (trials.length === 0) return;
+  if (!confirm('ล้างข้อมูลทั้งหมดในตาราง?')) return;
+  trials = [];
+  renderTable();
+}
+
+function deleteTrial(i) {
+  trials.splice(i, 1);
+  renderTable();
+}
+
+function editTrial(i, field, val) {
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 0) return;
+  trials[i][field] = num;
+  // recalc velocity
+  if (trials[i].time > 0) {
+    trials[i].vel = +(trials[i].dist / trials[i].time).toFixed(2);
+  }
+  renderTable();
+}
+
+function renderTable() {
+  const body = document.getElementById('dataBody');
+  body.innerHTML = trials.map((tr, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><input type="number" step="0.1" value="${tr.time}" onchange="editTrial(${i},'time',this.value)"></td>
+      <td><input type="number" step="1" value="${tr.count}" onchange="editTrial(${i},'count',this.value)"></td>
+      <td><input type="number" step="0.1" value="${tr.dist}" onchange="editTrial(${i},'dist',this.value)"></td>
+      <td style="color:var(--accent4); font-family:'Share Tech Mono',monospace; font-weight:700;">${tr.vel.toFixed(2)}</td>
+      <td><button class="del-btn" onclick="deleteTrial(${i})">✕</button></td>
+    </tr>
+  `).join('');
+  updateSummary();
+}
+
+function updateSummary() {
+  const totT = trials.reduce((s, x) => s + (+x.time || 0), 0);
+  const totD = trials.reduce((s, x) => s + (+x.count || 0), 0);
+  const avgV = trials.length > 0
+    ? trials.reduce((s, x) => s + (+x.vel || 0), 0) / trials.length
+    : 0;
+  document.getElementById('totalTime').textContent = totT.toFixed(1);
+  document.getElementById('totalDots').textContent = totD;
+  document.getElementById('avgVel').textContent = trials.length > 0 ? avgV.toFixed(2) + ' cm/s' : '—';
+  document.getElementById('sumTime').textContent = totT.toFixed(2) + ' s';
+  document.getElementById('sumDots').textContent = totD;
+  if (totD > 0 && totT > 0) {
+    const interval = totT / totD;
+    document.getElementById('sumInterval').textContent = interval.toFixed(5) + ' s';
+  } else {
+    document.getElementById('sumInterval').textContent = '— s';
+  }
+  document.getElementById('sumExpect').textContent = (1/freq).toFixed(5) + ' s (1/' + freq + ')';
+}
+
+/* ===================== DRAW ===================== */
+function draw() {
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // background
+  ctx.fillStyle = '#060a14';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#0f2138';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // lab table
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, H - 50, W, 50);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, H - 50, W, 5);
+
+  // === TIMER ===
+  const timerX = 140, timerY = H/2 - 60;
+  const timerW = 100, timerH = 90;
+
+  // tape ribbon
+  const tapeY = H/2 + 10;
+  const tapeH = 40;
+
+  // tape (full width)
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(0, tapeY, W, tapeH);
+  ctx.strokeStyle = '#d97706';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(0, tapeY, W, tapeH);
+
+  // subtle tape texture lines
+  ctx.strokeStyle = 'rgba(217,119,6,0.2)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 10) {
+    ctx.beginPath(); ctx.moveTo(x, tapeY); ctx.lineTo(x, tapeY + tapeH); ctx.stroke();
+  }
+
+  // === DOTS on tape ===
+  const hammerX = timerX + timerW/2;
+  ctx.fillStyle = '#111';
+  dots.forEach((d, i) => {
+    const x = hammerX + (tapeOffset - d) * pxPerCm;
+    if (x >= 0 && x <= W) {
+      ctx.beginPath();
+      ctx.arc(x, tapeY + tapeH/2, 3, 0, Math.PI*2);
+      ctx.fill();
+      if (i === 0) {
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, tapeY + tapeH/2, 7, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 10px Sarabun';
+        ctx.fillText('จุดแรก (ตัดทิ้ง)', x - 30, tapeY - 4);
+        ctx.fillStyle = '#111';
+      }
+    }
+  });
+
+  // === TIMER BODY ===
+  // base
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(timerX, timerY + 40, timerW, 60);
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(timerX, timerY + 40, timerW, 60);
+
+  // Cylinder (coil)
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(timerX + 20, timerY - 10, 45, 55);
+  ctx.strokeRect(timerX + 20, timerY - 10, 45, 55);
+  ctx.fillStyle = '#64748b';
+  ctx.beginPath();
+  ctx.ellipse(timerX + 42, timerY - 10, 22, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Wires
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(timerX + 28, timerY - 10);
+  ctx.bezierCurveTo(timerX - 10, timerY - 50, timerX - 40, timerY - 20, timerX - 55, timerY + 20);
+  ctx.stroke();
+  ctx.strokeStyle = '#2563eb';
+  ctx.beginPath();
+  ctx.moveTo(timerX + 55, timerY - 10);
+  ctx.bezierCurveTo(timerX + 20, timerY - 60, timerX - 30, timerY - 40, timerX - 55, timerY + 35);
+  ctx.stroke();
+
+  // Battery
+  ctx.fillStyle = '#1e3a5f';
+  ctx.fillRect(timerX - 85, timerY + 10, 35, 55);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.strokeRect(timerX - 85, timerY + 10, 35, 55);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 10px Sarabun';
+  ctx.fillText('AC', timerX - 76, timerY + 40);
+  ctx.fillText(freq + 'Hz', timerX - 80, timerY + 54);
+
+  // Hammer — vibrating when dragging
+  const hammerPhase = Math.sin(elapsedTime * freq * 2 * Math.PI);
+  const hammerOffset = isDragging ? Math.abs(hammerPhase) * 8 : 0;
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(hammerX - 6, timerY + 45 - hammerOffset, 12, 20);
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(hammerX - 6, timerY + 45 - hammerOffset, 12, 20);
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath();
+  ctx.arc(hammerX, timerY + 65 - hammerOffset, 4, 0, Math.PI*2);
+  ctx.fill();
+
+  // Impact flash
+  if (isDragging && Math.abs(hammerPhase) > 0.9) {
+    ctx.fillStyle = 'rgba(251,191,36,0.6)';
+    ctx.beginPath();
+    ctx.arc(hammerX, tapeY + tapeH/2, 9, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Drag instruction or arrow
+  if (!isDragging && !hasResult) {
+    // pulsing "drag here" hint
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 300);
+    ctx.fillStyle = `rgba(52,211,153,${pulse * 0.9})`;
+    ctx.font = 'bold 14px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText('🖱️ กดและลากเมาส์ไปทางขวาบนเทป →', W * 0.65, tapeY - 14);
+    ctx.textAlign = 'left';
+    if (animRunning === false) {
+      requestAnimationFrame(() => { if (!isDragging) draw(); });
+    }
+  } else if (isDragging) {
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(W - 120, tapeY - 20);
+    ctx.lineTo(W - 30, tapeY - 20);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W - 30, tapeY - 20);
+    ctx.lineTo(W - 40, tapeY - 26);
+    ctx.lineTo(W - 40, tapeY - 14);
+    ctx.closePath();
+    ctx.fillStyle = '#34d399';
+    ctx.fill();
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 12px Sarabun';
+    ctx.fillText('กำลังดึง...', W - 115, tapeY - 26);
+  }
+
+  // Distance indicator
+  if (tapeOffset > 0) {
+    ctx.fillStyle = 'rgba(251,146,60,0.15)';
+    ctx.fillRect(hammerX, tapeY + tapeH + 5, Math.min(tapeOffset * pxPerCm, W - hammerX - 10), 8);
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(hammerX, tapeY + tapeH + 5, Math.min(tapeOffset * pxPerCm, W - hammerX - 10), 8);
+    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 11px Share Tech Mono';
+    ctx.fillText('s = ' + tapeOffset.toFixed(1) + ' cm', hammerX + 4, tapeY + tapeH + 28);
+  }
+
+  // Dot count badge
+  if (dots.length > 0) {
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 13px Share Tech Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText('จุด: ' + dots.length + '  (ไม่นับจุดแรก: ' + Math.max(0, dots.length - 1) + ')', W - 15, 30);
+    ctx.textAlign = 'left';
+  }
+
+  if (hasResult && !isDragging) {
+    ctx.fillStyle = 'rgba(16,185,129,0.92)';
+    ctx.fillRect(W/2 - 110, 60, 220, 30);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText('✓ การทดลองเสร็จสิ้น — กด "บันทึกผล"', W/2, 80);
+    ctx.textAlign = 'left';
+  }
+}
+
+/* ===================== RESIZE ===================== */
+function resizeCanvas() {
+  const canvas = document.getElementById('simCanvas');
+  const container = canvas.parentElement;
+  canvas.width  = container.clientWidth - 20 || 800;
+  canvas.height = 420;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ===================== THEORY VISUALS ===================== */
+let viz_t = 0;
+function drawViz1() {
+  const c = document.getElementById('viz1');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth - 24;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+  const tapeY = H/2;
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(0, tapeY - 15, W, 30);
+  ctx.strokeStyle = '#d97706';
+  ctx.strokeRect(0, tapeY - 15, W, 30);
+  const hx = W/2;
+  const phase = Math.sin(viz_t * 6);
+  const off = Math.abs(phase) * 10;
+  ctx.fillStyle = '#64748b';
+  ctx.fillRect(hx - 10, tapeY - 60 - off, 20, 40);
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath();
+  ctx.arc(hx, tapeY - 18 - off, 4, 0, Math.PI*2);
+  ctx.fill();
+  const dotSpacing = 40;
+  for (let i = -10; i < 15; i++) {
+    const x = hx - (viz_t * 50 % dotSpacing) + i * dotSpacing;
+    if (x > 0 && x < W) {
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(x, tapeY, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W - 90, tapeY - 40);
+  ctx.lineTo(W - 20, tapeY - 40);
+  ctx.stroke();
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.moveTo(W - 20, tapeY - 40);
+  ctx.lineTo(W - 30, tapeY - 46);
+  ctx.lineTo(W - 30, tapeY - 34);
+  ctx.closePath();
+  ctx.fill();
+  ctx.font = '11px Sarabun';
+  ctx.fillText('ทิศทางดึงเทป', W - 95, tapeY - 48);
+}
+
+function drawViz2() {
+  const c = document.getElementById('viz2');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth - 24;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle = '#334155';
+  ctx.beginPath();
+  ctx.moveTo(30, H/2);
+  ctx.lineTo(W - 10, H/2);
+  ctx.stroke();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const amp = 40, freq_v = 3;
+  for (let x = 30; x < W - 10; x++) {
+    const y = H/2 - amp * Math.sin((x - 30) / (W - 40) * freq_v * Math.PI * 2 - viz_t * 2);
+    if (x === 30) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  for (let i = 0; i < freq_v * 2; i++) {
+    const x = 30 + (i + 0.25) * (W - 40) / (freq_v * 2);
+    ctx.fillStyle = '#fb923c';
+    ctx.beginPath();
+    ctx.arc(x, H/2 + amp + 5, 4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#fb923c';
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.moveTo(x, H/2 + amp);
+    ctx.lineTo(x, H/2 - amp);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('AC sine wave (50 Hz)', 35, 15);
+  ctx.fillStyle = '#fb923c';
+  ctx.fillText('← จังหวะค้อนเคาะ (ทุกคาบ T = 1/50 s)', 35, H - 5);
+}
+
+function drawViz3() {
+  const c = document.getElementById('viz3');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth - 24;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+  const y = H/2;
+  const n = 5;
+  const spacing = (W - 120) / (n - 1);
+  const startX = 60;
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(30, y - 18, W - 60, 36);
+  ctx.strokeStyle = '#d97706';
+  ctx.strokeRect(30, y - 18, W - 60, 36);
+  for (let i = 0; i < n; i++) {
+    const x = startX + i * spacing;
+    ctx.fillStyle = i === 0 ? '#ef4444' : '#111';
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = i === 0 ? '#ef4444' : '#94a3b8';
+    ctx.font = 'bold 11px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText(i === 0 ? 'ตัด' : (i+''), x, y - 24);
+  }
+  for (let i = 0; i < n - 1; i++) {
+    const x1 = startX + i * spacing;
+    const x2 = startX + (i+1) * spacing;
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x1, y + 25);
+    ctx.lineTo(x2, y + 25);
+    ctx.stroke();
+    ctx.fillStyle = '#34d399';
+    ctx.font = '10px Sarabun';
+    ctx.fillText('T', (x1+x2)/2, y + 40);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('5 จุด → 4 ช่วง | ตัดจุดแรก → 4 จุด = 4 ช่วง ✓', 30, H - 5);
+}
+
+function drawViz4() {
+  const c = document.getElementById('viz4');
+  if (!c) return;
+  c.width = c.parentElement.clientWidth - 24;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+  const sections = [
+    { label: 'ความเร็วคงที่', color: '#34d399', type: 'const' },
+    { label: 'ความเร่ง', color: '#fb923c', type: 'accel' },
+    { label: 'ความหน่วง', color: '#f472b6', type: 'decel' }
+  ];
+  const sectH = H / 3;
+  sections.forEach((s, idx) => {
+    const cy = sectH * idx + sectH / 2;
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(100, cy - 10, W - 120, 20);
+    ctx.strokeStyle = '#d97706';
+    ctx.strokeRect(100, cy - 10, W - 120, 20);
+    const n = 10;
+    let pos = 105;
+    for (let i = 0; i < n; i++) {
+      let dx;
+      if (s.type === 'const') dx = (W - 140) / (n - 1);
+      else if (s.type === 'accel') dx = 10 + i * 4;
+      else dx = Math.max(3, 50 - i * 5);
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(pos, cy, 3, 0, Math.PI*2);
+      ctx.fill();
+      pos += dx;
+      if (pos > W - 20) break;
+    }
+    ctx.fillStyle = s.color;
+    ctx.font = 'bold 11px Sarabun';
+    ctx.fillText(s.label, 5, cy + 4);
+  });
+}
+
+let vizAnim = null;
+function vizLoop() {
+  viz_t += 0.02;
+  drawViz1();
+  drawViz2();
+  vizAnim = requestAnimationFrame(vizLoop);
+}
+
+function drawAllVisuals() {
+  drawViz1();
+  drawViz2();
+  drawViz3();
+  drawViz4();
+  if (!vizAnim) vizLoop();
+}
+
+/* ===================== INIT ===================== */
+window.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('simCanvas');
+
+  canvas.addEventListener('mousedown', startDrag);
+  canvas.addEventListener('mousemove', moveDrag);
+  canvas.addEventListener('mouseup', endDrag);
+  canvas.addEventListener('mouseleave', endDrag);
+  canvas.addEventListener('touchstart', startDrag, {passive: false});
+  canvas.addEventListener('touchmove', moveDrag, {passive: false});
+  canvas.addEventListener('touchend', endDrag);
+
+  resizeCanvas();
+  updateReadout();
+  updateSummary();
+
+  // animate the hint when idle
+  function idleAnim() {
+    if (!isDragging) draw();
+    requestAnimationFrame(idleAnim);
+  }
+  idleAnim();
+});
+</script>
+
+</body>
+</html>

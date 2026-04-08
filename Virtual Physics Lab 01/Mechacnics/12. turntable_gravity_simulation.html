@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — หาค่า g ด้วยจานหมุนและลูกบอลตก</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Layout for simulation */
+.sim-wrap{display:grid;grid-template-columns:280px 1fr 320px;gap:10px;padding:10px;height:calc(100vh - 110px);min-height:600px}
+@media (max-width:1200px){.sim-wrap{grid-template-columns:1fr;height:auto}}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-y:auto}
+.panel h3{color:var(--accent);font-size:0.92rem;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.panel .sub{font-size:0.75rem;color:var(--muted);margin-bottom:8px}
+
+/* Sliders */
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.sl-label{font-size:0.78rem;color:var(--muted);min-width:80px}
+.sl-range{flex:1;min-width:90px;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:0.75rem;color:var(--muted);min-width:24px}
+.val-input{width:60px;padding:3px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+select.val-input{width:auto;color:var(--text);padding:3px 8px}
+
+/* Buttons */
+.btn{padding:7px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.82rem;transition:.15s;color:#fff}
+.btn-burn{background:linear-gradient(135deg,#dc2626,#f97316)}
+.btn-burn:hover{filter:brightness(1.15)}
+.btn-burn:disabled{background:#374151;cursor:not-allowed;opacity:.6}
+.btn-reset{background:#0d47a1}
+.btn-reset:hover{background:#1565c0}
+.btn-add{background:var(--accent3);color:#062018}
+.btn-add:hover{filter:brightness(1.1)}
+.btn-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+/* Mode toggle */
+.mode-toggle{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:10px}
+.mode-toggle button{flex:1;padding:7px 8px;background:transparent;border:none;color:var(--muted);font-family:'Sarabun',sans-serif;font-weight:600;font-size:0.78rem;cursor:pointer;border-radius:5px;transition:.15s}
+.mode-toggle button.active{background:var(--accent);color:#0a0e1a}
+
+/* Canvas */
+.canvas-wrap{position:relative;background:radial-gradient(ellipse at center,#0f172a,#070b14);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+#simCanvas{flex:1;display:block;width:100%;min-height:400px}
+
+/* Status overlay */
+.status-bar{background:rgba(15,23,42,0.85);border-top:1px solid var(--border);padding:6px 12px;display:flex;gap:14px;font-size:0.78rem;color:var(--muted);flex-wrap:wrap}
+.status-bar span b{color:var(--accent3);font-family:'Share Tech Mono',monospace}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:6px}
+th,td{padding:5px 4px;text-align:center;border:1px solid var(--border)}
+th{background:var(--panel2);color:var(--accent);font-weight:600;font-size:0.72rem}
+td{color:var(--text)}
+td.error-good{color:var(--accent3)}
+td.error-bad{color:#f87171}
+td input{width:55px;padding:2px 4px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.75rem;text-align:center}
+td input.ok{border-color:var(--accent3);color:var(--accent3)}
+td input.bad{border-color:#f87171;color:#f87171}
+td .del{background:transparent;border:none;color:#f87171;cursor:pointer;font-size:0.9rem}
+
+/* Hint box */
+.hint{background:#1e293b;border-left:3px solid var(--accent4);padding:8px 10px;border-radius:5px;font-size:0.75rem;color:var(--muted);margin-top:8px;line-height:1.5}
+.hint b{color:var(--accent4)}
+
+/* Graph mini */
+#miniGraph{width:100%;height:140px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;margin-top:8px}
+
+/* ====== THEORY TAB ====== */
+.theory-wrap{max-width:980px;margin:0 auto;padding:24px 20px}
+.theory-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px}
+.theory-card h2{color:var(--accent);font-size:1.1rem;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.theory-card h3{color:var(--accent2);font-size:0.95rem;margin:14px 0 8px}
+.theory-card p{color:var(--text);line-height:1.7;margin-bottom:10px;font-size:0.92rem}
+.theory-card ul{margin-left:20px;color:var(--text);line-height:1.7;font-size:0.9rem}
+.theory-card li{margin-bottom:4px}
+
+.eq{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:12px 0;text-align:center;font-family:'Share Tech Mono','Cambria Math',serif;font-size:1.05rem;color:var(--accent3);overflow-x:auto}
+.eq .big{font-size:1.3rem}
+.eq .frac{display:inline-block;vertical-align:middle;text-align:center;margin:0 4px}
+.eq .num{display:block;border-bottom:1.5px solid var(--accent3);padding:0 6px}
+.eq .den{display:block;padding:0 6px}
+.eq sup{font-size:0.75em;vertical-align:super}
+.eq sub{font-size:0.75em;vertical-align:sub}
+
+.viz-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+@media (max-width:760px){.viz-wrap{grid-template-columns:1fr}}
+.viz-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.viz-box canvas{width:100%;height:220px;display:block;background:#0a0f1c;border-radius:6px}
+.viz-box .cap{font-size:0.78rem;color:var(--muted);margin-top:6px}
+
+.callout{background:#1a2435;border-left:4px solid var(--accent);padding:12px 16px;border-radius:6px;margin:12px 0;color:var(--text);font-size:0.88rem;line-height:1.6}
+.callout b{color:var(--accent)}
+.callout.warn{border-color:var(--accent4)}
+.callout.warn b{color:var(--accent4)}
+
+footer{padding:10px 20px;text-align:center;color:var(--muted);font-size:0.72rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🌀</div>
+  <div>
+    <h1>หาค่าความเร่งโน้มถ่วง g ด้วยจานหมุนและลูกบอลตก</h1>
+    <p>การทดลองคลาสสิกใช้แผ่นเสียง phonograph + ลูกบอลแขวน 2 ลูก</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ============ SIM TAB ============ -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-wrap">
+
+    <!-- LEFT: Controls -->
+    <div class="panel">
+      <h3>⚙️ พารามิเตอร์การทดลอง</h3>
+
+      <div class="sl-row">
+        <span class="sl-label">s (ความสูง)</span>
+        <input class="sl-range" type="range" id="sl-s" min="0.05" max="1.00" step="0.01" value="0.50">
+        <input class="val-input" type="number" id="vi-s" min="0.05" max="1.00" step="0.01" value="0.50">
+        <span class="sl-unit">m</span>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label">R (รัศมี)</span>
+        <input class="sl-range" type="range" id="sl-R" min="0.05" max="0.15" step="0.005" value="0.10">
+        <input class="val-input" type="number" id="vi-R" min="0.05" max="0.15" step="0.005" value="0.10">
+        <span class="sl-unit">m</span>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label">ความเร็วรอบ</span>
+        <select class="val-input" id="rpm-select" style="flex:1;min-width:120px">
+          <option value="33.333">33⅓ rpm (LP)</option>
+          <option value="45">45 rpm</option>
+          <option value="78">78 rpm</option>
+          <option value="custom">กำหนดเอง...</option>
+        </select>
+      </div>
+      <div class="sl-row" id="rpm-custom-row" style="display:none">
+        <span class="sl-label">rpm</span>
+        <input class="sl-range" type="range" id="sl-rpm" min="10" max="120" step="0.5" value="33.333">
+        <input class="val-input" type="number" id="vi-rpm" min="10" max="120" step="0.5" value="33.333">
+      </div>
+
+      <div class="hint" id="periodHint">
+        คาบจานหมุน <b>T = <span id="period-show">1.800</span> s</b>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-burn" id="burnBtn" onclick="burnString()">🔥 เผาเชือก / ปล่อยลูก</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ Reset</button>
+      </div>
+
+      <h3 style="margin-top:14px">⏱️ ความเร็ว Animation</h3>
+      <div class="sl-row">
+        <span class="sl-label">Speed</span>
+        <input class="sl-range" type="range" id="sl-speed" min="0.05" max="1" step="0.05" value="0.25">
+        <input class="val-input" type="number" id="vi-speed" min="0.05" max="1" step="0.05" value="0.25">
+        <span class="sl-unit">×</span>
+      </div>
+      <div class="hint">เวลาตกจริงสั้นมาก (เสี้ยววินาที) จึงต้องช้าลงเพื่อให้เห็น</div>
+
+      <h3 style="margin-top:14px">📐 อุปกรณ์เสริม</h3>
+      <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:0.82rem;cursor:pointer">
+        <input type="checkbox" id="cb-protractor" checked> แสดงไม้โปรแทรกเตอร์ (top view)
+      </label>
+      <label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:0.82rem;cursor:pointer;margin-top:4px">
+        <input type="checkbox" id="cb-gridline"> แสดงเส้นพิกัด
+      </label>
+    </div>
+
+    <!-- CENTER: Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="simCanvas"></canvas>
+      <div class="status-bar">
+        <span>เวลา: <b id="st-t">0.000</b> s</span>
+        <span>มุมจาน: <b id="st-theta">0.0</b>°</span>
+        <span>มุมระหว่างรอย A: <b id="st-A">—</b>°</span>
+        <span>สถานะ: <b id="st-state">รอเริ่ม</b></span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Data / Mode -->
+    <div class="panel">
+      <h3>📊 โหมดบันทึกข้อมูล</h3>
+      <div class="mode-toggle">
+        <button class="active" id="mode-manual-btn" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+        <button id="mode-auto-btn" onclick="setMode('auto')">🤖 อัตโนมัติ</button>
+      </div>
+
+      <div id="hint-manual" class="hint">
+        <b>โหมดบันทึกเอง:</b> หลังเผาเชือก ให้อ่านมุม A จากภาพมุมบนของจาน (ใช้ไม้โปรแทรกเตอร์ช่วย) แล้วกรอกในตาราง พร้อมคำนวณ g เอง<br>
+        สูตร: <span class="mono">g = 2s / [T² × (A/360)²]</span>
+      </div>
+      <div id="hint-auto" class="hint" style="display:none">
+        <b>โหมดอัตโนมัติ:</b> ระบบจะอ่านมุม A และคำนวณ g ให้อัตโนมัติ
+      </div>
+
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>#</th><th>s (m)</th><th>rpm</th><th>A (°) <span style="color:var(--muted);font-weight:400">วัดเอง</span></th><th>g (m/s²)</th><th>%err</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn btn-add" onclick="addRow()">➕ เพิ่มแถวว่าง</button>
+        <button class="btn btn-reset" onclick="clearTable()">🗑️ ล้างตาราง</button>
+      </div>
+
+      <h3 style="margin-top:14px">📈 กราฟ g vs ครั้งทดลอง</h3>
+      <canvas id="miniGraph"></canvas>
+      <div class="hint" id="summary">ค่าเฉลี่ย g = — m/s² | ค่ามาตรฐาน g = 9.81 m/s²</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ THEORY TAB ============ -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-card">
+      <h2>🎯 เป้าหมายของการทดลอง</h2>
+      <p>วัดค่าความเร่งโน้มถ่วง <b>g</b> โดยใช้อุปกรณ์ง่าย ๆ คือ <b>แผ่นจานเสียง phonograph</b> ที่หมุนด้วยความเร็วคงที่ 33⅓ รอบต่อนาที กับ <b>ลูกบอลแขวน 2 ลูก</b> ที่อยู่ในแนวดิ่งเดียวกัน</p>
+      <ul>
+        <li>ลูกบอลล่างวางอยู่บนจาน (ที่ระยะรัศมี R จากจุดศูนย์กลาง) ที่เวลา <span class="mono">t = 0</span></li>
+        <li>ลูกบอลบนอยู่สูงขึ้นไปเป็นระยะ <span class="mono">s</span></li>
+        <li>ขณะจานหมุน เผาเชือกที่ผูกลูกบอลทั้ง 2 ให้ตกอิสระจาก<u>นิ่ง</u>พร้อมกัน</li>
+        <li>กระดาษคาร์บอนบนจานจะบันทึกจุดกระทบเป็น 2 รอย — มุมระหว่างรอยทั้งสองคือ <b>A องศา</b></li>
+      </ul>
+    </div>
+
+    <div class="theory-card">
+      <h2>📐 การหาสูตร (Derivation)</h2>
+
+      <h3>1) เวลาตกของลูกบอลบน</h3>
+      <p>ลูกบอลบนตกอิสระจากนิ่ง ระยะ <span class="mono">s</span> ใช้สมการการเคลื่อนที่:</p>
+      <div class="eq">s = ½ g t² &nbsp;&nbsp;⟹&nbsp;&nbsp; t =
+        <span class="frac"><span class="num">√(2s)</span><span class="den">√g</span></span>
+        = <span class="big">√(2s/g)</span>
+      </div>
+
+      <h3>2) มุมที่จานหมุนระหว่างเวลาที่ลูกตก</h3>
+      <p>จานหมุนสม่ำเสมอที่ <span class="mono">33⅓ rpm</span> → คาบ T = 60 / 33.333 = <b>1.8 s</b><br>
+      ในเวลา <span class="mono">t</span> วินาที จานหมุนเป็นสัดส่วน <span class="mono">A/360°</span> ของหนึ่งรอบ:</p>
+      <div class="eq">t = T · <span class="frac"><span class="num">A</span><span class="den">360°</span></span>
+        = (1.8 s) · <span class="frac"><span class="num">A</span><span class="den">360°</span></span>
+      </div>
+
+      <h3>3) นำสมการ (1) = (2) แล้วแก้หา g</h3>
+      <div class="eq">√(2s/g) = T · (A/360)</div>
+      <div class="eq">2s/g = T² · (A/360)²</div>
+      <div class="eq big" style="color:var(--accent4)">g =
+        <span class="frac">
+          <span class="num">2 s</span>
+          <span class="den">T²·(A/360°)²</span>
+        </span>
+        =
+        <span class="frac">
+          <span class="num">2 s</span>
+          <span class="den">(1.8)²·(A/360°)²</span>
+        </span>
+      </div>
+
+      <div class="callout"><b>หมายเหตุ:</b> สูตรในกรอบสีส้มใช้ได้เมื่อจานหมุนที่ 33⅓ rpm พอดี ถ้าเปลี่ยน rpm ต้องคำนวณ T ใหม่จาก <span class="mono">T = 60/rpm</span></div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🖼️ วิชวลประกอบการคิด</h2>
+      <div class="viz-wrap">
+        <div class="viz-box">
+          <canvas id="vizFall"></canvas>
+          <div class="cap">การตกอิสระของลูกบอลบนเป็นระยะ s = ½gt²</div>
+        </div>
+        <div class="viz-box">
+          <canvas id="vizRot"></canvas>
+          <div class="cap">จานหมุนเป็นมุม A° ในระหว่างที่ลูกบอลตก</div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--muted);text-align:center;margin-top:6px">
+        ภาพเคลื่อนไหวประกอบความเข้าใจ — สังเกตว่าทั้งสองเหตุการณ์เกิดในช่วงเวลา <b style="color:var(--accent3)">เดียวกัน</b>
+      </p>
+    </div>
+
+    <div class="theory-card">
+      <h2>🧪 กรณีทั่วไป (advanced)</h2>
+      <p>ถ้าลูกบอลทั้ง 2 ไม่ได้อยู่ในแนวเดียวกันพอดี (ลูกล่างที่ระยะ s₂ ลูกบนที่ระยะ s₁ จากจาน โดย s₁ &gt; s₂) ช่วงเวลาระหว่างสองการกระแทกจะเป็น</p>
+      <div class="eq">Δt = √(2s₁/g) − √(2s₂/g)</div>
+      <p>และจานหมุนเป็นมุม <span class="mono">A = (Δt / T) × 360°</span></p>
+      <div class="callout warn"><b>เงื่อนไขที่ดี:</b> เพื่อให้ทดลองง่าย ควรเลือก s ที่ทำให้ A อยู่ระหว่าง 30°–180° เพื่ออ่านง่ายและแม่นยำ ถ้า s ใหญ่เกินไป จานอาจหมุนเกิน 1 รอบทำให้สับสน</div>
+    </div>
+
+    <div class="theory-card">
+      <h2>📊 ตัวอย่างคำนวณ</h2>
+      <p>กำหนด s = 0.50 m, T = 1.8 s, สมมติ g = 9.81 m/s²</p>
+      <ul>
+        <li>เวลาตก: t = √(2×0.50/9.81) = <span class="mono">0.3194 s</span></li>
+        <li>มุมจาน: A = 360° × (0.3194/1.8) = <span class="mono">63.87°</span></li>
+        <li>ย้อนคำนวณ g = 2(0.50) / [(1.8)² × (63.87/360)²] = <span class="mono">9.81 m/s²</span> ✓</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>© KP Science simulation • Phonograph turntable gravity experiment</footer>
+
+<script>
+/* ================ TABS ================ */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory') drawTheoryViz();
+}
+
+/* ================ STATE ================ */
+const G_TRUE = 9.81;
+let s = 0.50;       // m, height of upper ball
+let R = 0.10;       // m, radius on turntable
+let rpm = 33.333;
+let T_period = 1.8; // s
+let speed = 0.25;   // animation speed multiplier
+let mode = 'manual';
+
+let phase = 'idle'; // idle | spinning | falling | done
+let tSim = 0;       // simulated physical time (s)
+let lastTs = null;
+let animId = null;
+
+let theta0 = 0;        // turntable angle at t=0 (rad)
+let thetaNow = 0;      // current turntable angle (rad)
+let upperFallStart = 0; // simulated time at which fall starts
+let tFallTotal = 0;     // computed real fall time
+let A_deg = null;       // measured angle between marks
+
+// marks on turntable: array of {ang_rel: angle relative to disc rotation, color}
+// We store the angle of the disc at moment of impact, in the disc's rotating frame.
+// disc-frame angle = -thetaNow (because disc rotates by thetaNow CCW, so a fixed lab spot maps to -thetaNow on disc)
+let mark1 = null; // lower ball, recorded at burnString
+let mark2 = null; // upper ball, recorded at land
+
+let trial = 0;
+let dataRows = []; // {s, rpm, A, g, err}
+
+// Angle measurement tool state
+let arm1Rad = Math.PI*0.10;   // radians from 12 o'clock, CW
+let arm2Rad = Math.PI*0.55;
+let draggingArm = null;       // 'arm1' | 'arm2' | null
+let hoverZoom = null;         // {mx,my} in canvas coords
+let topViewGeo = {offX:0, offY:0, cx:0, cy:0, radius:0, Rpix:0, armLen:0};
+let measuredA = 0;
+
+/* ================ UTIL ================ */
+function computePeriod(){ T_period = 60 / rpm; }
+function fallTime(s_val){ return Math.sqrt(2*s_val/G_TRUE); }
+
+/* ================ CANVAS RESIZE ================ */
+function resizeCanvas(){
+  const c = document.getElementById('simCanvas');
+  const w = c.parentElement.clientWidth;
+  const h = c.parentElement.clientHeight - 32; // minus status bar
+  c.width = Math.max(400,w);
+  c.height = Math.max(300,h);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ================ DRAW MAIN CANVAS ================ */
+function draw(){
+  const c = document.getElementById('simCanvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Layout: left = side view, right = top view
+  const leftW = W*0.48;
+  const rightW = W - leftW;
+
+  drawSideView(ctx, 0, 0, leftW, H);
+  drawTopView(ctx, leftW, 0, rightW, H);
+}
+
+/* --- SIDE VIEW --- */
+function drawSideView(ctx, x, y, w, h){
+  ctx.save();
+  ctx.translate(x,y);
+
+  // background
+  ctx.fillStyle='#0a1322';
+  ctx.fillRect(0,0,w,h);
+
+  // grid
+  if(document.getElementById('cb-gridline')?.checked){
+    ctx.strokeStyle='rgba(56,189,248,0.08)';
+    ctx.lineWidth=1;
+    for(let i=0;i<w;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+    for(let i=0;i<h;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke();}
+  }
+
+  // title
+  ctx.fillStyle='#94a3b8';
+  ctx.font='600 12px Sarabun';
+  ctx.fillText('มุมมองด้านข้าง (Side view)', 12, 18);
+
+  // Coordinate setup: turntable at y_turn, ground floor below
+  const cx = w*0.5;
+  const yTable = h*0.78;
+  const yBaseFloor = h*0.92;
+
+  // table base
+  ctx.fillStyle='#374151';
+  ctx.fillRect(cx-110, yTable, 220, 8);
+  ctx.fillStyle='#1f2937';
+  ctx.fillRect(cx-100, yTable+8, 200, 14);
+  // table center spindle
+  ctx.fillStyle='#6b7280';
+  ctx.fillRect(cx-2, yTable-6, 4, 8);
+
+  // stand pole on right
+  const poleX = cx + 130;
+  ctx.fillStyle='#4b5563';
+  ctx.fillRect(poleX-3, h*0.05, 6, yBaseFloor - h*0.05);
+  // base of stand
+  ctx.fillStyle='#374151';
+  ctx.fillRect(poleX-40, yBaseFloor, 80, 10);
+  // arm extending left to above table center
+  const armY = h*0.10;
+  ctx.fillRect(cx-6, armY-3, poleX - cx + 6, 6);
+  // ring at top
+  ctx.beginPath();
+  ctx.strokeStyle='#9ca3af';
+  ctx.lineWidth=3;
+  ctx.arc(cx, armY+10, 14, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Distances in pixels (s scaled)
+  // Lower ball just touches table → at yTable
+  // Upper ball at distance s above
+  const pxPerMeter = (yTable - armY - 30) / 1.0; // 1m max
+  const yLowerStart = yTable - 6;
+  const yUpperStart = yTable - 6 - s * pxPerMeter;
+
+  // Compute ball positions based on phase
+  let yLower = yLowerStart;
+  let yUpper = yUpperStart;
+  let stringVisible = true;
+
+  if(phase==='falling'){
+    // both balls fall from rest
+    // tSim is simulated physical time since burn
+    const tElapsed = tSim;
+    // lower ball fell from yLowerStart, but it was already touching table
+    // it makes contact instantly (h≈0) — for visual we let it stay; mark1 is set immediately
+    // upper ball: y_dropped = ½ g t²
+    const yDropped_m = 0.5 * G_TRUE * tElapsed * tElapsed;
+    yUpper = yUpperStart + yDropped_m * pxPerMeter;
+    if(yUpper > yLowerStart) yUpper = yLowerStart;
+    stringVisible = false;
+  } else if(phase==='done'){
+    yUpper = yLowerStart;
+    stringVisible = false;
+  }
+
+  // String from ring down
+  if(stringVisible){
+    ctx.strokeStyle='#9ca3af';
+    ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx, armY+24);
+    ctx.lineTo(cx, yLowerStart);
+    ctx.stroke();
+  } else {
+    // burnt string above remaining
+    ctx.strokeStyle='#6b7280';
+    ctx.setLineDash([3,3]);
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(cx, armY+24);
+    ctx.lineTo(cx, armY+50);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Upper ball
+  ctx.beginPath();
+  ctx.fillStyle='#fbbf24';
+  ctx.arc(cx, yUpper, 8, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='#92400e';
+  ctx.stroke();
+
+  // Lower ball
+  ctx.beginPath();
+  ctx.fillStyle='#f87171';
+  ctx.arc(cx, yLower, 8, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='#7f1d1d';
+  ctx.stroke();
+
+  // Distance label
+  ctx.strokeStyle='#38bdf8';
+  ctx.lineWidth=1;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  ctx.moveTo(cx+18, yUpperStart);
+  ctx.lineTo(cx+18, yLowerStart);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#38bdf8';
+  ctx.font='600 11px "Share Tech Mono"';
+  ctx.fillText('s = '+s.toFixed(2)+' m', cx+24, (yUpperStart+yLowerStart)/2);
+
+  // Label parts
+  ctx.fillStyle='#94a3b8';
+  ctx.font='10px Sarabun';
+  ctx.fillText('แท่นจับ', poleX+8, h*0.10);
+  ctx.fillText('จานหมุน', cx-100, yTable-2);
+  ctx.fillText('ลูกบอลบน', cx-66, yUpperStart+4);
+  ctx.fillText('ลูกบอลล่าง', cx-72, yLowerStart+4);
+
+  ctx.restore();
+}
+
+/* --- TOP VIEW --- */
+function drawTopView(ctx, x, y, w, h){
+  ctx.save();
+  ctx.translate(x,y);
+
+  ctx.fillStyle='#0a1322';
+  ctx.fillRect(0,0,w,h);
+
+  ctx.fillStyle='#94a3b8';
+  ctx.font='600 12px Sarabun';
+  ctx.fillText('มุมมองด้านบน (Top view) — กระดาษคาร์บอน', 12, 18);
+
+  const cx = w*0.5, cy = h*0.55;
+  const radius = Math.min(w,h)*0.36;
+
+  // turntable disc
+  // gradient
+  const grad = ctx.createRadialGradient(cx,cy,radius*0.1,cx,cy,radius);
+  grad.addColorStop(0,'#1f2937');
+  grad.addColorStop(1,'#0b0f1a');
+  ctx.beginPath();
+  ctx.arc(cx,cy,radius,0,Math.PI*2);
+  ctx.fillStyle=grad;
+  ctx.fill();
+  ctx.strokeStyle='#475569';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // grooves
+  ctx.strokeStyle='rgba(148,163,184,0.15)';
+  ctx.lineWidth=0.5;
+  for(let r=radius*0.2;r<radius;r+=4){
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.stroke();
+  }
+
+  // center
+  ctx.beginPath();
+  ctx.arc(cx,cy,5,0,Math.PI*2);
+  ctx.fillStyle='#94a3b8';
+  ctx.fill();
+
+  // label dot in disc frame (rotating with disc) – marker so user sees it spin
+  // It rotates with thetaNow
+  const labelDotR = radius*0.7;
+  const ldx = cx + labelDotR*Math.cos(thetaNow - Math.PI/2);
+  const ldy = cy + labelDotR*Math.sin(thetaNow - Math.PI/2);
+  ctx.beginPath();
+  ctx.fillStyle='#38bdf8';
+  ctx.arc(ldx,ldy,3,0,Math.PI*2);
+  ctx.fill();
+
+  // fine protractor — 1° ticks, 5° medium, 10° labeled
+  if(document.getElementById('cb-protractor')?.checked){
+    ctx.strokeStyle='rgba(251,146,60,0.45)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.arc(cx,cy,radius*1.05,0,Math.PI*2);
+    ctx.stroke();
+    ctx.font='9px "Share Tech Mono"';
+    for(let deg=0;deg<360;deg++){
+      const a = (deg-90)*Math.PI/180;
+      let tickOut, strong=false;
+      if(deg%10===0){ tickOut = 0.11; strong=true; }
+      else if(deg%5===0){ tickOut = 0.07; }
+      else { tickOut = 0.025; }
+      const x1 = cx + radius*1.05*Math.cos(a);
+      const y1 = cy + radius*1.05*Math.sin(a);
+      const x2 = cx + radius*(1.05+tickOut)*Math.cos(a);
+      const y2 = cy + radius*(1.05+tickOut)*Math.sin(a);
+      ctx.beginPath();
+      ctx.strokeStyle = strong ? 'rgba(251,146,60,1)' : (deg%5===0?'rgba(251,146,60,0.75)':'rgba(251,146,60,0.4)');
+      ctx.lineWidth = strong ? 1.5 : (deg%5===0?1:0.6);
+      ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+      ctx.stroke();
+      if(deg%10===0){
+        const tx = cx + radius*1.20*Math.cos(a);
+        const ty = cy + radius*1.20*Math.sin(a);
+        ctx.fillStyle='rgba(251,146,60,1)';
+        const lbl = deg.toString();
+        ctx.fillText(lbl, tx - lbl.length*3, ty+3);
+      }
+    }
+  }
+
+  // R radius circle (where balls drop)
+  // Pixel R: scale R (m, max 0.15) to fraction of disc
+  const Rpix = radius * (R/0.15);
+  ctx.strokeStyle='rgba(56,189,248,0.4)';
+  ctx.setLineDash([4,3]);
+  ctx.beginPath();
+  ctx.arc(cx,cy,Rpix,0,Math.PI*2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Drop point in lab frame: fixed at angle 0 (top of disc, 12 o'clock)
+  // In lab frame: (cx, cy - Rpix)
+  const dropLab = {x: cx, y: cy - Rpix};
+
+  // Draw marks (which are in disc-rotating frame)
+  // mark.angRel is the angle in disc frame at moment of impact
+  // To draw in lab now, we add current thetaNow
+  function drawMarkAtAngRel(angRel, color, label){
+    const angLab = angRel + thetaNow;
+    const mx = cx + Rpix*Math.cos(angLab - Math.PI/2);
+    const my = cy + Rpix*Math.sin(angLab - Math.PI/2);
+    ctx.beginPath();
+    ctx.fillStyle=color;
+    ctx.arc(mx,my,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=1;
+    ctx.stroke();
+    if(label){
+      ctx.fillStyle=color;
+      ctx.font='bold 10px "Share Tech Mono"';
+      ctx.fillText(label, mx+6, my-6);
+    }
+  }
+  if(mark1!==null) drawMarkAtAngRel(mark1, '#f87171', '①');
+  if(mark2!==null) drawMarkAtAngRel(mark2, '#fbbf24', '②');
+
+  // (no auto A label — students must measure with the draggable angle tool)
+
+  // Drop indicator (fixed in lab frame): yellow ring where balls fall
+  ctx.strokeStyle='rgba(251,191,36,0.7)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([2,2]);
+  ctx.beginPath();
+  ctx.arc(dropLab.x, dropLab.y, 10, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#fbbf24';
+  ctx.font='10px Sarabun';
+  ctx.fillText('จุดตก', dropLab.x+12, dropLab.y);
+
+  // arrow indicating rotation
+  ctx.strokeStyle='#38bdf8';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  const arrR = radius*0.45;
+  ctx.arc(cx,cy,arrR, -Math.PI*0.7, -Math.PI*0.2);
+  ctx.stroke();
+  // arrow head
+  const hx = cx + arrR*Math.cos(-Math.PI*0.2);
+  const hy = cy + arrR*Math.sin(-Math.PI*0.2);
+  ctx.fillStyle='#38bdf8';
+  ctx.beginPath();
+  ctx.moveTo(hx,hy);
+  ctx.lineTo(hx-6,hy-6);
+  ctx.lineTo(hx-2,hy-9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle='#38bdf8';
+  ctx.font='10px Sarabun';
+  ctx.fillText('หมุน', cx+arrR*0.3, cy-arrR-6);
+
+  // R label
+  ctx.fillStyle='#38bdf8';
+  ctx.font='10px "Share Tech Mono"';
+  ctx.fillText('R='+R.toFixed(3)+'m', cx+8, cy-Rpix/2);
+
+  // ============ DRAGGABLE ANGLE MEASUREMENT TOOL ============
+  const armLen = radius * 0.98;
+  function drawArm(angRad, color, label){
+    const a = angRad - Math.PI/2;
+    const hx = cx + armLen * Math.cos(a);
+    const hy = cy + armLen * Math.sin(a);
+    // arm line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(hx, hy);
+    ctx.stroke();
+    // tick pointer at end (perpendicular)
+    const perpX = Math.cos(a + Math.PI/2);
+    const perpY = Math.sin(a + Math.PI/2);
+    ctx.beginPath();
+    ctx.moveTo(hx + perpX*8, hy + perpY*8);
+    ctx.lineTo(hx - perpX*8, hy - perpY*8);
+    ctx.stroke();
+    // handle (circle at end)
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(hx, hy, 8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#0a0e1a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#0a0e1a';
+    ctx.font = 'bold 10px "Share Tech Mono"';
+    ctx.fillText(label, hx-3, hy+4);
+  }
+  // Center pivot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI*2);
+  ctx.fillStyle='#fbbf24';
+  ctx.fill();
+  ctx.strokeStyle='#0a0e1a';
+  ctx.lineWidth=1;
+  ctx.stroke();
+
+  drawArm(arm1Rad, '#a78bfa', '1');
+  drawArm(arm2Rad, '#22d3ee', '2');
+
+  // Angle readings (corner panel)
+  function degFromRad(r){ let d = r*180/Math.PI; d = ((d%360)+360)%360; return d; }
+  const d1 = degFromRad(arm1Rad);
+  const d2 = degFromRad(arm2Rad);
+  measuredA = ((d2 - d1) % 360 + 360) % 360;
+
+  // info box at bottom-left of top view
+  const boxX = 8, boxY = h - 72, boxW = 150, boxH = 62;
+  ctx.fillStyle = 'rgba(15,23,42,0.85)';
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.strokeRect(boxX, boxY, boxW, boxH);
+  ctx.font = 'bold 10px "Share Tech Mono"';
+  ctx.fillStyle = '#a78bfa';
+  ctx.fillText('แขน ① : ' + d1.toFixed(1) + '°', boxX+8, boxY+16);
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillText('แขน ② : ' + d2.toFixed(1) + '°', boxX+8, boxY+32);
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 12px "Share Tech Mono"';
+  ctx.fillText('Δ = ' + measuredA.toFixed(1) + '°', boxX+8, boxY+52);
+
+  // Save geometry (canvas-absolute coords) for mouse events
+  topViewGeo = {offX:x, offY:y, cx:cx, cy:cy, radius:radius, Rpix:Rpix, armLen:armLen};
+
+  // ============ ZOOM LENS ============
+  if(hoverZoom){
+    const mxRel = hoverZoom.mx - x;
+    const myRel = hoverZoom.my - y;
+    const dxz = mxRel - cx, dyz = myRel - cy;
+    const distC = Math.hypot(dxz, dyz);
+    if(distC < radius*1.3 && mxRel>=0 && mxRel<=w && myRel>=0 && myRel<=h){
+      const lensR = 54;
+      const zoom = 3.2;
+      // Place lens away from cursor so it doesn't block
+      let lensX = mxRel + 80;
+      let lensY = myRel - 80;
+      if(lensX + lensR > w-5) lensX = mxRel - 80;
+      if(lensY - lensR < 5)   lensY = myRel + 80;
+
+      ctx.save();
+      // clip
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR, 0, Math.PI*2);
+      ctx.fillStyle = '#0a1322';
+      ctx.fill();
+      ctx.clip();
+      // translate so (mxRel, myRel) maps to lens center then scale
+      ctx.translate(lensX, lensY);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-mxRel, -myRel);
+      // disc outline
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.2/zoom;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI*2);
+      ctx.stroke();
+      // fine protractor ticks
+      for(let deg=0; deg<360; deg++){
+        const a = (deg-90)*Math.PI/180;
+        let tickOut, strong=false;
+        if(deg%10===0){ tickOut=0.11; strong=true; }
+        else if(deg%5===0){ tickOut=0.07; }
+        else { tickOut=0.025; }
+        const x1 = cx + radius*1.05*Math.cos(a);
+        const y1 = cy + radius*1.05*Math.sin(a);
+        const x2 = cx + radius*(1.05+tickOut)*Math.cos(a);
+        const y2 = cy + radius*(1.05+tickOut)*Math.sin(a);
+        ctx.beginPath();
+        ctx.strokeStyle = strong?'#fb923c':(deg%5===0?'rgba(251,146,60,0.85)':'rgba(251,146,60,0.5)');
+        ctx.lineWidth = (strong?1.5:(deg%5===0?1:0.6))/zoom;
+        ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+        ctx.stroke();
+        if(deg%10===0){
+          ctx.fillStyle = '#fb923c';
+          ctx.font = (9/zoom)+'px "Share Tech Mono"';
+          const tx = cx + radius*1.20*Math.cos(a);
+          const ty = cy + radius*1.20*Math.sin(a);
+          ctx.fillText(deg.toString(), tx - deg.toString().length*3/zoom, ty+3/zoom);
+        }
+      }
+      // marks
+      function markAt(angRel, color){
+        const ang = angRel + thetaNow - Math.PI/2;
+        const px = cx + Rpix*Math.cos(ang);
+        const py = cy + Rpix*Math.sin(ang);
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(px, py, 4/zoom, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle='#fff';
+        ctx.lineWidth=1/zoom;
+        ctx.stroke();
+      }
+      if(mark1!==null) markAt(mark1, '#f87171');
+      if(mark2!==null) markAt(mark2, '#fbbf24');
+      // arms
+      [[arm1Rad,'#a78bfa'],[arm2Rad,'#22d3ee']].forEach(([ar,col])=>{
+        const a = ar - Math.PI/2;
+        const hxx = cx + armLen*Math.cos(a);
+        const hyy = cy + armLen*Math.sin(a);
+        ctx.strokeStyle=col;
+        ctx.lineWidth=2.2/zoom;
+        ctx.beginPath();
+        ctx.moveTo(cx,cy); ctx.lineTo(hxx,hyy);
+        ctx.stroke();
+      });
+      ctx.restore();
+      // lens border
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR, 0, Math.PI*2);
+      ctx.stroke();
+      // crosshair at center of lens
+      ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(lensX-8, lensY); ctx.lineTo(lensX+8, lensY);
+      ctx.moveTo(lensX, lensY-8); ctx.lineTo(lensX, lensY+8);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+/* ================ ANIMATION LOOP ================ */
+function loop(ts){
+  if(!lastTs) lastTs = ts;
+  const dtReal = (ts-lastTs)/1000;
+  lastTs = ts;
+  // simulated dt = dtReal * speed
+  const dtSim = dtReal * speed;
+
+  if(phase==='spinning'){
+    // spin only
+    thetaNow += (2*Math.PI/T_period) * dtSim;
+  } else if(phase==='falling'){
+    tSim += dtSim;
+    thetaNow += (2*Math.PI/T_period) * dtSim;
+    if(tSim >= tFallTotal){
+      // upper ball lands
+      tSim = tFallTotal;
+      // record mark2 (in disc frame)
+      // drop point in lab is fixed at angle -π/2 (top, 12 o'clock)
+      // In disc frame: angle = labAng - thetaNow
+      // We use convention: mark.angRel + thetaNow = angle from 12 o'clock (in our drawing function)
+      // Lab drop = 0 (relative to 12 o'clock)
+      // angRel = 0 - thetaNow
+      mark2 = -thetaNow;
+      // compute A: difference between mark2 and mark1, in degrees, mod 360
+      let dRel = mark2 - mark1; // = -thetaNow - (-theta_at_burn) = -(thetaNow - theta_at_burn)
+      // thetaNow - theta_at_burn = total rotation during fall = (2π/T)*tFallTotal
+      let sweep = (2*Math.PI/T_period) * tFallTotal; // radians
+      let sweepDeg = sweep * 180/Math.PI;
+      sweepDeg = sweepDeg % 360;
+      A_deg = sweepDeg;
+      phase = 'done';
+      onLandComplete();
+    }
+  }
+
+  draw();
+  updateStatus();
+  animId = requestAnimationFrame(loop);
+}
+
+function startAnim(){
+  if(animId) return;
+  lastTs = null;
+  animId = requestAnimationFrame(loop);
+}
+function stopAnim(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+}
+
+/* ================ ACTIONS ================ */
+function burnString(){
+  if(phase==='falling'||phase==='done') return;
+  // record mark1 immediately at current rotation
+  mark1 = -thetaNow; // disc frame for the lab drop point (which is at lab angle 0 from 12 o'clock)
+  mark2 = null;
+  A_deg = null;
+  tSim = 0;
+  tFallTotal = fallTime(s);
+  phase = 'falling';
+  document.getElementById('burnBtn').disabled = true;
+  document.getElementById('st-state').textContent = 'กำลังตก...';
+}
+
+function resetSim(){
+  stopAnim();
+  phase='spinning';
+  tSim=0; thetaNow=0;
+  mark1=null; mark2=null; A_deg=null;
+  document.getElementById('burnBtn').disabled=false;
+  document.getElementById('st-state').textContent='จานหมุน';
+  startAnim();
+  draw();
+  updateStatus();
+}
+
+function onLandComplete(){
+  document.getElementById('st-state').textContent='เสร็จสิ้น • อ่านมุม A';
+  document.getElementById('burnBtn').disabled=false;
+
+  if(mode==='auto' && A_deg!==null){
+    // auto-add to table
+    addAutoRow();
+  } else {
+    // manual mode: add a blank row prompting user
+    addManualRow();
+  }
+}
+
+/* ================ TABLE / DATA ================ */
+function setMode(m){
+  mode = m;
+  document.getElementById('mode-manual-btn').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto-btn').classList.toggle('active', m==='auto');
+  document.getElementById('hint-manual').style.display = m==='manual'?'block':'none';
+  document.getElementById('hint-auto').style.display = m==='auto'?'block':'none';
+  renderTable();
+}
+
+function addManualRow(){
+  trial++;
+  dataRows.push({
+    n: trial, s: s, rpm: rpm,
+    A_input: '',
+    A_true: A_deg, // for reference (not shown)
+    auto: false
+  });
+  renderTable();
+}
+
+function addAutoRow(){
+  trial++;
+  const T = 60/rpm;
+  const g_calc = 2*s / (T*T * (A_deg/360)*(A_deg/360));
+  const err = Math.abs(g_calc - G_TRUE)/G_TRUE*100;
+  dataRows.push({
+    n: trial, s: s, rpm: rpm,
+    A: A_deg, g: g_calc, err: err,
+    auto: true
+  });
+  renderTable();
+  drawGraph();
+  updateSummary();
+}
+
+function addRow(){
+  // user manually adds blank row with current settings
+  if(mode==='manual'){
+    addManualRow();
+  } else {
+    // auto: only meaningful after a run
+    if(A_deg!==null) addAutoRow();
+    else alert('ในโหมดอัตโนมัติ ให้กดเผาเชือกก่อน');
+  }
+}
+
+function clearTable(){
+  dataRows=[]; trial=0;
+  renderTable(); drawGraph(); updateSummary();
+}
+
+function delRow(i){
+  dataRows.splice(i,1);
+  renderTable(); drawGraph(); updateSummary();
+}
+
+function renderTable(){
+  const tb = document.getElementById('tbody');
+  tb.innerHTML='';
+  dataRows.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    if(r.auto){
+      tr.innerHTML = `
+        <td>${r.n}</td>
+        <td>${r.s.toFixed(3)}</td>
+        <td>${r.rpm.toFixed(2)}</td>
+        <td>${r.A.toFixed(2)}</td>
+        <td class="${Math.abs(r.g-G_TRUE)<0.5?'error-good':'error-bad'}">${r.g.toFixed(2)}</td>
+        <td class="${r.err<5?'error-good':'error-bad'}">${r.err.toFixed(2)}</td>
+        <td><button class="del" onclick="delRow(${i})">×</button></td>
+      `;
+    } else {
+      tr.innerHTML = `
+        <td>${r.n}</td>
+        <td>${r.s.toFixed(3)}</td>
+        <td>${r.rpm.toFixed(2)}</td>
+        <td style="white-space:nowrap">
+          <input type="number" step="0.1" placeholder="A?" value="${r.A_input}" oninput="onManualInput(${i},this)">
+          <button class="use-delta" title="ใช้ค่า Δ จากเครื่องมือวัด" onclick="useMeasured(${i})">↓Δ</button>
+        </td>
+        <td id="g-${i}">—</td>
+        <td id="err-${i}">—</td>
+        <td><button class="del" onclick="delRow(${i})">×</button></td>
+      `;
+    }
+    tb.appendChild(tr);
+  });
+}
+
+window.onManualInput = function(i, el){
+  const r = dataRows[i];
+  const v = parseFloat(el.value);
+  r.A_input = el.value;
+  const gCell = document.getElementById('g-'+i);
+  const eCell = document.getElementById('err-'+i);
+  if(!isNaN(v) && v > 0){
+    const T = 60/r.rpm;
+    const g_calc = 2*r.s / (T*T*(v/360)*(v/360));
+    const err = Math.abs(g_calc - G_TRUE)/G_TRUE*100;
+    r.A = v; r.g = g_calc; r.err = err;
+    gCell.textContent = g_calc.toFixed(2);
+    gCell.className = err<5?'error-good':(err<15?'':'error-bad');
+    eCell.textContent = err.toFixed(2);
+    eCell.className = err<5?'error-good':(err<15?'':'error-bad');
+  } else {
+    delete r.A; delete r.g; delete r.err;
+    gCell.textContent='—'; gCell.className='';
+    eCell.textContent='—'; eCell.className='';
+  }
+  drawGraph(); updateSummary();
+};
+
+window.useMeasured = function(i){
+  const r = dataRows[i];
+  if(!r || r.auto) return;
+  const v = measuredA;
+  r.A_input = v.toFixed(1);
+  // find the input in the rendered table
+  const tb = document.getElementById('tbody');
+  const inp = tb.children[i]?.querySelector('input[type="number"]');
+  if(inp){
+    inp.value = v.toFixed(1);
+    onManualInput(i, inp);
+  }
+};
+
+function updateSummary(){
+  const valid = dataRows.filter(r=>typeof r.g==='number' && !isNaN(r.g));
+  if(valid.length===0){
+    document.getElementById('summary').innerHTML='ค่าเฉลี่ย g = — m/s² | ค่ามาตรฐาน g = 9.81 m/s²';
+    return;
+  }
+  const mean = valid.reduce((s,r)=>s+r.g,0)/valid.length;
+  const err = Math.abs(mean-G_TRUE)/G_TRUE*100;
+  document.getElementById('summary').innerHTML =
+    `ค่าเฉลี่ย g = <b style="color:var(--accent3)">${mean.toFixed(3)}</b> m/s² (n=${valid.length}) | %err = ${err.toFixed(2)}% | มาตรฐาน 9.81`;
+}
+
+function drawGraph(){
+  const c = document.getElementById('miniGraph');
+  const ctx = c.getContext('2d');
+  c.width = c.clientWidth; c.height = c.clientHeight;
+  const W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  // axes
+  const padL=30, padR=10, padT=10, padB=22;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  ctx.strokeStyle='#475569'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+plotH); ctx.lineTo(padL+plotW,padT+plotH);
+  ctx.stroke();
+  // y-axis labels (g range 7-12)
+  const gMin=7, gMax=12;
+  ctx.fillStyle='#94a3b8'; ctx.font='9px "Share Tech Mono"';
+  for(let g=gMin;g<=gMax;g++){
+    const y = padT + plotH - (g-gMin)/(gMax-gMin)*plotH;
+    ctx.fillText(g.toString(), 4, y+3);
+    ctx.strokeStyle='rgba(148,163,184,0.15)';
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y); ctx.stroke();
+  }
+  // line for g=9.81
+  const yTrue = padT + plotH - (G_TRUE-gMin)/(gMax-gMin)*plotH;
+  ctx.strokeStyle='#34d399';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(padL,yTrue); ctx.lineTo(padL+plotW,yTrue); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#34d399';
+  ctx.fillText('9.81', padL+plotW-22, yTrue-3);
+
+  // data points
+  const valid = dataRows.filter(r=>typeof r.g==='number' && !isNaN(r.g));
+  if(valid.length===0) return;
+  valid.forEach((r,i)=>{
+    const x = padL + (i+1)/(valid.length+1)*plotW;
+    const yv = Math.max(gMin, Math.min(gMax, r.g));
+    const y = padT + plotH - (yv-gMin)/(gMax-gMin)*plotH;
+    ctx.fillStyle='#38bdf8';
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fill();
+    if(i>0){
+      const xp = padL + (i)/(valid.length+1)*plotW;
+      const yvp = Math.max(gMin, Math.min(gMax, valid[i-1].g));
+      const yp = padT + plotH - (yvp-gMin)/(gMax-gMin)*plotH;
+      ctx.strokeStyle='rgba(56,189,248,0.6)';
+      ctx.beginPath();
+      ctx.moveTo(xp,yp); ctx.lineTo(x,y);
+      ctx.stroke();
+    }
+  });
+  // x label
+  ctx.fillStyle='#94a3b8'; ctx.font='9px Sarabun';
+  ctx.fillText('ครั้งทดลอง →', padL+plotW/2-30, H-4);
+  ctx.save();
+  ctx.translate(10, padT+plotH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('g (m/s²)', -18, 0);
+  ctx.restore();
+}
+
+/* ================ STATUS ================ */
+function updateStatus(){
+  document.getElementById('st-t').textContent = (tSim).toFixed(3);
+  let degNow = (thetaNow*180/Math.PI) % 360;
+  if(degNow<0) degNow+=360;
+  document.getElementById('st-theta').textContent = degNow.toFixed(1);
+  document.getElementById('st-A').textContent = A_deg!==null ? A_deg.toFixed(2) : '—';
+}
+
+/* ================ THEORY VIZ ================ */
+let theoryAnimId=null;
+let theoryT = 0;
+function drawTheoryViz(){
+  const c1 = document.getElementById('vizFall');
+  const c2 = document.getElementById('vizRot');
+  if(!c1||!c2) return;
+  c1.width=c1.clientWidth; c1.height=c1.clientHeight;
+  c2.width=c2.clientWidth; c2.height=c2.clientHeight;
+  if(theoryAnimId) cancelAnimationFrame(theoryAnimId);
+  let last=null;
+  const T_demo = 1.5; // visualisation period
+  function frame(ts){
+    if(!last) last=ts;
+    const dt=(ts-last)/1000; last=ts;
+    theoryT += dt*0.4;
+    if(theoryT>T_demo) theoryT=0;
+
+    // viz1: ball falling
+    const ctx1 = c1.getContext('2d');
+    const W1=c1.width, H1=c1.height;
+    ctx1.clearRect(0,0,W1,H1);
+    const cx1=W1*0.5;
+    // axis
+    ctx1.strokeStyle='#475569';
+    ctx1.beginPath(); ctx1.moveTo(cx1, 20); ctx1.lineTo(cx1, H1-20); ctx1.stroke();
+    // ground
+    ctx1.strokeStyle='#94a3b8';
+    ctx1.beginPath(); ctx1.moveTo(W1*0.2, H1-20); ctx1.lineTo(W1*0.8, H1-20); ctx1.stroke();
+    // ball position: y = 0.5 g t^2 (scaled)
+    const yMax = H1-50;
+    const tNorm = theoryT/T_demo;
+    const yPos = 30 + yMax * tNorm*tNorm;
+    ctx1.beginPath();
+    ctx1.fillStyle='#fbbf24';
+    ctx1.arc(cx1, yPos, 10, 0, Math.PI*2);
+    ctx1.fill();
+    ctx1.strokeStyle='#92400e'; ctx1.stroke();
+    // s arrow
+    ctx1.strokeStyle='#38bdf8';
+    ctx1.setLineDash([3,3]);
+    ctx1.beginPath();
+    ctx1.moveTo(cx1+18, 30); ctx1.lineTo(cx1+18, yPos);
+    ctx1.stroke(); ctx1.setLineDash([]);
+    ctx1.fillStyle='#38bdf8';
+    ctx1.font='10px "Share Tech Mono"';
+    ctx1.fillText('s = ½gt²', cx1+24, (30+yPos)/2);
+    // formula
+    ctx1.fillStyle='#94a3b8';
+    ctx1.font='10px Sarabun';
+    ctx1.fillText('t = '+(theoryT).toFixed(2)+'s', 8, 14);
+
+    // viz2: disc rotating
+    const ctx2 = c2.getContext('2d');
+    const W2=c2.width, H2=c2.height;
+    ctx2.clearRect(0,0,W2,H2);
+    const cx2=W2*0.5, cy2=H2*0.5;
+    const rd = Math.min(W2,H2)*0.36;
+    ctx2.beginPath(); ctx2.arc(cx2,cy2,rd,0,Math.PI*2);
+    ctx2.fillStyle='#1f2937'; ctx2.fill();
+    ctx2.strokeStyle='#475569'; ctx2.stroke();
+    // initial mark (red dot at top)
+    ctx2.beginPath();
+    ctx2.fillStyle='#f87171';
+    ctx2.arc(cx2, cy2-rd*0.85, 5, 0, Math.PI*2);
+    ctx2.fill();
+    // rotated mark
+    const ang = (tNorm*Math.PI*1.2);
+    ctx2.beginPath();
+    ctx2.fillStyle='#fbbf24';
+    ctx2.arc(cx2 + rd*0.85*Math.sin(ang), cy2 - rd*0.85*Math.cos(ang), 5, 0, Math.PI*2);
+    ctx2.fill();
+    // arc between
+    ctx2.strokeStyle='#34d399';
+    ctx2.lineWidth=2;
+    ctx2.beginPath();
+    ctx2.arc(cx2,cy2, rd*0.5, -Math.PI/2, -Math.PI/2 + ang, false);
+    ctx2.stroke();
+    ctx2.fillStyle='#34d399';
+    ctx2.font='bold 11px "Share Tech Mono"';
+    ctx2.fillText('A = '+(ang*180/Math.PI).toFixed(0)+'°', cx2-18, cy2);
+    ctx2.fillStyle='#94a3b8';
+    ctx2.font='10px Sarabun';
+    ctx2.fillText('A = (t/T)·360°', 8, 14);
+
+    theoryAnimId = requestAnimationFrame(frame);
+  }
+  theoryAnimId = requestAnimationFrame(frame);
+}
+
+/* ================ INIT ================ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  // slider <-> input sync
+  const v2s = {
+    'vi-s':'sl-s', 'vi-R':'sl-R', 'vi-rpm':'sl-rpm', 'vi-speed':'sl-speed'
+  };
+  function syncVal(inp){
+    const sl = document.getElementById(v2s[inp.id]);
+    if(!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value)||0));
+    inp.value=v; sl.value=v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=document.getElementById(si);
+    const inp=document.getElementById(vi);
+    if(!sl||!inp) return;
+    sl.addEventListener('input', ()=>{ inp.value=parseFloat(sl.value); onParamChange(); });
+    inp.addEventListener('input', ()=>syncVal(inp));
+  });
+
+  document.getElementById('rpm-select').addEventListener('change', e=>{
+    if(e.target.value==='custom'){
+      document.getElementById('rpm-custom-row').style.display='flex';
+    } else {
+      document.getElementById('rpm-custom-row').style.display='none';
+      rpm = parseFloat(e.target.value);
+      document.getElementById('sl-rpm').value=rpm;
+      document.getElementById('vi-rpm').value=rpm;
+      onParamChange();
+    }
+  });
+
+  ['cb-protractor','cb-gridline'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', draw);
+  });
+
+  // ===== Mouse events for angle tool =====
+  const simC = document.getElementById('simCanvas');
+  simC.addEventListener('mousedown', onCanvasMouseDown);
+  simC.addEventListener('mousemove', onCanvasMouseMove);
+  simC.addEventListener('mouseup',   onCanvasMouseUp);
+  simC.addEventListener('mouseleave',()=>{draggingArm=null;hoverZoom=null;draw();});
+  // touch support
+  simC.addEventListener('touchstart', e=>{if(e.touches[0]){onCanvasMouseDown(e.touches[0]);e.preventDefault();}}, {passive:false});
+  simC.addEventListener('touchmove',  e=>{if(e.touches[0]){onCanvasMouseMove(e.touches[0]);e.preventDefault();}}, {passive:false});
+  simC.addEventListener('touchend',   ()=>{draggingArm=null;hoverZoom=null;draw();});
+
+  // initial state
+  resizeCanvas();
+  phase='spinning';
+  document.getElementById('st-state').textContent='จานหมุน';
+  startAnim();
+});
+
+function getMousePos(e){
+  const c = document.getElementById('simCanvas');
+  const r = c.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (c.width/r.width),
+    y: (e.clientY - r.top)  * (c.height/r.height)
+  };
+}
+function onCanvasMouseDown(e){
+  const {x,y} = getMousePos(e);
+  const g = topViewGeo;
+  if(!g.armLen) return;
+  const cxA = g.offX + g.cx, cyA = g.offY + g.cy;
+  function handlePos(rad){
+    const a = rad - Math.PI/2;
+    return {x: cxA + g.armLen*Math.cos(a), y: cyA + g.armLen*Math.sin(a)};
+  }
+  const h1 = handlePos(arm1Rad), h2 = handlePos(arm2Rad);
+  const d1 = Math.hypot(x-h1.x, y-h1.y);
+  const d2 = Math.hypot(x-h2.x, y-h2.y);
+  if(d1 < 18 && d1 <= d2) draggingArm = 'arm1';
+  else if(d2 < 18) draggingArm = 'arm2';
+}
+function onCanvasMouseMove(e){
+  const {x,y} = getMousePos(e);
+  const g = topViewGeo;
+  if(g.armLen){
+    const cxA = g.offX + g.cx, cyA = g.offY + g.cy;
+    // only show zoom lens when mouse inside top-view area
+    if(x >= g.offX){
+      hoverZoom = {mx:x, my:y};
+    } else {
+      hoverZoom = null;
+    }
+    if(draggingArm){
+      const dx = x - cxA, dy = y - cyA;
+      let rad = Math.atan2(dx, -dy);   // from 12 o'clock, CW
+      if(rad < 0) rad += 2*Math.PI;
+      if(draggingArm==='arm1') arm1Rad = rad;
+      else arm2Rad = rad;
+    }
+  }
+  draw();
+}
+function onCanvasMouseUp(){
+  draggingArm = null;
+  draw();
+}
+
+function onParamChange(){
+  s = parseFloat(document.getElementById('sl-s').value);
+  R = parseFloat(document.getElementById('sl-R').value);
+  const sel = document.getElementById('rpm-select').value;
+  if(sel==='custom') rpm = parseFloat(document.getElementById('sl-rpm').value);
+  else rpm = parseFloat(sel);
+  speed = parseFloat(document.getElementById('sl-speed').value);
+  computePeriod();
+  document.getElementById('period-show').textContent = T_period.toFixed(3);
+  draw();
+}
+</script>
+</body>
+</html>

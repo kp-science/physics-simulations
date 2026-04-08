@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — การบันทึกการเคลื่อนที่ด้วยภาพถ่ายสโตรบ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399;
+  --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+  --var-x:#ffd54f; --var-t:#ce93d8; --var-v:#66bb6a; --var-a:#ffa726;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:2rem}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;transition:.15s;font-size:0.85rem}
+.btn-play{background:#1b5e20;color:#fff}
+.btn-play:hover{background:#2e7d32}
+.btn-play.playing{background:#b71c1c}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-capture{background:var(--accent4);color:#0a0e1a}
+.btn-capture:hover{opacity:.85}
+.cbar .spd{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:0.82rem}
+.cbar .spd input{width:90px;accent-color:var(--accent)}
+
+/* main layout */
+.main-grid{display:grid;grid-template-columns:300px 1fr;gap:12px;padding:12px 16px}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+.panel h3{font-size:0.92rem;color:var(--accent);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;display:flex;align-items:center;gap:6px}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sl-label{font-size:0.78rem;color:var(--muted);flex-shrink:0;min-width:88px}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:60px}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:28px;flex-shrink:0;text-align:right}
+.val-input{width:52px;padding:2px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+.select-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.select-row label{font-size:0.8rem;color:var(--muted);min-width:88px}
+.select-row select{flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-family:'Sarabun',sans-serif;font-size:0.82rem;cursor:pointer}
+.select-row select:focus{outline:none;border-color:var(--accent)}
+
+.radio-group{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.radio-group label{flex:1;min-width:90px;background:var(--panel2);border:1px solid var(--border);padding:6px 8px;border-radius:6px;font-size:0.78rem;color:var(--muted);cursor:pointer;text-align:center;transition:.15s}
+.radio-group label:hover{border-color:var(--accent)}
+.radio-group input[type=radio]{display:none}
+.radio-group input[type=radio]:checked+span{color:var(--accent3);font-weight:700}
+.radio-group label:has(input:checked){border-color:var(--accent3);background:#0e2820}
+
+.hint{background:#1a2a3a;border-left:3px solid var(--accent);padding:8px 10px;border-radius:6px;font-size:0.76rem;color:#b8d4e8;margin-top:10px;line-height:1.5}
+.hint b{color:var(--accent)}
+
+/* canvas area */
+.canvas-wrap{background:#050810;border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;min-height:380px}
+#simCanvas{display:block;width:100%;height:100%;cursor:crosshair}
+.canvas-label{position:absolute;top:8px;left:10px;background:rgba(10,14,26,0.85);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.75rem;border:1px solid var(--border)}
+.exposure-tag{position:absolute;top:8px;right:10px;padding:4px 12px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid;transition:.2s}
+.exp-good{color:var(--accent3);border-color:var(--accent3);background:rgba(52,211,153,.12)}
+.exp-over{color:var(--accent4);border-color:var(--accent4);background:rgba(251,146,60,.12)}
+.exp-under{color:var(--accent2);border-color:var(--accent2);background:rgba(129,140,248,.12)}
+
+/* data area */
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:900px){.data-grid{grid-template-columns:1fr}}
+
+.tbl-wrap{max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:0.8rem}
+th,td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)}
+th{background:var(--panel2);color:var(--accent);font-weight:700;position:sticky;top:0}
+td input{width:70px;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:4px;font-family:'Share Tech Mono',monospace;text-align:center;font-size:0.78rem}
+td input:focus{outline:none;border-color:var(--accent3)}
+.tbl-wrap tbody tr:hover{background:#0f1a2c}
+.tbl-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tbl-actions button{padding:4px 10px;font-size:0.76rem;background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:5px;cursor:pointer}
+.tbl-actions button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* mode switch */
+.mode-switch{display:flex;background:var(--panel2);border-radius:8px;padding:3px;gap:3px;margin-bottom:10px}
+.mode-switch button{flex:1;background:transparent;border:none;color:var(--muted);padding:7px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;font-size:0.8rem;transition:.15s}
+.mode-switch button.active{background:var(--accent);color:#0a0e1a}
+
+/* chart */
+.chart-box{background:#050810;border:1px solid var(--border);border-radius:8px;padding:8px}
+.chart-box canvas{display:block;width:100%;height:200px}
+.chart-title{font-size:0.78rem;color:var(--accent);margin-bottom:4px;padding:0 4px}
+
+/* Theory tab */
+.theory-wrap{max-width:980px;margin:0 auto;padding:18px}
+.theory-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.theory-card h2{color:var(--accent);font-size:1.1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.theory-card h3{color:var(--accent2);font-size:0.95rem;margin:12px 0 8px}
+.theory-card p{color:var(--text);line-height:1.75;margin-bottom:10px;font-size:0.9rem}
+.theory-card ul{margin-left:22px;line-height:1.85;font-size:0.88rem;color:var(--text)}
+.theory-card li{margin-bottom:4px}
+.formula{background:#050810;border:1px dashed var(--accent);border-radius:8px;padding:12px 16px;margin:10px 0;text-align:center;font-family:'Share Tech Mono',monospace;font-size:1.05rem;color:var(--accent3)}
+.formula small{color:var(--muted);font-size:0.72rem;display:block;margin-top:4px;font-family:'Sarabun',sans-serif}
+
+.theory-canvas-wrap{background:#050810;border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px}
+.theory-canvas-wrap canvas{display:block;width:100%;height:180px}
+.theory-canvas-label{color:var(--muted);font-size:0.78rem;margin-bottom:6px;text-align:center}
+
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+@media(max-width:780px){.tech-grid{grid-template-columns:1fr}}
+.tech-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px}
+.tech-card h4{color:var(--accent4);font-size:0.85rem;margin-bottom:6px}
+.tech-card canvas{display:block;width:100%;height:110px;background:#030610;border-radius:6px}
+.tech-card p{font-size:0.78rem;color:var(--muted);line-height:1.5;margin-top:6px}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:0.84rem;margin-top:6px}
+.kv b{color:var(--accent);font-family:'Share Tech Mono',monospace}
+.kv span{color:var(--text)}
+
+footer{text-align:center;color:var(--muted);font-size:0.74rem;padding:16px;border-top:1px solid var(--border);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">📸</div>
+  <div>
+    <h1>การบันทึกการเคลื่อนที่ด้วยภาพถ่ายสโตรบ</h1>
+    <p>Recording Motion with Strobe Photographs — Experiment 7</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี &amp; อธิบาย</button>
+</nav>
+
+<!-- =================== SIMULATION TAB =================== -->
+<div id="tab-sim" class="tab-section active">
+
+<div class="cbar">
+  <button id="playBtn" class="btn btn-play" onclick="togglePlay()">▶ เริ่มทดลอง</button>
+  <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+  <button class="btn btn-capture" onclick="captureFrame()">📷 ถ่ายภาพ (Shutter)</button>
+  <div class="spd">
+    <span>Speed</span>
+    <input type="range" id="sl-speed" min="0.2" max="3" step="0.1" value="1">
+    <span id="spdVal" class="mono">1.0×</span>
+  </div>
+  <div style="margin-left:auto;color:var(--muted);font-size:0.78rem">
+    เวลา: <span id="timeVal" class="mono" style="color:var(--accent3)">0.00</span> s
+  </div>
+</div>
+
+<div class="main-grid">
+
+  <!-- Controls -->
+  <div>
+    <div class="panel" style="margin-bottom:10px">
+      <h3>🎛 เทคนิคที่ใช้</h3>
+      <div class="radio-group" id="techGroup">
+        <label><input type="radio" name="tech" value="xenon" checked><span>Xenon Strobe</span></label>
+        <label><input type="radio" name="tech" value="blinky"><span>Blinky</span></label>
+        <label><input type="radio" name="tech" value="disc"><span>Rotating Disc</span></label>
+      </div>
+      <div id="techHint" class="hint"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px">
+      <h3>⚙ ตัวแปรการทดลอง</h3>
+
+      <div class="select-row">
+        <label>ประเภทการเคลื่อนที่</label>
+        <select id="motionType">
+          <option value="const">ความเร็วคงที่</option>
+          <option value="accel">ความเร็วเร่ง (a &gt; 0)</option>
+          <option value="decel">หน่วง (a &lt; 0)</option>
+        </select>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label">v₀ รถบูลโดเซอร์</span>
+        <input class="sl-range" type="range" id="sl-v0" min="0.05" max="0.60" step="0.01" value="0.20">
+        <input class="val-input" type="number" id="vi-v0" min="0.05" max="0.60" step="0.01" value="0.20">
+        <span class="sl-unit">m/s</span>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label">ความเร่ง a</span>
+        <input class="sl-range" type="range" id="sl-a" min="-0.30" max="0.30" step="0.01" value="0">
+        <input class="val-input" type="number" id="vi-a" min="-0.30" max="0.30" step="0.01" value="0">
+        <span class="sl-unit">m/s²</span>
+      </div>
+
+      <div class="sl-row" id="row-flash">
+        <span class="sl-label">Flash rate</span>
+        <input class="sl-range" type="range" id="sl-flash" min="2" max="30" step="1" value="10">
+        <input class="val-input" type="number" id="vi-flash" min="2" max="30" step="1" value="10">
+        <span class="sl-unit">Hz</span>
+      </div>
+
+      <div id="discCtrls" style="display:none">
+        <div class="sl-row">
+          <span class="sl-label">จำนวนช่องจาน</span>
+          <input class="sl-range" type="range" id="sl-slits" min="1" max="8" step="1" value="4">
+          <input class="val-input" type="number" id="vi-slits" min="1" max="8" step="1" value="4">
+          <span class="sl-unit">ช่อง</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">ความเร็วจาน</span>
+          <input class="sl-range" type="range" id="sl-rpm" min="30" max="450" step="10" value="150">
+          <input class="val-input" type="number" id="vi-rpm" min="30" max="450" step="10" value="150">
+          <span class="sl-unit">rpm</span>
+        </div>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label">ระยะกล้อง-วัตถุ</span>
+        <input class="sl-range" type="range" id="sl-dist" min="0.8" max="2.5" step="0.05" value="1.4">
+        <input class="val-input" type="number" id="vi-dist" min="0.8" max="2.5" step="0.05" value="1.4">
+        <span class="sl-unit">m</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>📷 การตั้งค่ากล้อง Polaroid</h3>
+      <div class="select-row">
+        <label>Film selector</label>
+        <select id="filmSel">
+          <option value="3000">3000 (สำหรับ Xenon)</option>
+          <option value="75">75 (สำหรับ Blinky/Disc)</option>
+        </select>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">Shutter / EV</span>
+        <input class="sl-range" type="range" id="sl-shutter" min="1" max="8" step="1" value="3">
+        <input class="val-input" type="number" id="vi-shutter" min="1" max="8" step="1" value="3">
+        <span class="sl-unit">#</span>
+      </div>
+      <div id="camHint" class="hint"></div>
+    </div>
+  </div>
+
+  <!-- Canvas + data -->
+  <div>
+    <div class="canvas-wrap" style="height:420px">
+      <canvas id="simCanvas"></canvas>
+      <div class="canvas-label" id="canvasLabel">โหมดบันทึกเอง — คลิกบนไม้บรรทัดใต้ภาพสโตรบเพื่อวัดตำแหน่ง (snap อัตโนมัติ)</div>
+      <div class="exposure-tag exp-good" id="expTag">Exposure: Good</div>
+      <div id="hoverTag" style="position:absolute;pointer-events:none;display:none;background:rgba(52,211,153,0.95);color:#0a0e1a;padding:3px 8px;border-radius:5px;font-size:0.72rem;font-weight:700;font-family:'Share Tech Mono',monospace;transform:translate(-50%,-130%);white-space:nowrap;z-index:10"></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn" style="background:var(--accent2);color:#fff" onclick="aiHintNext()">💡 AI ใบ้ตำแหน่งถัดไป</button>
+      <button class="btn" style="background:var(--accent3);color:#0a0e1a" onclick="aiHintAll()">✨ AI วัดให้ทั้งหมด</button>
+      <button class="btn" style="background:var(--panel2);color:var(--muted);border:1px solid var(--border)" onclick="undoMeasure()">↶ ยกเลิกจุดล่าสุด</button>
+    </div>
+
+    <div class="data-grid">
+
+      <div class="panel">
+        <h3>📊 ตารางข้อมูล</h3>
+        <div class="mode-switch">
+          <button id="mode-manual" class="active" onclick="setMode('manual')">✋ บันทึกเอง</button>
+          <button id="mode-auto" onclick="setMode('auto')">🤖 อัตโนมัติ</button>
+        </div>
+        <div class="tbl-wrap">
+          <table id="dataTbl">
+            <thead>
+              <tr><th>#</th><th>t (s)</th><th>x (cm)</th><th>Δx (cm)</th><th>v (m/s)</th><th>a (m/s²)</th></tr>
+            </thead>
+            <tbody id="dataBody"></tbody>
+          </table>
+        </div>
+        <div class="tbl-actions">
+          <button onclick="addRow()">+ เพิ่มแถว</button>
+          <button onclick="clearRows()">🗑 ล้างตาราง</button>
+          <button onclick="recalcTable()">🔄 คำนวณใหม่</button>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          <b>สูตร:</b> v = Δx / Δt &nbsp;|&nbsp; a = Δv / Δt &nbsp;|&nbsp; Δt = 1/f
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>📈 กราฟผล</h3>
+        <div class="chart-title">x–t : ตำแหน่งเทียบกับเวลา</div>
+        <div class="chart-box"><canvas id="chartXT"></canvas></div>
+        <div class="chart-title" style="margin-top:8px">v–t : ความเร็วเทียบกับเวลา</div>
+        <div class="chart-box"><canvas id="chartVT"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /sim tab -->
+
+<!-- =================== THEORY TAB =================== -->
+<div id="tab-theory" class="tab-section">
+<div class="theory-wrap">
+
+  <div class="theory-card">
+    <h2>🔬 หลักการของ Strobe Photography</h2>
+    <p>
+      <b>Strobe photography</b> หรือการถ่ายภาพแบบ multiple-exposure คือเทคนิคบันทึกตำแหน่งของวัตถุที่เคลื่อนที่
+      หลาย ๆ ตำแหน่งลงบนฟิล์มแผ่นเดียว โดยการเปิดรับแสงเป็นช่วง ๆ ที่มีเวลาเท่ากัน
+    </p>
+    <p>
+      หากทราบ <b style="color:var(--var-t)">ช่วงเวลา (Δt)</b> ระหว่างภาพแต่ละภาพ
+      และ <b style="color:var(--accent4)">scale factor</b> ระหว่างระยะในภาพกับระยะจริงบนไม้เมตร
+      เราสามารถคำนวณ <b style="color:var(--var-v)">ความเร็ว</b> และ <b style="color:var(--var-a)">ความเร่ง</b> ของวัตถุได้
+    </p>
+
+    <div class="formula">
+      Δt = 1 / f &nbsp;&nbsp;|&nbsp;&nbsp; v̄ = Δx / Δt &nbsp;&nbsp;|&nbsp;&nbsp; ā = Δv / Δt
+      <small>f = flash rate (Hz) | Δx = ระยะระหว่างภาพติดกัน (m) | v̄ = ความเร็วเฉลี่ยในช่วงนั้น</small>
+    </div>
+
+    <div class="theory-canvas-label">ภาพจำลอง: วัตถุเคลื่อนที่ความเร็วคงที่ vs เร่ง</div>
+    <div class="theory-canvas-wrap"><canvas id="thCanvasCompare"></canvas></div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-top:6px;text-align:center">
+      ▲ ด้านบน = ความเร็วคงที่ (ภาพเว้นระยะเท่า ๆ กัน) &nbsp;|&nbsp;
+      ด้านล่าง = ความเร่ง (ระยะห่างระหว่างภาพเพิ่มขึ้นเรื่อย ๆ)
+    </p>
+  </div>
+
+  <div class="theory-card">
+    <h2>⏱ ความสัมพันธ์ f ↔ Δt</h2>
+    <p>
+      Flash rate (f) คือจำนวนแฟลชต่อวินาที มีหน่วยเป็น <b>เฮิรตซ์ (Hz)</b>
+      ช่วงเวลาระหว่างแฟลชคือ T = Δt = 1/f
+    </p>
+    <div class="kv">
+      <b>f = 5 Hz</b><span>→ Δt = 0.200 s</span>
+      <b>f = 10 Hz</b><span>→ Δt = 0.100 s</span>
+      <b>f = 20 Hz</b><span>→ Δt = 0.050 s</span>
+      <b>f = 30 Hz</b><span>→ Δt = 0.033 s</span>
+    </div>
+    <p style="margin-top:10px">
+      <b>การเลือก f:</b> ถ้า f ต่ำไป ภาพจะได้น้อยจุด (วัดยาก) ถ้า f สูงไป ภาพจะซ้อนทับกันแยกไม่ออก
+      โดยทั่วไปเลือกให้ได้ <b>5–10 จุด</b> ตลอดเส้นทาง
+    </p>
+  </div>
+
+  <div class="theory-card">
+    <h2>📏 Scale Factor &amp; การวัดจากภาพจริง</h2>
+    <p>
+      ในการทดลองจริง ระยะที่เห็นบนภาพถ่าย ≠ ระยะจริง เพราะกล้องอยู่ห่างจากวัตถุ
+      เราจึงต้องวาง <b>ไม้เมตร (meter stick)</b> ไว้ในแนวทางเดินของวัตถุ เพื่อเป็น reference
+    </p>
+    <div class="formula">
+      Scale = ระยะจริงบนไม้เมตร / ระยะที่วัดบนภาพ
+      <small>เช่น 10 cm จริง = 2.5 cm บนภาพ → scale = 4×</small>
+    </div>
+    <p>
+      <b>ข้อแนะนำจากเอกสาร:</b> ในการถ่ายวัตถุที่เคลื่อนที่ 1.0 m กล้อง Polaroid ควรตั้งห่างประมาณ
+      <b style="color:var(--accent3)">1.4 m</b> เพื่อให้เหตุการณ์ทั้งหมดอยู่ในกรอบ
+    </p>
+  </div>
+
+  <div class="theory-card">
+    <h2>🛠 3 เทคนิคการทำ Multiple Exposure</h2>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h4>1. Xenon Strobe Light</h4>
+        <canvas id="thTechXenon"></canvas>
+        <p>เปิดชัตเตอร์ในห้องมืด แล้วใช้หลอดแฟลช Xenon ยิงแสงเป็นจังหวะสม่ำเสมอ
+        เพื่อบันทึกตำแหน่งวัตถุบนฟิล์ม</p>
+      </div>
+      <div class="tech-card">
+        <h4>2. Blinky (Flasher)</h4>
+        <canvas id="thTechBlinky"></canvas>
+        <p>ติดไฟกะพริบเล็ก ๆ ไว้บนตัววัตถุ ถ่ายในห้องมืดโดยเปิดชัตเตอร์
+        ให้ไฟกะพริบเป็นตัวสร้างจุดแสงบนฟิล์ม</p>
+      </div>
+      <div class="tech-card">
+        <h4>3. Rotating Disc</h4>
+        <canvas id="thTechDisc"></canvas>
+        <p>ส่องแสงต่อเนื่องที่วัตถุ แล้วหมุน <b>จานสโตรบ</b> ที่มีช่องเรเดียล
+        หน้าเลนส์กล้อง ทุกครั้งที่ช่องผ่านเลนส์ = 1 exposure</p>
+      </div>
+    </div>
+    <div class="formula" style="margin-top:14px">
+      f_effective (disc) = N × (rpm / 60)
+      <small>N = จำนวนช่องบนจาน | rpm = รอบต่อนาที → เฮิรตซ์</small>
+    </div>
+  </div>
+
+  <div class="theory-card">
+    <h2>📷 การตั้งค่ากล้อง Polaroid (ตามเอกสาร)</h2>
+    <h3>กล้อง Electric-eye</h3>
+    <ul>
+      <li>ฟิล์ม 3000-speed B&amp;W</li>
+      <li>Film selector = <b style="color:var(--accent3)">3000</b> สำหรับ Xenon strobe</li>
+      <li>Film selector = <b style="color:var(--accent3)">75</b> สำหรับ Blinky / Rotating disc (เลนส์เปิดกว้างขึ้น รับแสงมากขึ้น)</li>
+    </ul>
+    <h3>กล้อง Non-electric-eye (รุ่นเก่า)</h3>
+    <ul>
+      <li>Shutter 1–4: เลนส์เปิดกว้างสุด</li>
+      <li>Shutter 5–8: เลนส์เปิดแคบลง (รับแสงน้อยลง)</li>
+      <li>EV 10–13: เลนส์เปิดกว้าง &nbsp;|&nbsp; EV 14–17: เลนส์เปิดแคบ</li>
+      <li>ตั้ง exposure knob ที่ <b>"B"</b> ก่อนทุก exposure (เพื่อให้ชัตเตอร์เปิดค้างขณะกด cable release)</li>
+    </ul>
+    <h3>ข้อควรระวัง</h3>
+    <ul>
+      <li>อย่าเล็ง Xenon strobe ไปที่ฉากหลังมืด — จะเกิด reflection รบกวน</li>
+      <li>ช่องบน rotating disc <b>ต้องเว้นระยะเท่ากัน</b> มิฉะนั้น Δt ไม่สม่ำเสมอ</li>
+      <li>ไม่ควรเปิดชัตเตอร์ต่อหลังวัตถุเคลื่อนออกจากกรอบ (ฉากหลังจะติดมากและคอนทราสต์ลดลง)</li>
+    </ul>
+  </div>
+
+  <div class="theory-card">
+    <h2>🧮 ตัวอย่างคำนวณ</h2>
+    <p>สมมติ flash rate = 10 Hz, บนภาพวัดระยะระหว่างภาพที่ 1→2 ได้ 2.0 cm, 2→3 ได้ 2.0 cm, 3→4 ได้ 2.0 cm</p>
+    <div class="formula">
+      Δt = 1/10 = 0.10 s <br>
+      v = 0.020 m / 0.10 s = <b>0.20 m/s</b> (ตลอดเส้นทาง)<br>
+      a = 0 → เคลื่อนที่ <b>ความเร็วคงที่</b>
+    </div>
+    <p>ถ้าวัดได้: Δx₁ = 2.0, Δx₂ = 2.5, Δx₃ = 3.0 cm ที่ f = 10 Hz</p>
+    <div class="formula">
+      v₁ = 0.20 m/s, v₂ = 0.25 m/s, v₃ = 0.30 m/s<br>
+      a = (0.30 − 0.20) / (2 × 0.10) = <b>0.50 m/s²</b><br>
+      → วัตถุ<b>เร่ง</b>
+    </div>
+  </div>
+
+</div>
+</div><!-- /theory tab -->
+
+<footer>
+  KP Science simulation © การทดลองจำลอง Experiment 7 — อ้างอิงเอกสารต้นฉบับ Recording Motion with Strobe Photographs
+</footer>
+
+<script>
+/* ================ STATE ================ */
+const S = {
+  isPlaying:false, t:0, animId:null, lastTs:null, speed:1.0,
+  tech:'xenon', motion:'const',
+  v0:0.20, a:0,
+  flash:10, slits:4, rpm:150,
+  dist:1.4, film:'3000', shutter:3,
+  mode:'manual',
+  // world scale: table shows 1.5 m of real length
+  trackMeters:1.5,
+  // bulldozer real position (m)
+  x_real:0,
+  // captured strobe events (each = {t, x_real, xcanvas, ycanvas})
+  strobes:[],
+  // last flash time
+  lastFlashT:-1,
+  // user click measurements (manual mode): [{x_cm, ...}]
+  measurements:[],
+  // auto rows
+  autoRows:[]
+};
+
+/* ================ TABS ================ */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory'){ drawTheory(); }
+  if(name==='sim'){ resizeCanvas(); draw(); }
+}
+
+/* ================ CANVAS ================ */
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.clientWidth  || 800;
+  canvas.height = wrap.clientHeight || 420;
+}
+
+// map real x (m) to canvas x (px)
+function xToPx(x_m){
+  const leftMargin = 50, rightMargin = 30;
+  const usable = canvas.width - leftMargin - rightMargin;
+  return leftMargin + (x_m / S.trackMeters) * usable;
+}
+function pxToX(px){
+  const leftMargin = 50, rightMargin = 30;
+  const usable = canvas.width - leftMargin - rightMargin;
+  return ((px - leftMargin) / usable) * S.trackMeters;
+}
+
+/* ================ PHYSICS ================ */
+function currentV(t){
+  if(S.motion==='const') return S.v0;
+  return S.v0 + S.a * t;
+}
+function currentX(t){
+  if(S.motion==='const') return S.v0 * t;
+  return S.v0 * t + 0.5 * S.a * t * t;
+}
+function effectiveFlashRate(){
+  if(S.tech==='disc'){
+    return S.slits * (S.rpm/60);
+  }
+  return S.flash;
+}
+
+/* ================ LOOP ================ */
+function loop(ts){
+  if(!S.lastTs) S.lastTs = ts;
+  const dt = Math.min((ts - S.lastTs)/1000, 0.05) * S.speed;
+  S.lastTs = ts;
+  S.t += dt;
+
+  // update bulldozer
+  S.x_real = currentX(S.t);
+
+  // check if flash should fire
+  const f = effectiveFlashRate();
+  const T = 1/f;
+  while(S.lastFlashT + T <= S.t){
+    S.lastFlashT += T;
+    const xr = currentX(S.lastFlashT);
+    if(xr <= S.trackMeters + 0.001){
+      captureStrobe(S.lastFlashT, xr);
+    }
+  }
+
+  // stop if off-canvas
+  if(S.x_real > S.trackMeters){
+    stopPlay();
+  }
+
+  draw();
+  document.getElementById('timeVal').textContent = S.t.toFixed(2);
+  if(S.isPlaying) S.animId = requestAnimationFrame(loop);
+}
+
+function captureStrobe(t, x_real){
+  const ypad = canvas.height * 0.55;
+  S.strobes.push({
+    t: t,
+    x_real: x_real,
+    xpx: xToPx(x_real),
+    ypx: ypad
+  });
+  if(S.mode==='auto'){
+    pushAutoRow(t, x_real);
+  }
+}
+
+function captureFrame(){
+  // manual snapshot: capture current bulldozer position as a strobe event
+  captureStrobe(S.t, S.x_real);
+}
+
+function togglePlay(){
+  S.isPlaying = !S.isPlaying;
+  const btn = document.getElementById('playBtn');
+  if(S.isPlaying){
+    S.lastTs = null;
+    S.animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    stopPlay();
+  }
+}
+function stopPlay(){
+  S.isPlaying = false;
+  cancelAnimationFrame(S.animId);
+  const btn = document.getElementById('playBtn');
+  btn.textContent = '▶ เริ่มทดลอง';
+  btn.classList.remove('playing');
+}
+
+function resetSim(){
+  stopPlay();
+  S.t = 0; S.lastTs = null; S.lastFlashT = -1/effectiveFlashRate();
+  S.x_real = 0;
+  S.strobes = [];
+  S.measurements = [];
+  S.autoRows = [];
+  renderTable();
+  document.getElementById('timeVal').textContent = '0.00';
+  draw();
+  drawCharts();
+}
+
+/* ================ DRAW SIM ================ */
+function draw(){
+  const W = canvas.width, H = canvas.height;
+  // background (dark room)
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, '#020409');
+  grd.addColorStop(1, '#08101e');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,W,H);
+
+  // table surface
+  const tableY = H*0.68;
+  ctx.fillStyle = '#0c1424';
+  ctx.fillRect(30, tableY, W-60, H-tableY-20);
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(30, tableY, W-60, H-tableY-20);
+
+  // meter stick (ruler) at bottom
+  drawMeterStick(tableY + 10, W);
+
+  // dark background cloth behind bulldozer
+  ctx.fillStyle = '#030812';
+  ctx.fillRect(30, 30, W-60, tableY-30);
+  ctx.strokeStyle = '#1a2640';
+  ctx.strokeRect(30, 30, W-60, tableY-30);
+  // "background cloth" label
+  ctx.fillStyle = '#1e2a44';
+  ctx.font = '10px Share Tech Mono';
+  ctx.fillText('■ Dark Background (ผ้าดำ)', 40, 46);
+
+  // draw strobe afterimages
+  const bulldY = tableY - 22;
+  S.strobes.forEach((s,i)=>{
+    const alpha = 0.35 + 0.6 * (i / Math.max(S.strobes.length-1,1));
+    drawBulldozer(s.xpx, bulldY, alpha, '#ffd54f');
+    // index number
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 10px Share Tech Mono';
+    ctx.fillText(String(i+1), s.xpx-3, bulldY-18);
+    // foil marker
+    ctx.fillStyle = 'rgba(224,242,254,'+alpha+')';
+    ctx.fillRect(s.xpx-2, bulldY-14, 4, 4);
+  });
+
+  // draw live bulldozer (if running)
+  if(S.isPlaying || (S.t>0 && S.x_real < S.trackMeters)){
+    const lx = xToPx(S.x_real);
+    drawBulldozer(lx, bulldY, 1.0, '#fde68a');
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(lx-2, bulldY-14, 4, 4);
+  } else if(S.t===0) {
+    drawBulldozer(xToPx(0), bulldY, 1.0, '#fde68a');
+  }
+
+  // camera icon bottom-center
+  drawCamera(W/2, H-12);
+
+  // flash indicator (if just flashed)
+  if(S.isPlaying && S.strobes.length>0){
+    const last = S.strobes[S.strobes.length-1];
+    if(S.t - last.t < 0.08){
+      const alpha = 1 - (S.t-last.t)/0.08;
+      ctx.fillStyle = 'rgba(255,255,224,'+(alpha*0.18)+')';
+      ctx.fillRect(0,0,W,tableY);
+    }
+  }
+
+  // highlight ring for AI-suggested strobe
+  if(S.highlightIdx!=null && S.strobes[S.highlightIdx]){
+    const s = S.strobes[S.highlightIdx];
+    ctx.save();
+    ctx.strokeStyle = '#818cf8';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.arc(s.xpx, bulldY, 24, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // hover indicator on ruler (manual mode)
+  if(S.mode==='manual' && S.hoverPx!=null){
+    const rulerY = tableY + 10;
+    ctx.save();
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.moveTo(S.hoverPx, 30);
+    ctx.lineTo(S.hoverPx, rulerY+12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // arrow marker on ruler
+    ctx.fillStyle = '#34d399';
+    ctx.beginPath();
+    ctx.moveTo(S.hoverPx, rulerY-2);
+    ctx.lineTo(S.hoverPx-5, rulerY-9);
+    ctx.lineTo(S.hoverPx+5, rulerY-9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // user click markers (manual mode) — drawn on ruler
+  if(S.mode==='manual'){
+    const rulerY = tableY + 10;
+    S.measurements.forEach((m,i)=>{
+      // vertical line from strobe to ruler
+      ctx.strokeStyle = 'rgba(52,211,153,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2,2]);
+      ctx.beginPath();
+      ctx.moveTo(m.px, bulldY);
+      ctx.lineTo(m.px, rulerY+14);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // marker on ruler
+      ctx.beginPath();
+      ctx.arc(m.px, rulerY+6, 7, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(52,211,153,0.9)';
+      ctx.fill();
+      ctx.strokeStyle = '#0a0e1a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // number
+      ctx.fillStyle = '#0a0e1a';
+      ctx.font = 'bold 9px Share Tech Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(i+1), m.px, rulerY+9);
+      ctx.textAlign = 'start';
+    });
+  }
+}
+
+function drawBulldozer(x, y, alpha, color){
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // body
+  ctx.fillStyle = color;
+  ctx.fillRect(x-14, y-10, 28, 14);
+  // cabin
+  ctx.fillRect(x-6, y-17, 10, 7);
+  // tracks
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(x-16, y+4, 32, 5);
+  // wheels
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath(); ctx.arc(x-10, y+6, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+10, y+6, 3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCamera(cx, cy){
+  ctx.save();
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(cx-14, cy-10, 28, 10);
+  ctx.strokeRect(cx-14, cy-10, 28, 10);
+  ctx.beginPath();
+  ctx.arc(cx, cy-5, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#0ea5e9';
+  ctx.fill();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Share Tech Mono';
+  ctx.fillText('📷', cx-5, cy-14);
+  ctx.restore();
+}
+
+function drawMeterStick(y, W){
+  const leftMargin=50, rightMargin=30;
+  const usable = W - leftMargin - rightMargin;
+  ctx.fillStyle = '#e5e7eb';
+  ctx.fillRect(leftMargin, y, usable, 12);
+  ctx.strokeStyle = '#1e293b';
+  ctx.strokeRect(leftMargin, y, usable, 12);
+  // ticks every 10 cm
+  ctx.fillStyle = '#1e293b';
+  ctx.font = '9px Share Tech Mono';
+  for(let cm=0; cm<=S.trackMeters*100; cm+=10){
+    const x = leftMargin + (cm/100/S.trackMeters)*usable;
+    const h = (cm%50===0)?10:5;
+    ctx.fillRect(x, y, 1, h);
+    if(cm%50===0){
+      ctx.fillText(cm+'', x-5, y+22);
+    }
+  }
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('cm', leftMargin-20, y+10);
+}
+
+/* ================ CLICK (manual) ================ */
+// find nearest unmeasured strobe to a given canvas px
+function nearestStrobe(px){
+  if(S.strobes.length===0) return null;
+  let best=null, bestD=Infinity;
+  S.strobes.forEach((s,idx)=>{
+    // skip if already measured (by matching t)
+    const used = S.measurements.some(m=>m.strobeIdx===idx);
+    if(used) return;
+    const d = Math.abs(s.xpx - px);
+    if(d<bestD){ bestD=d; best={s,idx,d}; }
+  });
+  return best;
+}
+
+function handleClick(px, py){
+  if(S.mode!=='manual') return;
+  const f = effectiveFlashRate();
+  let t, x_m, strobeIdx=null, mpx, mpy;
+  // if we have strobes, snap to nearest unmeasured one within 40px of ruler
+  const near = nearestStrobe(px);
+  if(near && near.d < 40){
+    // snap to strobe
+    strobeIdx = near.idx;
+    t = near.s.t;
+    x_m = near.s.x_real;
+    mpx = near.s.xpx;
+    mpy = canvas.height*0.68 + 16; // on ruler
+  } else {
+    // free click — read x from px (must be on ruler area)
+    const rulerY = canvas.height*0.68 + 10;
+    if(Math.abs(py - (rulerY+6)) > 40) return; // require click near ruler
+    x_m = Math.max(0, Math.min(S.trackMeters, pxToX(px)));
+    // auto t from sequence index
+    const i = S.measurements.length;
+    t = i * (1/f);
+    mpx = xToPx(x_m);
+    mpy = rulerY + 6;
+  }
+  S.measurements.push({px:mpx, py:mpy, x_m, t, strobeIdx});
+  recalcTable();
+  draw();
+}
+
+canvas.addEventListener('click', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const py = (e.clientY - rect.top)  * (canvas.height/rect.height);
+  handleClick(px, py);
+});
+
+/* hover preview */
+const hoverTag = document.getElementById('hoverTag');
+canvas.addEventListener('mousemove',(e)=>{
+  if(S.mode!=='manual'){ hoverTag.style.display='none'; return; }
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const py = (e.clientY - rect.top)  * (canvas.height/rect.height);
+  const near = nearestStrobe(px);
+  let label='';
+  if(near && near.d<40){
+    label = `snap → #${near.idx+1}  x=${(near.s.x_real*100).toFixed(1)} cm  t=${near.s.t.toFixed(3)} s`;
+    hoverTag.style.background='rgba(251,146,60,0.95)';
+  } else {
+    const x_m = Math.max(0, Math.min(S.trackMeters, pxToX(px)));
+    label = `x = ${(x_m*100).toFixed(1)} cm`;
+    hoverTag.style.background='rgba(52,211,153,0.95)';
+  }
+  hoverTag.textContent = label;
+  hoverTag.style.display = 'block';
+  hoverTag.style.left = (e.clientX - rect.left) + 'px';
+  hoverTag.style.top  = (e.clientY - rect.top) + 'px';
+  S.hoverPx = px;
+  draw();
+});
+canvas.addEventListener('mouseleave',()=>{
+  hoverTag.style.display='none';
+  S.hoverPx = null;
+  draw();
+});
+
+function undoMeasure(){
+  if(S.mode!=='manual') return;
+  S.measurements.pop();
+  recalcTable();
+  draw();
+}
+
+function aiHintNext(){
+  if(S.mode!=='manual') return;
+  // find next unmeasured strobe (in order)
+  for(let i=0;i<S.strobes.length;i++){
+    const used = S.measurements.some(m=>m.strobeIdx===i);
+    if(!used){
+      const s = S.strobes[i];
+      S.measurements.push({
+        px: s.xpx, py: canvas.height*0.68+16,
+        x_m: s.x_real, t: s.t, strobeIdx: i
+      });
+      recalcTable();
+      draw();
+      // flash highlight
+      S.highlightIdx = i;
+      setTimeout(()=>{ S.highlightIdx=null; draw(); }, 800);
+      return;
+    }
+  }
+  alert('ไม่มีภาพสโตรบให้วัดเพิ่ม — ลองกด ▶ เริ่มทดลอง ก่อน');
+}
+
+function aiHintAll(){
+  if(S.mode!=='manual') return;
+  if(S.strobes.length===0){ alert('ยังไม่มีภาพสโตรบ — กด ▶ เริ่มทดลอง ก่อน'); return; }
+  S.measurements = [];
+  S.strobes.forEach((s,i)=>{
+    S.measurements.push({
+      px: s.xpx, py: canvas.height*0.68+16,
+      x_m: s.x_real, t: s.t, strobeIdx: i
+    });
+  });
+  recalcTable();
+  draw();
+}
+
+/* ================ TABLE ================ */
+function setMode(m){
+  S.mode = m;
+  document.getElementById('mode-manual').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto').classList.toggle('active', m==='auto');
+  document.getElementById('canvasLabel').textContent =
+    (m==='manual') ? 'โหมดบันทึกเอง — คลิกบนภาพเพื่อวัดตำแหน่ง' : 'โหมดบันทึกอัตโนมัติ — ข้อมูลจะเติมเองขณะรัน';
+  renderTable();
+}
+
+function renderTable(){
+  const body = document.getElementById('dataBody');
+  body.innerHTML = '';
+  const rows = (S.mode==='manual') ? S.measurements : S.autoRows;
+  // auto-fill t in manual mode from flash rate
+  if(S.mode==='manual'){
+    const f = effectiveFlashRate();
+    const T = 1/f;
+    rows.forEach((r,i)=>{ r.t = i*T; });
+  }
+  rows.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    if(S.mode==='manual'){
+      // manual: t auto (read-only), only x editable
+      const t = r.t.toFixed(3);
+      const xcm = (r.x_m*100).toFixed(2);
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="mono" style="color:var(--accent2)">${t} 🤖</td>
+        <td><input type="number" step="0.01" value="${xcm}" data-i="${i}" data-k="x"></td>
+        <td class="mono">${r.dx!=null?r.dx.toFixed(2):'—'}</td>
+        <td class="mono">${r.v!=null?r.v.toFixed(3):'—'}</td>
+        <td class="mono">${r.a!=null?r.a.toFixed(3):'—'}</td>`;
+    } else {
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="mono">${r.t.toFixed(3)}</td>
+        <td class="mono">${(r.x_m*100).toFixed(2)}</td>
+        <td class="mono">${r.dx!=null?r.dx.toFixed(2):'—'}</td>
+        <td class="mono">${r.v!=null?r.v.toFixed(3):'—'}</td>
+        <td class="mono">${r.a!=null?r.a.toFixed(3):'—'}</td>`;
+    }
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',(e)=>{
+      const i = +e.target.dataset.i;
+      const k = e.target.dataset.k;
+      const v = parseFloat(e.target.value);
+      if(k==='x') S.measurements[i].x_m = isNaN(v)?0:v/100;
+    });
+    inp.addEventListener('change',recalcTable);
+  });
+  drawCharts();
+}
+
+function addRow(){
+  if(S.mode==='manual'){
+    const f = effectiveFlashRate();
+    const last = S.measurements[S.measurements.length-1];
+    const t = last ? (last.t + 1/f) : 0;
+    S.measurements.push({t, x_m:0, px:xToPx(0), py:canvas.height*0.68+16, strobeIdx:null});
+    recalcTable();
+    draw();
+  }
+}
+function clearRows(){
+  if(S.mode==='manual') S.measurements = [];
+  else S.autoRows = [];
+  renderTable();
+  draw();
+}
+function recalcTable(){
+  const rows = (S.mode==='manual') ? S.measurements : S.autoRows;
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    r.dx = null; r.v = null; r.a = null;
+    if(i>0){
+      const p = rows[i-1];
+      const dx_cm = (r.x_m - p.x_m)*100;
+      r.dx = dx_cm;
+      const dt = r.t - p.t;
+      if(dt>0) r.v = (r.x_m - p.x_m)/dt;
+    }
+  }
+  for(let i=0;i<rows.length;i++){
+    if(i>0 && rows[i].v!=null && rows[i-1].v!=null){
+      const dt = rows[i].t - rows[i-1].t;
+      if(dt>0) rows[i].a = (rows[i].v - rows[i-1].v)/dt;
+    }
+  }
+  renderTable();
+}
+function pushAutoRow(t, x_m){
+  S.autoRows.push({t, x_m});
+  // compute dx, v, a
+  const rows = S.autoRows;
+  const i = rows.length-1;
+  if(i>0){
+    const p = rows[i-1];
+    rows[i].dx = (rows[i].x_m - p.x_m)*100;
+    const dt = rows[i].t - p.t;
+    if(dt>0) rows[i].v = (rows[i].x_m - p.x_m)/dt;
+    if(i>1 && rows[i-1].v!=null){
+      const dt2 = rows[i].t - rows[i-1].t;
+      if(dt2>0) rows[i].a = (rows[i].v - rows[i-1].v)/dt2;
+    }
+  }
+  renderTable();
+}
+
+/* ================ CHARTS ================ */
+const chartXT = document.getElementById('chartXT').getContext('2d');
+const chartVT = document.getElementById('chartVT').getContext('2d');
+
+function drawCharts(){
+  const rows = (S.mode==='manual') ? S.measurements : S.autoRows;
+  drawChart(chartXT, rows, 'x', '#38bdf8');
+  drawChart(chartVT, rows, 'v', '#34d399');
+}
+function drawChart(c, rows, field, color){
+  const canv = c.canvas;
+  const w = canv.clientWidth, h = canv.clientHeight;
+  canv.width = w; canv.height = h;
+  c.clearRect(0,0,w,h);
+  // bg
+  c.fillStyle = '#030610'; c.fillRect(0,0,w,h);
+  // grid
+  c.strokeStyle = '#1a2640'; c.lineWidth = 1;
+  for(let i=0;i<=5;i++){
+    const y = (h-30)*i/5 + 10;
+    c.beginPath(); c.moveTo(35,y); c.lineTo(w-10,y); c.stroke();
+    const x = 35 + (w-45)*i/5;
+    c.beginPath(); c.moveTo(x,10); c.lineTo(x,h-20); c.stroke();
+  }
+  // axis labels
+  c.fillStyle = '#64748b'; c.font = '9px Share Tech Mono';
+  c.fillText('t(s)', w-25, h-5);
+  c.fillText(field==='x'?'x(cm)':'v(m/s)', 5, 14);
+
+  if(rows.length<1) return;
+  const ts = rows.map(r=>r.t||0);
+  const vs = rows.map(r=> field==='x' ? (r.x_m||0)*100 : (r.v||0));
+  const tmax = Math.max(...ts, 0.1);
+  const vmin = Math.min(...vs, 0);
+  const vmax = Math.max(...vs, 0.01);
+  const vr = (vmax-vmin) || 1;
+  // draw line
+  c.strokeStyle = color; c.lineWidth = 2;
+  c.beginPath();
+  rows.forEach((r,i)=>{
+    const x = 35 + (w-45) * (ts[i]/tmax);
+    const y = (h-30) - (h-30) * ((vs[i]-vmin)/vr) + 10;
+    if(i===0) c.moveTo(x,y); else c.lineTo(x,y);
+  });
+  c.stroke();
+  // points
+  c.fillStyle = color;
+  rows.forEach((r,i)=>{
+    const x = 35 + (w-45) * (ts[i]/tmax);
+    const y = (h-30) - (h-30) * ((vs[i]-vmin)/vr) + 10;
+    c.beginPath(); c.arc(x,y,3,0,Math.PI*2); c.fill();
+  });
+  // tick values
+  c.fillStyle = '#64748b';
+  c.fillText(vmax.toFixed(2), 2, 14);
+  c.fillText(vmin.toFixed(2), 2, h-22);
+  c.fillText('0', 35, h-5);
+  c.fillText(tmax.toFixed(2), w-30, h-5);
+}
+
+/* ================ EXPOSURE QUALITY ================ */
+function updateExposure(){
+  // Rules (from doc):
+  // Xenon strobe → film selector should be 3000
+  // Blinky/disc → film selector should be 75 (more light)
+  // distance 1.4m ≈ ideal for 1m travel
+  // shutter 1-4 wide, 5-8 narrow
+  let score = 0;
+  if(S.tech==='xenon' && S.film==='3000') score += 2;
+  else if((S.tech==='blinky'||S.tech==='disc') && S.film==='75') score += 2;
+  else score -= 2; // mismatch
+
+  // distance: 1.4 is ideal, range 1.2-1.6 ok
+  if(Math.abs(S.dist-1.4) < 0.2) score += 1;
+  else if(S.dist < 1.0) score -= 2; // too close → over
+  else if(S.dist > 2.0) score -= 2; // too far → under
+
+  // shutter: 1-4 wide (more light), 5-8 narrow
+  const wide = S.shutter <= 4;
+  // xenon wants narrow-ish (strobe is bright); blinky/disc want wide
+  if(S.tech==='xenon'){
+    if(!wide) score += 1; else score -= 0;
+  } else {
+    if(wide) score += 1; else score -= 1;
+  }
+
+  let label, cls;
+  if(score >= 2){ label='Exposure: Good ✓'; cls='exp-good'; }
+  else if(score >= 0){
+    // decide over vs under
+    if(S.dist < 1.2 || (wide && S.tech==='xenon')){ label='Exposure: Slightly Over'; cls='exp-over'; }
+    else if(S.dist > 1.7 || (!wide && S.tech!=='xenon')){ label='Exposure: Slightly Under'; cls='exp-under'; }
+    else { label='Exposure: Fair'; cls='exp-good'; }
+  } else {
+    if(S.dist < 1.1 || (wide && S.film==='3000' && S.tech==='xenon')){ label='Exposure: OVER-exposed'; cls='exp-over'; }
+    else { label='Exposure: UNDER-exposed'; cls='exp-under'; }
+  }
+  const tag = document.getElementById('expTag');
+  tag.textContent = label;
+  tag.className = 'exposure-tag '+cls;
+}
+
+/* ================ HINTS ================ */
+function updateHints(){
+  const techH = document.getElementById('techHint');
+  const camH  = document.getElementById('camHint');
+  let t='';
+  if(S.tech==='xenon'){
+    t = '<b>Xenon Strobe:</b> เปิดชัตเตอร์ในห้องมืด แล้ววาง strobe ส่องตามแนวทางการเคลื่อนที่ (ไม่ส่องเข้าฉากหลัง) → ใช้ <b>Film selector 3000</b>';
+  } else if(S.tech==='blinky'){
+    t = '<b>Blinky:</b> ติดไฟกระพริบบนรถ ถ่ายในห้องมืด → ใช้ <b>Film selector 75</b> (เลนส์เปิดกว้างขึ้น)';
+  } else {
+    t = `<b>Rotating Disc:</b> จาน ${S.slits} ช่อง × ${S.rpm} rpm → f_effective = <b>${effectiveFlashRate().toFixed(1)} Hz</b> (Δt = ${(1/effectiveFlashRate()).toFixed(3)} s) — ต้องใช้ Film 75`;
+  }
+  techH.innerHTML = t;
+
+  let c='';
+  if(Math.abs(S.dist-1.4)<0.1) c = '✓ ระยะ 1.4 m <b>เหมาะสม</b>สำหรับการถ่ายวัตถุเคลื่อนที่ ~1 m';
+  else if(S.dist<1.2) c = '⚠ ใกล้เกินไป → ภาพอาจสว่างเกิน (over) และเหตุการณ์อาจไม่อยู่ในเฟรม';
+  else if(S.dist>1.8) c = '⚠ ไกลเกินไป → ภาพมืด (under) และวัตถุเล็กในเฟรม';
+  else c = 'ระยะใช้ได้ (แนะนำ 1.4 m)';
+  if(S.tech==='xenon' && S.film!=='3000') c += '<br>⚠ Xenon ควรใช้ Film selector <b>3000</b>';
+  if(S.tech!=='xenon' && S.film!=='75') c += '<br>⚠ Blinky/Disc ควรใช้ Film selector <b>75</b>';
+  camH.innerHTML = c;
+}
+
+/* ================ INIT ================ */
+window.addEventListener('DOMContentLoaded', ()=>{
+
+  const _v2s = {
+    'vi-v0':'sl-v0', 'vi-a':'sl-a', 'vi-flash':'sl-flash',
+    'vi-slits':'sl-slits', 'vi-rpm':'sl-rpm',
+    'vi-dist':'sl-dist', 'vi-shutter':'sl-shutter'
+  };
+  Object.entries(_v2s).forEach(([vi,si])=>{
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    if(!sl||!inp) return;
+    sl.addEventListener('input',()=>{
+      inp.value = parseFloat(sl.value);
+      syncState();
+    });
+    inp.addEventListener('change',()=>{
+      let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value)||0));
+      inp.value = v; sl.value = v;
+      syncState();
+    });
+  });
+
+  // speed
+  const spd = document.getElementById('sl-speed');
+  spd.addEventListener('input',()=>{
+    S.speed = parseFloat(spd.value);
+    document.getElementById('spdVal').textContent = S.speed.toFixed(1)+'×';
+  });
+
+  // tech radio
+  document.querySelectorAll('input[name=tech]').forEach(r=>{
+    r.addEventListener('change',()=>{
+      S.tech = r.value;
+      document.getElementById('discCtrls').style.display = (S.tech==='disc')?'block':'none';
+      document.getElementById('row-flash').style.display = (S.tech==='disc')?'none':'flex';
+      // auto-set film
+      document.getElementById('filmSel').value = (S.tech==='xenon')?'3000':'75';
+      S.film = document.getElementById('filmSel').value;
+      resetSim();
+      updateHints(); updateExposure();
+    });
+  });
+
+  document.getElementById('motionType').addEventListener('change',(e)=>{
+    S.motion = e.target.value;
+    if(S.motion==='const'){
+      document.getElementById('sl-a').value = 0;
+      document.getElementById('vi-a').value = 0;
+      S.a = 0;
+    } else if(S.motion==='accel'){
+      document.getElementById('sl-a').value = 0.10;
+      document.getElementById('vi-a').value = 0.10;
+      S.a = 0.10;
+    } else {
+      document.getElementById('sl-a').value = -0.10;
+      document.getElementById('vi-a').value = -0.10;
+      S.a = -0.10;
+    }
+    resetSim();
+  });
+
+  document.getElementById('filmSel').addEventListener('change',(e)=>{
+    S.film = e.target.value; updateHints(); updateExposure();
+  });
+
+  syncState();
+  resizeCanvas();
+  resetSim();
+  updateHints();
+  updateExposure();
+  drawTheory(); // prepare theory canvases
+});
+
+function syncState(){
+  S.v0 = parseFloat(document.getElementById('sl-v0').value);
+  S.a  = parseFloat(document.getElementById('sl-a').value);
+  S.flash = parseFloat(document.getElementById('sl-flash').value);
+  S.slits = parseInt(document.getElementById('sl-slits').value);
+  S.rpm   = parseFloat(document.getElementById('sl-rpm').value);
+  S.dist  = parseFloat(document.getElementById('sl-dist').value);
+  S.shutter = parseInt(document.getElementById('sl-shutter').value);
+  S.film = document.getElementById('filmSel').value;
+  // motion
+  if(Math.abs(S.a)<0.001) S.motion='const';
+  updateHints();
+  updateExposure();
+  draw();
+}
+
+window.addEventListener('resize',()=>{ resizeCanvas(); draw(); drawCharts(); drawTheory(); });
+
+/* ================ THEORY CANVASES ================ */
+let thPhase = 0, thAnim = null;
+function drawTheory(){
+  drawThCompare();
+  drawThXenon();
+  drawThBlinky();
+  drawThDisc();
+  if(!thAnim){
+    function tick(){
+      thPhase += 0.02;
+      drawThXenon(); drawThBlinky(); drawThDisc(); drawThCompare();
+      thAnim = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+}
+function setupCanv(id){
+  const c = document.getElementById(id);
+  if(!c) return null;
+  c.width = c.clientWidth; c.height = c.clientHeight;
+  return c.getContext('2d');
+}
+
+function drawThCompare(){
+  const c = setupCanv('thCanvasCompare');
+  if(!c) return;
+  const cv = c.canvas; const W=cv.width, H=cv.height;
+  c.fillStyle = '#050810'; c.fillRect(0,0,W,H);
+  // two tracks
+  const y1 = H*0.28, y2 = H*0.72;
+  // labels
+  c.fillStyle = '#64748b'; c.font='10px Share Tech Mono';
+  c.fillText('ความเร็วคงที่ (v = const)', 8, 14);
+  c.fillText('เร่ง (a > 0)', 8, H*0.5+12);
+  // ruler
+  c.fillStyle = '#1e293b';
+  c.fillRect(20, y1+14, W-40, 2);
+  c.fillRect(20, y2+14, W-40, 2);
+  // const velocity: evenly spaced
+  const n = 7;
+  for(let i=0;i<n;i++){
+    const x = 30 + (W-60)*(i/(n-1));
+    c.fillStyle = '#ffd54f';
+    c.beginPath(); c.arc(x, y1, 5, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#38bdf8'; c.font='8px Share Tech Mono';
+    c.fillText(i+1, x-3, y1-8);
+  }
+  // accel: quadratic spacing
+  for(let i=0;i<n;i++){
+    const f = (i/(n-1))**2;
+    const x = 30 + (W-60)*f;
+    c.fillStyle = '#fb923c';
+    c.beginPath(); c.arc(x, y2, 5, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#34d399'; c.font='8px Share Tech Mono';
+    c.fillText(i+1, x-3, y2-8);
+  }
+  // moving highlight
+  const hi = (thPhase%1);
+  const hx1 = 30 + (W-60)*hi;
+  c.strokeStyle='rgba(255,213,79,0.6)';
+  c.beginPath(); c.arc(hx1, y1, 8, 0, Math.PI*2); c.stroke();
+  const hx2 = 30 + (W-60)*(hi*hi);
+  c.strokeStyle='rgba(251,146,60,0.6)';
+  c.beginPath(); c.arc(hx2, y2, 8, 0, Math.PI*2); c.stroke();
+}
+
+function drawThXenon(){
+  const c = setupCanv('thTechXenon');
+  if(!c) return;
+  const cv=c.canvas; const W=cv.width, H=cv.height;
+  c.fillStyle='#030610'; c.fillRect(0,0,W,H);
+  // strobe box
+  c.fillStyle='#1e293b'; c.fillRect(8, H-25, 18, 16);
+  c.strokeStyle='#38bdf8'; c.strokeRect(8, H-25, 18, 16);
+  // flash
+  const on = Math.floor(thPhase*6)%2===0;
+  if(on){
+    const grd = c.createRadialGradient(17,H-17,2, 17,H-17,40);
+    grd.addColorStop(0,'rgba(255,255,200,0.9)');
+    grd.addColorStop(1,'rgba(255,255,200,0)');
+    c.fillStyle=grd; c.beginPath(); c.arc(17,H-17,40,0,Math.PI*2); c.fill();
+  }
+  // object positions
+  for(let i=0;i<5;i++){
+    const x = 40 + i*((W-55)/4);
+    c.fillStyle = on && i===Math.floor(thPhase*3)%5 ? '#ffd54f' : 'rgba(255,213,79,0.35)';
+    c.fillRect(x-6, H/2-4, 12, 8);
+  }
+  c.fillStyle='#64748b'; c.font='8px Share Tech Mono';
+  c.fillText('FLASH', 8, H-28);
+}
+
+function drawThBlinky(){
+  const c = setupCanv('thTechBlinky');
+  if(!c) return;
+  const cv=c.canvas; const W=cv.width, H=cv.height;
+  c.fillStyle='#030610'; c.fillRect(0,0,W,H);
+  // object with blinky
+  const on = Math.floor(thPhase*5)%2===0;
+  for(let i=0;i<5;i++){
+    const x = 20 + i*((W-35)/4);
+    c.fillStyle='rgba(120,120,140,0.25)';
+    c.fillRect(x-6, H/2-4, 12, 8);
+    if(on || i<4){
+      c.fillStyle='#f472b6';
+      c.beginPath(); c.arc(x, H/2-8, 3, 0, Math.PI*2); c.fill();
+    }
+  }
+  // moving live
+  const mx = 20 + (W-35)*((thPhase%1));
+  c.fillStyle='#fbbf24';
+  c.fillRect(mx-6, H/2-4, 12, 8);
+  if(on){
+    c.fillStyle='#f472b6';
+    c.beginPath(); c.arc(mx, H/2-8, 4, 0, Math.PI*2); c.fill();
+  }
+  c.fillStyle='#64748b'; c.font='8px Share Tech Mono';
+  c.fillText('Blinky on object', 8, 12);
+}
+
+function drawThDisc(){
+  const c = setupCanv('thTechDisc');
+  if(!c) return;
+  const cv=c.canvas; const W=cv.width, H=cv.height;
+  c.fillStyle='#030610'; c.fillRect(0,0,W,H);
+  // object on right
+  c.fillStyle='#fbbf24';
+  c.fillRect(W-30, H/2-5, 14, 10);
+  // disc on left
+  const cx = 35, cy = H/2, r = 22;
+  c.fillStyle='#1e293b';
+  c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
+  c.strokeStyle='#38bdf8'; c.stroke();
+  // slits (4)
+  const rot = thPhase*4;
+  c.save(); c.translate(cx,cy); c.rotate(rot);
+  c.fillStyle='#030610';
+  for(let i=0;i<4;i++){
+    c.rotate(Math.PI/2);
+    c.fillRect(-2, -r+2, 4, 10);
+  }
+  c.restore();
+  // center
+  c.fillStyle='#38bdf8';
+  c.beginPath(); c.arc(cx,cy,3,0,Math.PI*2); c.fill();
+  // camera
+  c.fillStyle='#475569';
+  c.fillRect(62, H/2-6, 14, 12);
+  c.strokeStyle='#94a3b8'; c.strokeRect(62, H/2-6, 14, 12);
+  // light path
+  c.strokeStyle='rgba(255,213,79,0.35)';
+  c.setLineDash([3,3]);
+  c.beginPath(); c.moveTo(W-22, H/2); c.lineTo(cx, cy); c.stroke();
+  c.setLineDash([]);
+  c.fillStyle='#64748b'; c.font='8px Share Tech Mono';
+  c.fillText('Disc', 22, 12);
+  c.fillText('Cam', 62, 12);
+}
+</script>
+</body>
+</html>

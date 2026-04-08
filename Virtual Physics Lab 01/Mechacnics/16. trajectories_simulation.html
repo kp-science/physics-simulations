@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — Trajectories (วิถีโพรเจกไทล์)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden;}
+.mono{font-family:'Share Tech Mono',monospace;}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;}
+header .icon{font-size:2rem;}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent);}
+header p{font-size:0.82rem;color:var(--muted);}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s;}
+nav button:hover{border-color:var(--accent);color:var(--accent);}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;}
+
+.tab-section{display:none;}
+.tab-section.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.sim-wrap{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;padding:14px;align-items:start;}
+@media(max-width:1100px){.sim-wrap{grid-template-columns:1fr;}}
+.left-col{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.graph-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
+@media(max-width:760px){.graph-grid{grid-template-columns:1fr;}}
+.graph-row-label{font-size:0.82rem;color:var(--accent3);font-weight:700;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.graph-row-label:first-of-type{margin-top:0;}
+.graph-cap{font-size:0.76rem;color:var(--muted);margin-bottom:6px;}
+.graph-box{background:#06080f;border:1px solid var(--border);border-radius:8px;height:180px;}
+
+.canvas-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.canvas-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.canvas-head h3{font-size:0.95rem;color:var(--accent);}
+.canvas-box{position:relative;width:100%;height:520px;background:#06080f;cursor:crosshair;}
+canvas{display:block;width:100%;height:100%;}
+
+.cbar{padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);background:var(--panel2);}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.15s;}
+.btn-play{background:#1b5e20;color:#fff;}
+.btn-play:hover{background:#2e7d32;}
+.btn-play.playing{background:#b71c1c;}
+.btn-reset{background:#0d47a1;color:#fff;}
+.btn-reset:hover{background:#1565c0;}
+.btn-action{background:var(--accent2);color:#fff;}
+.btn-action:hover{opacity:.85;}
+.btn-save{background:#b45309;color:#fff;}
+.btn-save:hover{background:#d97706;}
+
+.side{display:flex;flex-direction:column;gap:14px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.card h3{font-size:0.92rem;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.sl-label{font-size:0.78rem;color:var(--muted);min-width:100px;}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;}
+.sl-unit{font-size:0.74rem;color:var(--muted);min-width:30px;}
+.val-input{width:62px;padding:3px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text);}
+
+.readout{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:0.82rem;font-family:'Share Tech Mono',monospace;color:var(--accent3);line-height:1.6;}
+.readout b{color:var(--accent);}
+
+.mode-toggle{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:10px;}
+.mode-toggle button{flex:1;background:transparent;border:none;color:var(--muted);padding:7px 10px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.8rem;font-weight:600;border-radius:6px;transition:.15s;}
+.mode-toggle button.active{background:var(--accent);color:#0a0e1a;}
+
+.hint-box{background:#1a2335;border-left:3px solid var(--accent4);padding:8px 10px;border-radius:6px;font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.hint-box b{color:var(--accent4);}
+
+.tbl-wrap{overflow-x:auto;max-height:260px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+th,td{padding:5px 6px;text-align:center;border-bottom:1px solid var(--border);}
+th{background:var(--panel2);color:var(--accent);font-weight:600;font-size:0.72rem;position:sticky;top:0;}
+td .calc{color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:0.78rem;}
+td .meas{color:var(--accent4);font-family:'Share Tech Mono',monospace;font-size:0.78rem;}
+tr.highlight{background:rgba(56,189,248,0.08);}
+
+.summary{margin-top:10px;padding:10px;background:var(--panel2);border-radius:8px;font-size:0.82rem;line-height:1.6;}
+.summary b{color:var(--accent3);}
+
+.steps{font-size:0.8rem;line-height:1.6;color:var(--muted);}
+.steps ol{padding-left:18px;}
+.steps li{margin-bottom:4px;}
+.steps b{color:var(--text);}
+
+.theory-wrap{max-width:980px;margin:0 auto;padding:20px;}
+.theory-section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;}
+.theory-section h2{color:var(--accent);font-size:1.05rem;margin-bottom:12px;}
+.theory-section h3{color:var(--accent2);font-size:0.92rem;margin:14px 0 8px;}
+.theory-section p{color:var(--muted);line-height:1.7;font-size:0.88rem;margin-bottom:8px;}
+.theory-section p b{color:var(--text);}
+.formula{background:var(--panel2);border-left:3px solid var(--accent3);padding:12px 16px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent3);text-align:center;margin:10px 0;letter-spacing:1px;}
+.viz-box{background:#06080f;border:1px solid var(--border);border-radius:10px;height:280px;margin:14px 0;}
+.viz-box canvas{display:block;width:100%;height:100%;}
+.viz-caption{font-size:0.78rem;color:var(--muted);text-align:center;margin-top:6px;font-style:italic;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;}
+@media(max-width:760px){.two-col{grid-template-columns:1fr;}}
+.col-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.col-card h4{color:var(--accent4);font-size:0.85rem;margin-bottom:6px;}
+.col-card p{font-size:0.82rem;color:var(--muted);}
+.key-points{list-style:none;padding:0;}
+.key-points li{padding:6px 0 6px 22px;position:relative;color:var(--muted);font-size:0.85rem;line-height:1.55;}
+.key-points li:before{content:"▸";position:absolute;left:6px;color:var(--accent);font-weight:700;}
+
+footer{text-align:center;padding:14px;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);}
+
+.chk{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--muted);cursor:pointer;}
+.chk input{accent-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🎯</div>
+  <div>
+    <h1>การทดลอง: วิถีโพรเจกไทล์ (Trajectories)</h1>
+    <p>Experiment 16 — ลูกเหล็กกลิ้งจากรางเอียงและตกอิสระ ศึกษาความเร็วแนวราบคงที่</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและคำอธิบาย</button>
+</nav>
+
+<!-- ============ SIMULATION TAB ============ -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-wrap">
+
+    <!-- LEFT: Canvas + Graphs -->
+    <div class="left-col">
+    <div class="canvas-card">
+      <div class="canvas-head">
+        <h3>🎯 อุปกรณ์การทดลอง (คลิกบน canvas เพื่อวางเส้นไกด์)</h3>
+        <span style="font-size:0.78rem;color:var(--muted);" id="statusLine">พร้อมเริ่ม</span>
+      </div>
+      <div class="canvas-box">
+        <canvas id="simCanvas"></canvas>
+      </div>
+      <div class="cbar">
+        <button id="playBtn" class="btn btn-play" onclick="togglePlay()">▶ ปล่อยลูกเหล็ก</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+        <button class="btn btn-save" id="btnSaveGuide" onclick="saveGuideToTable()" disabled>💾 บันทึกค่าจากไกด์ลงตาราง</button>
+        <span style="font-size:0.78rem;color:var(--muted);">ความเร็วแสดงผล:</span>
+        <input type="range" min="0.1" max="2" step="0.1" value="0.4" id="speedSlider" style="width:90px;accent-color:var(--accent);">
+        <span class="mono" id="speedDisp" style="font-size:0.78rem;color:var(--accent3);">0.4×</span>
+        <label class="chk"><input type="checkbox" id="showTheory" checked> เส้นทฤษฎี</label>
+        <label class="chk"><input type="checkbox" id="showVector"> เวกเตอร์ v</label>
+      </div>
+    </div>
+
+    <!-- Graphs card (under canvas, hidden until process) -->
+    <div class="card" id="graphCard" style="display:none;">
+      <h3>📈 ผลการประมวลผล</h3>
+
+      <!-- Row 1: position -->
+      <div class="graph-row-label">📍 ตำแหน่ง (Position)</div>
+      <div class="graph-grid">
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent);">x – t</b> (เส้นตรง ความชัน = v₀)</div>
+          <div class="graph-box"><canvas id="graphXT"></canvas></div>
+        </div>
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent4);">y – t</b> (พาราโบลา y = ½gt²)</div>
+          <div class="graph-box"><canvas id="graphYT"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 2: velocity -->
+      <div class="graph-row-label">🏃 ความเร็ว (Velocity)</div>
+      <div class="graph-grid">
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent);">vₓ – t</b> (คงที่ = v₀)</div>
+          <div class="graph-box"><canvas id="graphVX"></canvas></div>
+        </div>
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent4);">v_y – t</b> (เส้นตรง ความชัน = g)</div>
+          <div class="graph-box"><canvas id="graphVY"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 3: acceleration -->
+      <div class="graph-row-label">⚡ ความเร่ง (Acceleration)</div>
+      <div class="graph-grid">
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent);">aₓ – t</b> (คงที่ = 0)</div>
+          <div class="graph-box"><canvas id="graphAX"></canvas></div>
+        </div>
+        <div>
+          <div class="graph-cap">กราฟ <b style="color:var(--accent4);">a_y – t</b> (คงที่ = g)</div>
+          <div class="graph-box"><canvas id="graphAY"></canvas></div>
+        </div>
+      </div>
+
+      <div class="readout" id="fitReadout" style="margin-top:10px;"></div>
+    </div>
+
+    </div><!-- /left-col -->
+
+    <!-- RIGHT: Panels -->
+    <div class="side">
+
+      <!-- Controls -->
+      <div class="card">
+        <h3>⚙️ ตัวแปรควบคุม</h3>
+        <div class="sl-row">
+          <span class="sl-label">ความสูงปล่อย h</span>
+          <input class="sl-range" type="range" id="sl-h" min="0.01" max="0.30" step="0.005" value="0.060">
+          <input class="val-input" type="number" id="vi-h" min="0.01" max="0.30" step="0.005" value="0.060">
+          <span class="sl-unit">m</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">g (ความโน้มถ่วง)</span>
+          <input class="sl-range" type="range" id="sl-g" min="1.6" max="20" step="0.1" value="9.8">
+          <input class="val-input" type="number" id="vi-g" min="1.6" max="20" step="0.1" value="9.8">
+          <span class="sl-unit">m/s²</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">ระยะระหว่างเส้น</span>
+          <input class="sl-range" type="range" id="sl-dx" min="0.01" max="0.05" step="0.005" value="0.02">
+          <input class="val-input" type="number" id="vi-dx" min="0.01" max="0.05" step="0.005" value="0.02">
+          <span class="sl-unit">m</span>
+        </div>
+        <div class="readout" id="v0readout">
+          v₀ (คำนวณจาก h) = <b id="v0val">0.92</b> m/s
+          <br>จำนวนเส้นวัด N = <b id="nval">12</b> เส้น <span style="color:var(--muted);font-size:0.72rem;">(อัตโนมัติจาก 25cm/dx)</span>
+          <br><span style="color:var(--muted);font-size:0.72rem;">ลูกกลมกลิ้ง: v₀ = √(10gh/7)</span>
+        </div>
+        <div class="hint-box" style="margin-top:10px;">
+          <b>คำใบ้:</b> h ≈ 0.060 m → v₀ ≈ 0.92 m/s ตรงกับค่าเฉลี่ยในใบทดลองตัวอย่าง
+          (ลองเปลี่ยน h แล้วดูว่าวิถีโค้งเปลี่ยนอย่างไร)
+        </div>
+      </div>
+
+      <!-- Mode + Procedure -->
+      <div class="card">
+        <h3>📋 โหมดการบันทึก</h3>
+        <div class="mode-toggle">
+          <button id="mode-manual" class="active" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+          <button id="mode-auto" onclick="setMode('auto')">🤖 บันทึกอัตโนมัติ</button>
+        </div>
+        <div id="proc-manual" class="steps">
+          <ol>
+            <li><b>1.</b> ตั้งค่า <b>ความสูงปล่อย h</b> และ g ตามต้องการ (ยิ่ง h มาก → v₀ ยิ่งมาก)</li>
+            <li><b>2.</b> กด <b>▶ ปล่อยลูกเหล็ก</b> เพื่อสังเกตวิถี — ลูกจะทิ้ง trail สีเขียวและ mark จุดสีชมพูตอนผ่านเส้น grid</li>
+            <li><b>3.</b> หลังลูกหยุดที่ปลายทาง → <b>คลิกบน canvas</b> ใกล้จุดสีชมพูที่ต้องการวัด</li>
+            <li><b>4.</b> เส้นไกด์สีเหลืองแนวราบ/แนวดิ่งจะปรากฏ พร้อมไม้เมตรไฮไลท์ค่า x, y (cm) ที่มุมขวาบน</li>
+            <li><b>5.</b> ปรับคลิกจนตำแหน่งตรงกับจุดที่วัด → กด <b>💾 บันทึกค่าจากไกด์ลงตาราง</b></li>
+            <li><b>6.</b> ระบบเติม S(v) ลงแถวที่ใกล้ที่สุด พร้อมคำนวณ t = √(2S(v)/g) และ v = S(h)/t ให้ทันที</li>
+            <li><b>7.</b> ทำซ้ำขั้นที่ 3–6 จนครบทุกแถว (สามารถรีเซ็ต + ปล่อยซ้ำได้)</li>
+            <li><b>8.</b> กด <b>📈 ประมวลผล</b> เพื่อดูกราฟ x–t และ y–t พร้อมสรุปผลความเร็วแนวราบ</li>
+          </ol>
+        </div>
+        <div id="proc-auto" class="steps" style="display:none;">
+          <ol>
+            <li><b>1.</b> ตั้งค่า h, g ตามต้องการ</li>
+            <li><b>2.</b> กด <b>🤖 เติมค่าอัตโนมัติ</b> → ระบบคำนวณ S(v), t, v ให้ทุกแถวจากสมการ</li>
+            <li><b>3.</b> กด <b>📈 ประมวลผล</b> เพื่อดูกราฟ x–t (ความชัน = v₀) และ y–t (พาราโบลา)</li>
+            <li><b>4.</b> เปรียบเทียบ v ในทุกแถว — ควรเท่ากับ v₀ ที่คำนวณจาก h</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Data table -->
+      <div class="card">
+        <h3>📊 ตารางบันทึกข้อมูล</h3>
+        <div class="tbl-wrap">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>S(h)<br>(m)</th>
+                <th>S(v)<br>วัดได้ (m)</th>
+                <th>t (s)<br>= √(2S/g)</th>
+                <th>v (m/s)<br>= S(h)/t</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-action" id="btn-fill" onclick="autoFill()" style="display:none;">🤖 เติมค่าอัตโนมัติ</button>
+          <button class="btn btn-action" onclick="processData()" style="background:var(--accent3);color:#0a0e1a;">📈 ประมวลผล</button>
+          <button class="btn btn-reset" onclick="clearTable()">🗑️ ล้างตาราง</button>
+        </div>
+        <div class="summary" id="summary">
+          ยังไม่มีการคำนวณ — คลิกบน canvas เพื่อเริ่มวัด
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ THEORY TAB ============ -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-section">
+      <h2>🎯 หลักการของการเคลื่อนที่แบบโพรเจกไทล์</h2>
+      <p>เมื่อวัตถุถูกปล่อยให้เคลื่อนที่ในแนวราบและตกอย่างอิสระภายใต้แรงโน้มถ่วงเพียงอย่างเดียว
+      วิถีการเคลื่อนที่จะเป็น <b>เส้นโค้งพาราโบลา (parabola)</b></p>
+      <p>กุญแจสำคัญคือ การเคลื่อนที่ <b>แนวราบ</b> และ <b>แนวดิ่ง</b> เป็นอิสระต่อกัน:</p>
+      <div class="two-col">
+        <div class="col-card">
+          <h4>↔ แนวราบ (Horizontal)</h4>
+          <p>ไม่มีแรงในแนวราบ → ความเร็วคงที่<br>
+          <span class="mono" style="color:var(--accent3);">x = v₀ · t</span></p>
+        </div>
+        <div class="col-card">
+          <h4>↕ แนวดิ่ง (Vertical)</h4>
+          <p>มีแรงโน้มถ่วง g คงที่ → ตกอิสระ<br>
+          <span class="mono" style="color:var(--accent3);">y = ½ · g · t²</span></p>
+        </div>
+      </div>
+      <div class="viz-box"><canvas id="vizParabola"></canvas></div>
+      <div class="viz-caption">วิถีพาราโบลา: Δx เท่ากัน แต่ Δy เพิ่มขึ้นเรื่อยๆ</div>
+    </div>
+
+    <div class="theory-section">
+      <h2>🏃 ความสัมพันธ์ระหว่างความสูงปล่อยกับความเร็ว v₀</h2>
+      <p>ลูกเหล็กกลิ้งลงจากความสูง h ที่ปลายราง พลังงานศักย์ mgh จะเปลี่ยนเป็นพลังงานจลน์
+      (ทั้งพลังงานจลน์เชิงเส้นและพลังงานจลน์หมุน):</p>
+      <div class="formula">mgh = ½mv² + ½Iω²</div>
+      <p>สำหรับลูกกลมตัน (solid sphere): I = (2/5)mr² และ ω = v/r เมื่อกลิ้งโดยไม่ไถล ดังนั้น:</p>
+      <div class="formula">v₀ = √(10·g·h / 7)</div>
+      <p>นี่คือเหตุผลที่ใน simulation เรากำหนด <b>ความสูงปล่อย h</b> แทน v₀ โดยตรง — เหมือนกับการทดลองจริงที่เราควบคุมได้แค่ตำแหน่งปล่อย
+      และ v₀ เป็นค่าที่ได้จากการคำนวณ (หรือวัดย้อนกลับจากวิถี)</p>
+    </div>
+
+    <div class="theory-section">
+      <h2>📐 สมการสำคัญในการทดลอง</h2>
+      <h3>1. ระยะตกในแนวดิ่ง (ตกอิสระ)</h3>
+      <div class="formula">S(v) = ½ · g · t²</div>
+      <p>เมื่อรู้ S(v): <span class="mono" style="color:var(--accent3);">t = √(2·S(v)/g)</span></p>
+      <h3>2. ระยะในแนวราบ</h3>
+      <div class="formula">S(h) = v₀ · t</div>
+      <p>ความเร็วเฉลี่ยแนวราบ: <span class="mono" style="color:var(--accent3);">v₀ = S(h) / t</span></p>
+      <h3>3. สมการวิถี</h3>
+      <div class="formula">y = (g / 2v₀²) · x²</div>
+      <p>พาราโบลาเปิดลง — ความชันเพิ่มขึ้นตาม x</p>
+      <div class="viz-box"><canvas id="vizDecompose"></canvas></div>
+      <div class="viz-caption">vₓ คงที่, v_y เพิ่มเชิงเส้นกับเวลา</div>
+    </div>
+
+    <div class="theory-section">
+      <h2>🔍 ทำไมเราทำแบบนี้?</h2>
+      <p>ในการทดลองจริง เราวัด <b>เวลา</b> ที่ลูกเหล็กผ่านแต่ละจุดได้ยาก แต่เราวัด <b>ระยะตก S(v)</b> ได้ง่ายด้วยกระดาษคาร์บอน</p>
+      <p>เมื่อรู้ S(v) เราใช้ <span class="mono" style="color:var(--accent3);">t = √(2S(v)/g)</span> ย้อนมาหาเวลา
+      แล้วหา v จาก <span class="mono" style="color:var(--accent3);">v = S(h)/t</span></p>
+      <p><b>ข้อพิสูจน์:</b> ถ้า v ในทุกแถว <b>ใกล้เคียงกัน</b> → ความเร็วแนวราบคงที่ → การเคลื่อนที่แนวราบและแนวดิ่งเป็นอิสระต่อกันจริง</p>
+    </div>
+
+    <div class="theory-section">
+      <h2>💡 ข้อควรระวังในการทดลอง</h2>
+      <ul class="key-points">
+        <li>ปรับรางให้ลูกเหล็กออกในแนวราบ (ใช้ระดับน้ำช่วย) มิฉะนั้นจะมี v_y ตั้งแต่เริ่ม</li>
+        <li>ปล่อยลูกเหล็กจากตำแหน่งเดิมทุกครั้ง เพื่อให้ v₀ คงที่</li>
+        <li>วัดหลายครั้งแล้วเฉลี่ย เพื่อลดความคลาดเคลื่อน</li>
+        <li>S(v) วัดจากระดับปลายราง ไม่ใช่จากพื้นโต๊ะ</li>
+        <li>เมื่อตกไกลมาก การหมุนและแรงต้านอากาศจะทำให้วิถีเบี่ยงจากพาราโบลาในอุดมคติ</li>
+      </ul>
+    </div>
+
+    <div class="theory-section">
+      <h2>🪙 การประยุกต์: เหรียญสองอันตกพร้อมกัน</h2>
+      <p>ยิงเหรียญหนึ่งในแนวราบออกโต๊ะ ขณะเดียวกันปล่อยอีกอันตรงๆ → ทั้งสอง <b>ถึงพื้นพร้อมกัน</b>
+      เพราะ v_y เริ่มต้น = 0 และ g เท่ากัน ความเร็วแนวราบไม่มีผลต่อเวลาตก</p>
+      <div class="viz-box"><canvas id="vizCoins"></canvas></div>
+      <div class="viz-caption">เหรียญสองอัน: ตกตรง vs ยิงข้าง → ถึงพื้นพร้อมกัน</div>
+    </div>
+
+  </div>
+</div>
+
+<footer>KP Science simulation © การทดลองวิถีโพรเจกไทล์ • อ้างอิงจาก Experiment 16: Trajectories</footer>
+
+<script>
+// ============ STATE ============
+let h0=0.060, g=9.8, dx=0.02, N=12;
+let v0=0;  // computed from h
+let isPlaying=false, t=0, animId=null, lastTs=null, speed=0.4;
+let trail=[];
+let mode='manual';
+let rowData={};  // row index -> {sv, t, v}
+// guide
+let guide={x:null, y:null, active:false};
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function computeV0(){ v0 = Math.sqrt(10*g*h0/7); }
+
+function resizeCanvas(){
+  canvas.width = canvas.parentElement.clientWidth || 800;
+  canvas.height = canvas.parentElement.clientHeight || 520;
+  if(!isPlaying) draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// layout with rulers
+const RULER = 36;  // px for left and top rulers
+
+function worldRect(){
+  const W=canvas.width, H=canvas.height;
+  const padL=RULER+10, padR=20, padT=RULER+10, padB=26;
+  return {x0:padL, y0:padT, w:W-padL-padR, h:H-padT-padB};
+}
+// FIXED scale — แกน x และ y คงที่เสมอ ไม่เปลี่ยนตามตัวแปร
+// คำนวณจากกรณีที่ h = 0.3 m (สูงสุด): v0 = √(10·9.8·0.3/7) ≈ 2.05 m/s
+// เวลาตกถึง y=0.25: t = √(2·0.25/9.8) ≈ 0.226 s → x = v0·t ≈ 0.463 m
+const FIXED_X_MAX = 0.50;  // 50 cm — ให้ครอบคลุมกรณี h=0.3 พอดี
+const FIXED_Y_MAX = 0.25;  // 25 cm
+function scale(){
+  const r=worldRect();
+  return {sx:r.w/FIXED_X_MAX, sy:r.h/FIXED_Y_MAX, x0:r.x0, y0:r.y0, xMax:FIXED_X_MAX, yMax:FIXED_Y_MAX};
+}
+function W2S(x,y){ const s=scale(); return [s.x0+x*s.sx, s.y0+y*s.sy]; }
+function S2W(px,py){ const s=scale(); return [(px-s.x0)/s.sx, (py-s.y0)/s.sy]; }
+
+// ============ DRAW ============
+function draw(){
+  const W=canvas.width,H=canvas.height;
+  ctx.fillStyle='#06080f'; ctx.fillRect(0,0,W,H);
+
+  const r=worldRect();
+  const s=scale();
+
+  // ---- RULERS ----
+  // top ruler (x)
+  ctx.fillStyle='#0f172a';
+  ctx.fillRect(0,0,W,RULER);
+  ctx.fillRect(0,0,RULER,H);
+  ctx.strokeStyle='#1e3a5f';
+  ctx.strokeRect(0,0,W,RULER);
+  ctx.strokeRect(0,0,RULER,H);
+
+  // ticks on top ruler — every 1cm (0.01m)
+  ctx.strokeStyle='#64748b';
+  ctx.fillStyle='#94a3b8';
+  ctx.font='9px Share Tech Mono';
+  ctx.textAlign='center';
+  const step=0.01;
+  for(let xv=0; xv<=s.xMax+0.0001; xv+=step){
+    const [sx,]=W2S(xv,0);
+    if(sx<r.x0-1||sx>r.x0+r.w+1) continue;
+    const big = Math.round(xv*100)%5===0;
+    ctx.beginPath();
+    ctx.moveTo(sx, RULER-(big?12:6));
+    ctx.lineTo(sx, RULER);
+    ctx.stroke();
+    if(big) ctx.fillText((xv*100).toFixed(0), sx, RULER-14);
+  }
+  ctx.fillText('cm', r.x0+r.w/2, 10);
+
+  // left ruler (y)
+  ctx.textAlign='right';
+  for(let yv=0; yv<=s.yMax+0.0001; yv+=step){
+    const [,sy]=W2S(0,yv);
+    if(sy<r.y0-1||sy>r.y0+r.h+1) continue;
+    const big = Math.round(yv*100)%5===0;
+    ctx.beginPath();
+    ctx.moveTo(RULER-(big?12:6), sy);
+    ctx.lineTo(RULER, sy);
+    ctx.stroke();
+    if(big) ctx.fillText((yv*100).toFixed(0), RULER-14, sy+3);
+  }
+  ctx.save();
+  ctx.translate(12, r.y0+r.h/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center';
+  ctx.fillText('cm', 0, 0);
+  ctx.restore();
+
+  // ---- GRID COLUMNS (2cm spacing) ----
+  ctx.strokeStyle='rgba(56,189,248,0.18)';
+  ctx.lineWidth=1;
+  for(let i=0;i<=N;i++){
+    const [sx,]=W2S(i*dx,0);
+    ctx.beginPath();
+    ctx.moveTo(sx, r.y0);
+    ctx.lineTo(sx, r.y0+r.h);
+    ctx.stroke();
+    ctx.fillStyle='#38bdf8';
+    ctx.font='10px Share Tech Mono';
+    ctx.textAlign='center';
+    ctx.fillText(i, sx, r.y0+r.h+14);
+  }
+
+  // release level
+  ctx.strokeStyle='rgba(251,146,60,0.6)';
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  ctx.moveTo(r.x0, r.y0); ctx.lineTo(r.x0+r.w, r.y0); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#fb923c';
+  ctx.font='11px Sarabun';
+  ctx.textAlign='left';
+  ctx.fillText('ระดับปล่อย', r.x0+4, r.y0-4);
+
+  // horizontal y gridlines
+  for(let i=1;i<5;i++){
+    const sy = r.y0 + i/4*r.h;
+    ctx.strokeStyle='rgba(148,163,184,0.06)';
+    ctx.beginPath();
+    ctx.moveTo(r.x0, sy); ctx.lineTo(r.x0+r.w, sy); ctx.stroke();
+  }
+
+  // ramp decoration
+  ctx.strokeStyle='#94a3b8';
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(r.x0-42, r.y0-38);
+  ctx.quadraticCurveTo(r.x0-28, r.y0-4, r.x0, r.y0);
+  ctx.stroke();
+  ctx.lineWidth=1;
+
+  // ---- THEORETICAL TRAJECTORY ----
+  if(document.getElementById('showTheory')?.checked){
+    ctx.strokeStyle='rgba(129,140,248,0.65)';
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    for(let i=0;i<=200;i++){
+      const xw=i/200 * N*dx*1.05;
+      const tt=xw/v0;
+      const yw=0.5*g*tt*tt;
+      const [sx,sy]=W2S(xw,yw);
+      if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- IMPACT POINTS (only shown after ball passes them) ----
+  const ballX = v0*t;
+  for(let i=1;i<=N;i++){
+    const xw=i*dx;
+    if(xw > ballX) continue;   // ยังไม่ถึง → ยังไม่แสดง
+    const tt=xw/v0;
+    const yw=0.5*g*tt*tt;
+    if(yw>s.yMax) continue;
+    const [sx,sy]=W2S(xw,yw);
+    // pop-in animation: scale based on how recently ball passed
+    const dxAgo = ballX - xw;
+    const pop = Math.min(1, dxAgo/0.005 + 0.3);
+    // halo
+    ctx.fillStyle='rgba(244,114,182,0.25)';
+    ctx.beginPath(); ctx.arc(sx,sy,7*pop,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f472b6';
+    ctx.beginPath(); ctx.arc(sx,sy,3.5*pop,0,Math.PI*2); ctx.fill();
+  }
+
+  // ---- TRAIL ----
+  if(trail.length>1){
+    ctx.strokeStyle='rgba(52,211,153,0.75)';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<trail.length;i++){
+      const [sx,sy]=W2S(trail[i].x,trail[i].y);
+      if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+    }
+    ctx.stroke();
+    ctx.lineWidth=1;
+  }
+
+  // ---- BALL ----
+  if(t>0){
+    const xw=v0*t;
+    const yw=0.5*g*t*t;
+    if(yw<=s.yMax*1.1 && xw<=s.xMax){
+      const [sx,sy]=W2S(xw,yw);
+      const grd=ctx.createRadialGradient(sx,sy,0,sx,sy,16);
+      grd.addColorStop(0,'rgba(56,189,248,0.6)');
+      grd.addColorStop(1,'rgba(56,189,248,0)');
+      ctx.fillStyle=grd;
+      ctx.beginPath();ctx.arc(sx,sy,16,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#38bdf8';
+      ctx.beginPath();ctx.arc(sx,sy,6,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+
+      // velocity vectors
+      if(document.getElementById('showVector')?.checked){
+        const vxp=v0, vyp=g*t;
+        const sc=30; // px per (m/s)
+        // vx
+        ctx.strokeStyle='#38bdf8'; ctx.lineWidth=2;
+        arrow(sx,sy, sx+vxp*sc, sy);
+        // vy
+        ctx.strokeStyle='#fb923c';
+        arrow(sx,sy, sx, sy+vyp*sc);
+        // resultant
+        ctx.strokeStyle='#f472b6';
+        arrow(sx,sy, sx+vxp*sc, sy+vyp*sc);
+        ctx.lineWidth=1;
+        ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun';
+        ctx.textAlign='left';
+        ctx.fillText(`vₓ=${vxp.toFixed(2)}`, sx+vxp*sc+4, sy-2);
+        ctx.fillText(`v_y=${vyp.toFixed(2)}`, sx+4, sy+vyp*sc+10);
+      }
+    }
+  }
+
+  // ---- GUIDE LINES ----
+  if(guide.active && guide.x!=null && guide.y!=null){
+    const [sx,sy]=W2S(guide.x, guide.y);
+    // H line
+    ctx.strokeStyle='rgba(251,191,36,0.85)';
+    ctx.setLineDash([5,4]);
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(r.x0, sy); ctx.lineTo(r.x0+r.w, sy); ctx.stroke();
+    // V line
+    ctx.beginPath();
+    ctx.moveTo(sx, r.y0); ctx.lineTo(sx, r.y0+r.h); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth=1;
+    // intersection dot
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath(); ctx.arc(sx,sy,5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#0a0e1a'; ctx.stroke();
+
+    // ruler highlight marks
+    ctx.fillStyle='#fbbf24';
+    ctx.fillRect(sx-1, 0, 2, RULER);
+    ctx.fillRect(0, sy-1, RULER, 2);
+
+    // readout box — fixed at top-right corner of plot area (ไม่บังจุด)
+    const bw=160, bh=56;
+    const bxc = r.x0+r.w-bw-8;
+    const byc = r.y0+8;
+    ctx.fillStyle='rgba(15,23,42,0.92)';
+    ctx.strokeStyle='#fbbf24';
+    ctx.fillRect(bxc,byc,bw,bh);
+    ctx.strokeRect(bxc,byc,bw,bh);
+    ctx.fillStyle='#fbbf24';
+    ctx.font='bold 11px Share Tech Mono';
+    ctx.textAlign='left';
+    ctx.fillText(`x = ${(guide.x*100).toFixed(2)} cm`, bxc+8, byc+16);
+    ctx.fillText(`y = ${(guide.y*100).toFixed(2)} cm`, bxc+8, byc+30);
+    ctx.fillStyle='#94a3b8';
+    ctx.font='9px Sarabun';
+    const col=Math.round(guide.x/dx);
+    if(col>=1 && col<=N){
+      ctx.fillText(`→ แถวที่ ${col} (x=${(col*dx*100).toFixed(1)}cm)`, bxc+8, byc+46);
+    }
+  }
+
+  // legend
+  ctx.fillStyle='#94a3b8';
+  ctx.font='10px Sarabun';
+  ctx.textAlign='left';
+  const lx=r.x0+8, ly=r.y0+14;
+  ctx.fillStyle='rgba(129,140,248,0.9)';
+  ctx.fillRect(lx,ly-7,14,2);
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText(' ทฤษฎี', lx+16, ly-2);
+  ctx.fillStyle='#f472b6';
+  ctx.beginPath(); ctx.arc(lx+75,ly-6,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText(' จุดตัด (จากสมการ)', lx+80, ly-2);
+}
+
+function arrow(x1,y1,x2,y2){
+  ctx.beginPath();
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1);
+  const h=7;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(ang-0.4), y2-h*Math.sin(ang-0.4));
+  ctx.lineTo(x2-h*Math.cos(ang+0.4), y2-h*Math.sin(ang+0.4));
+  ctx.closePath();
+  ctx.fillStyle=ctx.strokeStyle;
+  ctx.fill();
+}
+
+// ============ ANIMATION ============
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const dtReal=Math.min((ts-lastTs)/1000, 0.05)*speed;
+  lastTs=ts;
+  t += dtReal;
+  const x=v0*t, y=0.5*g*t*t;
+  trail.push({x,y});
+  if(trail.length>2000) trail.shift();
+  if(x > N*dx*1.05){
+    isPlaying=false;
+    cancelAnimationFrame(animId);
+    document.getElementById('playBtn').textContent='▶ ปล่อยลูกเหล็ก';
+    document.getElementById('playBtn').classList.remove('playing');
+    document.getElementById('statusLine').textContent='เสร็จสิ้น';
+    draw();
+    return;
+  }
+  draw();
+  document.getElementById('statusLine').textContent =
+    `t=${t.toFixed(3)}s  x=${(x*100).toFixed(2)}cm  y=${(y*100).toFixed(2)}cm`;
+  animId=requestAnimationFrame(loop);
+}
+
+function togglePlay(){
+  isPlaying=!isPlaying;
+  const btn=document.getElementById('playBtn');
+  if(isPlaying){
+    if(t===0) trail=[];
+    lastTs=null;
+    animId=requestAnimationFrame(loop);
+    btn.textContent='⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent='▶ ปล่อยลูกเหล็ก';
+    btn.classList.remove('playing');
+  }
+}
+function resetSim(){
+  cancelAnimationFrame(animId);
+  isPlaying=false;t=0;lastTs=null;trail=[];
+  document.getElementById('playBtn').textContent='▶ ปล่อยลูกเหล็ก';
+  document.getElementById('playBtn').classList.remove('playing');
+  document.getElementById('statusLine').textContent='พร้อมเริ่ม';
+  draw();
+}
+
+// ============ GUIDE (click to set) ============
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const px = (e.clientX-rect.left)*(canvas.width/rect.width);
+  const py = (e.clientY-rect.top)*(canvas.height/rect.height);
+  const r=worldRect();
+  if(px<r.x0 || px>r.x0+r.w || py<r.y0 || py>r.y0+r.h) return;
+  const [xw,yw]=S2W(px,py);
+  guide.x=xw; guide.y=yw; guide.active=true;
+  document.getElementById('btnSaveGuide').disabled=false;
+  draw();
+});
+
+function saveGuideToTable(){
+  if(!guide.active) return;
+  const col=Math.round(guide.x/dx);
+  if(col<1||col>N){ alert('กรุณาวางไกด์ในช่วงคอลัมน์ 1–'+N); return; }
+  const sv=Math.max(0, guide.y);
+  const sh=col*dx;
+  const tt=Math.sqrt(2*sv/g);
+  const v=tt>0?sh/tt:0;
+  rowData[col]={sv, t:tt, v, measured:true};
+  updateTable();
+  calcSummary();
+  // highlight row briefly
+  const row=document.querySelector(`tr[data-row="${col}"]`);
+  if(row){ row.classList.add('highlight'); setTimeout(()=>row.classList.remove('highlight'),1200); }
+}
+
+// ============ TABLE ============
+function buildTable(){
+  const tb=document.getElementById('tbody');
+  tb.innerHTML='';
+  tb.innerHTML += `<tr>
+    <td>0</td>
+    <td class="mono" style="color:var(--muted);">0.000</td>
+    <td class="mono" style="color:var(--muted);">0.000</td>
+    <td class="mono" style="color:var(--muted);">0.000</td>
+    <td class="mono" style="color:var(--muted);">—</td>
+  </tr>`;
+  for(let i=1;i<=N;i++){
+    tb.innerHTML += `<tr data-row="${i}">
+      <td>${i}</td>
+      <td class="mono" style="color:var(--accent);">${(i*dx).toFixed(3)}</td>
+      <td><span class="meas" id="sv-${i}">—</span></td>
+      <td><span class="calc" id="t-${i}">—</span></td>
+      <td><span class="calc" id="v-${i}">—</span></td>
+    </tr>`;
+  }
+}
+function updateTable(){
+  for(let i=1;i<=N;i++){
+    const d=rowData[i];
+    document.getElementById('sv-'+i).textContent = d?d.sv.toFixed(3):'—';
+    document.getElementById('t-'+i).textContent  = d?d.t.toFixed(3):'—';
+    document.getElementById('v-'+i).textContent  = d?d.v.toFixed(2):'—';
+  }
+}
+function calcSummary(){
+  const vs=Object.values(rowData).map(d=>d.v).filter(v=>isFinite(v)&&v>0);
+  if(vs.length===0){
+    document.getElementById('summary').innerHTML='ยังไม่มีการคำนวณ — คลิกบน canvas เพื่อเริ่มวัด';
+    return;
+  }
+  const avg=vs.reduce((a,b)=>a+b,0)/vs.length;
+  const sd=Math.sqrt(vs.reduce((a,b)=>a+(b-avg)**2,0)/vs.length);
+  const err=Math.abs(avg-v0)/v0*100;
+  document.getElementById('summary').innerHTML =
+    `จำนวนข้อมูล: <b>${vs.length}</b> / ${N}<br>`+
+    `v₀ จากความสูง h (ทฤษฎี) = <b>${v0.toFixed(3)} m/s</b><br>`+
+    `v̄ วัดได้ = <b>${avg.toFixed(3)} m/s</b>  (σ=${sd.toFixed(4)})<br>`+
+    `ค่าคลาดเคลื่อน = <b>${err.toFixed(2)}%</b><br>`+
+    `<span style="color:var(--muted);font-size:0.78rem;">${sd<0.05?'✅ v ใกล้คงที่ → แนวราบความเร็วคงที่':'⚠️ ค่ากระจาย — ลองวัดใหม่'}</span>`;
+}
+function autoFill(){
+  for(let i=1;i<=N;i++){
+    const sh=i*dx;
+    const tt=sh/v0;
+    const sv=0.5*g*tt*tt;
+    rowData[i]={sv, t:tt, v:sh/tt, measured:false};
+  }
+  updateTable(); calcSummary();
+}
+function clearTable(){
+  rowData={};
+  updateTable(); calcSummary();
+  document.getElementById('graphCard').style.display='none';
+}
+
+// ============ PROCESS & GRAPHS ============
+function processData(){
+  const rows=Object.entries(rowData)
+    .map(([i,d])=>({i:+i, x:(+i)*dx, y:d.sv, t:d.t}))
+    .filter(r=>isFinite(r.t)&&r.t>0)
+    .sort((a,b)=>a.t-b.t);
+  if(rows.length<2){
+    alert('กรุณาบันทึกข้อมูลอย่างน้อย 2 จุดก่อนประมวลผล');
+    return;
+  }
+  document.getElementById('graphCard').style.display='block';
+  // add origin
+  const data=[{i:0,x:0,y:0,t:0}, ...rows];
+
+  // ---- Position graphs ----
+  drawGraph('graphXT', data.map(p=>({t:p.t,val:p.x})),
+    'เวลา t (s)', 'x (m)', '#38bdf8', (t)=>v0*t);
+  drawGraph('graphYT', data.map(p=>({t:p.t,val:p.y})),
+    'เวลา t (s)', 'y (m)', '#fb923c', (t)=>0.5*g*t*t);
+
+  // ---- Velocity (forward differences) ----
+  // v[i] = (p[i+1] - p[i]) / Δt → assign to midpoint time
+  const vxData=[], vyData=[];
+  for(let i=0;i<data.length-1;i++){
+    const dt=data[i+1].t-data[i].t;
+    if(dt<=0) continue;
+    const tm=(data[i+1].t+data[i].t)/2;
+    vxData.push({t:tm, val:(data[i+1].x-data[i].x)/dt});
+    vyData.push({t:tm, val:(data[i+1].y-data[i].y)/dt});
+  }
+  drawGraph('graphVX', vxData, 'เวลา t (s)', 'vₓ (m/s)', '#38bdf8', (t)=>v0);
+  drawGraph('graphVY', vyData, 'เวลา t (s)', 'v_y (m/s)', '#fb923c', (t)=>g*t);
+
+  // ---- Acceleration (forward differences of v) ----
+  const axData=[], ayData=[];
+  for(let i=0;i<vxData.length-1;i++){
+    const dt=vxData[i+1].t-vxData[i].t;
+    if(dt<=0) continue;
+    const tm=(vxData[i+1].t+vxData[i].t)/2;
+    axData.push({t:tm, val:(vxData[i+1].val-vxData[i].val)/dt});
+    ayData.push({t:tm, val:(vyData[i+1].val-vyData[i].val)/dt});
+  }
+  drawGraph('graphAX', axData, 'เวลา t (s)', 'aₓ (m/s²)', '#38bdf8', (t)=>0);
+  drawGraph('graphAY', ayData, 'เวลา t (s)', 'a_y (m/s²)', '#fb923c', (t)=>g);
+
+  // ---- Linear fit on x-t to get v0 ----
+  let sxt=0, st2=0;
+  rows.forEach(r=>{ sxt+=r.x*r.t; st2+=r.t*r.t; });
+  const v0fit = st2>0 ? sxt/st2 : 0;
+  const err=Math.abs(v0fit-v0)/v0*100;
+  // average vy slope (a_y) from data
+  const ayAvg = ayData.length>0 ? ayData.reduce((a,b)=>a+b.val,0)/ayData.length : 0;
+  const gErr = ayData.length>0 ? Math.abs(ayAvg-g)/g*100 : 0;
+  document.getElementById('fitReadout').innerHTML =
+    `ความชันกราฟ x–t (= v₀ วัดได้) = <b>${v0fit.toFixed(3)} m/s</b> | v₀ ทฤษฎี = <b>${v0.toFixed(3)} m/s</b> | คลาดเคลื่อน <b>${err.toFixed(2)}%</b><br>`+
+    `a_y เฉลี่ยจากข้อมูล = <b>${ayAvg.toFixed(3)} m/s²</b> | g ทฤษฎี = <b>${g.toFixed(3)} m/s²</b> | คลาดเคลื่อน <b>${gErr.toFixed(2)}%</b><br>`+
+    `<span style="color:var(--muted);font-size:0.72rem;">vₓ คงที่ + a_y ≈ g ยืนยันว่าแนวราบเคลื่อนที่ความเร็วคงที่ และแนวดิ่งตกอิสระ</span>`;
+}
+
+function drawGraph(canvasId, pts, xlabel, ylabel, color, theoryFn){
+  const c=document.getElementById(canvasId);
+  c.width=c.parentElement.clientWidth;
+  c.height=c.parentElement.clientHeight;
+  const x=c.getContext('2d');
+  const W=c.width, H=c.height;
+  x.fillStyle='#06080f'; x.fillRect(0,0,W,H);
+  const padL=48, padR=14, padT=14, padB=30;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  // domain
+  const tMax=Math.max(...pts.map(p=>p.t))*1.1;
+  const vMax=Math.max(...pts.map(p=>p.val))*1.15;
+  const sX=t=>padL+(t/tMax)*plotW;
+  const sY=v=>padT+plotH-(v/Math.max(vMax,1e-6))*plotH;
+  // grid
+  x.strokeStyle='rgba(148,163,184,0.12)';
+  x.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const gy=padT+i/4*plotH;
+    x.beginPath(); x.moveTo(padL,gy); x.lineTo(padL+plotW,gy); x.stroke();
+    const gx=padL+i/4*plotW;
+    x.beginPath(); x.moveTo(gx,padT); x.lineTo(gx,padT+plotH); x.stroke();
+  }
+  // axes
+  x.strokeStyle='#475569';
+  x.beginPath();
+  x.moveTo(padL,padT); x.lineTo(padL,padT+plotH); x.lineTo(padL+plotW,padT+plotH);
+  x.stroke();
+  // axis labels
+  x.fillStyle='#94a3b8';
+  x.font='9px Share Tech Mono';
+  x.textAlign='center';
+  for(let i=0;i<=4;i++){
+    const tv=i/4*tMax;
+    x.fillText(tv.toFixed(2), padL+i/4*plotW, padT+plotH+12);
+  }
+  x.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const vv=(1-i/4)*vMax;
+    x.fillText(vv.toFixed(3), padL-4, padT+i/4*plotH+3);
+  }
+  x.fillStyle='#94a3b8'; x.font='10px Sarabun';
+  x.textAlign='center';
+  x.fillText(xlabel, padL+plotW/2, H-4);
+  x.save();
+  x.translate(10, padT+plotH/2);
+  x.rotate(-Math.PI/2);
+  x.fillText(ylabel, 0, 0);
+  x.restore();
+  // theory curve
+  if(theoryFn){
+    x.strokeStyle='rgba(148,163,184,0.5)';
+    x.setLineDash([3,3]);
+    x.lineWidth=1.5;
+    x.beginPath();
+    for(let i=0;i<=80;i++){
+      const tv=i/80*tMax;
+      const vv=theoryFn(tv);
+      const X=sX(tv), Y=sY(vv);
+      if(i===0) x.moveTo(X,Y); else x.lineTo(X,Y);
+    }
+    x.stroke();
+    x.setLineDash([]);
+  }
+  // data polyline
+  x.strokeStyle=color;
+  x.lineWidth=2;
+  x.beginPath();
+  pts.forEach((p,i)=>{
+    const X=sX(p.t), Y=sY(p.val);
+    if(i===0) x.moveTo(X,Y); else x.lineTo(X,Y);
+  });
+  x.stroke();
+  // points
+  x.fillStyle=color;
+  pts.forEach(p=>{
+    const X=sX(p.t), Y=sY(p.val);
+    x.beginPath(); x.arc(X,Y,3.5,0,Math.PI*2); x.fill();
+  });
+  // legend
+  x.fillStyle='#94a3b8';
+  x.font='9px Sarabun';
+  x.textAlign='left';
+  x.fillStyle=color;
+  x.fillRect(padL+6, padT+4, 10, 2);
+  x.fillStyle='#94a3b8';
+  x.fillText(' ข้อมูล', padL+18, padT+8);
+  x.strokeStyle='rgba(148,163,184,0.7)';
+  x.setLineDash([3,3]);
+  x.beginPath(); x.moveTo(padL+60,padT+7); x.lineTo(padL+74,padT+7); x.stroke();
+  x.setLineDash([]);
+  x.fillText(' ทฤษฎี', padL+76, padT+10);
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mode-manual').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto').classList.toggle('active', m==='auto');
+  document.getElementById('proc-manual').style.display = m==='manual'?'block':'none';
+  document.getElementById('proc-auto').style.display   = m==='auto'?'block':'none';
+  document.getElementById('btn-fill').style.display    = m==='auto'?'inline-block':'none';
+  if(m==='auto') autoFill();
+}
+
+// ============ TAB ============
+function showTab(name,btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory') drawTheoryViz();
+  if(name==='sim') resizeCanvas();
+}
+
+// ============ THEORY VIZ ============
+function drawTheoryViz(){ drawParabola(); drawDecompose(); drawCoins(); }
+function drawParabola(){
+  const c=document.getElementById('vizParabola');
+  c.width=c.parentElement.clientWidth;c.height=c.parentElement.clientHeight;
+  const x=c.getContext('2d');
+  const W=c.width,H=c.height;
+  x.fillStyle='#06080f';x.fillRect(0,0,W,H);
+  const padL=50,padR=30,padT=20,padB=30;
+  x.strokeStyle='#475569';x.lineWidth=1;
+  x.beginPath();x.moveTo(padL,padT);x.lineTo(padL,H-padB);x.lineTo(W-padR,H-padB);x.stroke();
+  x.fillStyle='#94a3b8';x.font='10px Sarabun';
+  x.fillText('x (แนวราบ)',W-padR-60,H-padB+18);
+  x.save();x.translate(14,padT+10);x.rotate(-Math.PI/2);x.fillText('y (ตก)',0,0);x.restore();
+  const v0v=1.0, gg=9.8, xMax=1.0;
+  const yAtMax=0.5*gg*(xMax/v0v)**2;
+  const sx=(W-padL-padR)/xMax, sy=(H-padT-padB)/yAtMax;
+  x.strokeStyle='#38bdf8';x.lineWidth=2.5;
+  x.beginPath();
+  for(let i=0;i<=100;i++){
+    const xx=i/100*xMax, tt=xx/v0v, yy=0.5*gg*tt*tt;
+    const X=padL+xx*sx, Y=padT+yy*sy;
+    if(i===0) x.moveTo(X,Y); else x.lineTo(X,Y);
+  }
+  x.stroke();
+  const N5=6;
+  for(let i=1;i<=N5;i++){
+    const xx=i/N5*xMax, tt=xx/v0v, yy=0.5*gg*tt*tt;
+    const X=padL+xx*sx, Y=padT+yy*sy;
+    x.strokeStyle='rgba(251,146,60,0.5)';
+    x.setLineDash([2,3]);
+    x.beginPath();x.moveTo(X,padT);x.lineTo(X,Y);x.stroke();
+    x.setLineDash([]);
+    x.fillStyle='#f472b6';
+    x.beginPath();x.arc(X,Y,4,0,Math.PI*2);x.fill();
+  }
+}
+function drawDecompose(){
+  const c=document.getElementById('vizDecompose');
+  c.width=c.parentElement.clientWidth;c.height=c.parentElement.clientHeight;
+  const x=c.getContext('2d');
+  const W=c.width,H=c.height;
+  x.fillStyle='#06080f';x.fillRect(0,0,W,H);
+  const padL=50,padR=30,padT=20,padB=30;
+  x.strokeStyle='#475569';
+  x.beginPath();x.moveTo(padL,padT);x.lineTo(padL,H-padB);x.lineTo(W-padR,H-padB);x.stroke();
+  x.fillStyle='#94a3b8';x.font='10px Sarabun';
+  x.fillText('เวลา t →',W-padR-50,H-padB+18);
+  x.save();x.translate(14,padT+10);x.rotate(-Math.PI/2);x.fillText('ความเร็ว',0,0);x.restore();
+  x.strokeStyle='#38bdf8';x.lineWidth=2.5;
+  x.beginPath();x.moveTo(padL,H-padB-40);x.lineTo(W-padR,H-padB-40);x.stroke();
+  x.fillStyle='#38bdf8';x.font='11px Sarabun';
+  x.fillText('vₓ = v₀ (คงที่)',W-padR-110,H-padB-46);
+  x.strokeStyle='#fb923c';x.lineWidth=2.5;
+  x.beginPath();x.moveTo(padL,H-padB);x.lineTo(W-padR,padT+10);x.stroke();
+  x.fillStyle='#fb923c';
+  x.fillText('v_y = g·t (เพิ่มเชิงเส้น)',padL+10,padT+24);
+}
+function drawCoins(){
+  const c=document.getElementById('vizCoins');
+  c.width=c.parentElement.clientWidth;c.height=c.parentElement.clientHeight;
+  const x=c.getContext('2d');
+  const W=c.width,H=c.height;
+  x.fillStyle='#06080f';x.fillRect(0,0,W,H);
+  x.strokeStyle='#94a3b8';x.lineWidth=2;
+  x.beginPath();x.moveTo(20,60);x.lineTo(W*0.4,60);x.stroke();
+  x.fillStyle='#475569';x.fillRect(20,60,W*0.4-20,4);
+  x.strokeStyle='#475569';
+  x.beginPath();x.moveTo(0,H-20);x.lineTo(W,H-20);x.stroke();
+  x.fillStyle='#94a3b8';x.font='10px Sarabun';
+  x.fillText('โต๊ะ',25,55);x.fillText('พื้น',5,H-24);
+  const tF=Math.sqrt(2*(H-80)/200), v0c=80;
+  for(let i=0;i<=5;i++){
+    const tt=i/5*tF, yy=0.5*200*tt*tt;
+    const xd=W*0.4, yd=60+yy;
+    x.fillStyle=`rgba(244,114,182,${0.3+i/5*0.7})`;
+    x.beginPath();x.arc(xd,yd,7,0,Math.PI*2);x.fill();
+    const xp=W*0.4+v0c*tt, yp=60+yy;
+    x.fillStyle=`rgba(56,189,248,${0.3+i/5*0.7})`;
+    x.beginPath();x.arc(xp,yp,7,0,Math.PI*2);x.fill();
+    if(i>0){
+      x.strokeStyle='rgba(148,163,184,0.25)';
+      x.setLineDash([2,3]);
+      x.beginPath();x.moveTo(xd+8,yd);x.lineTo(xp-8,yp);x.stroke();
+      x.setLineDash([]);
+    }
+  }
+  x.fillStyle='#f472b6';x.font='11px Sarabun';
+  x.fillText('● ตกตรง',20,H-30);
+  x.fillStyle='#38bdf8';
+  x.fillText('● ยิงข้าง',90,H-30);
+  x.fillStyle='#34d399';x.font='10px Sarabun';
+  x.fillText('y เท่ากันทุกช่วงเวลา → ถึงพื้นพร้อมกัน',W-260,H-30);
+}
+
+// ============ INIT ============
+window.addEventListener('DOMContentLoaded',()=>{
+  const v2s={'vi-h':'sl-h','vi-g':'sl-g','vi-dx':'sl-dx'};
+  function syncVar(){
+    h0=parseFloat(document.getElementById('sl-h').value);
+    g =parseFloat(document.getElementById('sl-g').value);
+    dx=parseFloat(document.getElementById('sl-dx').value);
+    // N คำนวณอัตโนมัติให้ครอบคลุมพื้นที่ canvas (25 cm) ตาม dx
+    N = Math.floor(FIXED_X_MAX / dx);
+    computeV0();
+    document.getElementById('v0val').textContent = v0.toFixed(3);
+    document.getElementById('nval').textContent = N;
+    buildTable();
+    if(mode==='auto') autoFill();
+    resetSim();
+    calcSummary();
+  }
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=document.getElementById(si),inp=document.getElementById(vi);
+    sl.addEventListener('input',()=>{ inp.value=parseFloat(sl.value); syncVar(); });
+    inp.addEventListener('blur',()=>{
+      let vv=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));
+      inp.value=vv; sl.value=vv; syncVar();
+    });
+  });
+  document.getElementById('speedSlider').addEventListener('input',e=>{
+    speed=parseFloat(e.target.value);
+    document.getElementById('speedDisp').textContent=speed.toFixed(1)+'×';
+  });
+  document.getElementById('showTheory').addEventListener('change',draw);
+  document.getElementById('showVector').addEventListener('change',draw);
+
+  N = Math.floor(FIXED_X_MAX / dx);
+  computeV0();
+  document.getElementById('v0val').textContent = v0.toFixed(3);
+  document.getElementById('nval').textContent = N;
+  resizeCanvas();
+  buildTable();
+  draw();
+});
+</script>
+</body>
+</html>

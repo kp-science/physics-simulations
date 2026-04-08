@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KP Science simulation — calibration ยางยืดบนรางอากาศ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.2rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:.2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none;padding:16px 20px}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px}
+@media(max-width:980px){.sim-grid{grid-template-columns:1fr}}
+
+.canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px}
+#simCanvas{width:100%;height:auto;display:block;background:#050810;border-radius:8px;cursor:crosshair}
+
+.ctrl-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.ctrl-panel h3{font-size:0.92rem;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sl-label{font-size:0.8rem;color:var(--muted);flex-shrink:0;min-width:88px}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:0}
+.sl-unit{font-size:0.75rem;color:var(--muted);min-width:26px;flex-shrink:0}
+.val-input{width:58px;padding:2px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.85rem;text-align:center;-moz-appearance:textfield;flex-shrink:0}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+.mode-toggle{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px}
+.mode-toggle button{flex:1;background:transparent;border:none;color:var(--muted);padding:7px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;font-size:0.82rem}
+.mode-toggle button.active{background:var(--accent);color:#0a0e1a}
+
+.btn-row{display:flex;gap:8px}
+.btn{padding:9px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;flex:1;transition:.15s}
+.btn-launch{background:#15803d;color:#fff}
+.btn-launch:hover{background:#16a34a}
+.btn-launch:disabled{background:#334155;cursor:not-allowed;opacity:.5}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-record{background:#a21caf;color:#fff;width:100%}
+.btn-record:hover{background:#c026d3}
+.btn-record:disabled{background:#334155;cursor:not-allowed;opacity:.4}
+.btn-auto{background:#7c3aed;color:#fff;width:100%}
+.btn-auto:hover{background:#8b5cf6}
+
+.readout{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:0.78rem}
+.readout .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed rgba(148,163,184,.15)}
+.readout .row:last-child{border-bottom:none}
+.readout .k{color:var(--muted)}
+.readout .v{color:var(--accent3);font-family:'Share Tech Mono',monospace;font-weight:700}
+
+.hint-box{background:rgba(56,189,248,.08);border-left:3px solid var(--accent);padding:8px 10px;border-radius:6px;font-size:0.78rem;color:var(--muted);line-height:1.55}
+.hint-box strong{color:var(--accent)}
+
+.data-section{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+.data-section h3{font-size:0.92rem;color:var(--accent);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.data-section h3 button{font-size:0.75rem;padding:5px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif}
+.data-section h3 button:hover{border-color:var(--accent4);color:var(--accent4)}
+
+table.cal-table{width:100%;border-collapse:collapse;font-size:0.78rem}
+table.cal-table th,table.cal-table td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--border)}
+table.cal-table th{color:var(--accent);background:var(--panel2);font-weight:600;font-size:0.74rem}
+table.cal-table td{color:var(--text);font-family:'Share Tech Mono',monospace}
+table.cal-table td input{width:80px;background:var(--panel2);border:1px solid var(--accent2);border-radius:4px;color:var(--accent3);padding:4px 6px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.78rem}
+table.cal-table tr.selected{background:rgba(56,189,248,.10)}
+table.cal-table tr.selected td{color:var(--accent)}
+table.cal-table tr:hover td{background:rgba(56,189,248,.05);cursor:pointer}
+table.cal-table tr.selected:hover td{background:rgba(56,189,248,.15)}
+table.cal-table .pe-cell{color:var(--accent3);font-weight:700}
+table.cal-table button.row-test{font-size:0.7rem;padding:4px 8px;background:#15803d;border:none;color:#fff;border-radius:4px;cursor:pointer;font-family:'Sarabun',sans-serif}
+table.cal-table button.row-test:hover{background:#16a34a}
+table.cal-table button.row-test:disabled{background:#334155;cursor:not-allowed}
+
+.chart-section{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+.chart-section h3{font-size:0.92rem;color:var(--accent);margin-bottom:10px}
+#chartCanvas{width:100%;height:280px;background:#050810;border-radius:8px;border:1px solid var(--border);display:block}
+
+.theory-wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.theory-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+.theory-card h2{color:var(--accent);font-size:1.05rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.theory-card p{color:var(--text);line-height:1.7;margin-bottom:8px;font-size:0.88rem}
+.theory-card ul{margin-left:18px;color:var(--text);font-size:0.86rem;line-height:1.75;margin-bottom:8px}
+.theory-card .formula{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);text-align:center;font-size:0.95rem}
+.theory-card canvas{width:100%;background:#050810;border:1px solid var(--border);border-radius:8px;margin-top:8px;display:block}
+.theory-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.theory-grid2{grid-template-columns:1fr}}
+
+.tip{background:rgba(251,146,60,.08);border-left:3px solid var(--accent4);padding:10px 14px;border-radius:6px;color:var(--muted);font-size:0.82rem;line-height:1.6;margin-top:8px}
+.tip strong{color:var(--accent4)}
+
+footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>การวัดพลังงานในยางยืด (Calibration)</h1>
+    <p>Energy Changes — Experiment 20 · ขั้นตอน calibration ยางยืดด้วยถ้วยทรายและพูลเลย์</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง (Simulate)</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ============= TAB SIM ============= -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-grid">
+
+    <div>
+      <div class="canvas-wrap">
+        <canvas id="simCanvas" width="860" height="520"></canvas>
+      </div>
+
+      <div class="readout" style="margin-top:12px">
+        <div class="row"><span class="k">มวลในถ้วย (เลือก)</span><span id="out-mass" class="v">0.010 kg</span></div>
+        <div class="row"><span class="k">น้ำหนัก F = mg</span><span id="out-weight" class="v">0.0980 N</span></div>
+        <div class="row"><span class="k">ระยะยืดยางจริง (สมดุล)</span><span id="out-stretch" class="v">— mm</span></div>
+        <div class="row"><span class="k">caliper อ่านได้</span><span id="out-caliper" class="v">0.000 mm</span></div>
+      </div>
+    </div>
+
+    <div class="ctrl-panel">
+      <h3>⚙️ การตั้งค่า</h3>
+      <div class="sl-row">
+        <span class="sl-label">มุมเอียงราง</span>
+        <input class="sl-range" type="range" id="sl-angle" min="0" max="15" step="0.5" value="0">
+        <input class="val-input" type="number" id="vi-angle" min="0" max="15" step="0.5" value="0">
+        <span class="sl-unit">°</span>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);font-style:italic">
+        * การ calibrate ใช้ราง<strong>แนวระดับ</strong> (0°) เป็นมาตรฐาน — slider มุมไว้ดูภาพราง
+      </div>
+
+      <h3>📋 โหมดบันทึก</h3>
+      <div class="mode-toggle">
+        <button id="mode-manual" class="active" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+        <button id="mode-auto" onclick="setMode('auto')">🤖 อัตโนมัติ</button>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-launch" class="btn btn-launch" onclick="runSelected()">🧪 ทดลองแถวที่เลือก</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+      </div>
+      <button id="btn-record" class="btn btn-record" onclick="manualRecord()" disabled>📝 บันทึกค่า caliper ลงตาราง</button>
+      <button id="btn-runall" class="btn btn-auto" onclick="runAll()">⏩ ทดลองทุกค่าอัตโนมัติ (auto only)</button>
+
+      <div id="hint" class="hint-box">
+        <strong>💡 โหมดบันทึกเอง:</strong>
+        <ol style="margin-top:5px;margin-left:18px;line-height:1.6">
+          <li>คลิกแถวในตารางเพื่อเลือกมวล</li>
+          <li>กด "ทดลอง" → ถ้วยจะตก ดึง glider เข้าหายาง → ยางยืด</li>
+          <li>เมื่อระบบหยุด ใช้ <strong>caliper สีเหลือง</strong> ลากปาก 2 ข้างให้ตรงกับเส้นเริ่มและตำแหน่งถ้วยใหม่</li>
+          <li>กด "บันทึกค่า caliper ลงตาราง" → คอลัมน์ 3 และ 4 จะถูกกรอกอัตโนมัติ</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="data-section">
+    <h3>📊 ตารางบันทึกผลการ Calibrate ยางยืด <button onclick="clearData()">🗑️ ล้างผลวัด</button></h3>
+    <div style="overflow-x:auto">
+      <table class="cal-table" id="calTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>คอลัมน์ 1<br>มวลถ้วย+ทราย<br>m (kg)</th>
+            <th>คอลัมน์ 2<br>น้ำหนัก<br>F = mg (N)</th>
+            <th>คอลัมน์ 3<br>ระยะยืดยาง<br>h (m)</th>
+            <th>คอลัมน์ 4<br>ΔPE_โน้มถ่วง<br>= mgh (J)</th>
+            <th>การทดลอง</th>
+          </tr>
+        </thead>
+        <tbody id="calTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <h3>📈 กราฟ F (น้ำหนัก) vs ระยะยืดยาง — พื้นที่ใต้กราฟ = PE สะสมในยาง</h3>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+</div>
+
+<!-- ============= TAB THEORY ============= -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-card">
+      <h2>🎯 ทำไมต้อง Calibrate ยางยืด?</h2>
+      <p>ในการทดลอง Experiment 20 เราต้องการรู้ว่ายางยืด 1 อันสะสม <strong>พลังงานศักย์</strong> ไว้เท่าไหร่เมื่อถูกยืด ยางยืดในชีวิตจริง <strong style="color:var(--accent4)">ไม่เป็นไปตามกฎของฮุก</strong> (F ≠ kx) จึงคำนวณตรงๆ ไม่ได้</p>
+      <p>วิธีหา PE ของยางคือ <strong>วัดแรง F ที่ยางต้องการ</strong> ในการยืดทีละนิด แล้วบวกพลังงานสะสม การ calibrate ใช้ <em>ถ้วยที่ใส่ทราย + เชือก + พูลเลย์</em> เป็นเครื่องมือวัดแรง</p>
+      <div class="formula">น้ำหนักถ้วย mg = แรงที่ยางออกแรงต้านยืด F</div>
+    </div>
+
+    <div class="theory-grid2">
+      <div class="theory-card">
+        <h2>⚙️ หลักการสมดุล</h2>
+        <p>เมื่อ glider อยู่นิ่ง (สมดุล) ที่ระยะยืด h:</p>
+        <ul>
+          <li>เชือกดึง glider ด้วยแรงตึงเชือก T</li>
+          <li>ยางออกแรงต้าน F<sub>ยาง</sub>(h)</li>
+          <li>ที่ <strong>ถ้วย</strong>: T = m·g (ถ้วยอยู่นิ่ง)</li>
+          <li>ที่ <strong>glider</strong>: T = F<sub>ยาง</sub></li>
+        </ul>
+        <div class="formula">⟹ F<sub>ยาง</sub>(h) = m · g</div>
+        <canvas id="diagramCanvas" width="420" height="280"></canvas>
+      </div>
+
+      <div class="theory-card">
+        <h2>📏 ΔPE ของถ้วยที่ตก</h2>
+        <p>เมื่อใส่ทรายมวล m เข้าไป ถ้วยจะตกลง <em>h</em> เมตร (เท่ากับยางยืด เพราะเชือกไม่ยืด)</p>
+        <p>พลังงานศักย์โน้มถ่วงของถ้วย<strong>ลดลง</strong>:</p>
+        <div class="formula">ΔPE<sub>โน้มถ่วง</sub> = m · g · h</div>
+        <p>พลังงานนี้ถูกถ่ายทอดไปเป็น <strong style="color:#f472b6">PE สะสมในยาง</strong> (ตามกฎอนุรักษ์พลังงาน)</p>
+        <canvas id="triCanvas" width="420" height="240"></canvas>
+      </div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🧮 การหา PE ทั้งหมดของยางจากตาราง Calibration</h2>
+      <p>หลังจากเก็บข้อมูล (m, h) สำหรับมวลหลายๆ ค่า เราจะได้กราฟ <strong>F vs h</strong> ของยาง <strong>พื้นที่ใต้กราฟ</strong> นี้คือพลังงาน PE สะสมในยางเมื่อยืด h เมตร:</p>
+      <div class="formula">PE<sub>ยาง</sub>(h) = ∫₀ʰ F(u) du ≈ Σ F(h<sub>i</sub>) · Δh</div>
+      <p>ในตารางจริง เราคำนวณ ΔPE ทีละขั้น (เพิ่มมวลทีละน้อย) แล้วบวกสะสม กราฟด้านล่างแสดงเส้นโค้ง F(h) ของยางใน simulation นี้:</p>
+      <canvas id="fxCanvas" width="900" height="300"></canvas>
+      <div class="sl-row" style="margin-top:10px;max-width:560px">
+        <span class="sl-label">ดูที่ระยะยืด h =</span>
+        <input class="sl-range" type="range" id="sl-fx" min="0.0005" max="0.006" step="0.0001" value="0.003">
+        <input class="val-input" type="number" id="vi-fx" min="0.5" max="6.0" step="0.1" value="3.0">
+        <span class="sl-unit">mm</span>
+      </div>
+      <div class="tip"><strong>สังเกต:</strong> เส้นโค้งสีชมพู (ยางจริง) <em>โค้งขึ้น</em> — ยางออกแรงเพิ่มเร็วกว่าฮุก เส้นประเทาคือถ้ายางเป็นฮุกจริง พื้นที่จึงต่างกัน</div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🔄 การเปลี่ยนรูปพลังงาน</h2>
+      <p>ตลอดการทดลอง พลังงานเปลี่ยนจาก <strong style="color:#38bdf8">PE โน้มถ่วงของถ้วย</strong> → <strong style="color:#f472b6">PE สะสมในยาง</strong> (พร้อมพลังงานจลน์ชั่วคราวระหว่างทาง)</p>
+      <canvas id="energyCanvas" width="900" height="220"></canvas>
+      <div class="btn-row" style="margin-top:10px;max-width:320px">
+        <button class="btn btn-launch" onclick="playEnergyAnim()">▶ เล่น</button>
+        <button class="btn btn-reset" onclick="stopEnergyAnim()">⏸ หยุด</button>
+      </div>
+      <div class="tip"><strong>กฎอนุรักษ์พลังงาน:</strong> เมื่อระบบหยุด (สมดุล) — KE = 0 ดังนั้น ΔPE_โน้มถ่วง (ลดลง) = ΔPE_ยาง (เพิ่มขึ้น)</div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🎛️ สำรวจ: ถ้วยมวล m ทำให้ยางยืดเท่าไหร่?</h2>
+      <p>ทดลองปรับมวล แล้วดูว่าระบบจะสมดุลที่ระยะยืดเท่าไหร่ (ตามโมเดล F(h) = 2500·h<sup>1.5</sup>):</p>
+      <div class="sl-row" style="margin-top:10px">
+        <span class="sl-label">มวลถ้วย</span>
+        <input class="sl-range" type="range" id="sl-t-mass" min="0.005" max="0.200" step="0.005" value="0.050">
+        <input class="val-input" type="number" id="vi-t-mass" min="0.005" max="0.200" step="0.005" value="0.050">
+        <span class="sl-unit">kg</span>
+      </div>
+      <div class="readout" style="margin-top:10px">
+        <div class="row"><span class="k">น้ำหนัก F = mg</span><span id="tr-F" class="v">— N</span></div>
+        <div class="row"><span class="k">ระยะยืดยางสมดุล h</span><span id="tr-h" class="v">— mm</span></div>
+        <div class="row"><span class="k">ΔPE โน้มถ่วง = mgh</span><span id="tr-pe" class="v">— J</span></div>
+      </div>
+    </div>
+
+    <div class="theory-card">
+      <h2>📖 สรุปสมการสำคัญ</h2>
+      <div class="formula">F<sub>ยาง</sub>(h) = k·h<sup>n</sup>  (non-Hookean, n ≈ 1.5)</div>
+      <div class="formula">ที่สมดุล: F<sub>ยาง</sub>(h) = m·g</div>
+      <div class="formula">ΔPE<sub>โน้มถ่วงของถ้วย</sub> = m · g · h</div>
+      <div class="formula">PE<sub>ยาง</sub>(h<sub>max</sub>) = Σ ΔPE = ∫₀^h<sub>max</sub> F(u) du</div>
+    </div>
+
+  </div>
+</div>
+
+<footer>KP Science simulation · Experiment 20 — Calibration ยางยืดด้วยถ้วยทรายและพูลเลย์</footer>
+
+<script>
+/* ================== PHYSICS ================== */
+const G = 9.8;
+const RB_K = 2500;
+const RB_N = 1.5;
+
+function rubberForce(x) { return RB_K * Math.pow(Math.max(0, x), RB_N); }
+function rubberPE(x) { return RB_K * Math.pow(Math.max(0, x), RB_N + 1) / (RB_N + 1); }
+/* Inverse: given force F, find equilibrium stretch */
+function stretchForForce(F) {
+  if (F <= 0) return 0;
+  return Math.pow(F / RB_K, 1 / RB_N);
+}
+
+/* Preset masses (kg): 10g, 20g, ..., 100g */
+const PRESET_MASSES = [0.010, 0.020, 0.030, 0.040, 0.050, 0.060, 0.070, 0.080, 0.090, 0.100];
+
+/* Visual scale: 1 m of stretch = 25000 px (so 5 mm = 125 px) */
+const STRETCH_PX_PER_M = 25000;
+
+/* ================== STATE ================== */
+const state = {
+  mode: 'manual',
+  angleDeg: 0,
+  selectedRow: 0,
+  running: false,
+  stopped: true,
+  t: 0,
+  stretchCur: 0,
+  stretchEq: 0,
+  autoRunning: false,
+  autoIndex: 0,
+  caliper: { y1: 0, y2: 0, dragging: null, initialized: false }
+};
+
+/* Table data — preset masses, fillable stretch + pe */
+let tableData = PRESET_MASSES.map(m => ({
+  m: m,
+  weight: m * G,
+  stretch: null,  // m
+  pe: null        // J
+}));
+
+let animId = null, lastTs = null;
+
+/* ================== HELPERS ================== */
+function $(id){return document.getElementById(id);}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') {
+    setTimeout(() => { drawDiagram(); drawTri(); drawFX(); drawEnergy(); updateTheoryReadout(); }, 30);
+  } else {
+    setTimeout(() => { resizeCanvas(); drawChart(); }, 30);
+  }
+}
+
+function setMode(m) {
+  state.mode = m;
+  $('mode-manual').classList.toggle('active', m === 'manual');
+  $('mode-auto').classList.toggle('active', m === 'auto');
+  $('hint').innerHTML = (m === 'manual')
+    ? '<strong>💡 โหมดบันทึกเอง:</strong><ol style="margin-top:5px;margin-left:18px;line-height:1.6"><li>คลิกแถวในตารางเพื่อเลือกมวล</li><li>กด "ทดลอง" → ถ้วยจะตก ดึง glider เข้าหายาง</li><li>ใช้ <strong>caliper สีเหลือง</strong> ลากปาก 2 ข้างให้ตรงกับเส้นเริ่ม และตำแหน่งถ้วยใหม่</li><li>กด "บันทึกค่า caliper ลงตาราง"</li></ol>'
+    : '<strong>💡 โหมดอัตโนมัติ:</strong> กด "ทดลองทุกค่าอัตโนมัติ" เพื่อให้ระบบทดลองครบทั้ง 10 ค่ามวล แล้ว fill ตารางและกราฟให้อัตโนมัติ';
+  $('btn-runall').style.display = (m === 'auto') ? 'block' : 'none';
+  $('btn-record').style.display = (m === 'manual') ? 'block' : 'none';
+  updateRecordBtn();
+  draw();
+}
+
+function updateRecordBtn() {
+  const btn = $('btn-record');
+  btn.disabled = !(state.mode === 'manual' && state.stopped && state.stretchEq > 0);
+}
+
+function updateOutputs() {
+  const m = PRESET_MASSES[state.selectedRow];
+  $('out-mass').textContent = m.toFixed(3) + ' kg (' + (m*1000).toFixed(0) + ' g)';
+  $('out-weight').textContent = (m * G).toFixed(4) + ' N';
+  if (state.stopped && state.stretchEq > 0) {
+    $('out-stretch').textContent = (state.stretchEq * 1000).toFixed(3) + ' mm';
+  } else {
+    $('out-stretch').textContent = '— mm';
+  }
+  // caliper reading
+  const calMm = getCaliperReading() * 1000;
+  $('out-caliper').textContent = calMm.toFixed(3) + ' mm';
+}
+
+function getCaliperReading() {
+  // distance between jaws in meters
+  const dy = Math.abs(state.caliper.y2 - state.caliper.y1);
+  return dy / STRETCH_PX_PER_M;
+}
+
+/* ================== EXPERIMENT RUN ================== */
+function selectRow(i) {
+  if (state.running) return;
+  state.selectedRow = i;
+  resetSim();
+  renderTable();
+  updateOutputs();
+}
+
+function runSelected() {
+  runExperiment(state.selectedRow);
+}
+
+function runExperiment(rowIdx) {
+  if (state.running) return;
+  state.selectedRow = rowIdx;
+  const m = PRESET_MASSES[rowIdx];
+  const F = m * G;
+  state.stretchEq = stretchForForce(F);
+  state.stretchCur = 0;
+  state.t = 0;
+  state.running = true;
+  state.stopped = false;
+  lastTs = null;
+  $('btn-launch').disabled = true;
+  renderTable();
+  cancelAnimationFrame(animId);
+  animId = requestAnimationFrame(animLoop);
+}
+
+function animLoop(ts) {
+  if (!state.running) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  state.t += dt;
+
+  /* Critically damped approach to equilibrium */
+  const tau = 0.35;
+  state.stretchCur = state.stretchEq * (1 - Math.exp(-state.t / tau));
+
+  draw();
+  updateOutputs();
+
+  if (state.t > 2.2) {
+    state.stretchCur = state.stretchEq;
+    state.running = false;
+    state.stopped = true;
+    $('btn-launch').disabled = false;
+    /* Set initial caliper position for measuring */
+    setupCaliperForMeasurement();
+    updateRecordBtn();
+    draw();
+    if (state.mode === 'auto') {
+      autoFillRow(state.selectedRow);
+      if (state.autoRunning && state.autoIndex < PRESET_MASSES.length - 1) {
+        state.autoIndex++;
+        setTimeout(() => runExperiment(state.autoIndex), 500);
+      } else {
+        state.autoRunning = false;
+      }
+    }
+  } else {
+    animId = requestAnimationFrame(animLoop);
+  }
+}
+
+function resetSim() {
+  cancelAnimationFrame(animId);
+  state.running = false;
+  state.stopped = true;
+  state.t = 0;
+  state.stretchCur = 0;
+  state.stretchEq = 0;
+  $('btn-launch').disabled = false;
+  state.caliper.initialized = false;
+  updateRecordBtn();
+  updateOutputs();
+  draw();
+}
+
+function setupCaliperForMeasurement() {
+  /* Position caliper jaws: jaw1 at initial cup top (start line), jaw2 at current cup top */
+  const g = getSceneGeom();
+  const cupY0 = g.cupTopY0;
+  state.caliper.y1 = cupY0;
+  state.caliper.y2 = cupY0 + 4; // slightly different so user can see both jaws
+  state.caliper.initialized = true;
+}
+
+function runAll() {
+  if (state.mode !== 'auto' || state.running) return;
+  state.autoRunning = true;
+  state.autoIndex = 0;
+  /* Clear data first */
+  tableData.forEach(r => { r.stretch = null; r.pe = null; });
+  renderTable();
+  drawChart();
+  runExperiment(0);
+}
+
+function autoFillRow(i) {
+  const m = PRESET_MASSES[i];
+  tableData[i].stretch = state.stretchEq;
+  tableData[i].pe = m * G * state.stretchEq;
+  renderTable();
+  drawChart();
+}
+
+function manualRecord() {
+  if (state.mode !== 'manual' || !state.stopped || state.stretchEq <= 0) return;
+  const measured = getCaliperReading();
+  const m = PRESET_MASSES[state.selectedRow];
+  tableData[state.selectedRow].stretch = measured;
+  tableData[state.selectedRow].pe = m * G * measured;
+  renderTable();
+  drawChart();
+}
+
+function clearData() {
+  if (!confirm('ล้างข้อมูลคอลัมน์ 3, 4 ทั้งหมดใช่หรือไม่?')) return;
+  tableData.forEach(r => { r.stretch = null; r.pe = null; });
+  renderTable();
+  drawChart();
+}
+
+/* ================== TABLE ================== */
+function renderTable() {
+  const tb = $('calTbody');
+  tb.innerHTML = tableData.map((r, i) => {
+    const sel = (i === state.selectedRow) ? 'selected' : '';
+    const stretch = r.stretch !== null ? (r.stretch * 1000).toFixed(3) + ' mm' : '—';
+    const pe = r.pe !== null ? r.pe.toFixed(6) : '—';
+    return `<tr class="${sel}" onclick="selectRow(${i})">
+      <td>${i+1}</td>
+      <td>${r.m.toFixed(3)} (${(r.m*1000).toFixed(0)}g)</td>
+      <td>${r.weight.toFixed(4)}</td>
+      <td>${stretch}</td>
+      <td class="pe-cell">${pe}</td>
+      <td><button class="row-test" onclick="event.stopPropagation();selectRow(${i});runExperiment(${i})" ${state.running ? 'disabled' : ''}>▶ ทดลอง</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ================== CANVAS ================== */
+function getSceneGeom() {
+  const c = $('simCanvas');
+  const W = c.width, H = c.height;
+  const angRad = state.angleDeg * Math.PI / 180;
+  /* Pivot at LEFT end of track (where wall + band anchor sit) */
+  const pivotX = 110;
+  const pivotY = H - 220;
+  const trackLenPx = W - 280;
+  const glW = 60;
+  const glH = 26;
+  /* Glider initial position: left edge just past the wall (band unstretched) */
+  const gliderInitLocalX = 14 + glW / 2;
+  /* Pulley at right end of track, AT track level (corner) */
+  const pulleyLocalX = trackLenPx + 4;
+  const pulleyTopOffset = -16 - 4; /* slightly above track surface */
+  const cosA = Math.cos(angRad), sinA = Math.sin(angRad);
+  /* World position of pulley center */
+  const pulleyWX = pivotX + pulleyLocalX * cosA - pulleyTopOffset * sinA;
+  const pulleyWY = pivotY - pulleyLocalX * sinA + pulleyTopOffset * cosA;
+  /* Cup hangs straight down from right side of pulley */
+  const cupX = pulleyWX + 6;
+  const cupTopY0 = pulleyWY + 70;
+  return { W, H, angRad, cosA, sinA, pivotX, pivotY, trackLenPx, glW, glH,
+           gliderInitLocalX, pulleyLocalX, pulleyTopOffset,
+           pulleyWX, pulleyWY, cupX, cupTopY0 };
+}
+
+function resizeCanvas() {
+  const c = $('simCanvas');
+  const w = Math.max(620, c.parentElement.clientWidth - 20);
+  c.width = w;
+  c.height = 520;
+  if (state.caliper.initialized === false) {
+    /* default caliper position */
+    const g = getSceneGeom();
+    state.caliper.y1 = g.cupTopY0 - 20;
+    state.caliper.y2 = g.cupTopY0 + 60;
+  }
+  draw();
+}
+
+function draw() {
+  const c = $('simCanvas');
+  const ctx = c.getContext('2d');
+  const g = getSceneGeom();
+  const { W, H, angRad, cosA, sinA, pivotX, pivotY, trackLenPx, glW, glH,
+          gliderInitLocalX, pulleyLocalX, pulleyTopOffset,
+          pulleyWX, pulleyWY, cupX, cupTopY0 } = g;
+
+  ctx.fillStyle = '#050810';
+  ctx.fillRect(0, 0, W, H);
+
+  /* Title strip */
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('Calibration ยางยืด · มุมราง = ' + state.angleDeg.toFixed(1) + '° (visual)', 14, 18);
+
+  /* Ground line */
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath(); ctx.moveTo(0, H - 30); ctx.lineTo(W, H - 30); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* World positions of track ends */
+  const trackEndX = pivotX + trackLenPx * cosA;
+  const trackEndY = pivotY - trackLenPx * sinA;
+
+  /* Left support (under track left end) */
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(pivotX - 12, pivotY + 4, 24, H - 30 - pivotY - 4);
+  /* Right support */
+  ctx.fillRect(trackEndX - 8, trackEndY + 4, 16, H - 30 - trackEndY - 4);
+
+  const stretchPx = state.stretchCur * STRETCH_PX_PER_M;
+
+  /* === Track-aligned drawing (rotated) === */
+  ctx.save();
+  ctx.translate(pivotX, pivotY);
+  ctx.rotate(-angRad);
+
+  /* Track beam */
+  const tg = ctx.createLinearGradient(0, -16, 0, 0);
+  tg.addColorStop(0, '#3b82f6');
+  tg.addColorStop(1, '#1e3a8a');
+  ctx.fillStyle = tg;
+  ctx.fillRect(0, -16, trackLenPx, 16);
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(0, -16, trackLenPx, 16);
+
+  /* === LEFT WALL BRACKET (band anchor) === */
+  /* Vertical wall on the left edge of track (above and slightly attached to track) */
+  ctx.fillStyle = '#1e3a8a';
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  /* Vertical wall bar */
+  ctx.fillRect(0, -56, 8, 40);
+  ctx.strokeRect(0, -56, 8, 40);
+  /* Horizontal cap on top of wall */
+  ctx.fillRect(0, -60, 22, 6);
+  ctx.strokeRect(0, -60, 22, 6);
+
+  /* === RUBBER BAND (V-shape from wall to glider's left side) === */
+  const glX = gliderInitLocalX + stretchPx; /* glider center */
+  const gliderLeftX = glX - glW/2;
+  const gliderMidY = -16 - glH/2;
+  /* Two anchor points on the wall */
+  const wAnchorX = 8;
+  const aTopY = -50;
+  const aBotY = -20;
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(wAnchorX, aTopY);
+  ctx.lineTo(gliderLeftX, gliderMidY);
+  ctx.moveTo(wAnchorX, aBotY);
+  ctx.lineTo(gliderLeftX, gliderMidY);
+  ctx.stroke();
+  /* Anchor dots */
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath(); ctx.arc(wAnchorX, aTopY, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(wAnchorX, aBotY, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(gliderLeftX, gliderMidY, 2.5, 0, Math.PI*2); ctx.fill();
+
+  /* === GLIDER (orange block like reference) === */
+  ctx.fillStyle = '#fb923c';
+  ctx.fillRect(glX - glW/2, -16 - glH, glW, glH);
+  ctx.strokeStyle = '#c2410c';
+  ctx.lineWidth = 1.8;
+  ctx.strokeRect(glX - glW/2, -16 - glH, glW, glH);
+  /* slight rounded look */
+  ctx.fillStyle = 'rgba(255,255,255,.15)';
+  ctx.fillRect(glX - glW/2 + 2, -16 - glH + 2, glW - 4, 4);
+
+  /* === CORD: from glider RIGHT side along track top to pulley, then around === */
+  const cordY = gliderMidY;
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(glX + glW/2, cordY);
+  ctx.lineTo(pulleyLocalX, cordY);
+  ctx.stroke();
+
+  /* === PULLEY: small circle at right end of track (track-level) === */
+  ctx.fillStyle = '#1e3a8a';
+  ctx.beginPath(); ctx.arc(pulleyLocalX, pulleyTopOffset, 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(pulleyLocalX, pulleyTopOffset, 7, 0, Math.PI*2); ctx.stroke();
+
+  ctx.restore();
+  /* === end track-aligned === */
+
+  /* === CORD from pulley going DOWN to cup (world coords, vertical) === */
+  const cupY = cupTopY0 + stretchPx;
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(cupX, pulleyWY);
+  ctx.lineTo(cupX, cupY);
+  ctx.stroke();
+
+  /* === Initial position dashed line (เส้นเริ่มต้น) === */
+  ctx.strokeStyle = '#34d399';
+  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cupX - 50, cupTopY0);
+  ctx.lineTo(cupX + 130, cupTopY0);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#34d399';
+  ctx.font = '10px Sarabun';
+  ctx.fillText('เส้นเริ่มต้น', cupX - 48, cupTopY0 - 4);
+
+  /* === Current cup top dashed line (when stretched) === */
+  if (stretchPx > 1) {
+    ctx.strokeStyle = '#fb923c';
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(cupX - 30, cupY);
+    ctx.lineTo(cupX + 130, cupY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    /* "h" label between two dashed lines */
+    ctx.fillStyle = '#fb923c';
+    ctx.font = '600 13px Sarabun';
+    ctx.fillText('h', cupX + 50, (cupTopY0 + cupY) / 2 + 4);
+    /* arrow */
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cupX + 60, cupTopY0 + 3);
+    ctx.lineTo(cupX + 60, cupY - 3);
+    ctx.stroke();
+    /* arrow heads */
+    ctx.beginPath();
+    ctx.moveTo(cupX + 60, cupTopY0 + 2);
+    ctx.lineTo(cupX + 57, cupTopY0 + 7);
+    ctx.lineTo(cupX + 63, cupTopY0 + 7);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cupX + 60, cupY - 2);
+    ctx.lineTo(cupX + 57, cupY - 7);
+    ctx.lineTo(cupX + 63, cupY - 7);
+    ctx.closePath(); ctx.fill();
+  }
+
+  /* Cup */
+  drawCup(ctx, cupX, cupY, PRESET_MASSES[state.selectedRow]);
+
+  /* Glider label in world coords (not flipped) */
+  const glLblWX = pivotX + (gliderInitLocalX + stretchPx) * cosA - (-16 - glH/2) * sinA;
+  const glLblWY = pivotY - (gliderInitLocalX + stretchPx) * sinA + (-16 - glH/2) * cosA;
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 10px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('Glider', glLblWX, glLblWY + 4);
+  ctx.textAlign = 'start';
+  /* "ยางยืด" label below band */
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = '10px Sarabun';
+  const bWX = pivotX + 30 * cosA - (-2) * sinA;
+  const bWY = pivotY - 30 * sinA + (-2) * cosA;
+  ctx.fillText('ยางยืด', bWX, bWY);
+
+  /* Vertical fixed ruler on the far right (like reference) */
+  drawFixedRuler(ctx, cupX + 100, cupTopY0);
+
+  /* Caliper (manual mode) — overlay markers */
+  if (state.mode === 'manual') {
+    if (!state.caliper.initialized) {
+      state.caliper.y1 = cupTopY0 - 20;
+      state.caliper.y2 = cupTopY0 + 60;
+    }
+    drawCaliper(ctx, cupX + 100);
+  }
+
+  /* Top-right info */
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px "Share Tech Mono"';
+  ctx.textAlign = 'right';
+  ctx.fillText('m = ' + (PRESET_MASSES[state.selectedRow]*1000).toFixed(0) + ' g', W - 14, 18);
+  ctx.fillText('แถว #' + (state.selectedRow + 1) + ' / 10', W - 14, 34);
+  ctx.fillText('scale: 1 mm = 25 px', W - 14, 50);
+  ctx.textAlign = 'start';
+
+  /* Status text */
+  ctx.fillStyle = state.running ? '#fbbf24' : (state.stretchEq > 0 ? '#34d399' : '#94a3b8');
+  ctx.font = '600 12px Sarabun';
+  if (state.running) {
+    ctx.fillText('⏳ กำลังทดลอง... ถ้วยตกลง ดึง glider ผ่านเชือก ยางยืดออก...', 14, 38);
+  } else if (state.stretchEq > 0) {
+    ctx.fillText('✓ สมดุลแล้ว — ใช้ caliper วัดระยะ h ที่ถ้วยตกลง', 14, 38);
+  } else {
+    ctx.fillText('▶ คลิกแถวในตาราง แล้วกด "ทดลอง"', 14, 38);
+  }
+}
+
+function drawFixedRuler(ctx, cx, originY) {
+  /* Vertical fixed ruler on far right of canvas, with cm scale.
+     originY corresponds to the 0-mark (เส้นเริ่มต้น). Marks go DOWNWARD as positive. */
+  const top = originY - 60;
+  const bottom = originY + 200;
+  /* Ruler body (rectangle) */
+  ctx.fillStyle = 'rgba(96,165,250,.12)';
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(cx - 6, top, 30, bottom - top);
+  ctx.strokeRect(cx - 6, top, 30, bottom - top);
+  /* mm marks: every 0.5 mm = 12.5 px */
+  ctx.strokeStyle = '#60a5fa';
+  ctx.fillStyle = '#bfdbfe';
+  ctx.font = '9px "Share Tech Mono"';
+  for (let i = -5; i <= 80; i++) {
+    const yMark = originY + i * 12.5;
+    if (yMark < top + 2 || yMark > bottom - 2) continue;
+    const major = (i % 4 === 0);
+    const med = (i % 2 === 0);
+    const tickLen = major ? 12 : (med ? 8 : 5);
+    ctx.lineWidth = major ? 1.5 : 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, yMark);
+    ctx.lineTo(cx - 6 + tickLen, yMark);
+    ctx.stroke();
+    if (major && i >= 0) {
+      ctx.fillText(((i * 0.5).toFixed(1)), cx + 8, yMark + 3);
+    }
+  }
+}
+
+function drawCup(ctx, cx, cy, mass) {
+  /* Draw paper cup hanging at (cx, cy) — cy is top of cup */
+  const cupW = 36, cupH = 40;
+  /* Cord attaches at top */
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, cy);
+  ctx.lineTo(cx, cy - 8);
+  ctx.lineTo(cx + 12, cy);
+  ctx.stroke();
+  /* Cup body (trapezoidal) */
+  ctx.fillStyle = '#a78bfa';
+  ctx.beginPath();
+  ctx.moveTo(cx - cupW/2, cy);
+  ctx.lineTo(cx + cupW/2, cy);
+  ctx.lineTo(cx + cupW/2 - 4, cy + cupH);
+  ctx.lineTo(cx - cupW/2 + 4, cy + cupH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#7c3aed';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  /* Sand inside (proportional to mass) */
+  const sandFrac = Math.min(1, mass / 0.12);
+  const sandH = cupH * 0.85 * sandFrac;
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath();
+  const sandTop = cy + cupH - sandH - 2;
+  ctx.moveTo(cx - cupW/2 + 4 + (cupW/2 - 4) * (1 - sandFrac) * 0.3, sandTop);
+  ctx.lineTo(cx + cupW/2 - 4 - (cupW/2 - 4) * (1 - sandFrac) * 0.3, sandTop);
+  ctx.lineTo(cx + cupW/2 - 4, cy + cupH - 2);
+  ctx.lineTo(cx - cupW/2 + 4, cy + cupH - 2);
+  ctx.closePath();
+  ctx.fill();
+  /* Mass label below */
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '600 11px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText((mass*1000).toFixed(0) + ' g', cx, cy + cupH + 14);
+  ctx.textAlign = 'start';
+}
+
+function drawCaliper(ctx, cx) {
+  /* Two draggable horizontal jaws (markers) on the ruler. cx = ruler x position. */
+  const r = state.caliper;
+
+  [['y1', 'A'], ['y2', 'B']].forEach(([key, lbl]) => {
+    const y = r[key];
+    /* Horizontal jaw line extending LEFT from ruler over the cup area */
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx - 100, y);
+    ctx.lineTo(cx + 24, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    /* Handle (drag knob on the LEFT) */
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(cx - 100, y, 9, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#0a0e1a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx - 100, y, 9, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = '#0a0e1a';
+    ctx.font = '700 10px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, cx - 100, y + 3);
+    ctx.textAlign = 'start';
+  });
+
+  /* Reading box (top of ruler) */
+  const dy = Math.abs(r.y2 - r.y1);
+  const mm = (dy / STRETCH_PX_PER_M) * 1000;
+  ctx.fillStyle = 'rgba(10,14,26,.92)';
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(cx + 32, Math.min(r.y1, r.y2) - 8, 88, 22);
+  ctx.strokeRect(cx + 32, Math.min(r.y1, r.y2) - 8, 88, 22);
+  ctx.fillStyle = '#facc15';
+  ctx.font = '700 12px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText('h = ' + mm.toFixed(3) + ' mm', cx + 76, Math.min(r.y1, r.y2) + 7);
+  ctx.textAlign = 'start';
+}
+
+function canvasPoint(e) {
+  const c = $('simCanvas');
+  const rect = c.getBoundingClientRect();
+  const scaleX = c.width / rect.width;
+  const scaleY = c.height / rect.height;
+  const cx = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+  const cy = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
+  return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+}
+
+function setupCaliperDrag() {
+  const c = $('simCanvas');
+  const start = (p) => {
+    if (state.mode !== 'manual') return;
+    const r = state.caliper;
+    const g = getSceneGeom();
+    const cx = g.cupX + 100 - 100; /* drag handle is 100px left of ruler */
+    const d1 = Math.hypot(p.x - cx, p.y - r.y1);
+    const d2 = Math.hypot(p.x - cx, p.y - r.y2);
+    if (d1 < 22 && d1 <= d2) r.dragging = 1;
+    else if (d2 < 22) r.dragging = 2;
+  };
+  const move = (p) => {
+    if (state.mode !== 'manual' || !state.caliper.dragging) return;
+    if (state.caliper.dragging === 1) state.caliper.y1 = p.y;
+    else state.caliper.y2 = p.y;
+    draw();
+    updateOutputs();
+  };
+  c.addEventListener('mousedown', e => start(canvasPoint(e)));
+  c.addEventListener('mousemove', e => move(canvasPoint(e)));
+  window.addEventListener('mouseup', () => { state.caliper.dragging = null; });
+  c.addEventListener('touchstart', e => start(canvasPoint(e)), {passive:true});
+  c.addEventListener('touchmove', e => {
+    if (state.caliper.dragging) { move(canvasPoint(e)); e.preventDefault(); }
+  }, {passive:false});
+  window.addEventListener('touchend', () => { state.caliper.dragging = null; });
+}
+
+/* ================== CHART (F vs h) ================== */
+function drawChart() {
+  const c = $('chartCanvas');
+  const ctx = c.getContext('2d');
+  const W = c.width = c.clientWidth || 800;
+  const H = c.height = 280;
+  ctx.fillStyle = '#050810';
+  ctx.fillRect(0, 0, W, H);
+
+  const pad = 54;
+  const plotW = W - pad * 2;
+  const plotH = H - pad * 2;
+
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.strokeRect(pad, pad, plotW, plotH);
+
+  /* axes labels */
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('ระยะยืดยาง h (mm)', W / 2, H - 10);
+  ctx.save();
+  ctx.translate(14, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('แรง F = mg (N)', 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'start';
+
+  /* Determine ranges */
+  const filled = tableData.filter(r => r.stretch !== null);
+  const hMaxData = Math.max(0.006, ...filled.map(r => r.stretch));
+  const fMaxData = Math.max(1.0, ...filled.map(r => r.weight));
+  const hMaxMm = (hMaxData * 1000) * 1.1;
+  const fMax = fMaxData * 1.1;
+
+  /* grid */
+  ctx.font = '10px "Share Tech Mono"';
+  ctx.fillStyle = '#94a3b8';
+  for (let i = 0; i <= 5; i++) {
+    const y = pad + plotH - (i / 5) * plotH;
+    ctx.strokeStyle = 'rgba(30,58,95,.6)';
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + plotW, y); ctx.stroke();
+    ctx.fillText((fMax * i / 5).toFixed(2), 8, y + 3);
+  }
+  for (let i = 0; i <= 6; i++) {
+    const x = pad + (i / 6) * plotW;
+    ctx.strokeStyle = 'rgba(30,58,95,.6)';
+    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, pad + plotH); ctx.stroke();
+    ctx.fillText((hMaxMm * i / 6).toFixed(1), x - 8, H - pad + 14);
+  }
+
+  /* Theoretical curve F = K·h^N */
+  ctx.strokeStyle = 'rgba(244,114,182,.55)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const hMm = (i / 80) * hMaxMm;
+    const hM = hMm / 1000;
+    const F = rubberForce(hM);
+    const px = pad + (hMm / hMaxMm) * plotW;
+    const py = pad + plotH - Math.min(1, F / fMax) * plotH;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (filled.length === 0) {
+    ctx.fillStyle = '#475569';
+    ctx.textAlign = 'center';
+    ctx.font = '13px Sarabun';
+    ctx.fillText('ยังไม่มีข้อมูล — ทดลองและบันทึกค่าเพื่อสร้างกราฟ', W / 2, H / 2);
+    ctx.textAlign = 'start';
+    return;
+  }
+
+  /* Sort by stretch */
+  const sorted = filled.slice().sort((a, b) => a.stretch - b.stretch);
+
+  /* Area under measured points (PE) */
+  ctx.fillStyle = 'rgba(52,211,153,.18)';
+  ctx.beginPath();
+  ctx.moveTo(pad + (sorted[0].stretch * 1000 / hMaxMm) * plotW, pad + plotH);
+  sorted.forEach(r => {
+    const px = pad + (r.stretch * 1000 / hMaxMm) * plotW;
+    const py = pad + plotH - (r.weight / fMax) * plotH;
+    ctx.lineTo(px, py);
+  });
+  ctx.lineTo(pad + (sorted[sorted.length-1].stretch * 1000 / hMaxMm) * plotW, pad + plotH);
+  ctx.closePath();
+  ctx.fill();
+
+  /* Measured polyline */
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  sorted.forEach((r, i) => {
+    const px = pad + (r.stretch * 1000 / hMaxMm) * plotW;
+    const py = pad + plotH - (r.weight / fMax) * plotH;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  /* Points */
+  sorted.forEach(r => {
+    const px = pad + (r.stretch * 1000 / hMaxMm) * plotW;
+    const py = pad + plotH - (r.weight / fMax) * plotH;
+    ctx.fillStyle = '#34d399';
+    ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI*2); ctx.fill();
+  });
+
+  /* Total measured PE = trapezoidal sum */
+  let totalPE = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const dh = sorted[i].stretch - sorted[i-1].stretch;
+    totalPE += 0.5 * (sorted[i].weight + sorted[i-1].weight) * dh;
+  }
+
+  /* Legend */
+  ctx.fillStyle = '#34d399';
+  ctx.fillRect(W - 220, pad + 6, 14, 3);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('ข้อมูลวัดได้', W - 200, pad + 10);
+  ctx.fillStyle = '#f472b6';
+  ctx.fillRect(W - 220, pad + 24, 14, 3);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillText('ทฤษฎี F=k·h^n', W - 200, pad + 28);
+  ctx.fillStyle = '#fb923c';
+  ctx.font = '600 11px Sarabun';
+  ctx.fillText('PE สะสม ≈ ' + totalPE.toFixed(6) + ' J', W - 220, pad + 48);
+}
+
+/* ================== THEORY CANVASES ================== */
+function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.stroke();
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  const ah = 9;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - ah * Math.cos(ang - 0.4), y2 - ah * Math.sin(ang - 0.4));
+  ctx.lineTo(x2 - ah * Math.cos(ang + 0.4), y2 - ah * Math.sin(ang + 0.4));
+  ctx.closePath();
+  ctx.fill();
+  if (label) {
+    ctx.font = '600 11px Sarabun';
+    ctx.fillText(label, x2 + 8, y2 + 4);
+  }
+}
+
+function drawDiagram() {
+  const c = $('diagramCanvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.clientWidth || 420, H = c.height = 280;
+  ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, W, H);
+
+  /* Schematic of cup-cord-glider-rubberband system */
+  /* Track horizontal */
+  const trackY = 80;
+  ctx.strokeStyle = '#64748b'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(50, trackY); ctx.lineTo(W - 80, trackY); ctx.stroke();
+
+  /* Rubber band at right */
+  const bandX = W - 80;
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(bandX - 4, trackY - 30, 4, 25);
+  ctx.fillRect(bandX - 4, trackY, 4, 25);
+  ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(bandX - 4, trackY - 18);
+  ctx.lineTo(bandX - 30, trackY - 4);
+  ctx.lineTo(bandX - 30, trackY + 4);
+  ctx.lineTo(bandX - 4, trackY + 18);
+  ctx.stroke();
+
+  /* Glider */
+  const gx = bandX - 70;
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(gx - 22, trackY - 22, 44, 22);
+
+  /* Pulley */
+  const px = W - 50, py = trackY - 30;
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#94a3b8';
+  ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.stroke();
+
+  /* Cord */
+  ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(gx + 22, trackY - 11);
+  ctx.lineTo(px - 10, py);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(px + 10, py);
+  ctx.lineTo(px + 10, H - 60);
+  ctx.stroke();
+
+  /* Cup */
+  const cx = px + 10;
+  const cy = H - 60;
+  ctx.fillStyle = '#a78bfa';
+  ctx.beginPath();
+  ctx.moveTo(cx - 16, cy);
+  ctx.lineTo(cx + 16, cy);
+  ctx.lineTo(cx + 12, cy + 30);
+  ctx.lineTo(cx - 12, cy + 30);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  /* Force vectors */
+  drawArrow(ctx, cx, cy + 15, cx, cy + 50, '#f472b6', 'mg');
+  drawArrow(ctx, gx, trackY - 11, gx + 30, trackY - 11, '#fbbf24', 'T');
+  drawArrow(ctx, gx, trackY - 11, gx - 30, trackY - 11, '#34d399', 'F_ยาง');
+
+  /* Labels */
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px Sarabun';
+  ctx.fillText('glider', gx - 14, trackY + 18);
+  ctx.fillText('ยางยืด', bandX - 60, trackY + 40);
+  ctx.fillText('pulley', px - 14, py - 14);
+  ctx.fillText('ถ้วย+ทราย', cx - 22, cy + 50);
+}
+
+function drawTri() {
+  const c = $('triCanvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.clientWidth || 420, H = c.height = 240;
+  ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, W, H);
+
+  /* Show cup at two positions: initial and after drop */
+  const cx = W / 2;
+  const y0 = 50;
+  const yf = 150;
+  /* initial cup (ghost) */
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = '#a78bfa';
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, y0); ctx.lineTo(cx + 18, y0);
+  ctx.lineTo(cx + 14, y0 + 38); ctx.lineTo(cx - 14, y0 + 38);
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+  /* final cup */
+  ctx.fillStyle = '#a78bfa';
+  ctx.beginPath();
+  ctx.moveTo(cx - 18, yf); ctx.lineTo(cx + 18, yf);
+  ctx.lineTo(cx + 14, yf + 38); ctx.lineTo(cx - 14, yf + 38);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  /* h arrow */
+  drawArrow(ctx, cx + 50, y0, cx + 50, yf, '#f472b6', '');
+  drawArrow(ctx, cx + 50, yf, cx + 50, y0, '#f472b6', '');
+  ctx.fillStyle = '#f472b6';
+  ctx.font = '600 14px Sarabun';
+  ctx.fillText('h', cx + 60, (y0 + yf) / 2 + 5);
+
+  /* Labels */
+  ctx.fillStyle = '#34d399';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('ตำแหน่งก่อนตก', cx - 90, y0 - 6);
+  ctx.fillText('ตำแหน่งหลังตก (สมดุล)', cx - 100, yf + 56);
+
+  /* Energy box */
+  ctx.fillStyle = 'rgba(56,189,248,.10)';
+  ctx.fillRect(20, H - 50, W - 40, 36);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.strokeRect(20, H - 50, W - 40, 36);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '600 12px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText('ΔPE = m · g · h', W / 2, H - 28);
+  ctx.textAlign = 'start';
+}
+
+function drawFX() {
+  const c = $('fxCanvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.clientWidth || 900, H = c.height = 300;
+  ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, W, H);
+
+  const pad = 54;
+  const plotW = W - pad * 2;
+  const plotH = H - pad * 2;
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.strokeRect(pad, pad, plotW, plotH);
+
+  const hMaxM = 0.006;
+  const yMax = rubberForce(hMaxM) * 1.1;
+
+  ctx.strokeStyle = 'rgba(30,58,95,.5)';
+  for (let i = 1; i < 6; i++) {
+    const x = pad + (i / 6) * plotW;
+    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, pad + plotH); ctx.stroke();
+  }
+  for (let i = 1; i < 5; i++) {
+    const y = pad + (i / 5) * plotH;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + plotW, y); ctx.stroke();
+  }
+
+  const hCurM = parseFloat($('sl-fx').value);
+
+  /* Area under curve */
+  ctx.fillStyle = 'rgba(244,114,182,.28)';
+  ctx.beginPath();
+  ctx.moveTo(pad, pad + plotH);
+  const N = 90;
+  for (let i = 0; i <= N; i++) {
+    const xv = (i / N) * hCurM;
+    const fv = rubberForce(xv);
+    const px = pad + (xv / hMaxM) * plotW;
+    const py = pad + plotH - (fv / yMax) * plotH;
+    ctx.lineTo(px, py);
+  }
+  ctx.lineTo(pad + (hCurM / hMaxM) * plotW, pad + plotH);
+  ctx.closePath();
+  ctx.fill();
+
+  /* Curve */
+  ctx.strokeStyle = '#f472b6';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let i = 0; i <= 150; i++) {
+    const xv = (i / 150) * hMaxM;
+    const fv = rubberForce(xv);
+    const px = pad + (xv / hMaxM) * plotW;
+    const py = pad + plotH - (fv / yMax) * plotH;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  /* Hooke linear comparison */
+  const kHooke = rubberForce(0.003) / 0.003;
+  ctx.strokeStyle = '#64748b';
+  ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad, pad + plotH);
+  ctx.lineTo(pad + plotW, pad + plotH - (kHooke * hMaxM / yMax) * plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* Indicator line */
+  const xL = pad + (hCurM / hMaxM) * plotW;
+  ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(xL, pad); ctx.lineTo(xL, pad + plotH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* Axis labels */
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('ระยะยืด h (mm)', W / 2, H - 12);
+  for (let i = 0; i <= 6; i++) {
+    const mm = (i / 6) * hMaxM * 1000;
+    ctx.fillText(mm.toFixed(1), pad + (i / 6) * plotW, H - pad + 16);
+  }
+  ctx.save(); ctx.translate(16, H / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('แรงดึงยาง F (N)', 0, 0); ctx.restore();
+  ctx.textAlign = 'start';
+  ctx.font = '10px "Share Tech Mono"';
+  for (let i = 0; i <= 5; i++) {
+    const fv = (i / 5) * yMax;
+    ctx.fillText(fv.toFixed(2), 10, pad + plotH - (i / 5) * plotH + 4);
+  }
+
+  const peVal = rubberPE(hCurM);
+  const fCur = rubberForce(hCurM);
+  ctx.fillStyle = '#f472b6';
+  ctx.font = '600 13px Sarabun';
+  ctx.fillText(`F(${(hCurM*1000).toFixed(1)} mm) = ${fCur.toFixed(3)} N`, pad + 16, pad + 20);
+  ctx.fillStyle = '#fb923c';
+  ctx.fillText(`PE = พื้นที่ใต้กราฟ = ${peVal.toFixed(6)} J`, pad + 16, pad + 40);
+}
+
+/* Energy conversion mini-anim */
+let eT = 0, ePlaying = false, eAnimId = null, eLastTs = null;
+function drawEnergy() {
+  const c = $('energyCanvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.clientWidth || 900, H = c.height = 220;
+  ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, W, H);
+
+  /* Phase: cup falls from 0 → 1, with KE peak at middle then 0 at end */
+  const tCycle = (eT % 5) / 5;
+  let peGrav = 1 - tCycle; /* cup PE decreases linearly with drop */
+  let peRubber = tCycle * tCycle; /* rubber PE grows as h^2 (since F~h^1.5, ∫ ~ h^2.5 actually, ok approx) */
+  let ke = Math.max(0, 1 - peGrav - peRubber);
+  /* normalize to total */
+  const total = peGrav + peRubber + ke;
+  peGrav /= total; peRubber /= total; ke /= total;
+
+  const barMaxW = W - 260;
+  const barH = 26, gap = 12;
+  const startY = 22;
+  const bars = [
+    { name: 'PE โน้มถ่วง (ถ้วย)', val: peGrav, color: '#38bdf8' },
+    { name: 'KE (จลน์ชั่วคราว)', val: ke, color: '#34d399' },
+    { name: 'PE ยาง', val: peRubber, color: '#f472b6' }
+  ];
+  bars.forEach((b, i) => {
+    const y = startY + i * (barH + gap);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 12px Sarabun';
+    ctx.fillText(b.name, 16, y + 18);
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.strokeRect(170, y, barMaxW - 40, barH);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(170, y, (barMaxW - 40) * b.val, barH);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '600 11px "Share Tech Mono"';
+    ctx.fillText((b.val * 100).toFixed(0) + ' %', 170 + barMaxW - 40 + 10, y + 18);
+  });
+
+  const tot = peGrav + ke + peRubber;
+  const ty = startY + 3 * (barH + gap) + 4;
+  ctx.fillStyle = '#fb923c';
+  ctx.font = '600 12px Sarabun';
+  ctx.fillText('รวม = ' + (tot * 100).toFixed(0) + ' %  (พลังงานคงที่ตลอด)', 16, ty + 14);
+}
+
+function eLoop(ts) {
+  if (!eLastTs) eLastTs = ts;
+  const dt = (ts - eLastTs) / 1000;
+  eLastTs = ts;
+  eT += dt;
+  drawEnergy();
+  if (ePlaying) eAnimId = requestAnimationFrame(eLoop);
+}
+function playEnergyAnim() {
+  if (ePlaying) return;
+  ePlaying = true; eLastTs = null;
+  eAnimId = requestAnimationFrame(eLoop);
+}
+function stopEnergyAnim() {
+  ePlaying = false;
+  cancelAnimationFrame(eAnimId);
+}
+
+function updateTheoryReadout() {
+  const m = parseFloat($('sl-t-mass').value);
+  const F = m * G;
+  const h = stretchForForce(F);
+  const pe = m * G * h;
+  $('tr-F').textContent = F.toFixed(4) + ' N';
+  $('tr-h').textContent = (h * 1000).toFixed(3) + ' mm';
+  $('tr-pe').textContent = pe.toFixed(6) + ' J';
+}
+
+/* ================== INIT ================== */
+window.addEventListener('DOMContentLoaded', () => {
+  /* Slider sync */
+  const pairs = {
+    'vi-angle': 'sl-angle',
+    'vi-t-mass': 'sl-t-mass'
+  };
+  function syncVal(inp) {
+    const sl = $(pairs[inp.id]);
+    if (!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(pairs).forEach(([vi, si]) => {
+    const sl = $(si), inp = $(vi);
+    if (!sl || !inp) return;
+    sl.addEventListener('input', () => { inp.value = parseFloat(sl.value); });
+    inp.addEventListener('blur', () => syncVal(inp));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') syncVal(inp); });
+  });
+
+  /* Special handling for sl-fx (theory): display in mm but slider value in m */
+  const slFx = $('sl-fx'), viFx = $('vi-fx');
+  slFx.addEventListener('input', () => {
+    const m = parseFloat(slFx.value);
+    viFx.value = (m * 1000).toFixed(1);
+    drawFX();
+  });
+  viFx.addEventListener('blur', () => {
+    let mm = parseFloat(viFx.value);
+    if (!isFinite(mm)) mm = 1;
+    mm = Math.max(0.5, Math.min(6.0, mm));
+    viFx.value = mm.toFixed(1);
+    slFx.value = (mm / 1000).toFixed(4);
+    drawFX();
+  });
+
+  $('sl-angle').addEventListener('input', e => {
+    state.angleDeg = parseFloat(e.target.value);
+    draw();
+  });
+  $('sl-t-mass').addEventListener('input', updateTheoryReadout);
+
+  setupCaliperDrag();
+  resizeCanvas();
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    drawChart();
+    if ($('tab-theory').classList.contains('active')) {
+      drawDiagram(); drawTri(); drawFX(); drawEnergy();
+    }
+  });
+
+  setMode('manual');
+  renderTable();
+  updateOutputs();
+  drawChart();
+});
+</script>
+</body>
+</html>

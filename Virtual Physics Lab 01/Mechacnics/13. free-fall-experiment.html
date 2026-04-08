@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>การหาค่า g จากการตกอิสระ — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399;
+  --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:'Sarabun','TH Sarabun New',sans-serif; font-size:14px; min-height:100vh; overflow-x:hidden; }
+.mono { font-family:'Share Tech Mono',monospace; }
+
+header { background:linear-gradient(135deg,#0f172a,#1e293b); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; gap:14px; }
+header .icon { font-size:2rem; }
+header h1 { font-size:1.3rem; color:var(--accent); font-weight:700; }
+header p { font-size:0.82rem; color:var(--muted); }
+header .badge { margin-left:auto; background:#1e3a5f; border:1px solid var(--accent); color:var(--accent); padding:3px 12px; border-radius:20px; font-size:0.72rem; font-weight:600; }
+
+nav { display:flex; gap:6px; padding:10px 20px; background:#0f172a; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+nav::-webkit-scrollbar { display:none; }
+nav button { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 18px; border-radius:8px; cursor:pointer; font-family:'Sarabun',sans-serif; font-size:0.88rem; font-weight:600; white-space:nowrap; transition:all .2s; }
+nav button:hover { border-color:var(--accent); color:var(--accent); }
+nav button.active { background:var(--accent); border-color:var(--accent); color:#0a0e1a; }
+
+.tab-section { display:none; }
+.tab-section.active { display:block; animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:none;} }
+
+/* Sim layout */
+.sim-wrap { display:grid; grid-template-columns: 1.25fr 1fr; gap:14px; padding:14px; }
+@media(max-width:1100px){ .sim-wrap{grid-template-columns:1fr;} }
+
+.canvas-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:10px; }
+.canvas-wrap { position:relative; width:100%; height:580px; background:#070b15; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
+#simCanvas { width:100%; height:100%; display:block; }
+
+.cbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 4px 4px; }
+.btn { padding:9px 18px; border:none; border-radius:6px; cursor:pointer; font-family:'Sarabun',sans-serif; font-weight:700; font-size:0.9rem; transition:.15s; color:#fff; }
+.btn-play { background:#1b5e20; }
+.btn-play:hover { background:#2e7d32; }
+.btn-play.playing { background:#b71c1c; }
+.btn-reset { background:#0d47a1; }
+.btn-reset:hover { background:#1565c0; }
+.btn-mode { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+.btn-mode.active { background:var(--accent2); color:#fff; border-color:var(--accent2); }
+
+.right-col { display:flex; flex-direction:column; gap:12px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.card h3 { font-size:0.95rem; color:var(--accent); margin-bottom:10px; display:flex; align-items:center; gap:6px; font-weight:700; }
+
+/* Sliders */
+.sl-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.sl-label { font-size:0.82rem; color:var(--muted); flex-shrink:0; min-width:100px; }
+.sl-range { flex:1; accent-color:var(--accent); cursor:pointer; min-width:60px; }
+.sl-unit { font-size:0.78rem; color:var(--muted); min-width:30px; }
+.val-input { width:62px; padding:3px 6px; background:var(--panel2); border:1.5px solid var(--accent2); border-radius:5px; color:var(--accent3); font-weight:700; font-size:0.85rem; text-align:center; -moz-appearance:textfield; flex-shrink:0; font-family:'Share Tech Mono',monospace; }
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.val-input:focus { outline:none; border-color:var(--accent); }
+
+/* Mode toggle */
+.mode-toggle { display:flex; gap:0; background:var(--panel2); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.mode-toggle button { flex:1; padding:9px 10px; background:transparent; border:none; color:var(--muted); cursor:pointer; font-family:'Sarabun',sans-serif; font-weight:600; font-size:0.85rem; transition:.15s; }
+.mode-toggle button.active { background:var(--accent); color:#0a0e1a; }
+
+.planet-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.planet-btn { padding:5px 10px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; font-size:0.78rem; font-family:'Sarabun',sans-serif; transition:.15s; }
+.planet-btn:hover { border-color:var(--accent); color:var(--accent); }
+.planet-btn.active { background:var(--accent); border-color:var(--accent); color:#0a0e1a; }
+
+/* Measurement display (big numbers after collision) */
+.measure-box {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  border:1px solid var(--accent); border-radius:10px;
+  padding:12px; margin-top:8px;
+}
+.measure-item { text-align:center; }
+.measure-label { font-size:0.72rem; color:var(--muted); margin-bottom:3px; }
+.measure-val { font-family:'Share Tech Mono',monospace; font-size:1.5rem; color:var(--accent3); font-weight:700; }
+.measure-val.waiting { color:var(--muted); }
+
+/* Manual input grid */
+.input-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.input-grid .field { display:flex; flex-direction:column; gap:3px; }
+.input-grid label { font-size:0.78rem; color:var(--muted); }
+.input-grid input { padding:9px 12px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:1rem; }
+.input-grid input:focus { outline:none; border-color:var(--accent); }
+
+.calc-result {
+  background:rgba(52,211,153,0.1); border:1px solid var(--accent3);
+  border-radius:8px; padding:10px; margin-top:10px; text-align:center;
+  font-family:'Share Tech Mono',monospace;
+}
+.calc-result .big { font-size:1.4rem; color:var(--accent3); font-weight:700; }
+.calc-result .small { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+/* Trial table */
+.trial-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+.trial-table th { background:var(--panel2); color:var(--accent); padding:8px 6px; border-bottom:1px solid var(--border); text-align:center; font-weight:700; }
+.trial-table td { padding:7px 6px; border-bottom:1px solid #1a2235; text-align:center; font-family:'Share Tech Mono',monospace; }
+.trial-table tr:hover td { background:#0f1726; }
+.trial-table .del { color:#f87171; cursor:pointer; font-weight:700; }
+.trial-table .del:hover { color:#fca5a5; }
+.trial-table .empty { color:var(--muted); padding:18px; font-family:'Sarabun',sans-serif; }
+.trial-table tfoot td { background:var(--panel2); color:var(--accent3); font-weight:700; border-top:2px solid var(--border); }
+
+/* Hint box */
+.hint { background:rgba(56,189,248,0.08); border-left:3px solid var(--accent); border-radius:6px; padding:10px 12px; margin-top:8px; font-size:0.82rem; color:var(--muted); line-height:1.6; }
+.hint strong { color:var(--accent); }
+.hint ol { padding-left:18px; margin:4px 0; }
+.hint li { margin-bottom:2px; }
+
+/* Theory */
+.theory-wrap { padding:20px; max-width:1100px; margin:0 auto; }
+.theory-section { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:16px; }
+.theory-section h2 { color:var(--accent); margin-bottom:14px; font-size:1.15rem; display:flex; align-items:center; gap:8px; font-weight:700; }
+.theory-section h3 { color:var(--accent2); margin:16px 0 8px; font-size:1rem; font-weight:700; }
+.theory-section p { line-height:1.75; color:var(--text); margin-bottom:10px; }
+.theory-section ul { padding-left:24px; line-height:1.8; color:var(--text); margin:8px 0; }
+.theory-section li { margin-bottom:4px; }
+.formula { background:var(--panel2); padding:14px 18px; border-radius:8px; text-align:center; font-family:'Share Tech Mono',monospace; font-size:1.15rem; color:var(--accent3); margin:12px 0; border-left:3px solid var(--accent); }
+.formula small { display:block; color:var(--muted); font-size:0.78rem; margin-top:6px; font-family:'Sarabun',sans-serif; }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media(max-width:768px){ .compare-grid{grid-template-columns:1fr;} }
+.compare-card { background:var(--panel2); border-radius:8px; padding:14px; border:1px solid var(--border); }
+.compare-card h4 { color:var(--accent); margin-bottom:10px; font-size:0.95rem; }
+.compare-card canvas { width:100%; height:200px; background:#070b15; border-radius:6px; display:block; }
+.compare-card p { font-size:0.82rem; color:var(--muted); line-height:1.5; margin-top:8px; }
+
+.error-box { background:rgba(251,146,60,0.08); border-left:3px solid var(--accent4); padding:14px 16px; border-radius:6px; margin:12px 0; }
+.error-box h4 { color:var(--accent4); margin-bottom:8px; font-size:0.95rem; }
+.error-box p { font-size:0.86rem; color:var(--text); line-height:1.6; }
+
+.viz-canvas { width:100%; height:280px; background:#070b15; border-radius:8px; display:block; margin:12px 0; border:1px solid var(--border); }
+
+.note-box { background:rgba(129,140,248,0.08); border-left:3px solid var(--accent2); padding:12px 14px; border-radius:6px; margin:10px 0; font-size:0.86rem; color:var(--text); line-height:1.6; }
+.note-box strong { color:var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>การหาค่าความเร่งโน้มถ่วง (g) จากการตกอิสระ</h1>
+    <p>Experiment 13 — Acceleration of Free Fall</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 ทดลอง</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ============== TAB: SIMULATION ============== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-wrap">
+
+    <!-- LEFT: Canvas -->
+    <div class="canvas-card">
+      <div class="canvas-wrap">
+        <canvas id="simCanvas"></canvas>
+      </div>
+      <div class="cbar">
+        <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ ปล่อย</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ เริ่มใหม่</button>
+        <span style="color:var(--muted); font-size:0.82rem; margin-left:auto;">
+          ⏱ ความเร็ว
+        </span>
+        <input type="range" id="sl-speed" min="0.1" max="1" step="0.05" value="0.3" style="width:120px; accent-color:var(--accent);">
+        <span id="speed-val" class="mono" style="color:var(--accent3); font-size:0.85rem; min-width:36px;">0.30×</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls -->
+    <div class="right-col">
+
+      <div class="card">
+        <h3>⚙️ ตั้งค่าการทดลอง</h3>
+
+        <div class="sl-row">
+          <span class="sl-label">ค่า g จริง</span>
+          <input class="sl-range" type="range" id="sl-g" min="1.6" max="25" step="0.1" value="9.8">
+          <input class="val-input" type="number" id="vi-g" min="1.6" max="25" step="0.1" value="9.8">
+          <span class="sl-unit">m/s²</span>
+        </div>
+
+        <div class="planet-row">
+          <button class="planet-btn active" onclick="setPlanet(9.80,this)">🌍 โลก</button>
+          <button class="planet-btn" onclick="setPlanet(1.62,this)">🌙 ดวงจันทร์</button>
+          <button class="planet-btn" onclick="setPlanet(3.71,this)">🔴 ดาวอังคาร</button>
+          <button class="planet-btn" onclick="setPlanet(8.87,this)">🟢 ดาวศุกร์</button>
+          <button class="planet-btn" onclick="setPlanet(24.79,this)">🟡 ดาวพฤหัส</button>
+        </div>
+
+        <div class="sl-row" style="margin-top:12px;">
+          <span class="sl-label">ความยาวไม้ L</span>
+          <input class="sl-range" type="range" id="sl-len" min="0.80" max="1.20" step="0.05" value="1.00">
+          <input class="val-input" type="number" id="vi-len" min="0.80" max="1.20" step="0.05" value="1.00">
+          <span class="sl-unit">m</span>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label">มุมเริ่มต้น</span>
+          <input class="sl-range" type="range" id="sl-disp" min="10" max="30" step="1" value="20">
+          <input class="val-input" type="number" id="vi-disp" min="10" max="30" step="1" value="20">
+          <span class="sl-unit">cm</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📏 ค่าที่วัดได้จากการทดลอง</h3>
+        <div class="measure-box">
+          <div class="measure-item" id="measure-t">
+            <div class="measure-label">⏱ เวลาที่ลูกบอลตก (อัตโนมัติ)</div>
+            <div class="measure-val waiting" id="disp-t">— s</div>
+          </div>
+          <div class="measure-item" id="measure-s">
+            <div class="measure-label">📏 ระยะตก s (บนไม้)</div>
+            <div class="measure-val waiting" id="disp-s">— m</div>
+          </div>
+        </div>
+        <div class="hint" id="measure-hint">
+          <strong>💡 วิธีวัด:</strong> กด "ปล่อย" → ลูกบอลจะตกและชนไม้ตรงแนวดิ่ง → <strong>เวลา t</strong> บันทึกอัตโนมัติ → <strong>ระยะ s</strong> อ่านจากภาพขยายด้านล่าง (โหมดบันทึกเอง)
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🎯 โหมดบันทึกข้อมูล</h3>
+        <div class="mode-toggle">
+          <button class="active" id="mode-manual-btn" onclick="setMode('manual')">📝 บันทึกเอง</button>
+          <button id="mode-auto-btn" onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+
+        <!-- Manual UI -->
+        <div id="manual-ui" style="margin-top:12px;">
+          <div class="hint" style="margin-top:0;">
+            <strong>📝 โหมดบันทึกเอง:</strong> เวลา t บันทึกให้อัตโนมัติ — ให้นักเรียน<strong>อ่านค่า s จากภาพขยายด้านล่าง</strong> แล้วกรอกในช่อง s (ฝึกทักษะการอ่านไม้บรรทัด)
+          </div>
+
+          <div style="margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:0.8rem; color:var(--accent);">🔍 ภาพขยายตำแหน่งชน</span>
+              <span style="font-size:0.72rem; color:var(--muted);">อ่านค่าที่<strong style="color:var(--accent3);">ขอบบน</strong>ของรอยสีดำ</span>
+            </div>
+            <canvas id="magCanvas" style="width:100%; height:240px; background:#070b15; border-radius:8px; border:1px solid var(--border); display:block;"></canvas>
+          </div>
+
+          <div class="input-grid" style="margin-top:10px;">
+            <div class="field">
+              <label>t เวลาตก (อัตโนมัติ)</label>
+              <input type="number" id="in-t" placeholder="รอการทดลอง..." step="0.001" readonly style="background:rgba(52,211,153,0.08); border-color:var(--accent3); color:var(--accent3);">
+            </div>
+            <div class="field">
+              <label>s ระยะตก (cm) — นักเรียนอ่านเอง</label>
+              <input type="number" id="in-s" placeholder="เช่น 81.7" step="0.1">
+            </div>
+          </div>
+          <button class="btn btn-play" style="width:100%; margin-top:10px;" onclick="manualCalcAndSave()">
+            💾 คำนวณ g และบันทึกลงตาราง
+          </button>
+          <div id="calc-result" style="display:none;"></div>
+        </div>
+
+        <!-- Auto UI -->
+        <div id="auto-ui" style="display:none; margin-top:12px;">
+          <div class="hint" style="margin-top:0;">
+            <strong>⚡ โหมดอัตโนมัติ:</strong> ระบบจะคำนวณและบันทึกค่า t, s, g ให้เลย เหมาะกับการทดลองซ้ำเร็วๆ เพื่อเปรียบเทียบในเงื่อนไขต่างๆ
+          </div>
+          <button class="btn btn-play" style="width:100%; margin-top:10px;" onclick="autoSave()">
+            💾 บันทึกค่าปัจจุบันลงตาราง
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Trials table & summary -->
+  <div style="padding:0 14px 24px;">
+    <div class="card">
+      <h3>📋 ตารางบันทึกผลการทดลอง</h3>
+      <div style="overflow-x:auto;">
+        <table class="trial-table">
+          <thead>
+            <tr>
+              <th>Trial</th>
+              <th>t (s)</th>
+              <th>s (m)</th>
+              <th>g = 2s/t² (m/s²)</th>
+              <th>%error</th>
+              <th>g ตั้งไว้</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="trial-tbody">
+            <tr><td colspan="7" class="empty">— ยังไม่มีข้อมูล กดปุ่มบันทึกเพื่อเพิ่ม Trial —</td></tr>
+          </tbody>
+          <tfoot id="trial-tfoot"></tfoot>
+        </table>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.85rem; color:var(--muted);">📈 กราฟ g จากแต่ละ Trial (เส้นแดง = ค่ามาตรฐาน 9.8 m/s²)</span>
+          <button class="btn btn-mode" onclick="clearTrials()" style="font-size:0.78rem; padding:5px 14px;">🗑 ล้างทั้งหมด</button>
+        </div>
+        <canvas id="gChart" style="width:100%; height:200px; background:#070b15; border-radius:8px; border:1px solid var(--border);"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== TAB: THEORY ============== -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-section">
+      <h2>🎯 หลักการของการทดลอง</h2>
+      <p>ลูกวัตถุที่ตกอย่างอิสระมีความเร่งสูง ถ้าจะวัด <strong>เวลาตก</strong> โดยตรงด้วยนาฬิกาจับเวลา มักทำได้ยากเพราะเวลาน้อยมาก (ประมาณ 0.4 วินาทีเท่านั้น!) การทดลองนี้ใช้ <strong style="color:var(--accent);">ไม้เมตรที่แกว่งเป็นเพนดูลัม</strong> เป็นเหมือน "นาฬิกา" ที่แม่นยำและวัดเวลาตกของลูกบอลได้อัตโนมัติ</p>
+      <p>วิธีฉลาด: วาง <strong style="color:var(--accent3);">ลูกบอล</strong> ไว้ที่ตำแหน่ง "0" ของไม้เมตร (ใกล้จุดหมุน) แล้ว<strong style="color:var(--accent2);">ปล่อยลูกบอลและไม้พร้อมกัน</strong> — ลูกบอลจะตกอิสระลงมา ในขณะที่ไม้แกว่งจากตำแหน่งเอียงไปยังแนวดิ่ง ทั้งสองจะ<strong>ชนกันพอดี</strong>ในขณะที่ไม้ผ่านแนวดิ่ง (ซึ่งเกิดที่เวลา <span class="mono">t = T/4</span>)</p>
+      <canvas class="viz-canvas" id="vizPrinciple"></canvas>
+      <div class="note-box">
+        <strong>💡 เคล็ดลับ:</strong> เราแค่ต้องรู้เวลา <strong>t</strong> ที่ลูกบอลตก (= 1/4 ของคาบไม้เมตร) และระยะ <strong>s</strong> ที่ตก (อ่านจากรอยบนไม้) ก็สามารถคำนวณ g ได้จากสมการ g = 2s/t²
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>⚖️ ไม้เมตรเป็น "Physical Pendulum" ไม่ใช่ Simple Pendulum</h2>
+      <p>ไม้เมตรที่แกว่งเป็น <strong>"physical pendulum"</strong> — มวลกระจายตลอดความยาวของไม้ ต่างจาก <strong>simple pendulum</strong> ที่มวลเกือบทั้งหมดรวมที่ลูกตุ้ม (bob)</p>
+
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h4>🔵 Simple Pendulum</h4>
+          <canvas id="vizSimple"></canvas>
+          <p>มวลรวมที่ปลาย → ใช้สมการ <span class="mono">T = 2π√(L/g)</span></p>
+        </div>
+        <div class="compare-card">
+          <h4>🟠 Physical Pendulum (ไม้เมตร)</h4>
+          <canvas id="vizPhysical"></canvas>
+          <p>มวลกระจายทั้งไม้ → <strong style="color:var(--accent4);">สูตร simple pendulum ใช้ไม่ได้!</strong></p>
+        </div>
+      </div>
+
+      <h3>📐 สมการคาบของไม้เมตร (แกว่งรอบปลายข้างหนึ่ง)</h3>
+      <div class="formula">T = 2π √(I / mgd) = 2π √((⅓mL²) / (mg · L/2)) = 2π √(2L / 3g)
+        <small>เมื่อ L = 1.00 m และ g = 9.8 m/s² → T ≈ 1.639 s</small>
+      </div>
+      <p>ในสูตรนี้ใช้ <span class="mono">I = (1/3)mL²</span> (โมเมนต์ความเฉื่อยของไม้สม่ำเสมอรอบปลาย) และ <span class="mono">d = L/2</span> (ระยะจากจุดหมุนถึงจุดศูนย์กลางมวล)</p>
+
+      <div class="note-box">
+        <strong>⚠️ สังเกตสำคัญ — มวลไม้ไม่มีผลต่อการคำนวณ!</strong><br>
+        ในการจัดรูปสมการ ตัว <span class="mono">m</span> ที่เป็นมวลของไม้ <strong>ตัดกันหาย</strong> ระหว่างเศษกับส่วน (เพราะทั้ง <span class="mono">I</span> และ <span class="mono">mgd</span> ต่างมี m อยู่) เหลือแต่ความยาว L และความเร่ง g เท่านั้น<br><br>
+        ดังนั้น <strong>ไม้เมตรที่หนักหรือเบาจะมีคาบ T เท่ากัน</strong> (สำหรับไม้สม่ำเสมอที่ยาวเท่ากัน) และค่า g ที่คำนวณได้จะเท่ากัน — เหมือนกับที่มวลของลูกตุ้ม (bob) ในเพนดูลัมธรรมดาไม่มีผลต่อคาบเช่นกัน
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>⏱ ทำไมเวลาตกจึงเป็น t = T/4 พอดี?</h2>
+      <p>เพนดูลัมเคลื่อนที่แบบ <strong>Simple Harmonic Motion (SHM)</strong> เมื่อปล่อยจากตำแหน่งสุดข้างหนึ่ง ไม้จะใช้เวลา <strong>หนึ่งในสี่ของคาบ (T/4)</strong> เพื่อมาถึงตำแหน่งสมดุล (แนวดิ่ง)</p>
+      <canvas class="viz-canvas" id="vizQuarter"></canvas>
+      <p>เราตั้งระบบให้ลูกบอลเริ่มต้นที่ตำแหน่ง "0" ของไม้ (ระดับเดียวกับจุดหมุน) ดังนั้นเมื่อปล่อย:</p>
+      <ul>
+        <li>⏱ ลูกบอลตกอิสระ → <span class="mono">s = ½gt²</span></li>
+        <li>🔄 ไม้แกว่งไปแนวดิ่งที่เวลา <span class="mono">t = T/4</span></li>
+        <li>💥 ทั้งสองชนกันพอดี — เรารู้ว่าลูกบอลตกใช้เวลาเท่ากับ T/4</li>
+      </ul>
+    </div>
+
+    <div class="theory-section">
+      <h2>🧮 สูตรคำนวณค่า g</h2>
+      <p>จากสมการการตกอิสระ <span class="mono">s = ½gt²</span> แก้สมการหา g ได้:</p>
+      <div class="formula" style="font-size:1.5rem;">g = 2s / t²</div>
+      <h3>ตัวอย่างการคำนวณ (จากข้อมูลในใบทดลอง Trial 1)</h3>
+      <div class="formula" style="text-align:left; font-size:0.95rem;">
+        วัดคาบไม้: T = 1.64 s<br>
+        เวลาตก: t = T/4 = 0.410 s<br>
+        ระยะตก: s = 0.817 m<br>
+        <br>
+        g = 2(0.817) / (0.410)²<br>
+        &nbsp;&nbsp;= 1.634 / 0.1681<br>
+        &nbsp;&nbsp;<strong style="color:var(--accent3);">≈ 9.7 m/s² &nbsp;&nbsp; (%error ≈ 1.0%)</strong>
+      </div>
+      <div class="note-box">
+        <strong>📌 ในชั้นเรียนจริง:</strong> นักเรียนวัดเวลา 10 รอบ (10T) แล้วหารด้วย 10 เพื่อให้ค่า T แม่นยำ จากนั้นหาร 4 เพื่อได้ t — การวัด 10 รอบช่วยลดความคลาดเคลื่อนในการกดจับเวลา (ใน simulation นี้เราให้ค่า t โดยตรงเพราะเวลาในคอมพิวเตอร์แม่นยำสมบูรณ์)
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h2>⚠️ แหล่งของความคลาดเคลื่อนในการทดลองจริง</h2>
+
+      <div class="error-box">
+        <h4>1. แรงเสียดทานของอากาศ (Air friction)</h4>
+        <p>อากาศต้านการแกว่งของไม้เมตร → ทำให้ <strong>คาบ T เพิ่มขึ้น</strong> เล็กน้อย → t = T/4 ก็เพิ่ม → คำนวณได้ <strong>g น้อยกว่าค่าจริง</strong></p>
+      </div>
+
+      <div class="error-box">
+        <h4>2. แรงเสียดทานของเชือกกับตะปู</h4>
+        <p>เชือกที่คล้องผ่านตะปูตัวบนมีแรงเสียดทาน → ลูกบอลตกช้ากว่าการตกอิสระเล็กน้อย → <strong>ระยะตก s ลดลง</strong> → คำนวณได้ <strong>g น้อยกว่าค่าจริง</strong></p>
+      </div>
+
+      <div class="error-box">
+        <h4>3. ผลรวมของความคลาดเคลื่อน</h4>
+        <p>ทั้งสองเหตุผลทำให้ค่า g ที่วัดได้ <em>น้อยกว่า</em> 9.8 m/s² — ความคลาดเคลื่อนทั้งสอง <strong>เสริมกัน</strong> (ไม่หักล้างกัน) จึงควรคาดว่าค่า g ที่วัดได้ในห้องเรียนจะอยู่ในช่วง 9.6 - 9.8 m/s²</p>
+      </div>
+
+      <h3>💡 คำถามน่าคิด: ถ้าเพิ่มมวลที่ปลายไม้ g จะเปลี่ยนไหม?</h3>
+      <p>ถ้าใส่ clamp หนักที่ปลายล่างของไม้: คาบ T <strong>เพิ่มขึ้น</strong> → t เพิ่ม → s เพิ่ม — แต่อัตราส่วน 2s/t² <strong>ยังคงเดิม</strong> ดังนั้นค่า g ที่ได้จะ <em>ไม่เปลี่ยนแปลงอย่างมีนัยสำคัญ</em> (สองเอฟเฟกต์หักล้างกัน)</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+let L = 1.00;
+let gSet = 9.80;
+let dispCm = 20;
+const STD_G = 9.80;
+
+let mode = 'manual';
+let speed = 0.3;
+
+let animTime = 0;
+let isPlaying = false;
+let lastTs = null;
+let animId = null;
+let collided = false;
+let measuredT = 0;
+let measuredS = 0;
+
+const trials = [];
+
+// ==================== PHYSICS ====================
+function computeT() { return 2 * Math.PI * Math.sqrt(2 * L / (3 * gSet)); }
+function computeQuarter() { return computeT() / 4; }
+function computeS() { const t = computeQuarter(); return 0.5 * gSet * t * t; }
+function theta0() {
+  const r = (dispCm/100) / L;
+  return Math.asin(Math.min(0.999, r));
+}
+
+// ==================== TAB ====================
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') drawTheoryViz();
+}
+
+// ==================== MODE ====================
+function setMode(m) {
+  mode = m;
+  document.getElementById('mode-manual-btn').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto-btn').classList.toggle('active', m==='auto');
+  document.getElementById('manual-ui').style.display = m==='manual' ? 'block' : 'none';
+  document.getElementById('auto-ui').style.display   = m==='auto'   ? 'block' : 'none';
+  // Hide s display in manual mode (student must read from magnifier)
+  document.getElementById('measure-s').style.display = m==='manual' ? 'none' : 'block';
+  const box = document.querySelector('.measure-box');
+  if (box) box.style.gridTemplateColumns = m==='manual' ? '1fr' : '1fr 1fr';
+  if (m === 'manual') drawMagnifier();
+}
+function setPlanet(g, btn) {
+  document.getElementById('sl-g').value = g;
+  document.getElementById('vi-g').value = g;
+  gSet = g;
+  document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  resetSim();
+}
+
+// ==================== ANIMATION ====================
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let scale, pivotX, pivotY, upperNailY;
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  setupGeometry();
+  draw();
+}
+function setupGeometry() {
+  const H = canvas.height, W = canvas.width;
+  scale = (H - 100) / 1.25;
+  pivotX = Math.max(W * 0.42, 200);
+  pivotY = 60;
+  upperNailY = pivotY - 22;
+}
+
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs)/1000, 0.04) * speed;
+  lastTs = ts;
+  animTime += dt;
+
+  if (!collided && animTime >= computeQuarter()) {
+    collided = true;
+    measuredT = computeQuarter();
+    measuredS = computeS();
+    updateMeasurementDisplay();
+    // auto-fill t in manual mode and draw magnifier
+    if (mode === 'manual') {
+      document.getElementById('in-t').value = measuredT.toFixed(3);
+    }
+    drawMagnifier();
+    // stop automatically
+    setTimeout(() => {
+      if (isPlaying) togglePlay();
+    }, 100);
+  }
+  draw();
+  if (isPlaying) animId = requestAnimationFrame(loop);
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    if (collided) {
+      // Reset before replaying
+      animTime = 0;
+      collided = false;
+      measuredT = 0;
+      measuredS = 0;
+      clearMeasurementDisplay();
+    }
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = collided ? '▶ ทดลองอีกครั้ง' : '▶ ปล่อย';
+    btn.classList.remove('playing');
+  }
+}
+function resetSim() {
+  cancelAnimationFrame(animId);
+  isPlaying = false;
+  animTime = 0;
+  lastTs = null;
+  collided = false;
+  measuredT = 0;
+  measuredS = 0;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = '▶ ปล่อย';
+  btn.classList.remove('playing');
+  clearMeasurementDisplay();
+  // clear auto-filled t in manual mode
+  const inT = document.getElementById('in-t');
+  if (inT) inT.value = '';
+  setupGeometry();
+  draw();
+  drawMagnifier();
+}
+
+function updateMeasurementDisplay() {
+  const dt = document.getElementById('disp-t');
+  const ds = document.getElementById('disp-s');
+  dt.textContent = measuredT.toFixed(3) + ' s';
+  ds.textContent = measuredS.toFixed(3) + ' m';
+  dt.classList.remove('waiting');
+  ds.classList.remove('waiting');
+}
+function clearMeasurementDisplay() {
+  const dt = document.getElementById('disp-t');
+  const ds = document.getElementById('disp-s');
+  dt.textContent = '— s';
+  ds.textContent = '— m';
+  dt.classList.add('waiting');
+  ds.classList.add('waiting');
+}
+
+// ==================== DRAW ====================
+function draw() {
+  if (!canvas.width) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // background grid
+  ctx.strokeStyle = 'rgba(56,189,248,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // table
+  ctx.fillStyle = '#1a2235';
+  ctx.fillRect(0, H-26, W, 26);
+  ctx.strokeStyle = '#2d3a52';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0,H-26); ctx.lineTo(W,H-26); ctx.stroke();
+
+  // ringstand pole
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(48, 30, 8, H-56);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(28, H-38, 50, 12);
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(38, H-26, 30, 8);
+
+  // Dowel arm
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(56, pivotY - 7, pivotX - 56 - 10, 6);
+  ctx.fillStyle = '#64748b';
+  ctx.beginPath();
+  ctx.arc(56, pivotY - 4, 6, 0, Math.PI*2);
+  ctx.fill();
+
+  // Dowel block
+  ctx.fillStyle = '#a16207';
+  ctx.fillRect(pivotX - 14, upperNailY - 8, 28, (pivotY - upperNailY) + 22);
+  ctx.strokeStyle = '#78350f';
+  ctx.strokeRect(pivotX - 14, upperNailY - 8, 28, (pivotY - upperNailY) + 22);
+
+  // Nails
+  ctx.fillStyle = '#cbd5e1';
+  ctx.beginPath(); ctx.arc(pivotX, upperNailY, 4, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(pivotX, upperNailY, 4, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#cbd5e1';
+  ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(pivotX, pivotY, 4, 0, Math.PI*2); ctx.stroke();
+
+  // Angle of stick
+  let theta;
+  const Tp = computeT();
+  const omega = 2 * Math.PI / Tp;
+  if (!isPlaying && animTime === 0) {
+    theta = theta0();
+  } else if (collided) {
+    theta = 0;
+  } else {
+    theta = theta0() * Math.cos(omega * animTime);
+  }
+
+  drawMeterStick(theta);
+  drawBall(theta);
+
+  // string in ready state
+  if (!isPlaying && animTime === 0) {
+    drawString(theta);
+  }
+
+  // collision measurement
+  if (collided) {
+    drawCollisionMark();
+  }
+
+  drawLabels();
+}
+
+function drawMeterStick(theta) {
+  ctx.save();
+  ctx.translate(pivotX, pivotY);
+  ctx.rotate(theta);
+
+  const len_px = L * scale;
+  const w_px = 14;
+
+  // body
+  ctx.fillStyle = '#fde68a';
+  ctx.fillRect(-w_px/2, 0, w_px, len_px);
+  ctx.strokeStyle = '#a16207';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-w_px/2, 0, w_px, len_px);
+
+  // tick marks — draw against actual length
+  ctx.strokeStyle = '#78350f';
+  ctx.fillStyle = '#78350f';
+  ctx.font = '8px "Share Tech Mono"';
+  ctx.textAlign = 'left';
+  // major every 0.1 m (10 cm)
+  const ticks = Math.floor(L * 10);
+  for (let i = 0; i <= ticks; i++) {
+    const y = (i * 0.1) * scale;
+    if (y > len_px) break;
+    ctx.beginPath();
+    ctx.moveTo(-w_px/2, y);
+    ctx.lineTo(-w_px/2 + 5, y);
+    ctx.stroke();
+    ctx.fillText((i*10).toString(), w_px/2 + 2, y + 3);
+  }
+  // minor every 0.05 m
+  for (let i = 0; i < ticks*2; i++) {
+    if (i % 2 === 0) continue;
+    const y = (i * 0.05) * scale;
+    if (y > len_px) break;
+    ctx.beginPath();
+    ctx.moveTo(-w_px/2, y);
+    ctx.lineTo(-w_px/2 + 3, y);
+    ctx.stroke();
+  }
+
+  // carbon paper strip
+  const sExp = computeS();
+  const yc = sExp * scale;
+  if (yc > 0 && yc < len_px) {
+    ctx.fillStyle = 'rgba(30, 30, 50, 0.8)';
+    ctx.fillRect(-w_px/2, yc - 22, w_px, 44);
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-w_px/2, yc - 22, w_px, 44);
+  }
+
+  // eyescrew at top
+  ctx.fillStyle = '#cbd5e1';
+  ctx.beginPath(); ctx.arc(0, 4, 2, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBall(theta) {
+  let bx, by;
+  const r_ball = 10;
+
+  if (!isPlaying && animTime === 0) {
+    bx = pivotX;
+    by = pivotY;
+  } else if (collided) {
+    bx = pivotX;
+    by = pivotY + computeS() * scale;
+  } else {
+    const fall = 0.5 * gSet * animTime * animTime;
+    bx = pivotX;
+    by = pivotY + fall * scale;
+  }
+
+  // trail
+  if (isPlaying && !collided && animTime > 0.02) {
+    ctx.strokeStyle = 'rgba(56,189,248,0.3)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  const grad = ctx.createRadialGradient(bx-3, by-3, 1, bx, by, r_ball+2);
+  grad.addColorStop(0, '#e2e8f0');
+  grad.addColorStop(0.7, '#64748b');
+  grad.addColorStop(1, '#334155');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(bx, by, r_ball, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function drawString(theta) {
+  const len_px = L * scale;
+  const sxBottom = pivotX + Math.sin(theta) * len_px;
+  const syBottom = pivotY + Math.cos(theta) * len_px;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(sxBottom, syBottom);
+  ctx.lineTo(pivotX, upperNailY);
+  ctx.lineTo(pivotX, pivotY);
+  ctx.stroke();
+  ctx.fillStyle = '#fb923c';
+  ctx.beginPath();
+  ctx.arc(sxBottom + 4, syBottom + 2, 4, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawCollisionMark() {
+  const sExp = computeS();
+  const yMark = pivotY + sExp * scale;
+
+  // red line mark
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(pivotX - 20, yMark);
+  ctx.lineTo(pivotX + 20, yMark);
+  ctx.stroke();
+
+  // measurement bracket to right
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,3]);
+  const xR = pivotX + 54;
+  ctx.beginPath();
+  ctx.moveTo(pivotX + 14, pivotY); ctx.lineTo(xR, pivotY);
+  ctx.moveTo(pivotX + 14, yMark);  ctx.lineTo(xR, yMark);
+  ctx.moveTo(xR, pivotY); ctx.lineTo(xR, yMark);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#34d399';
+  ctx.beginPath();
+  ctx.moveTo(xR-4, pivotY+6); ctx.lineTo(xR+4, pivotY+6); ctx.lineTo(xR, pivotY); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(xR-4, yMark-6); ctx.lineTo(xR+4, yMark-6); ctx.lineTo(xR, yMark); ctx.fill();
+
+  // labels with values
+  ctx.font = 'bold 13px "Share Tech Mono"';
+  ctx.fillStyle = '#34d399';
+  ctx.textAlign = 'left';
+  ctx.fillText(`s = ${sExp.toFixed(3)} m`, xR + 8, (pivotY + yMark)/2 + 4);
+
+  ctx.font = 'bold 13px "Share Tech Mono"';
+  ctx.fillStyle = '#fb923c';
+  ctx.fillText(`t = ${computeQuarter().toFixed(3)} s`, xR + 8, (pivotY + yMark)/2 + 22);
+
+  // "จุดชน!" flash
+  ctx.font = 'bold 12px Sarabun';
+  ctx.fillStyle = '#ef4444';
+  ctx.textAlign = 'right';
+  ctx.fillText('💥 จุดชน!', pivotX - 26, yMark + 4);
+}
+
+function drawLabels() {
+  ctx.font = 'bold 11px Sarabun';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'left';
+  let statusText;
+  if (!isPlaying && animTime === 0) {
+    statusText = '🎬 พร้อมทดลอง — กด "ปล่อย" เพื่อเริ่ม';
+  } else if (collided) {
+    statusText = '✅ ทดลองเสร็จ — อ่านค่า t และ s จากด้านขวา';
+  } else {
+    statusText = '⏱ กำลังทดลอง...';
+  }
+  ctx.fillText(statusText, 12, 18);
+
+  // parameters top-right
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#fb923c';
+  ctx.font = 'bold 11px "Share Tech Mono"';
+  ctx.fillText(`g = ${gSet.toFixed(2)} m/s²`, canvas.width - 12, 18);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px "Share Tech Mono"';
+  ctx.fillText(`L = ${L.toFixed(2)} m   d = ${dispCm} cm`, canvas.width - 12, 32);
+
+  // vertical reference line in ready state
+  if (!isPlaying && animTime === 0) {
+    const len_px = L * scale;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(pivotX, pivotY + len_px);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// ==================== TRIALS ====================
+function manualCalcAndSave() {
+  const t = parseFloat(document.getElementById('in-t').value);
+  const sCm = parseFloat(document.getElementById('in-s').value);
+  if (!(t > 0) || !(sCm > 0)) {
+    alert('กรุณากรอก t และ s ให้ครบ (ค่าต้องมากกว่า 0)');
+    return;
+  }
+  const s = sCm / 100; // convert cm to m
+  const g = 2 * s / (t * t);
+  const err = Math.abs(g - gSet) / gSet * 100;
+  trials.push({ t, s, g, err, gRef: gSet });
+  renderTrials();
+
+  // Show result
+  const resDiv = document.getElementById('calc-result');
+  resDiv.style.display = 'block';
+  resDiv.className = 'calc-result';
+  resDiv.innerHTML = `
+    <div class="big">g = ${g.toFixed(2)} m/s²</div>
+    <div class="small">s = ${sCm} cm = ${s.toFixed(3)} m</div>
+    <div class="small">g = 2(${s.toFixed(3)})/(${t})² = ${(2*s).toFixed(3)}/${(t*t).toFixed(4)} = ${g.toFixed(2)}</div>
+    <div class="small" style="margin-top:4px;">%error = ${err.toFixed(1)}% (เทียบกับ g ตั้งไว้ ${gSet.toFixed(2)})</div>
+  `;
+
+  document.getElementById('in-t').value = '';
+  document.getElementById('in-s').value = '';
+}
+function autoSave() {
+  if (!collided) {
+    alert('กรุณากดปุ่ม "ปล่อย" ให้การทดลองเสร็จก่อน');
+    return;
+  }
+  const t = computeQuarter();
+  const s = computeS();
+  const g = 2 * s / (t * t);
+  const err = Math.abs(g - gSet) / gSet * 100;
+  trials.push({ t, s, g, err, gRef: gSet });
+  renderTrials();
+}
+function deleteTrial(i) {
+  trials.splice(i, 1);
+  renderTrials();
+}
+function clearTrials() {
+  if (trials.length === 0) return;
+  if (confirm('ล้างข้อมูล Trial ทั้งหมด?')) {
+    trials.length = 0;
+    renderTrials();
+  }
+}
+function renderTrials() {
+  const tbody = document.getElementById('trial-tbody');
+  const tfoot = document.getElementById('trial-tfoot');
+  if (trials.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">— ยังไม่มีข้อมูล กดปุ่มบันทึกเพื่อเพิ่ม Trial —</td></tr>';
+    tfoot.innerHTML = '';
+  } else {
+    tbody.innerHTML = trials.map((tr,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${tr.t.toFixed(3)}</td>
+        <td>${tr.s.toFixed(3)}</td>
+        <td style="color:${Math.abs(tr.g-tr.gRef)<0.3?'#34d399':'#fb923c'}; font-weight:700;">${tr.g.toFixed(2)}</td>
+        <td>${tr.err.toFixed(1)}%</td>
+        <td style="color:var(--muted);">${tr.gRef.toFixed(2)}</td>
+        <td><span class="del" onclick="deleteTrial(${i})">✕</span></td>
+      </tr>
+    `).join('');
+    const avgG = trials.reduce((a,b)=>a+b.g,0) / trials.length;
+    const avgErr = trials.reduce((a,b)=>a+b.err,0) / trials.length;
+    tfoot.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align:right;">ค่าเฉลี่ย →</td>
+        <td>${avgG.toFixed(2)}</td>
+        <td>${avgErr.toFixed(1)}%</td>
+        <td colspan="2"></td>
+      </tr>
+    `;
+  }
+  drawGChart();
+}
+
+// ==================== CHART ====================
+function drawGChart() {
+  const c = document.getElementById('gChart');
+  const ctx2 = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr;
+  c.height = c.clientHeight * dpr;
+  ctx2.scale(dpr, dpr);
+  const W = c.clientWidth, H = c.clientHeight;
+  ctx2.clearRect(0,0,W,H);
+
+  const padL = 50, padR = 20, padT = 18, padB = 30;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const gMin = 0, gMax = 15;
+
+  ctx2.strokeStyle = 'rgba(56,189,248,0.1)';
+  ctx2.lineWidth = 1;
+  for (let g = 0; g <= 15; g += 2.5) {
+    const y = padT + plotH * (1 - (g - gMin)/(gMax - gMin));
+    ctx2.beginPath(); ctx2.moveTo(padL, y); ctx2.lineTo(W - padR, y); ctx2.stroke();
+    ctx2.fillStyle = '#94a3b8';
+    ctx2.font = '10px "Share Tech Mono"';
+    ctx2.textAlign = 'right';
+    ctx2.fillText(g.toFixed(1), padL - 6, y + 3);
+  }
+
+  const ySTD = padT + plotH * (1 - (STD_G - gMin)/(gMax - gMin));
+  ctx2.strokeStyle = '#ef4444';
+  ctx2.lineWidth = 2;
+  ctx2.setLineDash([6,4]);
+  ctx2.beginPath();
+  ctx2.moveTo(padL, ySTD); ctx2.lineTo(W - padR, ySTD);
+  ctx2.stroke();
+  ctx2.setLineDash([]);
+  ctx2.fillStyle = '#ef4444';
+  ctx2.textAlign = 'left';
+  ctx2.font = 'bold 10px "Share Tech Mono"';
+  ctx2.fillText('g = 9.8', W - padR - 50, ySTD - 4);
+
+  ctx2.fillStyle = '#94a3b8';
+  ctx2.font = '10px Sarabun';
+  ctx2.textAlign = 'center';
+  ctx2.fillText('Trial', padL + plotW/2, H - 8);
+  ctx2.save();
+  ctx2.translate(12, padT + plotH/2);
+  ctx2.rotate(-Math.PI/2);
+  ctx2.fillText('g (m/s²)', 0, 0);
+  ctx2.restore();
+
+  if (trials.length === 0) {
+    ctx2.fillStyle = '#475569';
+    ctx2.font = '12px Sarabun';
+    ctx2.textAlign = 'center';
+    ctx2.fillText('— ยังไม่มีข้อมูล —', padL + plotW/2, padT + plotH/2);
+    return;
+  }
+
+  const barW = Math.min(40, plotW / (trials.length + 1));
+  const gap = (plotW - barW * trials.length) / (trials.length + 1);
+  trials.forEach((tr, i) => {
+    const x = padL + gap + i * (barW + gap);
+    const v = Math.max(0, Math.min(gMax, tr.g));
+    const yTop = padT + plotH * (1 - (v - gMin)/(gMax - gMin));
+    const h = (padT + plotH) - yTop;
+    const color = Math.abs(tr.g - tr.gRef) < 0.3 ? '#34d399' : '#fb923c';
+    ctx2.fillStyle = color;
+    ctx2.fillRect(x, yTop, barW, h);
+    ctx2.fillStyle = '#e2e8f0';
+    ctx2.font = 'bold 10px "Share Tech Mono"';
+    ctx2.textAlign = 'center';
+    ctx2.fillText(tr.g.toFixed(1), x + barW/2, yTop - 3);
+    ctx2.fillStyle = '#94a3b8';
+    ctx2.font = '10px Sarabun';
+    ctx2.fillText((i+1).toString(), x + barW/2, padT + plotH + 14);
+  });
+}
+
+// ==================== MAGNIFIER ====================
+function drawMagnifier() {
+  const c = document.getElementById('magCanvas');
+  if (!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr;
+  c.height = c.clientHeight * dpr;
+  const mctx = c.getContext('2d');
+  mctx.scale(dpr, dpr);
+  const W = c.clientWidth, H = c.clientHeight;
+
+  // background
+  mctx.fillStyle = '#070b15';
+  mctx.fillRect(0, 0, W, H);
+
+  if (!collided) {
+    mctx.fillStyle = '#475569';
+    mctx.font = '13px Sarabun';
+    mctx.textAlign = 'center';
+    mctx.fillText('— ยังไม่มีข้อมูล —', W/2, H/2 - 8);
+    mctx.font = '11px Sarabun';
+    mctx.fillText('กด "ปล่อย" เพื่อเริ่มการทดลอง', W/2, H/2 + 10);
+    return;
+  }
+
+  const sExp = computeS();        // meters
+  const sCm = sExp * 100;         // cm
+  const rangeCm = 10;             // show ±5 cm window
+  const startCm = Math.max(0, sCm - rangeCm/2);
+  const endCm = startCm + rangeCm;
+
+  // layout
+  const padT = 26, padB = 22;
+  const plotH = H - padT - padB;
+  const stickW = 70;
+  const stickX = W/2 - stickW/2;
+  const cmToY = cm => padT + plotH * (cm - startCm) / rangeCm;
+
+  // stick body (wood color)
+  const stickGrad = mctx.createLinearGradient(stickX, 0, stickX + stickW, 0);
+  stickGrad.addColorStop(0, '#fcd34d');
+  stickGrad.addColorStop(0.5, '#fde68a');
+  stickGrad.addColorStop(1, '#fcd34d');
+  mctx.fillStyle = stickGrad;
+  mctx.fillRect(stickX, padT, stickW, plotH);
+  mctx.strokeStyle = '#92400e';
+  mctx.lineWidth = 1.5;
+  mctx.strokeRect(stickX, padT, stickW, plotH);
+
+  // Major ticks every 1 cm
+  mctx.font = 'bold 12px "Share Tech Mono"';
+  for (let cm = Math.ceil(startCm); cm <= Math.floor(endCm); cm++) {
+    const y = cmToY(cm);
+    mctx.strokeStyle = '#78350f';
+    mctx.lineWidth = 1.8;
+    mctx.beginPath();
+    mctx.moveTo(stickX, y);
+    mctx.lineTo(stickX + 16, y);
+    mctx.stroke();
+    mctx.beginPath();
+    mctx.moveTo(stickX + stickW, y);
+    mctx.lineTo(stickX + stickW - 16, y);
+    mctx.stroke();
+    // number label (left side)
+    mctx.fillStyle = '#78350f';
+    mctx.textAlign = 'right';
+    mctx.fillText(cm.toString(), stickX - 5, y + 4);
+    mctx.textAlign = 'left';
+    mctx.fillText(cm.toString(), stickX + stickW + 5, y + 4);
+  }
+
+  // Half-cm ticks (5 mm)
+  mctx.strokeStyle = '#92400e';
+  mctx.lineWidth = 1;
+  for (let cm = Math.floor(startCm); cm <= endCm + 0.1; cm += 0.5) {
+    if (Math.abs(cm - Math.round(cm)) < 0.01) continue;
+    const y = cmToY(cm);
+    if (y < padT || y > padT + plotH) continue;
+    mctx.beginPath();
+    mctx.moveTo(stickX, y);
+    mctx.lineTo(stickX + 10, y);
+    mctx.stroke();
+    mctx.beginPath();
+    mctx.moveTo(stickX + stickW, y);
+    mctx.lineTo(stickX + stickW - 10, y);
+    mctx.stroke();
+  }
+
+  // 1-mm ticks
+  mctx.strokeStyle = '#a16207';
+  mctx.lineWidth = 0.6;
+  for (let cm = Math.floor(startCm*10)/10; cm <= endCm + 0.01; cm += 0.1) {
+    const rounded5 = Math.abs(cm*2 - Math.round(cm*2)) < 0.01;
+    const rounded1 = Math.abs(cm - Math.round(cm)) < 0.01;
+    if (rounded5 || rounded1) continue;
+    const y = cmToY(cm);
+    if (y < padT || y > padT + plotH) continue;
+    mctx.beginPath();
+    mctx.moveTo(stickX, y);
+    mctx.lineTo(stickX + 5, y);
+    mctx.stroke();
+    mctx.beginPath();
+    mctx.moveTo(stickX + stickW, y);
+    mctx.lineTo(stickX + stickW - 5, y);
+    mctx.stroke();
+  }
+
+  // Carbon paper mark (vertical black streak) — from sCm downward ~1.5 cm
+  const yTop = cmToY(sCm);
+  const streakLen = Math.min(plotH - (yTop - padT) - 2, cmToY(sCm + 1.2) - yTop);
+  mctx.fillStyle = 'rgba(15,15,25,0.88)';
+  mctx.fillRect(stickX + stickW/2 - 4, yTop, 8, streakLen);
+
+  // Red line at collision point (top edge of streak = where to read)
+  mctx.strokeStyle = '#ef4444';
+  mctx.lineWidth = 2.5;
+  mctx.beginPath();
+  mctx.moveTo(stickX - 8, yTop);
+  mctx.lineTo(stickX + stickW + 8, yTop);
+  mctx.stroke();
+
+  // Red arrow + label "อ่านที่นี่"
+  mctx.fillStyle = '#ef4444';
+  mctx.beginPath();
+  mctx.moveTo(W - 12, yTop);
+  mctx.lineTo(W - 24, yTop - 6);
+  mctx.lineTo(W - 24, yTop + 6);
+  mctx.fill();
+  mctx.font = 'bold 10px Sarabun';
+  mctx.textAlign = 'right';
+  mctx.fillText('← ขอบบน (อ่านที่นี่)', W - 28, yTop - 4);
+
+  // Title
+  mctx.fillStyle = '#38bdf8';
+  mctx.font = 'bold 12px Sarabun';
+  mctx.textAlign = 'center';
+  mctx.fillText('🔍 ภาพขยายตำแหน่งที่ลูกบอลชนไม้', W/2, 16);
+
+  // Unit label bottom
+  mctx.fillStyle = '#94a3b8';
+  mctx.font = '10px Sarabun';
+  mctx.fillText('หน่วย: เซนติเมตร (cm) — กรอกเป็น cm ได้เลย', W/2, H - 6);
+}
+
+// ==================== THEORY VIZ ====================
+let theoryDrawn = false;
+function drawTheoryViz() {
+  drawVizPrinciple();
+  drawVizSimplePendulum();
+  drawVizPhysicalPendulum();
+  drawVizQuarter();
+  theoryDrawn = true;
+}
+function setupHiDPI(c) {
+  const dpr = window.devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr;
+  c.height = c.clientHeight * dpr;
+  const x = c.getContext('2d');
+  x.scale(dpr, dpr);
+  return { ctx: x, W: c.clientWidth, H: c.clientHeight };
+}
+function drawVizPrinciple() {
+  const c = document.getElementById('vizPrinciple');
+  if (!c) return;
+  const { ctx: x, W, H } = setupHiDPI(c);
+  x.clearRect(0,0,W,H);
+  x.fillStyle = '#070b15';
+  x.fillRect(0,0,W,H);
+
+  const frames = 3;
+  const fw = W / frames;
+  const labels = ['t = 0  (ปล่อย)', 't = T/8', 't = T/4  💥 ชน!'];
+  const angles = [1.0, 0.5, 0];
+  const fallFactors = [0, 0.25, 1];
+
+  for (let i = 0; i < frames; i++) {
+    const cx = fw * i + fw/2;
+    const py = 30;
+    const len = 140;
+    const theta = 0.35 * angles[i];
+    x.fillStyle = '#cbd5e1';
+    x.beginPath(); x.arc(cx, py, 3, 0, Math.PI*2); x.fill();
+    x.save();
+    x.translate(cx, py);
+    x.rotate(theta);
+    x.fillStyle = '#fde68a';
+    x.fillRect(-5, 0, 10, len);
+    x.strokeStyle = '#a16207';
+    x.strokeRect(-5, 0, 10, len);
+    x.restore();
+    x.fillStyle = '#94a3b8';
+    x.beginPath();
+    x.arc(cx, py + fallFactors[i] * 100, 7, 0, Math.PI*2);
+    x.fill();
+    x.strokeStyle = '#1e293b';
+    x.stroke();
+    x.fillStyle = '#38bdf8';
+    x.font = 'bold 11px Sarabun';
+    x.textAlign = 'center';
+    x.fillText(labels[i], cx, H - 14);
+    if (i === 2) {
+      x.strokeStyle = '#ef4444';
+      x.lineWidth = 2;
+      x.beginPath(); x.arc(cx, py + 100, 14, 0, Math.PI*2); x.stroke();
+      x.lineWidth = 1;
+    }
+    if (i < frames - 1) {
+      x.strokeStyle = '#1e3a5f';
+      x.beginPath();
+      x.moveTo(fw*(i+1), 20); x.lineTo(fw*(i+1), H - 30);
+      x.stroke();
+    }
+  }
+}
+function drawVizSimplePendulum() {
+  const c = document.getElementById('vizSimple');
+  if (!c) return;
+  const { ctx: x, W, H } = setupHiDPI(c);
+  x.clearRect(0,0,W,H);
+  x.fillStyle = '#070b15';
+  x.fillRect(0,0,W,H);
+  const cx = W/2, py = 18;
+  const Lp = 130;
+  const theta = -0.4;
+  x.strokeStyle = '#475569';
+  x.lineWidth = 2;
+  x.beginPath();
+  x.moveTo(cx - 30, py); x.lineTo(cx + 30, py);
+  x.stroke();
+  for (let i = 0; i < 6; i++) {
+    x.beginPath();
+    x.moveTo(cx - 30 + i*12, py); x.lineTo(cx - 30 + i*12 - 6, py - 5);
+    x.stroke();
+  }
+  x.strokeStyle = '#e2e8f0';
+  x.lineWidth = 1.5;
+  x.beginPath();
+  x.moveTo(cx, py);
+  x.lineTo(cx + Math.sin(theta)*Lp, py + Math.cos(theta)*Lp);
+  x.stroke();
+  const bx = cx + Math.sin(theta)*Lp;
+  const by = py + Math.cos(theta)*Lp;
+  const grad = x.createRadialGradient(bx-3, by-3, 1, bx, by, 18);
+  grad.addColorStop(0, '#cbd5e1');
+  grad.addColorStop(1, '#1e293b');
+  x.fillStyle = grad;
+  x.beginPath(); x.arc(bx, by, 16, 0, Math.PI*2); x.fill();
+  x.fillStyle = '#38bdf8';
+  x.font = 'bold 11px Sarabun';
+  x.textAlign = 'center';
+  x.fillText('มวลรวมที่ปลาย', bx, by + 32);
+}
+function drawVizPhysicalPendulum() {
+  const c = document.getElementById('vizPhysical');
+  if (!c) return;
+  const { ctx: x, W, H } = setupHiDPI(c);
+  x.clearRect(0,0,W,H);
+  x.fillStyle = '#070b15';
+  x.fillRect(0,0,W,H);
+  const cx = W/2, py = 18;
+  const len = 140;
+  const theta = -0.4;
+  x.strokeStyle = '#475569';
+  x.lineWidth = 2;
+  x.beginPath();
+  x.moveTo(cx - 30, py); x.lineTo(cx + 30, py);
+  x.stroke();
+  for (let i = 0; i < 6; i++) {
+    x.beginPath();
+    x.moveTo(cx - 30 + i*12, py); x.lineTo(cx - 30 + i*12 - 6, py - 5);
+    x.stroke();
+  }
+  x.fillStyle = '#cbd5e1';
+  x.beginPath(); x.arc(cx, py + 4, 3, 0, Math.PI*2); x.fill();
+  x.save();
+  x.translate(cx, py + 4);
+  x.rotate(theta);
+  x.fillStyle = '#fde68a';
+  x.fillRect(-7, 0, 14, len);
+  x.strokeStyle = '#a16207';
+  x.strokeRect(-7, 0, 14, len);
+  x.strokeStyle = '#78350f';
+  for (let i = 0; i <= 10; i++) {
+    const yy = i * len / 10;
+    x.beginPath();
+    x.moveTo(-7, yy); x.lineTo(-3, yy);
+    x.stroke();
+  }
+  x.fillStyle = 'rgba(239,68,68,0.8)';
+  for (let i = 1; i < 10; i++) {
+    const yy = i * len / 10;
+    x.beginPath(); x.arc(0, yy, 2, 0, Math.PI*2); x.fill();
+  }
+  x.restore();
+  x.fillStyle = '#fb923c';
+  x.font = 'bold 11px Sarabun';
+  x.textAlign = 'center';
+  x.fillText('มวลกระจายตลอดความยาว', W/2, H - 10);
+}
+function drawVizQuarter() {
+  const c = document.getElementById('vizQuarter');
+  if (!c) return;
+  const { ctx: x, W, H } = setupHiDPI(c);
+  x.clearRect(0,0,W,H);
+  x.fillStyle = '#070b15';
+  x.fillRect(0,0,W,H);
+  const padL = 60, padR = 30, padT = 30, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  x.strokeStyle = '#475569';
+  x.lineWidth = 1.5;
+  x.beginPath();
+  x.moveTo(padL, padT); x.lineTo(padL, padT + plotH);
+  x.lineTo(padL + plotW, padT + plotH);
+  x.stroke();
+  x.fillStyle = '#94a3b8';
+  x.font = '10px "Share Tech Mono"';
+  x.textAlign = 'center';
+  const tLabels = ['0','T/4','T/2','3T/4','T'];
+  for (let i = 0; i <= 4; i++) {
+    const xx = padL + plotW * (i/4);
+    x.beginPath();
+    x.moveTo(xx, padT + plotH); x.lineTo(xx, padT + plotH + 4);
+    x.stroke();
+    x.fillText(tLabels[i], xx, padT + plotH + 16);
+  }
+  x.textAlign = 'right';
+  x.fillText('+θ₀', padL - 6, padT + 4);
+  x.fillText('0', padL - 6, padT + plotH/2 + 4);
+  x.fillText('-θ₀', padL - 6, padT + plotH);
+  x.strokeStyle = '#818cf8';
+  x.lineWidth = 2.5;
+  x.beginPath();
+  for (let i = 0; i <= 200; i++) {
+    const t = i/200;
+    const theta = Math.cos(2 * Math.PI * t);
+    const xx = padL + plotW * t;
+    const yy = padT + plotH/2 - theta * (plotH/2 - 6);
+    if (i === 0) x.moveTo(xx, yy); else x.lineTo(xx, yy);
+  }
+  x.stroke();
+  const xQ = padL + plotW * 0.25;
+  x.strokeStyle = '#34d399';
+  x.lineWidth = 2;
+  x.setLineDash([5,4]);
+  x.beginPath();
+  x.moveTo(xQ, padT); x.lineTo(xQ, padT + plotH);
+  x.stroke();
+  x.setLineDash([]);
+  x.fillStyle = '#34d399';
+  x.beginPath();
+  x.arc(xQ, padT + plotH/2, 5, 0, Math.PI*2);
+  x.fill();
+  x.fillStyle = '#34d399';
+  x.font = 'bold 11px Sarabun';
+  x.textAlign = 'left';
+  x.fillText('ที่ t = T/4 → ไม้ผ่านแนวดิ่ง (θ=0)', xQ + 8, padT + 16);
+  x.fillStyle = '#38bdf8';
+  x.font = 'bold 12px Sarabun';
+  x.textAlign = 'center';
+  x.fillText('การแกว่งแบบ SHM: θ(t) = θ₀ cos(2πt/T)', padL + plotW/2, padT - 12);
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  drawMagnifier();
+  if (theoryDrawn) drawTheoryViz();
+});
+
+// ==================== INIT ====================
+window.addEventListener('DOMContentLoaded', () => {
+  const v2s = {
+    'vi-disp': 'sl-disp',
+    'vi-len':  'sl-len',
+    'vi-g':    'sl-g'
+  };
+  function syncVal(inp) {
+    const sl = document.getElementById(v2s[inp.id]);
+    if (!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v;
+    sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(v2s).forEach(([vi, si]) => {
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    if (!sl || !inp) return;
+    sl.addEventListener('input', () => {
+      inp.value = parseFloat(sl.value);
+      onParamChange();
+    });
+    inp.addEventListener('blur', () => syncVal(inp));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') syncVal(inp); });
+  });
+  function onParamChange() {
+    dispCm = parseFloat(document.getElementById('sl-disp').value);
+    L      = parseFloat(document.getElementById('sl-len').value);
+    gSet   = parseFloat(document.getElementById('sl-g').value);
+    const presets = [9.80, 1.62, 3.71, 8.87, 24.79];
+    if (!presets.some(p => Math.abs(p - gSet) < 0.005)) {
+      document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('active'));
+    }
+    setupGeometry();
+    resetSim();
+  }
+
+  // speed slider
+  const slSpeed = document.getElementById('sl-speed');
+  const spVal = document.getElementById('speed-val');
+  slSpeed.addEventListener('input', () => {
+    speed = parseFloat(slSpeed.value);
+    spVal.textContent = speed.toFixed(2) + '×';
+  });
+
+  resizeCanvas();
+  draw();
+  renderTrials();
+  // initialize manual mode view (hide s display)
+  setMode('manual');
+  drawMagnifier();
+});
+</script>
+</body>
+</html>

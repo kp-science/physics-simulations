@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>นาฬิกาน้ำ (Water Clock) — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 18px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.88rem;font-weight:600;white-space:nowrap;transition:.2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none;padding:14px 20px 30px}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ===== Simulation Tab ===== */
+.sim-grid{display:grid;grid-template-columns:1fr 340px;gap:14px;max-width:1400px;margin:0 auto}
+@media(max-width:1000px){.sim-grid{grid-template-columns:1fr}}
+
+.sim-stage{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column}
+.stage-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.stage-title{color:var(--accent);font-size:0.95rem;font-weight:700}
+.live-readout{display:flex;gap:10px;flex-wrap:wrap}
+.readout-chip{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:0.88rem}
+.readout-chip .lbl{color:var(--muted);margin-right:6px;font-size:0.72rem}
+.readout-chip .val{color:var(--accent3);font-weight:700}
+.readout-chip.time .val{color:var(--accent)}
+.readout-chip.rate .val{color:var(--accent4)}
+
+.canvas-wrap{position:relative;width:100%;height:460px;background:linear-gradient(180deg,#0b1220,#0a0e1a);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+canvas{width:100%;height:100%;display:block;cursor:pointer}
+
+.cbar{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{padding:7px 16px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.15s}
+.btn-open{background:#1b5e20;color:#fff}
+.btn-open:hover{background:#2e7d32}
+.btn-open.flowing{background:#b71c1c}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-save{background:var(--accent2);color:#fff}
+.btn-save:hover{opacity:.85}
+.btn-hint{background:#7c3aed;color:#fff}
+.btn-hint:hover{opacity:.85}
+
+/* Panels */
+.sim-panels{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+.panel h3{color:var(--accent);font-size:0.88rem;font-weight:700;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;display:flex;align-items:center;gap:6px}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sl-label{font-size:0.78rem;color:var(--muted);flex-shrink:0;min-width:78px}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:26px;flex-shrink:0}
+.val-input{width:54px;padding:2px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+/* Table */
+.trial-table{width:100%;border-collapse:collapse;font-size:0.8rem;font-family:'Share Tech Mono',monospace}
+.trial-table th,.trial-table td{border:1px solid var(--border);padding:5px 6px;text-align:center}
+.trial-table th{background:var(--panel2);color:var(--accent);font-size:0.74rem}
+.trial-table td{color:var(--text)}
+.trial-table tr.avg td{background:#1e3a5f;color:var(--accent3);font-weight:700}
+.trial-table .del{background:transparent;border:none;color:#f87171;cursor:pointer;font-size:0.9rem;padding:0}
+.table-wrap{max-height:220px;overflow-y:auto}
+.empty-row td{color:var(--muted);font-style:italic;padding:14px}
+
+/* Prediction box */
+.predict-box{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.predict-box input{width:60px;padding:4px 8px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:6px;color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:0.85rem;text-align:center;-moz-appearance:textfield}
+.predict-box input::-webkit-outer-spin-button,.predict-box input::-webkit-inner-spin-button{-webkit-appearance:none}
+.predict-box .result{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:0.92rem;font-weight:700}
+.predict-hint{font-size:0.72rem;color:var(--muted);line-height:1.5}
+
+/* Graph */
+.graph-wrap{background:#0b1220;border:1px solid var(--border);border-radius:8px;padding:4px;height:240px}
+#graphCanvas{width:100%;height:100%}
+
+/* Hint box */
+/* Read-mode prompt — floating on LEFT side so magnified scale on right stays visible */
+.read-overlay{position:absolute;left:12px;top:12px;bottom:12px;width:300px;display:none;align-items:center;justify-content:flex-start;z-index:10;pointer-events:none}
+.read-overlay.show{display:flex}
+.read-card{background:rgba(17,24,39,0.96);border:2px solid var(--accent);border-radius:14px;padding:16px 18px;width:100%;box-shadow:0 10px 40px rgba(56,189,248,0.35);backdrop-filter:blur(4px);pointer-events:auto}
+@media(max-width:640px){
+  .read-overlay{width:calc(100% - 24px)}
+}
+.read-card h4{color:var(--accent);font-size:1rem;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.read-card p{font-size:0.82rem;color:var(--muted);margin-bottom:10px}
+.read-input-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.read-input-row input{flex:1;padding:8px 12px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:8px;color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:700;text-align:center;-moz-appearance:textfield}
+.read-input-row input::-webkit-outer-spin-button,.read-input-row input::-webkit-inner-spin-button{-webkit-appearance:none}
+.read-input-row input:focus{outline:none;border-color:var(--accent)}
+.read-input-row .unit{color:var(--muted);font-size:0.88rem}
+.read-actions{display:flex;gap:8px}
+.read-actions button{flex:1;padding:7px 12px;border:none;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem}
+.btn-confirm{background:var(--accent3);color:#0a0e1a}
+.btn-cancel{background:var(--panel2);color:var(--muted);border:1px solid var(--border)!important}
+.read-feedback{margin-top:10px;padding:8px 10px;border-radius:6px;font-size:0.8rem;display:none}
+.read-feedback.show{display:block}
+.read-feedback.good{background:#1a3320;color:var(--accent3);border:1px solid var(--accent3)}
+.read-feedback.meh{background:#2a1f10;color:var(--accent4);border:1px solid var(--accent4)}
+.read-feedback.bad{background:#3a1a1a;color:#f87171;border:1px solid #f87171}
+
+.hint-box{background:#2d1a3a;border:1px solid var(--accent2);border-radius:8px;padding:10px;font-size:0.78rem;color:var(--text);line-height:1.6;display:none}
+.hint-box.show{display:block}
+.hint-box strong{color:var(--accent2)}
+.hint-box table{width:100%;margin-top:6px;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:0.76rem}
+.hint-box td{border:1px solid var(--border);padding:3px 6px;text-align:center}
+
+/* ===== Theory Tab ===== */
+.theory-container{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.theory-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+.theory-card h2{color:var(--accent);font-size:1.05rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.theory-card h3{color:var(--accent2);font-size:0.92rem;font-weight:700;margin:12px 0 6px}
+.theory-card p{color:var(--text);line-height:1.75;font-size:0.9rem;margin-bottom:8px}
+.theory-card ul{margin:6px 0 10px 20px;color:var(--text);line-height:1.75;font-size:0.88rem}
+.eq-box{background:var(--panel2);border-left:3px solid var(--accent);padding:10px 14px;margin:10px 0;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.95rem;color:var(--accent3)}
+.eq-box small{color:var(--muted);font-family:'Sarabun',sans-serif;font-size:0.78rem;display:block;margin-top:4px}
+
+.visual-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+@media(max-width:700px){.visual-row{grid-template-columns:1fr}}
+.viz-box{background:#0b1220;border:1px solid var(--border);border-radius:8px;padding:8px}
+.viz-box svg{width:100%;height:auto;display:block}
+.viz-caption{text-align:center;color:var(--muted);font-size:0.76rem;margin-top:4px}
+
+.fact-chip{display:inline-block;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:14px;font-size:0.76rem;margin:2px 4px 2px 0}
+
+footer{text-align:center;padding:16px;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⏳</div>
+  <div>
+    <h1>นาฬิกาน้ำ — Water Clock</h1>
+    <p>การทดลองเสมือนจริง · ระดับมัธยมต้น · วัดเวลาด้วยปริมาตรน้ำ</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ========================= SIMULATION TAB ========================= -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-grid">
+
+    <!-- LEFT: Stage -->
+    <div class="sim-stage">
+      <div class="stage-header">
+        <div class="stage-title">🔬 ห้องทดลอง</div>
+        <div class="live-readout">
+          <div class="readout-chip time"><span class="lbl">เวลา</span><span class="val" id="r-time">0.00</span> s</div>
+          <div class="readout-chip"><span class="lbl">ปริมาตร</span><span class="val" id="r-vol">0.0</span> ml</div>
+          <div class="readout-chip rate"><span class="lbl">อัตราไหล</span><span class="val" id="r-rate">25.0</span> ml/s</div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="simCanvas"></canvas>
+        <div class="read-overlay" id="readOverlay">
+          <div class="read-card">
+            <h4>📏 อ่านค่าจากกระบอกตวง</h4>
+            <p>เวลา: <strong class="mono" id="read-t" style="color:var(--accent)">0.00 s</strong> · มองที่สเกลขยายด้านขวา แล้วอ่านระดับน้ำที่เส้น meniscus</p>
+            <div class="read-input-row">
+              <input type="number" id="read-input" placeholder="0.0" step="0.1" min="0">
+              <span class="unit">ml</span>
+            </div>
+            <div class="read-actions">
+              <button class="btn-confirm" onclick="confirmReading()">✅ ยืนยัน</button>
+              <button class="btn-cancel" onclick="cancelReading()">✕ ยกเลิก</button>
+            </div>
+            <div class="read-feedback" id="read-feedback"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cbar">
+        <button class="btn btn-open" id="openBtn" onclick="toggleFlow()">▶ เปิดน้ำ</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+        <button class="btn btn-save" onclick="saveTrial()">💾 บันทึกผล</button>
+        <button class="btn btn-hint" onclick="toggleHint()">💡 ดูเฉลย</button>
+        <div style="margin-left:auto;font-size:0.76rem;color:var(--muted)">
+          💡 คลิกที่ <span style="color:#22c55e;font-weight:700">คลิปสีเขียว</span> ในภาพเพื่อเริ่ม/หยุดและจับเวลาอัตโนมัติ
+        </div>
+      </div>
+
+      <div class="hint-box" id="hintBox">
+        <strong>📊 ข้อมูลเฉลยจากใบงาน (ค่าเฉลี่ย)</strong>
+        <table>
+          <tr><td>เวลา (s)</td><td>1</td><td>3</td><td>5</td><td>7</td></tr>
+          <tr><td>ปริมาตร (ml)</td><td>20</td><td>76</td><td>126</td><td>181</td></tr>
+        </table>
+        <p style="margin-top:6px;font-size:0.74rem">→ อัตราการไหลเฉลี่ย ≈ <strong style="color:var(--accent3)">25 ml/s</strong> · ที่ 4 วินาที ≈ <strong style="color:var(--accent3)">102 ml</strong></p>
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls + Data -->
+    <div class="sim-panels">
+
+      <!-- Controls -->
+      <div class="panel">
+        <h3>⚙️ ตัวแปรที่ควบคุมได้</h3>
+
+        <div class="sl-row">
+          <span class="sl-label">ระดับน้ำ</span>
+          <input class="sl-range" type="range" id="sl-h" min="4" max="16" step="0.5" value="10">
+          <input class="val-input" type="number" id="vi-h" min="4" max="16" step="0.5" value="10">
+          <span class="sl-unit">cm</span>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label">ช่องเปิด</span>
+          <input class="sl-range" type="range" id="sl-open" min="20" max="100" step="5" value="100">
+          <input class="val-input" type="number" id="vi-open" min="20" max="100" step="5" value="100">
+          <span class="sl-unit">%</span>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text);margin:8px 0 4px;cursor:pointer;padding:6px 8px;background:var(--panel2);border-radius:6px;border:1px solid var(--border)">
+          <input type="checkbox" id="cb-refill"> <span>💧 เติมน้ำอัตโนมัติ (รักษา h คงที่เหมือนในใบงาน)</span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text);margin:4px 0;cursor:pointer;padding:6px 8px;background:var(--panel2);border-radius:6px;border:1px solid var(--accent2)">
+          <input type="checkbox" id="cb-read"> <span>🔍 <strong style="color:var(--accent2)">โหมดอ่านค่าเอง</strong> (ซ่อนค่า ml — ฝึกอ่านสเกลเอง)</span>
+        </label>
+
+        <div style="font-size:0.72rem;color:var(--muted);line-height:1.55;margin-top:6px">
+          • ระดับน้ำสูงขึ้น → ความดันมาก → น้ำไหลเร็วขึ้น (Torricelli: v = √2gh)<br>
+          • เมื่อน้ำไหลออก ระดับในกรวยจะ<strong style="color:var(--accent4)">ลดลง</strong> → อัตราการไหล<strong style="color:var(--accent4)">ช้าลง</strong><br>
+          • เปิดโหมดเติมน้ำอัตโนมัติ เพื่อจำลองเหมือนในใบงาน (h คงที่)<br>
+          • ค่ามาตรฐาน (h=10 cm, 100%) = 25 ml/s
+        </div>
+      </div>
+
+      <!-- Prediction -->
+      <div class="panel">
+        <h3>🎯 โหมดทำนาย</h3>
+        <div class="predict-box">
+          <span style="font-size:0.82rem">ถ้าเวลา</span>
+          <input type="number" id="pred-t" value="4" min="0.1" max="20" step="0.1">
+          <span style="font-size:0.82rem">s → ทำนายได้</span>
+          <span class="result" id="pred-v">100.0 ml</span>
+        </div>
+        <div class="predict-hint">
+          ใช้สูตร <strong style="color:var(--accent)">V = r × t</strong> โดย r = อัตราการไหลปัจจุบัน<br>
+          ลองทดลองจริงแล้วเปรียบเทียบกับค่าที่ทำนาย
+        </div>
+      </div>
+
+      <!-- Trial Table -->
+      <div class="panel">
+        <h3>📋 ตารางบันทึกผล</h3>
+        <div class="table-wrap">
+          <table class="trial-table" id="trialTable">
+            <thead>
+              <tr><th>#</th><th>เวลา (s)</th><th>ปริมาตร (ml)</th><th>r (ml/s)</th><th></th></tr>
+            </thead>
+            <tbody id="trialBody">
+              <tr class="empty-row"><td colspan="5">ยังไม่มีข้อมูล — กดบันทึกผลหลังเปิดน้ำ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Graph -->
+      <div class="panel">
+        <h3>📈 กราฟ V vs t</h3>
+        <div class="graph-wrap">
+          <canvas id="graphCanvas"></canvas>
+        </div>
+        <div style="font-size:0.74rem;color:var(--muted);margin-top:6px;text-align:center">
+          ความชัน (slope) = <span id="g-slope" style="color:var(--accent3);font-weight:700;font-family:'Share Tech Mono',monospace">—</span> ml/s
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ========================= THEORY TAB ========================= -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-container">
+
+    <div class="theory-card">
+      <h2>⏳ นาฬิกาน้ำคืออะไร?</h2>
+      <p><strong style="color:var(--accent)">นาฬิกาน้ำ (Water Clock / Clepsydra)</strong> เป็นเครื่องมือวัดเวลาที่เก่าแก่ที่สุดชนิดหนึ่งของมนุษยชาติ ใช้กันมาตั้งแต่ยุคอียิปต์โบราณ บาบิโลน กรีก และจีน นานกว่า 3,500 ปี</p>
+      <p>หลักการคือ <strong>ให้น้ำหยดหรือไหลออกจากภาชนะในอัตราคงที่</strong> แล้วใช้ปริมาณน้ำที่ไหลออกบอกว่าเวลาผ่านไปเท่าใด ถ้าอัตราการไหลสม่ำเสมอพอ จะวัดเวลาได้แม่นยำ แม้ในตอนกลางคืนที่ใช้นาฬิกาแดดไม่ได้</p>
+      <div style="margin-top:8px">
+        <span class="fact-chip">🏺 อียิปต์ 1,500 ปีก่อน ค.ศ.</span>
+        <span class="fact-chip">🏛️ กรีก-โรมัน</span>
+        <span class="fact-chip">🧭 ก่อนยุคนาฬิกาจักรกล</span>
+      </div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🔑 หลักการที่ใช้ในการทดลอง</h2>
+      <p>ถ้าเราคุมให้ระดับน้ำในกรวยคงที่ (เติมน้ำตลอด) และช่องเปิดเท่าเดิม <strong style="color:var(--accent3)">อัตราการไหล r</strong> จะคงที่ ดังนั้นปริมาตรน้ำที่เก็บได้ <strong>แปรผันตรงกับเวลา</strong></p>
+
+      <div class="eq-box">
+        V = r × t
+        <small>V = ปริมาตรน้ำ (ml) · r = อัตราการไหล (ml/s) · t = เวลา (s)</small>
+      </div>
+
+      <p>จากใบงาน ข้อมูลเฉลี่ยคือ:</p>
+      <ul>
+        <li>1 วินาที → 20 ml</li>
+        <li>3 วินาที → 76 ml</li>
+        <li>5 วินาที → 126 ml</li>
+        <li>7 วินาที → 181 ml</li>
+      </ul>
+      <p>คำนวณอัตราการไหลเฉลี่ย: <span class="mono" style="color:var(--accent3)">r ≈ 181 ÷ 7 ≈ 25.9 ml/s</span> หรือประมาณ <strong>25 ml/s</strong></p>
+      <p>เมื่อ r = 25 ml/s จะได้: ที่ 4 วินาที → V = 25 × 4 = <strong style="color:var(--accent3)">100 ml</strong> (ใกล้เคียงค่าที่ทำนายในใบงาน 102 ml)</p>
+    </div>
+
+    <div class="theory-card">
+      <h2>📊 กราฟเส้นตรง ≠ กราฟโค้ง</h2>
+      <p>สังเกตว่ากราฟของนาฬิกาน้ำเป็น <strong style="color:var(--accent)">เส้นตรง (linear)</strong> ต่างจากกราฟของ <strong style="color:var(--accent4)">นาฬิกาลูกตุ้ม (pendulum)</strong> ที่เป็นเส้นโค้ง (ความยาว vs คาบ)</p>
+
+      <div class="visual-row">
+        <div class="viz-box">
+          <svg viewBox="0 0 260 180">
+            <defs>
+              <marker id="arr1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <polygon points="0 0,6 3,0 6" fill="#94a3b8"/>
+              </marker>
+            </defs>
+            <line x1="30" y1="150" x2="240" y2="150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <line x1="30" y1="150" x2="30" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <text x="245" y="154" fill="#94a3b8" font-size="9">t</text>
+            <text x="20" y="18" fill="#94a3b8" font-size="9">V</text>
+            <line x1="30" y1="150" x2="220" y2="30" stroke="#38bdf8" stroke-width="2.5"/>
+            <circle cx="60" cy="131" r="3" fill="#38bdf8"/>
+            <circle cx="100" cy="106" r="3" fill="#38bdf8"/>
+            <circle cx="140" cy="81" r="3" fill="#38bdf8"/>
+            <circle cx="180" cy="56" r="3" fill="#38bdf8"/>
+            <text x="130" y="170" fill="#38bdf8" font-size="10" text-anchor="middle" font-weight="700">นาฬิกาน้ำ: V ∝ t</text>
+          </svg>
+          <div class="viz-caption">เส้นตรง — อัตราคงที่</div>
+        </div>
+
+        <div class="viz-box">
+          <svg viewBox="0 0 260 180">
+            <line x1="30" y1="150" x2="240" y2="150" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <line x1="30" y1="150" x2="30" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <text x="245" y="154" fill="#94a3b8" font-size="9">L</text>
+            <text x="20" y="18" fill="#94a3b8" font-size="9">T</text>
+            <path d="M 30 150 Q 100 120 160 75 T 220 40" fill="none" stroke="#fb923c" stroke-width="2.5"/>
+            <circle cx="60" cy="135" r="3" fill="#fb923c"/>
+            <circle cx="110" cy="105" r="3" fill="#fb923c"/>
+            <circle cx="160" cy="75" r="3" fill="#fb923c"/>
+            <circle cx="210" cy="50" r="3" fill="#fb923c"/>
+            <text x="130" y="170" fill="#fb923c" font-size="10" text-anchor="middle" font-weight="700">ลูกตุ้ม: T ∝ √L</text>
+          </svg>
+          <div class="viz-caption">เส้นโค้ง — รากที่สอง</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.82rem;color:var(--muted)">การที่กราฟเป็นเส้นตรง แปลว่า <strong style="color:var(--text)">ทุก ๆ 1 วินาที น้ำเพิ่มขึ้นเท่ากันทุกครั้ง</strong> นี่คือสาเหตุที่มันใช้เป็น "นาฬิกา" ได้ดี</p>
+    </div>
+
+    <div class="theory-card">
+      <h2>💧 ทำไมอัตราการไหลถึงขึ้นกับความสูงน้ำ?</h2>
+      <p>นักวิทยาศาสตร์ชาวอิตาลี <strong>Evangelista Torricelli</strong> ค้นพบว่า ความเร็วของน้ำที่ไหลออกจากรูที่ก้นภาชนะ ขึ้นกับความสูงของน้ำด้านบน เรียกว่า <strong style="color:var(--accent)">Torricelli's Law</strong></p>
+
+      <div class="eq-box">
+        v = √(2gh)
+        <small>v = ความเร็วน้ำไหล (m/s) · g = 9.8 m/s² · h = ความสูงน้ำเหนือรู (m)</small>
+      </div>
+
+      <div class="visual-row">
+        <div class="viz-box">
+          <svg viewBox="0 0 260 200">
+            <!-- container -->
+            <path d="M 80 30 L 80 140 L 180 140 L 180 30" fill="none" stroke="#94a3b8" stroke-width="2"/>
+            <!-- water -->
+            <rect x="81" y="50" width="98" height="90" fill="#38bdf8" opacity="0.55"/>
+            <line x1="81" y1="50" x2="179" y2="50" stroke="#60a5fa" stroke-width="1.5"/>
+            <!-- height indicator -->
+            <line x1="50" y1="50" x2="50" y2="140" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr1)" marker-start="url(#arr1)"/>
+            <text x="38" y="98" fill="#34d399" font-size="11" text-anchor="middle" font-weight="700">h</text>
+            <!-- hole and jet -->
+            <line x1="180" y1="140" x2="240" y2="175" stroke="#38bdf8" stroke-width="3"/>
+            <path d="M 180 140 Q 210 150 240 175" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.5"/>
+            <text x="215" y="135" fill="#38bdf8" font-size="10" font-weight="700">v</text>
+            <text x="130" y="25" fill="#e2e8f0" font-size="11" text-anchor="middle">h มาก → v มาก</text>
+          </svg>
+          <div class="viz-caption">h สูง ความดันมาก น้ำพุ่งแรง</div>
+        </div>
+        <div class="viz-box">
+          <svg viewBox="0 0 260 200">
+            <path d="M 80 30 L 80 140 L 180 140 L 180 30" fill="none" stroke="#94a3b8" stroke-width="2"/>
+            <rect x="81" y="110" width="98" height="30" fill="#38bdf8" opacity="0.55"/>
+            <line x1="81" y1="110" x2="179" y2="110" stroke="#60a5fa" stroke-width="1.5"/>
+            <line x1="50" y1="110" x2="50" y2="140" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr1)" marker-start="url(#arr1)"/>
+            <text x="38" y="128" fill="#34d399" font-size="11" text-anchor="middle" font-weight="700">h</text>
+            <line x1="180" y1="140" x2="210" y2="160" stroke="#38bdf8" stroke-width="3"/>
+            <text x="200" y="135" fill="#38bdf8" font-size="10" font-weight="700">v</text>
+            <text x="130" y="25" fill="#e2e8f0" font-size="11" text-anchor="middle">h น้อย → v น้อย</text>
+          </svg>
+          <div class="viz-caption">h ต่ำ ความดันน้อย น้ำไหลเบา</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.82rem">นี่คือเหตุผลที่ในการทดลองต้องเติมน้ำกลับให้ระดับเท่าเดิมทุกครั้ง — เพื่อให้ <strong>h คงที่</strong> และ r คงที่ กราฟจึงเป็นเส้นตรง</p>
+    </div>
+
+    <div class="theory-card">
+      <h2>📐 การหาอัตราการไหลจากกราฟ</h2>
+      <p>เมื่อเราพล็อตกราฟ V (ปริมาตร) เทียบกับ t (เวลา) แล้วได้เส้นตรง <strong style="color:var(--accent)">ความชัน (slope)</strong> ของเส้นนี้คืออัตราการไหล r นั่นเอง</p>
+
+      <div class="eq-box">
+        r = ΔV / Δt
+        <small>เลือกจุดสองจุดบนกราฟ แล้วหารผลต่างของ V ด้วยผลต่างของ t</small>
+      </div>
+
+      <p>ตัวอย่างจากข้อมูลใบงาน:</p>
+      <ul>
+        <li>จุดที่ 1: (1 s, 20 ml)</li>
+        <li>จุดที่ 2: (7 s, 181 ml)</li>
+        <li>r = (181 − 20) / (7 − 1) = 161 / 6 ≈ <strong style="color:var(--accent3)">26.8 ml/s</strong></li>
+      </ul>
+
+      <p><strong>ถ้ารู้ค่า r แล้ว เราทำนายเวลาจากปริมาตรได้:</strong></p>
+      <div class="eq-box">
+        t = V / r
+        <small>เช่น ถ้าเก็บน้ำได้ 25 ml → t = 25/25 = 1 s</small>
+      </div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🎓 สรุปสิ่งที่ได้เรียนรู้</h2>
+      <ul>
+        <li>นาฬิกาน้ำใช้หลักการอัตราการไหลคงที่เพื่อวัดเวลา</li>
+        <li>ปริมาตรแปรผันตรงกับเวลา (V ∝ t) กราฟเป็นเส้นตรง</li>
+        <li>อัตราการไหลขึ้นกับความสูงของน้ำ (Torricelli) และขนาดของช่องเปิด</li>
+        <li>ความชันของกราฟ V-t คืออัตราการไหล r</li>
+        <li>จากข้อมูลจริง r ≈ 25 ml/s เป็นความชันของกราฟในใบงาน</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2568 KP Science simulation · การทดลองนาฬิกาน้ำ · อ้างอิงหลักสูตรแกนกลาง 2551 (ปรับปรุง 2560)<br>
+  สูตรอ้างอิง: Torricelli's Law, Halliday Resnick &amp; Walker — Fundamentals of Physics
+</footer>
+
+<script>
+// ======================= STATE =======================
+const REF_H = 10;              // cm — reference water height
+const BASE_RATE = 25;          // ml/s at REF_H and opening 100%
+const CYL_CAPACITY = 200;      // ml graduated cylinder
+const FUNNEL_C = Math.PI/12;   // cone V = C*h³  (r = h/2, apex down)
+                               // h=10cm → V≈261.8 ml (funnel top Ø10cm)
+
+let initialH = 10;             // cm — slider target (refill level)
+let currentH = 10;             // cm — live water level in funnel
+let funnelVol = FUNNEL_C*1000; // ml — water remaining in funnel
+let opening = 100;             // % (slider)
+let refillMode = false;        // auto refill to keep h constant
+let currentRate = 25;          // ml/s (instantaneous)
+
+let isFlowing = false;
+let t = 0;                     // elapsed time in current trial (s)
+let vol = 0;                   // collected volume in cylinder (ml)
+let lastTs = null;
+let animId = null;
+let readMode = false;          // manual-reading practice mode
+let pendingReading = null;     // {t, actualV} waiting for student input
+
+const trials = [];             // {t, v, r, readV?}
+
+// ======================= HELPERS =======================
+function computeRate(h){
+  // Torricelli-like: rate ∝ opening × √h
+  const hh = Math.max(h, 0);
+  return BASE_RATE * (opening/100) * Math.sqrt(hh/REF_H);
+}
+
+function updateRateDisplay(){
+  currentRate = computeRate(currentH);
+  document.getElementById('r-rate').textContent = currentRate.toFixed(1);
+  updatePrediction();
+}
+
+function refillFunnel(){
+  currentH = initialH;
+  funnelVol = FUNNEL_C * Math.pow(currentH, 3);
+}
+
+function updatePrediction(){
+  const pt = parseFloat(document.getElementById('pred-t').value) || 0;
+  const pv = currentRate * pt;
+  document.getElementById('pred-v').textContent = pv.toFixed(1) + ' ml';
+}
+
+// ======================= CANVAS — MAIN =======================
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  if (!isFlowing) draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function draw(){
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // background grid
+  ctx.strokeStyle = 'rgba(56,189,248,0.05)';
+  ctx.lineWidth = 1;
+  for(let x=0; x<W; x+=30){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0; y<H; y+=30){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Stand
+  const standX = W*0.18;
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(standX, H*0.92);
+  ctx.lineTo(standX, H*0.08);
+  ctx.stroke();
+  // base
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(standX-40, H*0.92, 100, 10);
+  // clamp arm to funnel
+  ctx.beginPath();
+  ctx.moveTo(standX, H*0.22);
+  ctx.lineTo(W*0.42, H*0.22);
+  ctx.stroke();
+  // clamp arm to rubber tube
+  ctx.beginPath();
+  ctx.moveTo(standX, H*0.55);
+  ctx.lineTo(W*0.40, H*0.55);
+  ctx.stroke();
+
+  // ===== FUNNEL =====
+  const fxCenter = W*0.5;
+  const fyTop = H*0.10;
+  const fyBot = H*0.35;
+  const fwTop = W*0.18;
+  const fwBot = W*0.025;
+
+  // funnel body
+  ctx.strokeStyle = '#93c5fd';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(fxCenter - fwTop, fyTop);
+  ctx.lineTo(fxCenter - fwBot, fyBot);
+  ctx.lineTo(fxCenter + fwBot, fyBot);
+  ctx.lineTo(fxCenter + fwTop, fyTop);
+  ctx.stroke();
+
+  // water inside funnel (level proportional to currentH / 16)
+  const hFrac = Math.max(currentH, 0) / 16;  // 0..1
+  const waterTopY = fyTop + (fyBot - fyTop) * (1 - hFrac);
+  const halfWAtTopY = fwBot + (fwTop - fwBot) * (1 - (waterTopY - fyTop)/(fyBot - fyTop));
+
+  ctx.fillStyle = 'rgba(56,189,248,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(fxCenter - halfWAtTopY, waterTopY);
+  ctx.lineTo(fxCenter - fwBot, fyBot);
+  ctx.lineTo(fxCenter + fwBot, fyBot);
+  ctx.lineTo(fxCenter + halfWAtTopY, waterTopY);
+  ctx.closePath();
+  ctx.fill();
+
+  // water surface line
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(fxCenter - halfWAtTopY, waterTopY);
+  ctx.lineTo(fxCenter + halfWAtTopY, waterTopY);
+  ctx.stroke();
+
+  // height indicator label
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 11px "Share Tech Mono"';
+  ctx.textAlign = 'left';
+  ctx.fillText('h = ' + currentH.toFixed(2) + ' cm', fxCenter + fwTop + 8, (waterTopY + fyBot)/2);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px "Share Tech Mono"';
+  ctx.fillText('V_funnel = ' + funnelVol.toFixed(0) + ' ml', fxCenter + fwTop + 8, (waterTopY + fyBot)/2 + 14);
+
+  // ===== GLASS TUBE =====
+  const tubeTopY = fyBot;
+  const tubeBotY = H*0.47;
+  ctx.strokeStyle = '#93c5fd';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(fxCenter - fwBot, tubeTopY);
+  ctx.lineTo(fxCenter - fwBot, tubeBotY);
+  ctx.moveTo(fxCenter + fwBot, tubeTopY);
+  ctx.lineTo(fxCenter + fwBot, tubeBotY);
+  ctx.stroke();
+
+  // ===== RUBBER TUBE + CLAMP =====
+  const rubberTopY = tubeBotY;
+  const rubberBotY = H*0.64;
+  ctx.strokeStyle = '#71717a';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(fxCenter, rubberTopY);
+  ctx.lineTo(fxCenter, rubberBotY);
+  ctx.stroke();
+
+  // clamp (represents opening — clickable hotspot)
+  const clampY = (rubberTopY + rubberBotY)/2;
+  // glow when closed (ready to open)
+  if(!isFlowing){
+    ctx.shadowColor = '#34d399';
+    ctx.shadowBlur = 12;
+  } else {
+    ctx.shadowColor = '#f87171';
+    ctx.shadowBlur = 12;
+  }
+  ctx.fillStyle = isFlowing ? '#ef4444' : '#22c55e';
+  ctx.fillRect(fxCenter - 18, clampY - 7, 14, 14);
+  ctx.fillRect(fxCenter + 4, clampY - 7, 14, 14);
+  ctx.shadowBlur = 0;
+  // ring to indicate clickable
+  ctx.strokeStyle = isFlowing ? '#fca5a5' : '#86efac';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fxCenter - 22, clampY - 11, 44, 22);
+
+  // label
+  ctx.fillStyle = isFlowing ? '#fca5a5' : '#86efac';
+  ctx.font = 'bold 10px Sarabun';
+  ctx.textAlign = 'left';
+  ctx.fillText((isFlowing?'🔴 คลิกหยุด':'🟢 คลิกเริ่ม') + ' (' + opening + '%)', fxCenter + 28, clampY + 3);
+
+  // ===== WATER STREAM =====
+  if(isFlowing && currentH > 0){
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(fxCenter, rubberBotY);
+    ctx.lineTo(fxCenter, H*0.74);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // animated drops
+    const dropOffset = (t*180) % 30;
+    for(let i=0; i<3; i++){
+      ctx.fillStyle = '#60a5fa';
+      ctx.beginPath();
+      ctx.arc(fxCenter, rubberBotY + dropOffset + i*30, 2.2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // ===== GRADUATED CYLINDER =====
+  const cylX = fxCenter - 45;
+  const cylY = H*0.74;
+  const cylW = 90;
+  const cylH = H*0.18;
+
+  // beaker outline (behind cylinder)
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cylX - 18, cylY - 4);
+  ctx.lineTo(cylX - 18, cylY + cylH + 10);
+  ctx.lineTo(cylX + cylW + 18, cylY + cylH + 10);
+  ctx.lineTo(cylX + cylW + 18, cylY - 4);
+  ctx.stroke();
+
+  // cylinder
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cylX, cylY);
+  ctx.lineTo(cylX, cylY + cylH);
+  ctx.lineTo(cylX + cylW, cylY + cylH);
+  ctx.lineTo(cylX + cylW, cylY);
+  ctx.stroke();
+
+  // scale marks
+  ctx.strokeStyle = '#94a3b8';
+  ctx.fillStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  ctx.font = '9px "Share Tech Mono"';
+  ctx.textAlign = 'right';
+  for(let i=0; i<=10; i++){
+    const y = cylY + cylH - (i/10)*cylH;
+    ctx.beginPath();
+    ctx.moveTo(cylX, y);
+    ctx.lineTo(cylX + (i%5===0 ? 10 : 5), y);
+    ctx.stroke();
+    if(i%2===0) ctx.fillText((i*20)+'', cylX - 2, y + 3);
+  }
+
+  // water inside cylinder
+  const volFrac = Math.min(vol / CYL_CAPACITY, 1);
+  const wH = volFrac * cylH;
+  ctx.fillStyle = 'rgba(56,189,248,0.55)';
+  ctx.fillRect(cylX+1, cylY + cylH - wH, cylW-2, wH);
+  // meniscus
+  if(wH > 1){
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cylX+1, cylY + cylH - wH);
+    ctx.lineTo(cylX + cylW - 1, cylY + cylH - wH);
+    ctx.stroke();
+  }
+
+  // volume label (hidden in read mode)
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 12px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText(readMode ? '? ml' : (vol.toFixed(1) + ' ml'), cylX + cylW/2, cylY + cylH + 28);
+
+  // Title
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 10px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('กระบอกตวง 200 ml', cylX + cylW/2, cylY - 8);
+
+  // ===== MAGNIFIED SCALE (right side) — always visible in read mode =====
+  if(readMode){
+    drawMagnifiedScale(W, H);
+  }
+
+  // end of cylinder block
+  // "คลิกเพื่อเปิดน้ำ" hint
+  if(!isFlowing){
+    ctx.fillStyle = 'rgba(251,146,60,0.9)';
+    ctx.font = 'bold 11px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText('👆 คลิกกรวยเพื่อเปิดน้ำ', fxCenter, fyTop - 10);
+  }
+}
+
+// ======================= MAGNIFIED SCALE =======================
+function drawMagnifiedScale(W, H){
+  // Panel geometry — right side of canvas
+  const pad = 10;
+  const mW = Math.min(140, W*0.22);
+  const mH = H - 24;
+  const mX = W - mW - pad;
+  const mY = 12;
+
+  // Panel background
+  ctx.fillStyle = 'rgba(15,23,42,0.92)';
+  ctx.strokeStyle = '#818cf8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(mX, mY, mW, mH, 10) : ctx.rect(mX, mY, mW, mH);
+  ctx.fill();
+  ctx.stroke();
+
+  // Title
+  ctx.fillStyle = '#818cf8';
+  ctx.font = 'bold 11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('🔍 สเกลขยาย', mX + mW/2, mY + 16);
+
+  // Magnified cylinder area
+  const cX = mX + mW*0.48;
+  const cTop = mY + 30;
+  const cBot = mY + mH - 18;
+  const cHalf = mW*0.22;
+
+  // cylinder outline
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cX - cHalf, cTop);
+  ctx.lineTo(cX - cHalf, cBot);
+  ctx.lineTo(cX + cHalf, cBot);
+  ctx.lineTo(cX + cHalf, cTop);
+  ctx.stroke();
+
+  // water fill
+  const volFrac = Math.min(vol / CYL_CAPACITY, 1);
+  const wH2 = volFrac * (cBot - cTop);
+  ctx.fillStyle = 'rgba(56,189,248,0.55)';
+  ctx.fillRect(cX - cHalf + 1, cBot - wH2, (cHalf*2) - 2, wH2);
+
+  // meniscus curve (subtle)
+  if(wH2 > 2){
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cX - cHalf + 1, cBot - wH2 + 2);
+    ctx.quadraticCurveTo(cX, cBot - wH2 - 2, cX + cHalf - 1, cBot - wH2 + 2);
+    ctx.stroke();
+  }
+
+  // Scale marks (every 2 ml, label every 10 ml) — 0 to 200
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 9px "Share Tech Mono"';
+  ctx.textAlign = 'right';
+  const totalMarks = 100; // 2ml each = 200 ml
+  for(let i=0; i<=totalMarks; i++){
+    const y = cBot - (i/totalMarks)*(cBot - cTop);
+    const ml = i*2;
+    const isMajor = (ml % 20 === 0);
+    const isMid = (ml % 10 === 0);
+    let len;
+    if(isMajor) len = 12;
+    else if(isMid) len = 8;
+    else len = 4;
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+    ctx.strokeStyle = isMajor ? '#f8fafc' : (isMid ? '#cbd5e1' : '#64748b');
+    ctx.beginPath();
+    ctx.moveTo(cX - cHalf, y);
+    ctx.lineTo(cX - cHalf + len, y);
+    ctx.stroke();
+    // right side ticks too
+    ctx.beginPath();
+    ctx.moveTo(cX + cHalf, y);
+    ctx.lineTo(cX + cHalf - len, y);
+    ctx.stroke();
+    // labels every 20 ml
+    if(isMajor){
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText(ml+'', cX - cHalf - 2, y + 3);
+    }
+  }
+
+  // unit label
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('ml', cX + cHalf + 10, cTop + 8);
+
+  // pointer arrow at meniscus level
+  if(wH2 > 0){
+    const py = cBot - wH2;
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(cX + cHalf + 14, py);
+    ctx.lineTo(cX + cHalf + 22, py - 5);
+    ctx.lineTo(cX + cHalf + 22, py + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Instruction
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('👁 อ่านที่เส้น meniscus', mX + mW/2, mY + mH - 4);
+}
+
+// ======================= ANIMATION LOOP =======================
+function loop(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs)/1000, 0.05);
+  lastTs = ts;
+
+  if(isFlowing){
+    // instantaneous rate from CURRENT height
+    currentRate = computeRate(currentH);
+    const flow = currentRate * dt;
+
+    t += dt;
+    vol += flow;
+
+    if(refillMode){
+      // keep h constant — water magically refilled
+      currentH = initialH;
+      funnelVol = FUNNEL_C * Math.pow(currentH, 3);
+    } else {
+      // realistic: water drains from funnel
+      funnelVol -= flow;
+      if(funnelVol <= 0){
+        funnelVol = 0;
+        currentH = 0;
+        currentRate = 0;
+        stopFlow();
+      } else {
+        currentH = Math.cbrt(funnelVol / FUNNEL_C);
+      }
+    }
+
+    if(vol >= CYL_CAPACITY){
+      vol = CYL_CAPACITY;
+      stopFlow();
+    }
+  }
+
+  document.getElementById('r-time').textContent = t.toFixed(2);
+  document.getElementById('r-vol').textContent = readMode ? '—' : vol.toFixed(1);
+  document.getElementById('r-rate').textContent = currentRate.toFixed(1);
+
+  draw();
+  if(isFlowing) animId = requestAnimationFrame(loop);
+}
+
+function stopFlow(){
+  isFlowing = false;
+  const btn = document.getElementById('openBtn');
+  btn.textContent = '▶ เปิดน้ำ';
+  btn.classList.remove('flowing');
+  cancelAnimationFrame(animId);
+}
+
+function toggleFlow(){
+  if(isFlowing){
+    // STOP: pause clock + save cumulative reading
+    stopFlow();
+    if(t > 0.05 && vol > 0.1){
+      if(readMode){
+        openReadingPrompt();
+      } else {
+        autoSaveTrial();
+      }
+    }
+    draw();
+    return;
+  }
+  // RESUME: accumulate from current t and vol (no reset)
+  closeReadingPrompt();
+  // if funnel is empty, cannot flow — warn user
+  if(funnelVol <= 0){
+    alert('กรวยไม่มีน้ำแล้ว — กดปุ่ม "รีเซต" เพื่อเริ่มใหม่');
+    return;
+  }
+  // if cylinder is full, cannot add more
+  if(vol >= CYL_CAPACITY){
+    alert('กระบอกตวงเต็มแล้ว — กดปุ่ม "รีเซต" เพื่อเริ่มใหม่');
+    return;
+  }
+  currentRate = computeRate(currentH);
+  document.getElementById('r-rate').textContent = currentRate.toFixed(1);
+
+  isFlowing = true;
+  lastTs = null;
+  const btn = document.getElementById('openBtn');
+  btn.textContent = '⏸ ปิดน้ำ';
+  btn.classList.add('flowing');
+  animId = requestAnimationFrame(loop);
+}
+
+function autoSaveTrial(){
+  const r = vol / t;
+  trials.push({t: +t.toFixed(2), v: +vol.toFixed(1), r: +r.toFixed(2)});
+  renderTable();
+  drawGraph();
+  flashSaved();
+}
+
+function flashSaved(){
+  const rt = document.getElementById('r-time');
+  rt.style.transition = 'color .3s';
+  rt.style.color = '#34d399';
+  setTimeout(()=>{ rt.style.color = ''; }, 600);
+}
+
+// ======================= READING PROMPT =======================
+function openReadingPrompt(){
+  pendingReading = { t: +t.toFixed(2), actualV: +vol.toFixed(1) };
+  document.getElementById('read-t').textContent = pendingReading.t.toFixed(2) + ' s';
+  const inp = document.getElementById('read-input');
+  inp.value = '';
+  document.getElementById('read-feedback').className = 'read-feedback';
+  document.getElementById('read-feedback').textContent = '';
+  document.getElementById('readOverlay').classList.add('show');
+  setTimeout(()=>inp.focus(), 100);
+}
+
+function closeReadingPrompt(){
+  document.getElementById('readOverlay').classList.remove('show');
+  pendingReading = null;
+}
+
+function cancelReading(){
+  closeReadingPrompt();
+}
+
+function confirmReading(){
+  if(!pendingReading) return;
+  const inp = document.getElementById('read-input');
+  const readV = parseFloat(inp.value);
+  if(isNaN(readV) || readV < 0){
+    inp.focus();
+    return;
+  }
+  const actualV = pendingReading.actualV;
+  const err = Math.abs(readV - actualV);
+  const pctErr = actualV > 0 ? (err/actualV)*100 : 0;
+
+  const fb = document.getElementById('read-feedback');
+  let tier, msg;
+  if(err <= 2 || pctErr <= 2){
+    tier = 'good';
+    msg = `🎯 เยี่ยม! ค่าจริง ${actualV.toFixed(1)} ml · คลาดเคลื่อน ${err.toFixed(1)} ml`;
+  } else if(err <= 5 || pctErr <= 5){
+    tier = 'meh';
+    msg = `👍 ใกล้แล้ว · ค่าจริง ${actualV.toFixed(1)} ml · คลาดเคลื่อน ${err.toFixed(1)} ml`;
+  } else {
+    tier = 'bad';
+    msg = `📏 ลองอ่านใหม่อีกครั้ง · ค่าจริง ${actualV.toFixed(1)} ml · คลาดเคลื่อน ${err.toFixed(1)} ml`;
+  }
+  fb.className = 'read-feedback show ' + tier;
+  fb.textContent = msg;
+
+  // save trial with student's reading
+  const r = readV / pendingReading.t;
+  trials.push({
+    t: pendingReading.t,
+    v: +readV.toFixed(1),
+    r: +r.toFixed(2),
+    readV: +readV.toFixed(1),
+    actualV: actualV
+  });
+  renderTable();
+  drawGraph();
+  flashSaved();
+
+  // auto-close after 2.5s
+  setTimeout(()=>{ closeReadingPrompt(); }, 2500);
+}
+
+function resetSim(){
+  cancelAnimationFrame(animId);
+  isFlowing = false;
+  t = 0; vol = 0; lastTs = null;
+  refillFunnel();
+  currentRate = computeRate(currentH);
+  closeReadingPrompt();
+  const btn = document.getElementById('openBtn');
+  btn.textContent = '▶ เปิดน้ำ';
+  btn.classList.remove('flowing');
+  document.getElementById('r-time').textContent = '0.00';
+  document.getElementById('r-vol').textContent = readMode ? '—' : '0.0';
+  document.getElementById('r-rate').textContent = currentRate.toFixed(1);
+  updatePrediction();
+  draw();
+}
+
+// Click on clamp hotspot to toggle flow + timer
+function getClampRect(){
+  const W = canvas.width, H = canvas.height;
+  const fxCenter = W*0.5;
+  const clampY = (H*0.47 + H*0.64)/2;
+  return {x1: fxCenter-26, y1: clampY-14, x2: fxCenter+26, y2: clampY+14};
+}
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const y = (e.clientY - rect.top)  * (canvas.height/rect.height);
+  const r = getClampRect();
+  if(x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2){
+    toggleFlow();
+  }
+});
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const y = (e.clientY - rect.top)  * (canvas.height/rect.height);
+  const r = getClampRect();
+  canvas.style.cursor = (x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2) ? 'pointer' : 'default';
+});
+
+// ======================= TRIALS =======================
+function saveTrial(){
+  if(t <= 0 || vol <= 0){
+    alert('กรุณาเปิดน้ำและรอให้เก็บน้ำก่อน จึงค่อยบันทึก');
+    return;
+  }
+  const r = vol / t;
+  trials.push({t: +t.toFixed(2), v: +vol.toFixed(1), r: +r.toFixed(2)});
+  renderTable();
+  drawGraph();
+}
+
+function deleteTrial(i){
+  trials.splice(i,1);
+  renderTable();
+  drawGraph();
+}
+
+function renderTable(){
+  const body = document.getElementById('trialBody');
+  if(trials.length === 0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="5">ยังไม่มีข้อมูล — กดบันทึกผลหลังเปิดน้ำ</td></tr>';
+    return;
+  }
+  let html = '';
+  trials.forEach((tr, i) => {
+    html += `<tr><td>${i+1}</td><td>${tr.t}</td><td>${tr.v}</td><td>${tr.r}</td><td><button class="del" onclick="deleteTrial(${i})">✕</button></td></tr>`;
+  });
+  // average
+  const avgT = trials.reduce((s,x)=>s+x.t,0)/trials.length;
+  const avgV = trials.reduce((s,x)=>s+x.v,0)/trials.length;
+  const avgR = trials.reduce((s,x)=>s+x.r,0)/trials.length;
+  html += `<tr class="avg"><td>μ</td><td>${avgT.toFixed(2)}</td><td>${avgV.toFixed(1)}</td><td>${avgR.toFixed(2)}</td><td></td></tr>`;
+  body.innerHTML = html;
+}
+
+// ======================= GRAPH =======================
+const gCanvas = document.getElementById('graphCanvas');
+const gctx = gCanvas.getContext('2d');
+
+function resizeGraph(){
+  gCanvas.width = gCanvas.parentElement.clientWidth;
+  gCanvas.height = gCanvas.parentElement.clientHeight;
+  drawGraph();
+}
+window.addEventListener('resize', resizeGraph);
+
+function drawGraph(){
+  const W = gCanvas.width, H = gCanvas.height;
+  gctx.clearRect(0,0,W,H);
+
+  const padL = 36, padR = 12, padT = 12, padB = 28;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  // axis scale — auto
+  let maxT = 8, maxV = 200;
+  if(trials.length > 0){
+    maxT = Math.max(8, ...trials.map(x=>x.t)) * 1.15;
+    maxV = Math.max(200, ...trials.map(x=>x.v)) * 1.1;
+  }
+
+  // grid
+  gctx.strokeStyle = 'rgba(148,163,184,0.12)';
+  gctx.lineWidth = 1;
+  for(let i=0; i<=5; i++){
+    const x = padL + (i/5)*plotW;
+    const y = padT + (i/5)*plotH;
+    gctx.beginPath(); gctx.moveTo(x, padT); gctx.lineTo(x, padT+plotH); gctx.stroke();
+    gctx.beginPath(); gctx.moveTo(padL, y); gctx.lineTo(padL+plotW, y); gctx.stroke();
+  }
+
+  // axes
+  gctx.strokeStyle = '#94a3b8';
+  gctx.lineWidth = 1.5;
+  gctx.beginPath();
+  gctx.moveTo(padL, padT);
+  gctx.lineTo(padL, padT+plotH);
+  gctx.lineTo(padL+plotW, padT+plotH);
+  gctx.stroke();
+
+  // labels
+  gctx.fillStyle = '#94a3b8';
+  gctx.font = '9px "Share Tech Mono"';
+  gctx.textAlign = 'right';
+  for(let i=0; i<=5; i++){
+    const v = (maxV*(1-i/5));
+    gctx.fillText(v.toFixed(0), padL-4, padT+(i/5)*plotH+3);
+  }
+  gctx.textAlign = 'center';
+  for(let i=0; i<=5; i++){
+    const tv = maxT*(i/5);
+    gctx.fillText(tv.toFixed(1), padL+(i/5)*plotW, padT+plotH+14);
+  }
+  gctx.fillStyle = '#38bdf8';
+  gctx.font = '10px Sarabun';
+  gctx.fillText('t (s)', padL+plotW/2, H-4);
+  gctx.save();
+  gctx.translate(10, padT+plotH/2);
+  gctx.rotate(-Math.PI/2);
+  gctx.fillText('V (ml)', 0, 0);
+  gctx.restore();
+
+  if(trials.length === 0){
+    gctx.fillStyle = '#64748b';
+    gctx.font = '11px Sarabun';
+    gctx.textAlign = 'center';
+    gctx.fillText('บันทึกผลการทดลองเพื่อดูกราฟ', padL+plotW/2, padT+plotH/2);
+    document.getElementById('g-slope').textContent = '—';
+    return;
+  }
+
+  const toX = tv => padL + (tv/maxT)*plotW;
+  const toY = vv => padT + (1 - vv/maxV)*plotH;
+
+  // linear regression through origin (forced: V = rt is physical)
+  // But also compute least squares with intercept for visualization
+  let sumT=0, sumV=0, sumTT=0, sumTV=0, n=trials.length;
+  trials.forEach(tr => {
+    sumT += tr.t; sumV += tr.v; sumTT += tr.t*tr.t; sumTV += tr.t*tr.v;
+  });
+  let slope, intercept;
+  if(n >= 2){
+    const denom = n*sumTT - sumT*sumT;
+    slope = denom !== 0 ? (n*sumTV - sumT*sumV)/denom : sumV/sumT;
+    intercept = (sumV - slope*sumT)/n;
+  } else {
+    slope = sumV/sumT;
+    intercept = 0;
+  }
+
+  // trend line
+  gctx.strokeStyle = '#818cf8';
+  gctx.lineWidth = 2;
+  gctx.setLineDash([6,4]);
+  gctx.beginPath();
+  const y0 = intercept;
+  const y1 = slope*maxT + intercept;
+  gctx.moveTo(toX(0), toY(Math.max(0, Math.min(maxV,y0))));
+  gctx.lineTo(toX(maxT), toY(Math.max(0, Math.min(maxV,y1))));
+  gctx.stroke();
+  gctx.setLineDash([]);
+
+  // data points
+  trials.forEach(tr => {
+    gctx.fillStyle = '#38bdf8';
+    gctx.beginPath();
+    gctx.arc(toX(tr.t), toY(tr.v), 4, 0, Math.PI*2);
+    gctx.fill();
+    gctx.strokeStyle = '#0a0e1a';
+    gctx.lineWidth = 1.5;
+    gctx.stroke();
+  });
+
+  document.getElementById('g-slope').textContent = slope.toFixed(2);
+}
+
+// ======================= HINT =======================
+function toggleHint(){
+  document.getElementById('hintBox').classList.toggle('show');
+}
+
+// ======================= TAB =======================
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name === 'sim'){
+    setTimeout(()=>{resizeCanvas(); resizeGraph();}, 50);
+  }
+}
+
+// ======================= INIT =======================
+window.addEventListener('DOMContentLoaded', () => {
+  const _v2s = {'vi-h':'sl-h','vi-open':'sl-open'};
+
+  function syncVal(inp){
+    const sl = document.getElementById(_v2s[inp.id]);
+    if(!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value)||0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+
+  Object.entries(_v2s).forEach(([vi, si]) => {
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    if(!sl || !inp) return;
+    sl.addEventListener('input', ()=>{ inp.value = parseFloat(sl.value); });
+    inp.addEventListener('blur', ()=>syncVal(inp));
+  });
+
+  document.getElementById('sl-h').addEventListener('input', e => {
+    initialH = parseFloat(e.target.value);
+    if(!isFlowing){
+      refillFunnel();
+      updateRateDisplay();
+    }
+    draw();
+  });
+  document.getElementById('sl-open').addEventListener('input', e => {
+    opening = parseFloat(e.target.value);
+    updateRateDisplay();
+    draw();
+  });
+  document.getElementById('cb-refill').addEventListener('change', e => {
+    refillMode = e.target.checked;
+    if(refillMode && !isFlowing){
+      refillFunnel();
+      updateRateDisplay();
+      draw();
+    }
+  });
+  document.getElementById('cb-read').addEventListener('change', e => {
+    readMode = e.target.checked;
+    if(!readMode) closeReadingPrompt();
+    document.getElementById('r-vol').textContent = readMode ? '—' : vol.toFixed(1);
+    draw();
+  });
+  document.getElementById('read-input').addEventListener('keydown', e => {
+    if(e.key === 'Enter') confirmReading();
+  });
+  document.getElementById('pred-t').addEventListener('input', updatePrediction);
+
+  refillFunnel();
+  resizeCanvas();
+  resizeGraph();
+  updateRateDisplay();
+  draw();
+});
+</script>
+</body>
+</html>

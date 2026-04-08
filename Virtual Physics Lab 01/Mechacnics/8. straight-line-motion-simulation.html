@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — การเคลื่อนที่แนวตรงด้วยความเร็วคงที่</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Sarabun','TH Sarabun New',sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+.mono { font-family: 'Share Tech Mono', monospace; }
+
+header { background: linear-gradient(135deg,#0f172a,#1e293b); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; gap:14px; }
+header .icon { font-size:1.9rem; }
+header h1 { font-size:1.25rem; font-weight:700; color:var(--accent); }
+header p { font-size:0.82rem; color:var(--muted); }
+header .badge { margin-left:auto; background:#1e3a5f; border:1px solid var(--accent); color:var(--accent); padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:600; }
+
+nav { display:flex; gap:6px; padding:10px 20px; background:#0f172a; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+nav button { background:transparent; border:1px solid var(--border); color:var(--muted); padding:7px 16px; border-radius:8px; cursor:pointer; font-family:'Sarabun',sans-serif; font-size:0.85rem; font-weight:600; white-space:nowrap; transition:all .2s; }
+nav button:hover { border-color:var(--accent); color:var(--accent); }
+nav button.active { background:var(--accent); border-color:var(--accent); color:#0a0e1a; }
+
+.tab-section { display:none; padding:16px 20px 40px; }
+.tab-section.active { display:block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+/* ==== SIM LAYOUT ==== */
+.sim-grid { display:grid; grid-template-columns: 1fr; gap:14px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.card h3 { font-size:0.92rem; color:var(--accent); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+
+.canvas-wrap { position:relative; width:100%; aspect-ratio: 16/6; min-height:240px; background:#06101e; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.canvas-wrap canvas { display:block; width:100%; height:100%; }
+
+.controls-row { display:grid; grid-template-columns: 1.1fr 1fr; gap:14px; }
+@media (max-width: 900px) { .controls-row { grid-template-columns: 1fr; } }
+
+.cbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.btn { padding:7px 16px; border:none; border-radius:7px; cursor:pointer; font-family:'Sarabun',sans-serif; font-weight:700; font-size:0.85rem; transition:.15s; }
+.btn-play { background:#1b5e20; color:#fff; }
+.btn-play:hover { background:#2e7d32; }
+.btn-play.playing { background:#b71c1c; }
+.btn-reset { background:#0d47a1; color:#fff; }
+.btn-reset:hover { background:#1565c0; }
+.btn-trial { background:var(--accent2); color:#fff; }
+.btn-trial:hover { opacity:.85; }
+.btn-record { background:var(--accent4); color:#0a0e1a; }
+.btn-record:hover { opacity:.85; }
+.btn-clear { background:#374151; color:#fff; }
+.btn-clear:hover { background:#4b5563; }
+
+.stopwatch-overlay { position:absolute; top:14px; right:16px; background:rgba(2,6,23,0.85); border:2px solid var(--accent3); padding:10px 22px; border-radius:12px; color:var(--accent3); font-family:'Share Tech Mono',monospace; font-size:2rem; font-weight:700; letter-spacing:2px; box-shadow:0 0 22px rgba(52,211,153,0.35), inset 0 0 12px rgba(52,211,153,0.15); text-shadow:0 0 10px rgba(52,211,153,0.6); pointer-events:none; z-index:5; }
+.stopwatch-overlay .sw-label { display:block; font-size:0.68rem; color:var(--muted); letter-spacing:1px; text-shadow:none; margin-bottom:2px; font-weight:600; }
+
+.sl-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.sl-label { font-size:0.82rem; color:var(--muted); flex-shrink:0; min-width:96px; }
+.sl-range { flex:1; accent-color:var(--accent); cursor:pointer; }
+.sl-unit { font-size:0.78rem; color:var(--muted); min-width:36px; flex-shrink:0; }
+.val-input { width:60px; padding:3px 6px; background:var(--panel2); border:1.5px solid var(--accent2); border-radius:5px; color:var(--accent3); font-weight:700; font-size:0.85rem; text-align:center; -moz-appearance:textfield; flex-shrink:0; }
+.val-input::-webkit-outer-spin-button, .val-input::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+.mode-toggle { display:flex; gap:0; background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:3px; }
+.mode-toggle button { flex:1; padding:6px 12px; background:transparent; border:none; color:var(--muted); cursor:pointer; font-family:'Sarabun',sans-serif; font-weight:700; font-size:0.82rem; border-radius:6px; }
+.mode-toggle button.active { background:var(--accent); color:#0a0e1a; }
+
+.tip { background:#0e2535; border-left:3px solid var(--accent); padding:8px 12px; border-radius:6px; font-size:0.8rem; color:var(--muted); margin-bottom:10px; }
+.tip b { color:var(--accent); }
+
+table.data { width:100%; border-collapse:collapse; font-size:0.82rem; }
+table.data th, table.data td { padding:5px 6px; text-align:center; border:1px solid var(--border); }
+table.data th { background:var(--panel2); color:var(--accent); font-weight:700; }
+table.data td { color:var(--text); }
+table.data td.input-cell { padding:0; }
+table.data td.input-cell input { width:100%; padding:5px 4px; background:transparent; border:none; color:var(--accent3); text-align:center; font-family:'Share Tech Mono',monospace; font-weight:700; font-size:0.85rem; }
+table.data td.input-cell input:focus { background:#0e2535; outline:1px solid var(--accent); }
+table.data td.input-cell.ok { background:#0d2818; }
+table.data td.input-cell.warn { background:#3a2410; }
+table.data td.input-cell.bad { background:#3a1818; }
+table.data td.dx-cell { color:var(--accent4); }
+table.data tr.summary td { background:var(--panel2); color:var(--accent3); font-weight:700; }
+table.data .legend-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+
+.trial-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+.trial-tab { padding:4px 10px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; font-size:0.78rem; font-weight:700; }
+.trial-tab.active { background:var(--accent); color:#0a0e1a; border-color:var(--accent); }
+.trial-tab .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+
+.graph-wrap { width:100%; aspect-ratio:1.4/1; background:#06101e; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.graph-wrap canvas { display:block; width:100%; height:100%; }
+
+.summary-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
+.stat-box { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+.stat-box .lbl { font-size:0.72rem; color:var(--muted); }
+.stat-box .val { font-size:1.1rem; color:var(--accent3); font-family:'Share Tech Mono',monospace; font-weight:700; }
+
+/* ==== THEORY ==== */
+.theory-wrap { max-width:900px; margin:0 auto; }
+.theory-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:14px; }
+.theory-card h2 { color:var(--accent); font-size:1.05rem; margin-bottom:10px; }
+.theory-card h3 { color:var(--accent2); font-size:0.95rem; margin:12px 0 6px; }
+.theory-card p { color:var(--text); line-height:1.7; font-size:0.9rem; margin-bottom:8px; }
+.formula-box { background:#020617; border:1px solid var(--accent); border-radius:8px; padding:12px 14px; margin:10px 0; text-align:center; font-family:'Share Tech Mono',monospace; color:var(--accent3); font-size:1.05rem; }
+.theory-canvas-wrap { width:100%; aspect-ratio:16/7; background:#06101e; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.theory-canvas-wrap canvas { display:block; width:100%; height:100%; }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:780px){ .two-col { grid-template-columns:1fr; } }
+.color-key { display:inline-block; padding:2px 8px; border-radius:4px; font-weight:700; font-family:'Share Tech Mono',monospace; }
+
+footer { text-align:center; color:var(--muted); font-size:0.74rem; padding:14px 20px; border-top:1px solid var(--border); }
+footer b { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🚜</div>
+  <div>
+    <h1>การเคลื่อนที่แนวตรงด้วยความเร็วคงที่</h1>
+    <p>Straight-Line Motion at Constant Speed — Experiment 8</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 ทดลอง</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและอธิบาย</button>
+</nav>
+
+<!-- ==================== SIMULATION TAB ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-grid">
+
+    <!-- CANVAS -->
+    <div class="card">
+      <h3>🛣️ โต๊ะทดลอง — รถบูลโดเซอร์เคลื่อนที่บนไม้บรรทัด</h3>
+      <div class="canvas-wrap">
+        <canvas id="simCanvas"></canvas>
+        <div class="stopwatch-overlay" id="stopwatch">
+          <span class="sw-label">⏱ STOPWATCH</span>
+          00.0 s
+        </div>
+      </div>
+
+      <!-- CONTROL BAR -->
+      <div class="cbar" style="margin-top:12px;">
+        <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+        <button class="btn btn-record" id="recBtn" onclick="manualRecord()">📌 บันทึกตำแหน่ง</button>
+        <button class="btn btn-trial" onclick="newTrial()">＋ ทดลองใหม่ (Trial)</button>
+        <button class="btn btn-clear" onclick="clearAllTrials()">🗑 ล้างทั้งหมด</button>
+      </div>
+
+      <!-- LOAD SLIDER + MODE -->
+      <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-top:6px;">
+        <div>
+          <div class="sl-row">
+            <span class="sl-label">⚖️ น้ำหนักลาก</span>
+            <input class="sl-range" type="range" id="sl-load" min="0" max="4" step="1" value="0">
+            <input class="val-input" type="number" id="vi-load" min="0" max="4" step="1" value="0">
+            <span class="sl-unit">ก้อน</span>
+          </div>
+          <div class="sl-row">
+            <span class="sl-label">⏩ ความเร็วเล่น</span>
+            <input class="sl-range" type="range" id="sl-speed" min="0.1" max="4" step="0.1" value="1">
+            <input class="val-input" type="number" id="vi-speed" min="0.1" max="4" step="0.1" value="1">
+            <span class="sl-unit">x</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.78rem; color:var(--muted); margin-bottom:5px;">โหมดการบันทึก</div>
+          <div class="mode-toggle">
+            <button id="mode-manual" class="active" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+            <button id="mode-auto" onclick="setMode('auto')">🤖 อัตโนมัติ</button>
+          </div>
+          <div class="sl-row" style="margin-top:8px;">
+            <span class="sl-label">⏱ ช่วงบันทึก</span>
+            <input class="sl-range" type="range" id="sl-interval" min="1" max="10" step="1" value="5">
+            <input class="val-input" type="number" id="vi-interval" min="1" max="10" step="1" value="5">
+            <span class="sl-unit">วิ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA + GRAPH -->
+    <div class="controls-row">
+
+      <!-- DATA TABLE -->
+      <div class="card">
+        <h3>📋 ตารางข้อมูล (Position vs Time)</h3>
+        <div class="tip" id="modeTip">
+          <b>โหมดบันทึกเอง:</b> เมื่อ stopwatch แสดง 5,10,15,…,30 วินาที ให้ดูตำแหน่งของบูลโดเซอร์จากไม้บรรทัด แล้วกรอกค่า (cm) ลงในช่อง — ระบบจะตรวจว่าใกล้เคียงค่าจริง (✓ เขียว) หรือคลาดเคลื่อน (⚠ ส้ม)
+        </div>
+        <div class="trial-tabs" id="trialTabs"></div>
+        <div style="overflow-x:auto;">
+          <table class="data" id="dataTable">
+            <thead>
+              <tr>
+                <th>t (s)</th>
+                <th>x (cm)</th>
+                <th>Δt (s)</th>
+                <th>Δx (cm)</th>
+              </tr>
+            </thead>
+            <tbody id="dataBody"></tbody>
+          </table>
+        </div>
+        <div class="summary-grid">
+          <div class="stat-box">
+            <div class="lbl">ความเร็วเฉลี่ย V<sub>av</sub></div>
+            <div class="val" id="vavOut">— cm/s</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">ระยะทางรวม</div>
+            <div class="val" id="totalDistOut">— cm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRAPH -->
+      <div class="card">
+        <h3>📈 กราฟ Position vs Time (ทุก Trial)</h3>
+        <div class="graph-wrap">
+          <canvas id="graphCanvas"></canvas>
+        </div>
+        <div style="margin-top:8px; font-size:0.78rem; color:var(--muted); line-height:1.6;">
+          <b style="color:var(--accent);">ความชัน (slope)</b> ของกราฟ = ความเร็วของรถ<br>
+          กราฟยิ่งชันมาก → รถเคลื่อนที่เร็วขึ้น
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== THEORY TAB ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+
+    <div class="theory-card">
+      <h2>🎯 จุดประสงค์ของการทดลอง</h2>
+      <p>วัดตำแหน่งของรถบูลโดเซอร์ที่เคลื่อนที่เป็นเส้นตรงในแต่ละช่วงเวลา เพื่อหาความเร็วเฉลี่ย และเปรียบเทียบความเร็วเมื่อถูกชะลอด้วยน้ำหนักลากที่แตกต่างกัน</p>
+    </div>
+
+    <div class="theory-card">
+      <h2>📐 นิยาม: การเคลื่อนที่แนวตรงด้วยความเร็วคงที่</h2>
+      <p>วัตถุที่เคลื่อนที่เป็นเส้นตรง ในทิศทางเดียว และมี <b>ความเร็วคงที่</b> (uniform motion) คือวัตถุที่เคลื่อนที่ได้ระยะทางเท่า ๆ กันในช่วงเวลาเท่า ๆ กัน</p>
+      <p>ถ้าวัตถุเดินทางได้ระยะ <span class="color-key" style="background:#1e3a5f;color:var(--accent);">Δx</span> (เมตร หรือ ซม.) ในเวลา <span class="color-key" style="background:#2d1a3a;color:var(--accent2);">Δt</span> (วินาที) ความเร็วเฉลี่ยจะหาได้จาก</p>
+      <div class="formula-box">v<sub>av</sub> &nbsp;=&nbsp; Δx / Δt</div>
+      <p>และเมื่อความเร็วคงที่ ตำแหน่ง x ในเวลา t ใด ๆ จะเป็น</p>
+      <div class="formula-box">x &nbsp;=&nbsp; v · t &nbsp;&nbsp;(เมื่อ x₀ = 0)</div>
+    </div>
+
+    <div class="theory-card">
+      <h2>🎬 ภาพประกอบเคลื่อนไหว: รถ 2 คัน ที่ความเร็วต่างกัน</h2>
+      <div class="theory-canvas-wrap">
+        <canvas id="theoryCanvas"></canvas>
+      </div>
+      <p style="margin-top:10px;">รถ 2 คันเริ่มจากตำแหน่งเดียวกัน คันสีฟ้าวิ่งเร็วกว่า สังเกตว่า <b style="color:var(--accent);">เส้นกราฟของรถเร็ว</b> มีความชันมากกว่า <b style="color:var(--accent2);">เส้นกราฟของรถช้า</b></p>
+    </div>
+
+    <div class="theory-card">
+      <h2>📈 ทำไม "ความชัน" ของกราฟ x–t คือความเร็ว?</h2>
+      <p>ในกราฟ position vs time แกน Y คือตำแหน่ง x (cm) แกน X คือเวลา t (s) ความชัน (slope) ของเส้นกราฟคือ</p>
+      <div class="formula-box">slope &nbsp;=&nbsp; Δy / Δx<sub>กราฟ</sub> &nbsp;=&nbsp; Δx<sub>วัตถุ</sub> / Δt &nbsp;=&nbsp; v</div>
+      <p>นั่นหมายความว่า: <b style="color:var(--accent3);">เส้นกราฟชันมาก = เร็วมาก</b> และ <b style="color:var(--accent4);">เส้นกราฟชันน้อย = ช้า</b></p>
+    </div>
+
+    <div class="theory-card">
+      <h2>🔍 ทำไม Δx ในช่วงเวลาเท่ากัน ต้องเท่ากัน (ถ้าความเร็วคงที่)?</h2>
+      <p>เพราะ Δx = v · Δt ถ้า v คงที่ และ Δt เท่ากัน (เช่น 5 วินาที) ผลคูณก็ต้องเท่ากันเสมอ</p>
+      <p>ในการทดลองจริง เราพบว่า Δx ในแต่ละช่วงไม่เท่ากันเป๊ะ แต่ใกล้เคียงกัน นั่นเพราะ</p>
+      <ul style="margin-left:22px; color:var(--text); line-height:1.8;">
+        <li>มอเตอร์ของรถมีความสะดุดเล็กน้อย</li>
+        <li>พื้นผิวอาจมีแรงเสียดทานไม่สม่ำเสมอ</li>
+        <li>การอ่านค่าจากไม้บรรทัดมีความคลาดเคลื่อน (parallax error)</li>
+      </ul>
+      <p style="margin-top:8px;">หากค่า Δx แตกต่างกันมาก (เช่น 50, 80, 30 cm) แสดงว่ารถ <b>ไม่ได้เคลื่อนที่ด้วยความเร็วคงที่</b> ในการทดลองนั้น</p>
+    </div>
+
+    <div class="theory-card">
+      <h2>❓ ทำไมต้องบันทึกอย่างน้อย 3 จุด ก่อนสรุปว่ากราฟเป็นเส้นตรง?</h2>
+      <p>เพราะ <b>2 จุด ใด ๆ บนระนาบ ลากเส้นตรงผ่านได้เสมอ</b> เราจึงไม่สามารถบอกได้เลยว่าการเคลื่อนที่นั้นเป็นความเร็วคงที่จริงหรือไม่</p>
+      <p>เมื่อมี <b>3 จุดขึ้นไป</b> เราสามารถดูได้ว่า:</p>
+      <ul style="margin-left:22px; color:var(--text); line-height:1.8;">
+        <li><b style="color:var(--accent3);">3 จุดเรียงตรง</b> → ความเร็วคงที่</li>
+        <li><b style="color:var(--accent4);">3 จุดโค้ง</b> → ความเร็วเปลี่ยนแปลง (มีความเร่ง)</li>
+      </ul>
+    </div>
+
+    <div class="theory-card">
+      <h2>🧪 สิ่งที่นักเรียนต้องทำในการทดลองนี้</h2>
+      <div class="two-col">
+        <div>
+          <h3>ขั้นตอน</h3>
+          <ol style="margin-left:20px; color:var(--text); line-height:1.8; font-size:0.88rem;">
+            <li>ปล่อยรถบูลโดเซอร์ที่ตำแหน่งเริ่มต้น (x = 0)</li>
+            <li>กด ▶ เริ่ม พร้อมจับเวลา</li>
+            <li>บันทึกตำแหน่ง x ทุก 5 วินาที จนถึง 30 วินาที</li>
+            <li>คำนวณ Δx ในแต่ละช่วง</li>
+            <li>คำนวณ V<sub>av</sub> = ระยะทางรวม / เวลารวม</li>
+            <li>เปลี่ยนน้ำหนักลาก แล้วเริ่มทดลอง Trial ใหม่</li>
+            <li>วาดกราฟ x–t ของทุก Trial บนแกนเดียวกัน</li>
+          </ol>
+        </div>
+        <div>
+          <h3>สิ่งที่ต้องสังเกต</h3>
+          <ul style="margin-left:20px; color:var(--text); line-height:1.8; font-size:0.88rem;">
+            <li>กราฟทุกเส้นเป็นเส้นตรงหรือไม่?</li>
+            <li>ความชันของแต่ละเส้นต่างกันอย่างไร?</li>
+            <li>เมื่อเพิ่มน้ำหนักลาก ความเร็วเปลี่ยนอย่างไร?</li>
+            <li>Δx ในแต่ละช่วงเวลาเท่ากันไหม?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <b>KP Science simulation</b> · การเคลื่อนที่แนวตรงด้วยความเร็วคงที่ · อ้างอิง: หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน 2551 (ปรับปรุง 2560) · ฟิสิกส์ ม.ปลาย — Kinematics
+</footer>
+
+<script>
+/* ============================================================
+   STRAIGHT-LINE MOTION AT CONSTANT SPEED — KP Science simulation
+   ============================================================ */
+
+// ---------- CONFIG ----------
+let sampleInterval = 5;            // วินาที/ช่วง — ปรับได้
+let sampleCount = 6;               // จำนวนจุดบันทึก
+const TRACK_MAX_CM = 500;          // เส้นทางบน canvas (0 - 500 cm)
+const TOTAL_DURATION = 30;         // วินาที
+const HINT_TOLERANCE_S = 0.6;      // คลิกตรงกับเวลาเป้าหมาย ±0.6s = 🟢
+const HINT_WARN_S = 1.5;           // ±1.5s = 🟡
+function getSampleTimes() {
+  const arr = [];
+  for (let i = 1; i * sampleInterval <= TOTAL_DURATION + 1e-9; i++) arr.push(i*sampleInterval);
+  return arr;
+}
+
+// load (ก้อน) -> base speed (cm/s) อิงจากใบงาน Trial 1..5
+const LOAD_TO_SPEED = [15.0, 13.0, 11.0, 10.0, 8.9];
+const TRIAL_COLORS = ['#38bdf8','#34d399','#fb923c','#f472b6','#facc15','#a78bfa','#22d3ee','#f87171'];
+
+// ---------- STATE ----------
+let trials = [];        // {id, color, load, baseSpeed, posSeries[{t,x}], records[{t,xTrue,xUser,status}], finished}
+let activeTrialIdx = -1;
+let mode = 'manual';    // 'manual' | 'auto'
+
+let isPlaying = false;
+let animId = null;
+let lastTs = null;
+let t = 0;              // simulated seconds
+let playbackSpeed = 1.0;
+
+let currentLoad = 0;
+let currentX = 0;
+
+// ---------- TAB ----------
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'theory') startTheoryAnim();
+  else stopTheoryAnim();
+}
+
+// ---------- TRIAL MANAGEMENT ----------
+function generatePosSeries(baseSpeed, durationS = 30, dt = 0.1, seed = Math.random()) {
+  // Generate true position over time with small fluctuation around baseSpeed
+  // (sinusoidal + small random walk -> realistic noise like the worksheet trial 4)
+  const series = [{t:0, x:0}];
+  let x = 0;
+  const phase1 = seed * Math.PI * 2;
+  const phase2 = seed * 5.7;
+  let walk = 0;
+  for (let i = 1; i * dt <= durationS + 1e-9; i++) {
+    const tt = i * dt;
+    walk += (Math.random() - 0.5) * 0.04;
+    walk = Math.max(-0.18, Math.min(0.18, walk));
+    const fluct = 1 + 0.10*Math.sin(tt*0.85 + phase1) + 0.06*Math.sin(tt*1.9 + phase2) + walk;
+    const v = baseSpeed * fluct;
+    x += v * dt;
+    series.push({t:+tt.toFixed(3), x:x});
+  }
+  return series;
+}
+
+function newTrial() {
+  // Stop sim
+  if (isPlaying) togglePlay();
+  const id = trials.length + 1;
+  const color = TRIAL_COLORS[(id-1) % TRIAL_COLORS.length];
+  const baseSpeed = LOAD_TO_SPEED[currentLoad];
+  const trial = {
+    id, color,
+    load: currentLoad,
+    baseSpeed,
+    interval: sampleInterval,
+    posSeries: generatePosSeries(baseSpeed),
+    records: getSampleTimes().map(tt => ({t:tt, clickT:null, xTrue:null, xUser:null, status:'empty'})),
+    finished: false,
+  };
+  // pre-fill xTrue at sample times
+  trial.records.forEach(r => { r.xTrue = posAt(trial.posSeries, r.t); });
+  trials.push(trial);
+  activeTrialIdx = trials.length - 1;
+  resetSimState();
+  renderTrialTabs();
+  renderTable();
+  drawGraph();
+  draw();
+}
+
+function clearAllTrials() {
+  if (!confirm('ลบข้อมูลทุก Trial?')) return;
+  trials = [];
+  activeTrialIdx = -1;
+  resetSimState();
+  newTrial();
+}
+
+function selectTrial(idx) {
+  if (isPlaying) togglePlay();
+  activeTrialIdx = idx;
+  currentLoad = trials[idx].load;
+  document.getElementById('sl-load').value = currentLoad;
+  document.getElementById('vi-load').value = currentLoad;
+  resetSimState();
+  renderTrialTabs();
+  renderTable();
+  drawGraph();
+  draw();
+}
+
+function activeTrial() { return trials[activeTrialIdx]; }
+
+function posAt(series, time) {
+  // linear interp
+  if (time <= 0) return 0;
+  if (time >= series[series.length-1].t) return series[series.length-1].x;
+  let lo = 0, hi = series.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (series[mid].t <= time) lo = mid; else hi = mid;
+  }
+  const a = series[lo], b = series[hi];
+  const f = (time - a.t) / (b.t - a.t);
+  return a.x + f * (b.x - a.x);
+}
+
+// ---------- SIM CONTROL ----------
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min((ts - lastTs)/1000, 0.05) * playbackSpeed;
+  lastTs = ts;
+  if (t < 30) {
+    t += dt;
+    if (t > 30) t = 30;
+  }
+  const tr = activeTrial();
+  if (tr) {
+    currentX = posAt(tr.posSeries, t);
+    // Auto-record at sample times
+    if (mode === 'auto') {
+      tr.records.forEach(r => {
+        if (r.xUser === null && t >= r.t - 0.001) {
+          r.xUser = Math.round(r.xTrue);
+          r.clickT = r.t;
+          r.status = 'ok';
+        }
+      });
+    }
+  }
+  document.getElementById('stopwatch').innerHTML = '<span class="sw-label">⏱ STOPWATCH</span>' + t.toFixed(1).padStart(4,'0') + ' s';
+  draw();
+  drawGraph();
+  if (mode === 'auto') renderTable();
+  updateSummary();
+  if (t >= 30) {
+    if (isPlaying) togglePlay();
+    if (mode === 'auto' && tr) tr.finished = true;
+  }
+  if (isPlaying) animId = requestAnimationFrame(loop);
+}
+
+function togglePlay() {
+  if (activeTrialIdx < 0) return;
+  isPlaying = !isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    lastTs = null;
+    animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(animId);
+    btn.textContent = '▶ เริ่ม';
+    btn.classList.remove('playing');
+  }
+}
+
+function resetSim() {
+  // Reset only active trial
+  if (isPlaying) togglePlay();
+  resetSimState();
+  const tr = activeTrial();
+  if (tr) {
+    // regenerate noise
+    tr.posSeries = generatePosSeries(tr.baseSpeed);
+    tr.records.forEach(r => { r.xTrue = posAt(tr.posSeries, r.t); r.xUser = null; r.clickT = null; r.status='empty'; });
+    tr.finished = false;
+  }
+  renderTable();
+  drawGraph();
+  draw();
+  updateSummary();
+}
+
+function resetSimState() {
+  t = 0; currentX = 0; lastTs = null;
+  document.getElementById('stopwatch').innerHTML = '<span class="sw-label">⏱ STOPWATCH</span>00.0 s';
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+}
+
+function manualRecord() {
+  // คลิกขณะรถวิ่ง → เก็บตำแหน่งปัจจุบันลงช่องถัดไปที่ยังว่าง
+  if (mode !== 'manual' || activeTrialIdx < 0) {
+    alert('โหมดอัตโนมัติบันทึกให้แล้ว — ใช้ปุ่มนี้ในโหมด "บันทึกเอง"');
+    return;
+  }
+  const tr = activeTrial();
+  const target = tr.records.find(r => r.xUser === null);
+  if (!target) {
+    alert('บันทึกครบทุกจุดแล้ว');
+    return;
+  }
+  target.clickT = +t.toFixed(2);
+  target.xUser = Math.round(currentX);
+  const err = Math.abs(target.clickT - target.t);
+  if (err < HINT_TOLERANCE_S)      target.status = 'ok';
+  else if (err < HINT_WARN_S)      target.status = 'warn';
+  else                              target.status = 'bad';
+  renderTable();
+  drawGraph();
+  updateSummary();
+}
+
+// ---------- MODE ----------
+function setMode(m) {
+  mode = m;
+  document.getElementById('mode-manual').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto').classList.toggle('active', m==='auto');
+  document.getElementById('modeTip').innerHTML = (m==='manual')
+    ? '<b>โหมดบันทึกเอง:</b> กด ▶ เริ่ม แล้วจับจังหวะกด <b style="color:var(--accent4);">📌 บันทึก</b> ทุก ' + sampleInterval + ' วินาทีตามจังหวะ stopwatch คลิกที่ 1 = จุดแรก, คลิกที่ 2 = จุดถัดไป ฯลฯ — ตำแหน่ง x จะถูกจดทันทีตามรถ ณ ตอนคลิก และจะเช็คว่าคลิกตรงเวลาหรือไม่ (🟢 = ใกล้ ±0.6s, 🟡 ±1.5s, 🔴 เกิน)'
+    : '<b>โหมดอัตโนมัติ:</b> ระบบจะบันทึกตำแหน่งของรถลงในตารางให้เองทุก ' + sampleInterval + ' วินาที กดเริ่มแล้วรอดูข้อมูลเลย';
+  renderTable();
+}
+
+// ---------- TABLE ----------
+function renderTrialTabs() {
+  const c = document.getElementById('trialTabs');
+  c.innerHTML = '';
+  trials.forEach((tr, i) => {
+    const el = document.createElement('div');
+    el.className = 'trial-tab' + (i===activeTrialIdx?' active':'');
+    el.innerHTML = `<span class="dot" style="background:${tr.color}"></span>Trial ${tr.id} · โหลด ${tr.load} ก้อน · ${LOAD_TO_SPEED[tr.load].toFixed(1)} cm/s`;
+    el.onclick = () => selectTrial(i);
+    c.appendChild(el);
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('dataBody');
+  tbody.innerHTML = '';
+  const tr = activeTrial();
+  if (!tr) return;
+  // Row 0
+  const r0 = document.createElement('tr');
+  r0.innerHTML = `<td>0</td><td class="mono">0</td><td>—</td><td>—</td>`;
+  tbody.appendChild(r0);
+  let prevX = 0;
+  tr.records.forEach((rec, i) => {
+    const row = document.createElement('tr');
+    const dxStr = (rec.xUser !== null) ? (rec.xUser - prevX).toFixed(0) : '—';
+    let statusClass = '';
+    if (rec.status === 'ok')   statusClass = 'ok';
+    if (rec.status === 'warn') statusClass = 'warn';
+    if (rec.status === 'bad')  statusClass = 'bad';
+    if (mode === 'manual') {
+      row.innerHTML = `
+        <td>${rec.t}</td>
+        <td class="input-cell ${statusClass}"><input id="in-${rec.t}" type="number" step="1" value="${rec.xUser ?? ''}" placeholder="?"></td>
+        <td>${sampleInterval}</td>
+        <td class="dx-cell mono">${dxStr}</td>`;
+    } else {
+      row.innerHTML = `
+        <td>${rec.t}</td>
+        <td class="mono" style="color:var(--accent3);">${rec.xUser ?? '—'}</td>
+        <td>${sampleInterval}</td>
+        <td class="dx-cell mono">${dxStr}</td>`;
+    }
+    tbody.appendChild(row);
+    if (rec.xUser !== null) prevX = rec.xUser;
+  });
+  // Wire inputs — ให้นักเรียนแก้ค่า x ได้ (เช่น อ่านจากไม้บรรทัดให้แม่นกว่า)
+  if (mode === 'manual') {
+    tr.records.forEach(rec => {
+      const inp = document.getElementById('in-'+rec.t);
+      if (!inp) return;
+      inp.addEventListener('change', () => {
+        const v = parseFloat(inp.value);
+        if (isNaN(v)) { rec.xUser = null; rec.clickT = null; rec.status='empty'; }
+        else { rec.xUser = v; }
+        renderTable();
+        drawGraph();
+        updateSummary();
+      });
+    });
+  }
+}
+
+function updateSummary() {
+  const tr = activeTrial();
+  if (!tr) return;
+  // last filled record
+  let lastX = null, lastT = null;
+  for (const r of tr.records) {
+    if (r.xUser !== null) { lastX = r.xUser; lastT = r.t; }
+  }
+  if (lastX !== null && lastT > 0) {
+    const vav = lastX / lastT;
+    document.getElementById('vavOut').textContent = vav.toFixed(2) + ' cm/s';
+    document.getElementById('totalDistOut').textContent = lastX.toFixed(0) + ' cm';
+  } else {
+    document.getElementById('vavOut').textContent = '— cm/s';
+    document.getElementById('totalDistOut').textContent = '— cm';
+  }
+}
+
+// ---------- DRAW: SIM CANVAS ----------
+function draw() {
+  const canvas = document.getElementById('simCanvas');
+  if (!canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Sky / table background
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#0a1628');
+  grad.addColorStop(1,'#0e1f33');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  // Table top
+  const tableY = H * 0.72;
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(0, tableY, W, H - tableY);
+  ctx.fillStyle = '#3e2723';
+  ctx.fillRect(0, tableY, W, 6);
+
+  // Tape measure (ruler) just above the table top
+  const rulerY = tableY - 18;
+  const rulerH = 22;
+  const margin = 30;
+  const rulerX0 = margin;
+  const rulerX1 = W - margin;
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(rulerX0, rulerY, rulerX1-rulerX0, rulerH);
+  ctx.strokeStyle = '#92400e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rulerX0, rulerY, rulerX1-rulerX0, rulerH);
+
+  // Tick marks every 10 cm, label every 50 cm
+  ctx.fillStyle = '#451a03';
+  ctx.font = '10px "Share Tech Mono", monospace';
+  ctx.textAlign = 'center';
+  for (let cm = 0; cm <= TRACK_MAX_CM; cm += 10) {
+    const x = rulerX0 + (cm/TRACK_MAX_CM) * (rulerX1-rulerX0);
+    const tickH = (cm % 50 === 0) ? 10 : 5;
+    ctx.fillRect(x, rulerY, 1, tickH);
+    if (cm % 50 === 0) {
+      ctx.fillText(cm, x, rulerY + 20);
+    }
+  }
+
+  // Starting line marker
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(rulerX0 - 1, rulerY - 30, 2, 30);
+  ctx.font = 'bold 11px Sarabun';
+  ctx.fillStyle = '#dc2626';
+  ctx.textAlign = 'left';
+  ctx.fillText('START', rulerX0 + 4, rulerY - 22);
+
+  // Bulldozer position
+  const xPx = rulerX0 + (Math.min(currentX, TRACK_MAX_CM)/TRACK_MAX_CM) * (rulerX1-rulerX0);
+  const bdY = rulerY - 10;
+  drawBulldozer(ctx, xPx, bdY, currentLoad);
+
+  // Current position label above bulldozer
+  ctx.fillStyle = '#fef9c3';
+  ctx.font = 'bold 13px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText('x = ' + currentX.toFixed(0) + ' cm', xPx, bdY - 38);
+
+  // Sample time markers (vertical dashed lines on ruler)
+  const tr = activeTrial();
+  if (tr) {
+    ctx.strokeStyle = 'rgba(56,189,248,0.35)';
+    ctx.setLineDash([3,3]);
+    ctx.lineWidth = 1;
+    tr.records.forEach(r => {
+      if (r.xUser !== null) {
+        const px = rulerX0 + (Math.min(r.xUser, TRACK_MAX_CM)/TRACK_MAX_CM) * (rulerX1-rulerX0);
+        ctx.beginPath();
+        ctx.moveTo(px, rulerY - 38);
+        ctx.lineTo(px, rulerY + rulerH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = tr.color;
+        ctx.beginPath();
+        ctx.arc(px, rulerY + rulerH + 6, 3, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = tr.color;
+        ctx.font = '9px "Share Tech Mono"';
+        ctx.fillText('t='+r.t, px, rulerY + rulerH + 18);
+        ctx.setLineDash([3,3]);
+      }
+    });
+    ctx.setLineDash([]);
+  }
+}
+
+function drawBulldozer(ctx, x, y, load) {
+  // Bulldozer body
+  const bodyW = 40, bodyH = 18;
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillRect(x - bodyW/2, y - bodyH, bodyW, bodyH);
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(x - bodyW/2, y - bodyH, bodyW, bodyH);
+  // Cabin
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(x - 4, y - bodyH - 10, 14, 10);
+  ctx.strokeRect(x - 4, y - bodyH - 10, 14, 10);
+  // Window
+  ctx.fillStyle = '#bae6fd';
+  ctx.fillRect(x - 2, y - bodyH - 8, 10, 6);
+  // Blade (front shovel)
+  ctx.fillStyle = '#78350f';
+  ctx.fillRect(x + bodyW/2, y - bodyH - 4, 3, bodyH + 4);
+  // Tracks
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(x - bodyW/2 - 2, y - 4, bodyW + 4, 6);
+  // Wheels
+  ctx.fillStyle = '#374151';
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.arc(x + i*12, y, 3.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // Load behind bulldozer
+  if (load > 0) {
+    const loadX = x - bodyW/2 - 6 - load*8;
+    // string
+    ctx.strokeStyle = '#9ca3af';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - bodyW/2, y - bodyH/2);
+    ctx.lineTo(loadX + load*4, y - 4);
+    ctx.stroke();
+    // weights
+    for (let i = 0; i < load; i++) {
+      const wx = loadX + i*8;
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(wx, y - 6, 6, 8);
+      ctx.strokeStyle = '#1f2937';
+      ctx.strokeRect(wx, y - 6, 6, 8);
+    }
+  }
+}
+
+// ---------- DRAW: GRAPH ----------
+function drawGraph() {
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#06101e';
+  ctx.fillRect(0,0,W,H);
+
+  const padL = 44, padR = 14, padT = 14, padB = 36;
+  const gw = W - padL - padR;
+  const gh = H - padT - padB;
+
+  // Determine x and y max
+  const tMax = 30;
+  let xMax = 500;
+  trials.forEach(tr => {
+    tr.records.forEach(r => { if (r.xUser !== null && r.xUser > xMax) xMax = r.xUser; });
+  });
+  // include current sim position
+  if (currentX > xMax) xMax = currentX;
+  xMax = Math.ceil(xMax / 100) * 100;
+  if (xMax < 100) xMax = 100;
+
+  // Grid
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.font = '10px "Share Tech Mono"';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'right';
+  // Y grid (every 100 cm)
+  for (let y = 0; y <= xMax; y += 100) {
+    const py = padT + gh - (y/xMax)*gh;
+    ctx.beginPath();
+    ctx.moveTo(padL, py); ctx.lineTo(padL + gw, py);
+    ctx.stroke();
+    ctx.fillText(y, padL - 4, py + 3);
+  }
+  // X grid (every 5 s)
+  ctx.textAlign = 'center';
+  for (let x = 0; x <= tMax; x += 5) {
+    const px = padL + (x/tMax)*gw;
+    ctx.beginPath();
+    ctx.moveTo(px, padT); ctx.lineTo(px, padT + gh);
+    ctx.stroke();
+    ctx.fillText(x, px, padT + gh + 14);
+  }
+  // Axes
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+gh); ctx.lineTo(padL+gw, padT+gh);
+  ctx.stroke();
+  // Labels
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = 'bold 11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('Time t (s)', padL + gw/2, padT + gh + 28);
+  ctx.save();
+  ctx.translate(12, padT + gh/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('Position x (cm)', 0, 0);
+  ctx.restore();
+
+  // Plot each trial
+  trials.forEach((tr, idx) => {
+    const isActive = (idx === activeTrialIdx);
+    ctx.strokeStyle = tr.color;
+    ctx.fillStyle = tr.color;
+    ctx.lineWidth = isActive ? 2.2 : 1.4;
+
+    // Build points (include 0,0)
+    const pts = [{t:0, x:0}];
+    tr.records.forEach(r => { if (r.xUser !== null) pts.push({t:r.t, x:r.xUser}); });
+
+    // Lines connecting recorded points
+    if (pts.length >= 2) {
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        const px = padL + (p.t/tMax)*gw;
+        const py = padT + gh - (p.x/xMax)*gh;
+        if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      });
+      ctx.stroke();
+    }
+    // Dots
+    pts.forEach(p => {
+      const px = padL + (p.t/tMax)*gw;
+      const py = padT + gh - (p.x/xMax)*gh;
+      ctx.beginPath();
+      ctx.arc(px, py, isActive?4:3, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // Live position dot for active trial during play
+    if (isActive && isPlaying) {
+      const px = padL + (t/tMax)*gw;
+      const py = padT + gh - (currentX/xMax)*gh;
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px, padT + gh); ctx.lineTo(px, py);
+      ctx.stroke();
+    }
+  });
+
+  // Legend
+  ctx.font = '10px Sarabun';
+  ctx.textAlign = 'left';
+  let ly = padT + 4;
+  trials.forEach((tr, idx) => {
+    ctx.fillStyle = tr.color;
+    ctx.fillRect(padL + 6, ly, 10, 10);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillText('Trial ' + tr.id, padL + 20, ly + 9);
+    ly += 14;
+  });
+}
+
+// ---------- THEORY ANIMATION ----------
+let theoryAnimId = null, theoryT = 0, theoryLastTs = null;
+function startTheoryAnim() {
+  if (theoryAnimId) return;
+  theoryT = 0; theoryLastTs = null;
+  const loop2 = (ts) => {
+    if (!theoryLastTs) theoryLastTs = ts;
+    const dt = Math.min((ts - theoryLastTs)/1000, 0.05);
+    theoryLastTs = ts;
+    theoryT += dt;
+    if (theoryT > 8) theoryT = 0;
+    drawTheory();
+    theoryAnimId = requestAnimationFrame(loop2);
+  };
+  theoryAnimId = requestAnimationFrame(loop2);
+}
+function stopTheoryAnim() {
+  if (theoryAnimId) cancelAnimationFrame(theoryAnimId);
+  theoryAnimId = null;
+}
+function drawTheory() {
+  const canvas = document.getElementById('theoryCanvas');
+  if (!canvas || !canvas.getContext) return;
+  // resize
+  const c = canvas.parentElement;
+  canvas.width = c.clientWidth || 800;
+  canvas.height = c.clientHeight || 320;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#06101e';
+  ctx.fillRect(0,0,W,H);
+
+  // Two panels: track on top, graph on bottom
+  const trackH = H * 0.45;
+  const graphY0 = trackH + 6;
+  const graphH = H - graphY0 - 8;
+
+  // ---- Track ----
+  // Ruler
+  const margin = 30;
+  const r0 = margin, r1 = W - margin;
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(r0, trackH - 28, r1-r0, 18);
+  ctx.strokeStyle = '#92400e';
+  ctx.strokeRect(r0, trackH - 28, r1-r0, 18);
+  ctx.fillStyle = '#451a03';
+  ctx.font = '9px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  for (let cm = 0; cm <= 100; cm += 10) {
+    const px = r0 + (cm/100)*(r1-r0);
+    ctx.fillRect(px, trackH-28, 1, (cm%50===0)?9:5);
+    if (cm%20===0) ctx.fillText(cm, px, trackH-12);
+  }
+
+  // Two cars: fast (accent ~12 cm/s) and slow (accent2 ~6 cm/s)
+  const vFast = 12, vSlow = 6;
+  const xF = Math.min(vFast * theoryT, 100);
+  const xS = Math.min(vSlow * theoryT, 100);
+  const pxF = r0 + (xF/100)*(r1-r0);
+  const pxS = r0 + (xS/100)*(r1-r0);
+
+  drawMiniCar(ctx, pxF, trackH - 40, '#38bdf8');
+  drawMiniCar(ctx, pxS, trackH - 60, '#818cf8');
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 10px "Share Tech Mono"';
+  ctx.textAlign = 'left';
+  ctx.fillText('FAST  v=12 cm/s', 10, 14);
+  ctx.fillStyle = '#818cf8';
+  ctx.fillText('SLOW  v=6 cm/s', 10, 28);
+
+  // ---- Graph ----
+  const padL = 36, padR = 14, padT = graphY0 + 4, padB = 18;
+  const gw = W - padL - padR;
+  const gh = H - padT - padB;
+  // axes
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const py = padT + (i/5)*gh;
+    ctx.beginPath(); ctx.moveTo(padL, py); ctx.lineTo(padL+gw, py); ctx.stroke();
+  }
+  for (let i = 0; i <= 8; i++) {
+    const px = padL + (i/8)*gw;
+    ctx.beginPath(); ctx.moveTo(px, padT); ctx.lineTo(px, padT+gh); ctx.stroke();
+  }
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, padT+gh); ctx.lineTo(padL+gw, padT+gh); ctx.stroke();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('t (s)', padL + gw/2, padT + gh + 14);
+  ctx.save();
+  ctx.translate(10, padT + gh/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('x (cm)', 0, 0);
+  ctx.restore();
+
+  // Plot lines (full)
+  const tMax = 8, xMax = 100;
+  const drawLine = (v, color) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let tt = 0; tt <= tMax; tt += 0.1) {
+      const xx = Math.min(v*tt, xMax);
+      const px = padL + (tt/tMax)*gw;
+      const py = padT + gh - (xx/xMax)*gh;
+      if (tt===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  };
+  drawLine(vFast, '#38bdf8');
+  drawLine(vSlow, '#818cf8');
+
+  // Live dots
+  const dotF_x = padL + (theoryT/tMax)*gw;
+  const dotF_y = padT + gh - (xF/xMax)*gh;
+  const dotS_y = padT + gh - (xS/xMax)*gh;
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath(); ctx.arc(dotF_x, dotF_y, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#818cf8';
+  ctx.beginPath(); ctx.arc(dotF_x, dotS_y, 4, 0, Math.PI*2); ctx.fill();
+}
+function drawMiniCar(ctx, x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x-12, y-7, 24, 10);
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath(); ctx.arc(x-7, y+3, 2.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+7, y+3, 2.5, 0, Math.PI*2); ctx.fill();
+}
+
+// ---------- RESIZE ----------
+function resizeCanvas() {
+  const canvas = document.getElementById('simCanvas');
+  const c = canvas.parentElement;
+  canvas.width = c.clientWidth || 800;
+  canvas.height = c.clientHeight || 280;
+  const g = document.getElementById('graphCanvas');
+  const gc = g.parentElement;
+  g.width = gc.clientWidth || 400;
+  g.height = gc.clientHeight || 280;
+  draw();
+  drawGraph();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ---------- INIT ----------
+window.addEventListener('DOMContentLoaded', () => {
+  // Slider sync
+  const _v2s = { 'vi-load':'sl-load', 'vi-speed':'sl-speed', 'vi-interval':'sl-interval' };
+  function syncVal(inp) {
+    const sl = document.getElementById(_v2s[inp.id]);
+    if (!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(_v2s).forEach(([vi, si]) => {
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    sl.addEventListener('input', () => { inp.value = parseFloat(sl.value); });
+    inp.addEventListener('blur', () => syncVal(inp));
+  });
+
+  document.getElementById('sl-load').addEventListener('input', e => {
+    currentLoad = parseInt(e.target.value);
+  });
+  document.getElementById('sl-speed').addEventListener('input', e => {
+    playbackSpeed = parseFloat(e.target.value);
+  });
+  document.getElementById('sl-interval').addEventListener('input', e => {
+    const v = parseInt(e.target.value);
+    if (v < 1) return;
+    sampleInterval = v;
+    sampleCount = Math.floor(TOTAL_DURATION / sampleInterval);
+    // รีเซ็ต trial ปัจจุบันให้ใช้ interval ใหม่
+    if (activeTrialIdx >= 0) {
+      const tr = activeTrial();
+      tr.interval = sampleInterval;
+      tr.records = getSampleTimes().map(tt => ({
+        t: tt, clickT: null, xTrue: posAt(tr.posSeries, tt), xUser: null, status: 'empty'
+      }));
+      resetSimState();
+      renderTable();
+      drawGraph();
+      updateSummary();
+      draw();
+    }
+    setMode(mode); // refresh tip text
+  });
+
+  resizeCanvas();
+  newTrial();
+  setMode('manual');
+  updateSummary();
+});
+</script>
+</body>
+</html>

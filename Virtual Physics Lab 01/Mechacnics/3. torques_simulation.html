@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{
+    if(window.self !== window.top){
+      // ถูก embed จากเว็บอื่น — redirect ขึ้น top
+      window.top.location.href = window.self.location.href;
+    }
+  }catch(e){
+    // cross-origin — แสดงหน้าเตือน
+    document.documentElement.innerHTML =
+      '<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px;">
+<a href="../../index.html" class="kp-back-btn" title="กลับหน้าแรก">← กลับหน้าแรก</a>
+<style>
+.kp-back-btn{position:fixed;top:14px;left:14px;z-index:9999;background:rgba(15,23,42,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid #38bdf8;color:#38bdf8;padding:8px 16px;border-radius:8px;text-decoration:none;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.85rem;transition:.2s;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+.kp-back-btn:hover{background:#38bdf8;color:#0a0e1a;transform:translateY(-1px)}
+@media(max-width:600px){.kp-back-btn{top:8px;left:8px;padding:6px 12px;font-size:0.78rem}}
+</style>
+'+
+      '<div><h1 style="color:#38bdf8;">🔒 KP Science Simulation</h1>'+
+      '<p>สื่อนี้ไม่อนุญาตให้แสดงผ่านเว็บไซต์อื่น</p>'+
+      '<p><a href="https://" style="color:#38bdf8;">← กลับสู่ KP Science</a></p></div></body>';
+  }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — ทอร์ก (Torques) Exp.3</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0a0e1a;
+  --panel:   #111827;
+  --panel2:  #1a2235;
+  --border:  #1e3a5f;
+  --accent:  #38bdf8;
+  --accent2: #818cf8;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text:    #e2e8f0;
+  --muted:   #94a3b8;
+  --warn:    #facc15;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Sarabun','TH Sarabun New',sans-serif; font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+header { background: linear-gradient(135deg,#0f172a,#1e293b); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+header .icon { font-size: 2.2rem; }
+header h1 { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+header p { font-size: 0.82rem; color: var(--muted); }
+header .badge { margin-left: auto; background: #1e3a5f; border: 1px solid var(--accent); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; white-space: nowrap; }
+nav { display: flex; gap: 4px; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+nav::-webkit-scrollbar { display: none; }
+nav button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun',sans-serif; font-size: 0.85rem; font-weight: 600; white-space: nowrap; transition: all .2s; }
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+.tab-section { display: none; }
+.tab-section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+/* === SIM TAB === */
+.sim-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0; height: calc(100vh - 120px); }
+@media(max-width:768px){ .sim-layout { grid-template-columns: 1fr; height: auto; } }
+.ctrl-panel { background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.ctrl-section { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.ctrl-section h3 { font-size: 0.82rem; font-weight: 700; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.sl-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.sl-label { font-size: 0.8rem; color: var(--muted); min-width: 90px; flex-shrink: 0; }
+.sl-range { flex: 1; min-width: 80px; accent-color: var(--accent); cursor: pointer; }
+.val-input { width: 54px; padding: 2px 5px; background: #0a0e1a; border: 1.5px solid var(--accent2); border-radius: 5px; color: var(--accent3); font-weight: 700; font-size: 0.82rem; text-align: center; -moz-appearance: textfield; }
+.val-input::-webkit-outer-spin-button, .val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.val-input:focus { outline: none; border-color: var(--accent); }
+.sl-unit { font-size: 0.75rem; color: var(--muted); min-width: 28px; flex-shrink: 0; }
+
+.mode-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.mode-btn { flex: 1; padding: 7px 4px; border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-family: 'Sarabun',sans-serif; font-size: 0.78rem; font-weight: 600; transition: .15s; text-align: center; }
+.mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mode-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0e1a; }
+
+.readout-box { background: #0a0e1a; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: 'Share Tech Mono',monospace; font-size: 0.78rem; }
+.ro-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px solid #1e2a3a; }
+.ro-row:last-child { border-bottom: none; }
+.ro-label { color: var(--muted); }
+.ro-val { font-weight: 700; }
+.ro-cw  { color: var(--accent4); }
+.ro-ccw { color: var(--accent2); }
+.ro-bal { color: var(--accent3); }
+.ro-err { color: var(--warn); }
+
+.balance-indicator { margin-top: 8px; padding: 7px 12px; border-radius: 7px; text-align: center; font-weight: 700; font-size: 0.85rem; transition: .3s; }
+.bal-ok  { background: #0d2b1a; border: 1px solid var(--accent3); color: var(--accent3); }
+.bal-cw  { background: #2b1a0a; border: 1px solid var(--accent4); color: var(--accent4); }
+.bal-ccw { background: #1a0d2b; border: 1px solid var(--accent2); color: var(--accent2); }
+
+.btn-row { display: flex; gap: 6px; }
+.btn { padding: 7px 14px; border: none; border-radius: 7px; cursor: pointer; font-family: 'Sarabun',sans-serif; font-weight: 700; font-size: 0.85rem; transition: .15s; flex: 1; }
+.btn-reset { background: #1565c0; color: #fff; }
+.btn-reset:hover { background: #1976d2; }
+.btn-hint { background: #4a1d96; color: #c4b5fd; border: 1px solid #6d28d9; }
+.btn-hint:hover { background: #5b21b6; }
+
+.canvas-area { position: relative; background: var(--bg); overflow: hidden; }
+canvas#simCanvas { display: block; width: 100%; height: 100%; }
+
+/* Mode B special inputs */
+.unknown-readout { background: #1a1a2e; border: 1px solid var(--accent5); border-radius: 8px; padding: 10px; margin-top: 8px; }
+.unknown-readout h4 { color: var(--accent5); font-size: 0.8rem; margin-bottom: 6px; }
+
+/* === THEORY TAB === */
+.theory-wrap { max-width: 960px; margin: 0 auto; padding: 28px 20px; }
+.theory-wrap h2 { font-size: 1.3rem; color: var(--accent); margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+.theory-wrap h3 { font-size: 1rem; color: var(--accent4); margin: 20px 0 10px; }
+.theory-wrap p, .theory-wrap li { line-height: 1.8; color: var(--muted); margin-bottom: 8px; }
+.theory-wrap li { margin-left: 18px; }
+.theory-wrap strong { color: var(--text); }
+.eq-box { background: var(--panel2); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 20px; margin: 14px 0; text-align: center; font-family: 'Share Tech Mono',monospace; font-size: 1.05rem; color: var(--accent3); }
+.eq-box span { color: var(--muted); font-size: 0.82rem; font-family: 'Sarabun',sans-serif; }
+.concept-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; margin: 14px 0; }
+.concept-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.concept-card .cc-icon { font-size: 1.8rem; margin-bottom: 8px; }
+.concept-card h4 { color: var(--accent); font-size: 0.9rem; margin-bottom: 6px; }
+.concept-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+svg.theory-svg { display: block; width: 100%; max-width: 620px; margin: 16px auto; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table.theory-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+table.theory-table th { background: var(--panel2); color: var(--accent); padding: 8px 12px; border: 1px solid var(--border); text-align: center; }
+table.theory-table td { padding: 7px 12px; border: 1px solid var(--border); color: var(--muted); text-align: center; }
+table.theory-table tr:hover td { background: var(--panel2); }
+.note-box { background: #1a2010; border-left: 4px solid var(--accent3); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; }
+.note-box p { color: #86efac; font-size: 0.85rem; }
+.warn-box { background: #2a1a08; border-left: 4px solid var(--accent4); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; }
+.warn-box p { color: #fdba74; font-size: 0.85rem; }
+
+/* hint popup */
+.hint-popup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+.hint-popup.show { display: flex; }
+.hint-box { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 24px; max-width: 380px; width: 90%; position: relative; }
+.hint-box h3 { color: var(--accent); margin-bottom: 12px; }
+.hint-box p { color: var(--muted); line-height: 1.7; margin-bottom: 8px; font-size: 0.9rem; }
+.hint-box .eq { font-family: 'Share Tech Mono',monospace; color: var(--accent3); font-size: 0.95rem; background: var(--panel2); padding: 8px 12px; border-radius: 6px; margin: 8px 0; }
+.hint-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; }
+.hint-close:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>ทอร์ก (Torques) — Experiment 3</h1>
+    <p>การทดลองสมดุลของทอร์กบนไม้บรรทัด — Balancing &amp; Weighing with Torques</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี &amp; อธิบาย</button>
+</nav>
+
+<!-- ===== SIM TAB ===== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+
+    <!-- LEFT: CONTROL PANEL -->
+    <div class="ctrl-panel">
+
+      <!-- MODE SELECT -->
+      <div class="ctrl-section">
+        <h3>🔬 โหมดการทดลอง</h3>
+        <div class="mode-btns">
+          <button class="mode-btn active" id="modeA" onclick="setMode('A',this)">⚖️ A: สมดุลทอร์ก</button>
+          <button class="mode-btn" id="modeB" onclick="setMode('B',this)">🔍 B: ชั่งมวลไม่รู้ค่า</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:6px;" id="mode-desc">
+          วางมวลทั้งสองด้านแล้วหาตำแหน่งที่สมดุล
+        </div>
+      </div>
+
+      <!-- Part A controls -->
+      <div id="ctrl-A">
+        <!-- Mass 1 (right) -->
+        <div class="ctrl-section">
+          <h3 style="color:var(--accent4);">มวล M(1) — ขวา</h3>
+          <div class="sl-row">
+            <span class="sl-label">มวล M(1)</span>
+            <select id="sel-m1" style="flex:1;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Sarabun',sans-serif;" onchange="onM1Change()">
+              <option value="50">50 g</option>
+              <option value="100" selected>100 g</option>
+              <option value="150">150 g</option>
+              <option value="200">200 g</option>
+              <option value="250">250 g</option>
+            </select>
+          </div>
+          <div class="sl-row">
+            <span class="sl-label">ตำแหน่ง X(1)</span>
+            <input class="sl-range" type="range" id="sl-x1" min="52" max="98" step="0.1" value="60">
+            <input class="val-input" type="number" id="vi-x1" min="52" max="98" step="0.1" value="60">
+            <span class="sl-unit">cm</span>
+          </div>
+        </div>
+
+        <!-- Mass 2 (left) -->
+        <div class="ctrl-section">
+          <h3 style="color:var(--accent2);">มวล M(2) — ซ้าย</h3>
+          <div class="sl-row">
+            <span class="sl-label">มวล M(2)</span>
+            <select id="sel-m2" style="flex:1;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Sarabun',sans-serif;" onchange="updateAll()">
+              <option value="100">100 g</option>
+              <option value="150">150 g</option>
+              <option value="200" selected>200 g</option>
+              <option value="250">250 g</option>
+              <option value="300">300 g</option>
+            </select>
+          </div>
+          <div class="sl-row">
+            <span class="sl-label">ตำแหน่ง X(2)</span>
+            <input class="sl-range" type="range" id="sl-x2" min="2" max="48" step="0.1" value="40">
+            <input class="val-input" type="number" id="vi-x2" min="2" max="48" step="0.1" value="40">
+            <span class="sl-unit">cm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Part B controls -->
+      <div id="ctrl-B" style="display:none;">
+        <div class="ctrl-section">
+          <h3 style="color:var(--accent3);">มวลรู้ค่า m(k)</h3>
+          <div class="sl-row">
+            <span class="sl-label">มวล m(k)</span>
+            <select id="sel-mk" style="flex:1;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-family:'Sarabun',sans-serif;" onchange="updateAll()">
+              <option value="50">50 g</option>
+              <option value="100" selected>100 g</option>
+              <option value="150">150 g</option>
+              <option value="200">200 g</option>
+            </select>
+          </div>
+          <div class="sl-row">
+            <span class="sl-label">ตำแหน่ง X(k)</span>
+            <input class="sl-range" type="range" id="sl-xk" min="52" max="98" step="0.1" value="60">
+            <input class="val-input" type="number" id="vi-xk" min="52" max="98" step="0.1" value="60">
+            <span class="sl-unit">cm</span>
+          </div>
+        </div>
+        <div class="ctrl-section">
+          <h3 style="color:var(--accent5);">มวลไม่รู้ค่า m(u)</h3>
+          <div class="sl-row">
+            <span class="sl-label">ตำแหน่ง X(u)</span>
+            <input class="sl-range" type="range" id="sl-xu" min="2" max="48" step="0.1" value="38">
+            <input class="val-input" type="number" id="vi-xu" min="2" max="48" step="0.1" value="38">
+            <span class="sl-unit">cm</span>
+          </div>
+          <div class="unknown-readout">
+            <h4>⚖️ น้ำหนักที่คำนวณได้</h4>
+            <div style="font-family:'Share Tech Mono',monospace; font-size:1.1rem; color:var(--accent5); text-align:center; padding:6px 0;">
+              W(u) = <span id="wu-calc">—</span> N
+            </div>
+            <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
+              (มวลจริง ≈ <span id="wu-mass">—</span> g)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- READOUTS -->
+      <div class="ctrl-section">
+        <h3>📊 ค่าที่อ่านได้</h3>
+        <div class="readout-box">
+          <div class="ro-row">
+            <span class="ro-label">จุดหมุน X(0)</span>
+            <span class="ro-val" id="ro-x0" style="color:var(--warn)">— cm</span>
+          </div>
+          <div class="ro-row" id="ro-row1">
+            <span class="ro-label">ระยะ S(1)</span>
+            <span class="ro-val ro-cw" id="ro-s1">— cm</span>
+          </div>
+          <div class="ro-row" id="ro-row2">
+            <span class="ro-label">ระยะ S(2)</span>
+            <span class="ro-val ro-ccw" id="ro-s2">— cm</span>
+          </div>
+          <div class="ro-row" id="ro-rowG1">
+            <span class="ro-label">ทอร์ก G(1) [CW]</span>
+            <span class="ro-val ro-cw" id="ro-g1">— N·m</span>
+          </div>
+          <div class="ro-row" id="ro-rowG2">
+            <span class="ro-label">ทอร์ก G(2) [CCW]</span>
+            <span class="ro-val ro-ccw" id="ro-g2">— N·m</span>
+          </div>
+          <div class="ro-row">
+            <span class="ro-label">% error</span>
+            <span class="ro-val ro-err" id="ro-err">—</span>
+          </div>
+        </div>
+        <div class="balance-indicator bal-cw" id="bal-ind">⚖️ กำลังคำนวณ...</div>
+      </div>
+
+      <!-- BUTTONS -->
+      <div class="btn-row">
+        <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+        <button class="btn btn-hint" onclick="showHint()">💡 คำใบ้</button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: CANVAS -->
+    <div class="canvas-area">
+      <canvas id="simCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ===== THEORY TAB ===== -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-wrap">
+    <h2>📐 ทฤษฎีทอร์ก (Torque Theory)</h2>
+
+    <h3>1. ทอร์กคืออะไร?</h3>
+    <p><strong>ทอร์ก (Torque, τ)</strong> คือการวัดแนวโน้มของแรงที่จะทำให้วัตถุหมุนรอบแกนหนึ่ง ๆ ทอร์กเป็นปริมาณที่คล้ายกับ "แรงหมุน" — ยิ่งทอร์กมาก วัตถุยิ่งหมุนง่ายขึ้น</p>
+
+    <!-- SVG diagram 1: Torque concept -->
+    <svg class="theory-svg" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- pivot -->
+      <circle cx="300" cy="80" r="10" fill="#38bdf8" opacity="0.9"/>
+      <text x="300" y="110" text-anchor="middle" fill="#38bdf8" font-size="11" font-family="Sarabun">แกนหมุน (Pivot)</text>
+      <!-- arm -->
+      <line x1="300" y1="80" x2="480" y2="80" stroke="#e2e8f0" stroke-width="3"/>
+      <!-- force arrow -->
+      <line x1="480" y1="80" x2="480" y2="150" stroke="#fb923c" stroke-width="3" marker-end="url(#arrowO)"/>
+      <text x="495" y="130" fill="#fb923c" font-size="11" font-family="Sarabun">F</text>
+      <!-- distance label -->
+      <line x1="300" y1="65" x2="480" y2="65" stroke="#facc15" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="390" y="60" text-anchor="middle" fill="#facc15" font-size="11" font-family="Sarabun">r (arm length)</text>
+      <!-- rotation arc -->
+      <path d="M 320 80 A 60 60 0 0 1 360 110" stroke="#34d399" stroke-width="2" fill="none" marker-end="url(#arrowG)"/>
+      <text x="340" y="130" fill="#34d399" font-size="11" font-family="Sarabun">หมุน CW</text>
+      <!-- defs -->
+      <defs>
+        <marker id="arrowO" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 Z" fill="#fb923c"/>
+        </marker>
+        <marker id="arrowG" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 Z" fill="#34d399"/>
+        </marker>
+        <marker id="arrowB" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 Z" fill="#818cf8"/>
+        </marker>
+      </defs>
+    </svg>
+
+    <div class="eq-box">
+      τ = F × r
+      <br><span>ทอร์ก (N·m) = แรง (N) × ระยะห่างจากแกนหมุน (m)</span>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="cc-icon">🔄</div>
+        <h4>ทอร์กตามเข็ม (Clockwise)</h4>
+        <p>แรงที่ทำให้วัตถุหมุนตามเข็มนาฬิกา (CW) มักกำหนดให้เป็น <strong style="color:var(--accent4);">บวก (+)</strong> ในปัญหาสมดุล</p>
+      </div>
+      <div class="concept-card">
+        <div class="cc-icon">↩️</div>
+        <h4>ทอร์กทวนเข็ม (Counterclockwise)</h4>
+        <p>แรงที่ทำให้วัตถุหมุนทวนเข็มนาฬิกา (CCW) กำหนดให้เป็น <strong style="color:var(--accent2);">ลบ (−)</strong> ในปัญหาสมดุล</p>
+      </div>
+      <div class="concept-card">
+        <div class="cc-icon">⚖️</div>
+        <h4>เงื่อนไขสมดุล</h4>
+        <p>วัตถุอยู่ในสมดุลเมื่อ ผลรวมทอร์กทุกทิศทาง <strong style="color:var(--accent3);">= 0</strong><br>หรือ Σ τ(CW) = Σ τ(CCW)</p>
+      </div>
+    </div>
+
+    <h3>2. สมดุลบนไม้บรรทัด</h3>
+    <p>เมื่อนำมวลมาแขวนทั้งสองด้านของจุดหมุน ระบบจะสมดุลเมื่อ:</p>
+
+    <!-- SVG: meter stick balance -->
+    <svg class="theory-svg" viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- stick -->
+      <rect x="40" y="88" width="540" height="10" rx="4" fill="#4a5568"/>
+      <!-- tick marks -->
+      <line x1="40" y1="88" x2="40" y2="106" stroke="#64748b" stroke-width="1"/>
+      <text x="40" y="118" text-anchor="middle" fill="#64748b" font-size="9" font-family="Sarabun">0</text>
+      <line x1="580" y1="88" x2="580" y2="106" stroke="#64748b" stroke-width="1"/>
+      <text x="580" y="118" text-anchor="middle" fill="#64748b" font-size="9" font-family="Sarabun">100</text>
+
+      <!-- pivot X0 -->
+      <line x1="310" y1="80" x2="310" y2="106" stroke="#facc15" stroke-width="2"/>
+      <polygon points="310,70 302,84 318,84" fill="#facc15"/>
+      <text x="310" y="126" text-anchor="middle" fill="#facc15" font-size="10" font-family="Sarabun">X(0)≈50</text>
+
+      <!-- mass 1 right -->
+      <line x1="434" y1="98" x2="434" y2="145" stroke="#fb923c" stroke-width="2" stroke-dasharray="3"/>
+      <rect x="414" y="145" width="40" height="28" rx="4" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="434" y="164" text-anchor="middle" fill="#fb923c" font-size="11" font-family="Sarabun" font-weight="700">M(1)</text>
+      <text x="434" y="185" text-anchor="middle" fill="#fb923c" font-size="9" font-family="Sarabun">X(1)</text>
+
+      <!-- mass 2 left -->
+      <line x1="186" y1="98" x2="186" y2="145" stroke="#818cf8" stroke-width="2" stroke-dasharray="3"/>
+      <rect x="161" y="145" width="50" height="28" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5"/>
+      <text x="186" y="164" text-anchor="middle" fill="#818cf8" font-size="11" font-family="Sarabun" font-weight="700">M(2)</text>
+      <text x="186" y="185" text-anchor="middle" fill="#818cf8" font-size="9" font-family="Sarabun">X(2)</text>
+
+      <!-- S1 label -->
+      <line x1="310" y1="72" x2="434" y2="72" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="372" y="68" text-anchor="middle" fill="#fb923c" font-size="10" font-family="Sarabun">S(1) = X(1) − X(0)</text>
+
+      <!-- S2 label -->
+      <line x1="186" y1="58" x2="310" y2="58" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="248" y="54" text-anchor="middle" fill="#818cf8" font-size="10" font-family="Sarabun">S(2) = X(0) − X(2)</text>
+    </svg>
+
+    <div class="eq-box">
+      F(1) × S(1) = F(2) × S(2)
+      <br>
+      M(1) × g × S(1) = M(2) × g × S(2)
+      <br>
+      <span>หรือ M(1) × S(1) = M(2) × S(2)</span>
+    </div>
+
+    <div class="note-box">
+      <p><strong>💡 หมายเหตุ:</strong> ในการทดลองนี้ใช้ค่าประมาณ 100 g = 1.00 N (g ≈ 10 m/s²) ทำให้สะดวกในการคำนวณ</p>
+    </div>
+
+    <h3>3. การชั่งมวลที่ไม่รู้ค่า (Part B)</h3>
+    <p>เมื่อทราบค่ามวล m(k) (known) และตำแหน่งทั้งสองฝั่ง สามารถคำนวณน้ำหนักของมวลไม่รู้ค่า W(u) ได้จาก:</p>
+    <div class="eq-box">
+      W(u) = [F(k) × S(k)] / S(u) = G(k) / S(u)
+      <br>
+      <span>เมื่อ G(k) = ทอร์กของมวลรู้ค่า, S(u) = ระยะห่างมวลไม่รู้ค่าจากจุดหมุน</span>
+    </div>
+
+    <h3>4. การคำนวณ % Error</h3>
+    <p>ความคลาดเคลื่อนร้อยละ (Percent Error) ใช้ตรวจสอบความแม่นยำของการทดลอง:</p>
+    <div class="eq-box">
+      % Error = |G(1) − G(2)| / G(1) × 100%
+      <br>
+      <span>ค่า % error ที่ยอมรับได้ควรน้อยกว่า 5%</span>
+    </div>
+
+    <h3>5. สรุปตัวแปรในการทดลอง</h3>
+    <div class="table-wrap">
+      <table class="theory-table">
+        <tr>
+          <th>สัญลักษณ์</th><th>ความหมาย</th><th>หน่วย</th>
+        </tr>
+        <tr><td>X(0)</td><td>ตำแหน่งจุดหมุน (Center of mass ของไม้บรรทัด)</td><td>m หรือ cm</td></tr>
+        <tr><td>X(1), X(2)</td><td>ตำแหน่งมวล 1 และ มวล 2 บนไม้บรรทัด</td><td>m หรือ cm</td></tr>
+        <tr><td>S(1), S(2)</td><td>ระยะห่างจากจุดหมุนถึงมวล 1 และ มวล 2</td><td>m</td></tr>
+        <tr><td>F(1), F(2)</td><td>แรง (น้ำหนัก) ของมวล 1 และ มวล 2</td><td>N</td></tr>
+        <tr><td>G(1), G(2)</td><td>ทอร์กของมวล 1 (CW) และมวล 2 (CCW)</td><td>N·m</td></tr>
+        <tr><td>τ(net)</td><td>ทอร์กลัพธ์ = 0 เมื่อสมดุล</td><td>N·m</td></tr>
+      </table>
+    </div>
+
+    <h3>6. เงื่อนไขสมดุลสถิต (Static Equilibrium)</h3>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="cc-icon">➡️</div>
+        <h4>เงื่อนไขที่ 1 (แปลสม)</h4>
+        <p>ผลรวมแรงทุกทิศทาง = 0<br>Σ F = 0</p>
+      </div>
+      <div class="concept-card">
+        <div class="cc-icon">🔄</div>
+        <h4>เงื่อนไขที่ 2 (หมุนสม)</h4>
+        <p>ผลรวมทอร์กทุกทิศทาง = 0<br>Σ τ = 0</p>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>⚠️ ข้อสังเกต:</strong> เมื่อปล่อยไม้บรรทัดที่ไม่สมดุล ไม้บรรทัดจะหมุนไปทางที่มีทอร์กมากกว่า และจะหยุดนิ่งในแนวตั้งฉากเกือบสมบูรณ์ (แต่ไม่ใช่แนวตั้งพอดีเพราะยังมีแรงของตัวเองด้วย)</p>
+    </div>
+
+    <h3>7. ตัวอย่างการคำนวณ (จาก Table I ในการทดลอง)</h3>
+    <p>กำหนดให้ X(0) = 0.499 m, M(1) = 100 g, X(1) = 0.599 m, M(2) = 200 g, X(2) = 0.448 m</p>
+    <div class="table-wrap">
+      <table class="theory-table">
+        <tr><th>ขั้นตอน</th><th>สูตร</th><th>ผลลัพธ์</th></tr>
+        <tr><td>S(1)</td><td>X(1) − X(0) = 0.599 − 0.499</td><td>0.100 m</td></tr>
+        <tr><td>S(2)</td><td>X(0) − X(2) = 0.499 − 0.448</td><td>0.051 m</td></tr>
+        <tr><td>F(1)</td><td>100 g × 0.01 N/g</td><td>1.00 N</td></tr>
+        <tr><td>F(2)</td><td>200 g × 0.01 N/g</td><td>2.00 N</td></tr>
+        <tr><td>G(1) = τ(CW)</td><td>F(1) × S(1) = 1.00 × 0.100</td><td>0.100 N·m</td></tr>
+        <tr><td>G(2) = τ(CCW)</td><td>F(2) × S(2) = 2.00 × 0.051</td><td>0.102 N·m</td></tr>
+        <tr><td>% Error</td><td>|0.100 − 0.102| / 0.100 × 100%</td><td>2%</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HINT POPUP -->
+<div class="hint-popup" id="hintPopup">
+  <div class="hint-box">
+    <button class="hint-close" onclick="closeHint()">✕</button>
+    <h3 id="hint-title">💡 คำใบ้</h3>
+    <div id="hint-content"></div>
+  </div>
+</div>
+
+<script>
+// ========= STATE =========
+let currentMode = 'A';
+let X0 = 49.9; // cm — pivot (center of mass of stick)
+
+// ========= TAB =========
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'sim') { resizeCanvas(); draw(); }
+}
+
+// ========= MODE =========
+function setMode(m, btn) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ctrl-A').style.display = (m === 'A') ? 'contents' : 'none';
+  document.getElementById('ctrl-B').style.display = (m === 'B') ? 'contents' : 'none';
+  document.getElementById('mode-desc').textContent = m === 'A'
+    ? 'วางมวลทั้งสองด้านแล้วหาตำแหน่งที่สมดุล'
+    : 'แขวนมวลรู้ค่าและมวลไม่รู้ค่า หาน้ำหนักของมวลไม่รู้ค่า';
+  resetSim();
+}
+
+// ========= CANVAS =========
+let canvas, ctx;
+function resizeCanvas() {
+  canvas = document.getElementById('simCanvas');
+  const container = canvas.parentElement;
+  canvas.width  = container.clientWidth  || 700;
+  canvas.height = container.clientHeight || 480;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ========= DRAW =========
+function draw() {
+  if (!canvas) canvas = document.getElementById('simCanvas');
+  ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // BG
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // === Read values ===
+  const x1 = parseFloat(document.getElementById('vi-x1')?.value || 60);
+  const x2 = parseFloat(document.getElementById('vi-x2')?.value || 40);
+  const m1 = parseInt(document.getElementById('sel-m1')?.value || 100);
+  const m2 = parseInt(document.getElementById('sel-m2')?.value || 200);
+  const xk = parseFloat(document.getElementById('vi-xk')?.value || 60);
+  const xu = parseFloat(document.getElementById('vi-xu')?.value || 38);
+  const mk = parseInt(document.getElementById('sel-mk')?.value || 100);
+
+  // Layout constants
+  const stickY = H * 0.42;
+  const stickH = 16;
+  const padL = 60, padR = 60;
+  const stickW = W - padL - padR;
+  const cmToX = (cm) => padL + (cm / 100) * stickW;
+
+  // Compute torques
+  const f1 = m1 * 0.01; // N
+  const f2 = m2 * 0.01;
+  const s1 = (x1 - X0) / 100; // m
+  const s2 = (X0 - x2) / 100;
+  const g1 = f1 * Math.abs(s1);
+  const g2 = f2 * Math.abs(s2);
+
+  const fk = mk * 0.01;
+  const sk = (xk - X0) / 100;
+  const su = (X0 - xu) / 100;
+  const gk = fk * Math.abs(sk);
+  const wu_calc = su > 0.001 ? gk / Math.abs(su) : 0;
+
+  // *** Tilt angle based on net torque ***
+  let tilt = 0;
+  let netTorque = 0;
+  if (currentMode === 'A') {
+    netTorque = g1 - g2; // CW positive
+    const maxTilt = 0.35;
+    tilt = Math.max(-maxTilt, Math.min(maxTilt, netTorque * 3.0));
+  } else {
+    netTorque = gk - wu_calc * Math.abs(su);
+    const maxTilt = 0.35;
+    tilt = Math.max(-maxTilt, Math.min(maxTilt, netTorque * 3.0));
+  }
+
+  const pivX = cmToX(X0);
+  const pivY = stickY;
+
+  // Draw string from ceiling
+  ctx.save();
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(pivX, 30);
+  ctx.lineTo(pivX, pivY - 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Ceiling rod
+  ctx.save();
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(pivX - 40, 20, 80, 12);
+  ctx.restore();
+
+  // Pivot triangle
+  ctx.save();
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.moveTo(pivX, pivY - 10);
+  ctx.lineTo(pivX - 8, pivY + 6);
+  ctx.lineTo(pivX + 8, pivY + 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Draw tilted meter stick
+  ctx.save();
+  ctx.translate(pivX, pivY);
+  ctx.rotate(tilt);
+
+  const halfW = stickW / 2;
+  // Stick body
+  const grad = ctx.createLinearGradient(-halfW, 0, halfW, 0);
+  grad.addColorStop(0, '#1e3a5f');
+  grad.addColorStop(0.5, '#334155');
+  grad.addColorStop(1, '#1e3a5f');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(-halfW, -stickH/2, stickW, stickH, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Tick marks every 10cm
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Sarabun';
+  ctx.textAlign = 'center';
+  for (let cm = 0; cm <= 100; cm += 10) {
+    const tx = -halfW + (cm / 100) * stickW;
+    ctx.strokeStyle = '#4a5568';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tx, -stickH/2);
+    ctx.lineTo(tx, stickH/2);
+    ctx.stroke();
+    ctx.fillText(cm.toString(), tx, stickH/2 + 12);
+  }
+
+  // Pivot marker on stick
+  const x0onStick = -halfW + (X0 / 100) * stickW;
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x0onStick, -stickH/2 - 4);
+  ctx.lineTo(x0onStick, stickH/2 + 4);
+  ctx.stroke();
+
+  if (currentMode === 'A') {
+    // Mass 1 (right, CW)
+    const m1x = -halfW + (x1 / 100) * stickW;
+    drawHangingMass(m1x, stickH/2, m1, '#fb923c', '#7c2d12', 'M(1)');
+    // Mass 2 (left, CCW)
+    const m2x = -halfW + (x2 / 100) * stickW;
+    drawHangingMass(m2x, stickH/2, m2, '#818cf8', '#1e1b4b', 'M(2)');
+  } else {
+    // Known mass (right)
+    const mkx = -halfW + (xk / 100) * stickW;
+    drawHangingMass(mkx, stickH/2, mk, '#34d399', '#0d2b1a', 'm(k)');
+    // Unknown mass (left)
+    const mux = -halfW + (xu / 100) * stickW;
+    drawHangingMass(mux, stickH/2, null, '#f472b6', '#2a0a1a', 'm(u)?');
+  }
+
+  ctx.restore();
+
+  // Torque arrows (CW / CCW visual)
+  drawTorqueArrows(pivX, pivY, tilt, g1, g2, gk, wu_calc * Math.abs(su));
+
+  // Info panel at bottom
+  drawInfoPanel(W, H, tilt, g1, g2, m1, m2, x1, x2, gk, wu_calc, mk, xk, xu);
+
+  // Update readouts
+  updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu_calc, sk, su, mk, fk);
+}
+
+function drawHangingMass(sx, sy, mass, stroke, fill, label) {
+  const ropeLen = mass ? Math.max(40, mass * 0.22) : 50;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 2]);
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(sx, sy + ropeLen);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const bw = mass ? Math.max(30, mass * 0.18) : 36;
+  const bh = 22;
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(sx - bw/2, sy + ropeLen, bw, bh, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = stroke;
+  ctx.font = 'bold 10px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, sx, sy + ropeLen + 14);
+  if (mass) {
+    ctx.font = '9px Share Tech Mono';
+    ctx.fillText(mass + 'g', sx, sy + ropeLen + 25);
+  }
+}
+
+function drawTorqueArrows(px, py, tilt, g1, g2, gk, gu) {
+  // Small CCW / CW labels near pivot
+  const maxG = Math.max(g1, g2, 0.001);
+  const scale = 60;
+  // CW arc (right)
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
+  ctx.lineWidth = 2.5;
+  const r1 = 28 + (currentMode === 'A' ? g1 : gk) / maxG * 20;
+  ctx.beginPath();
+  ctx.arc(0, 0, r1, -0.3, 1.2);
+  ctx.stroke();
+  // arrow head
+  const a1e = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(Math.cos(a1e)*r1, Math.sin(a1e)*r1);
+  ctx.lineTo(Math.cos(a1e-0.3)*r1 - 4, Math.sin(a1e-0.3)*r1 + 6);
+  ctx.lineTo(Math.cos(a1e+0.0)*r1 + 6, Math.sin(a1e+0.0)*r1 - 2);
+  ctx.fillStyle = 'rgba(251,146,60,0.7)';
+  ctx.fill();
+  // CCW arc (left)
+  ctx.strokeStyle = 'rgba(129,140,248,0.5)';
+  ctx.lineWidth = 2.5;
+  const r2 = 28 + (currentMode === 'A' ? g2 : gu) / maxG * 20;
+  ctx.beginPath();
+  ctx.arc(0, 0, r2, Math.PI + 0.3, Math.PI - 1.2, true);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawInfoPanel(W, H, tilt, g1, g2, m1, m2, x1, x2, gk, wu, mk, xk, xu) {
+  const deg = (tilt * 180 / Math.PI).toFixed(1);
+  ctx.save();
+  ctx.fillStyle = 'rgba(17,24,39,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(W - 220, H - 110, 210, 100, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Share Tech Mono';
+  ctx.textAlign = 'left';
+  if (currentMode === 'A') {
+    ctx.fillStyle = '#fb923c'; ctx.fillText(`τ(CW)  = ${g1.toFixed(3)} N·m`, W - 210, H - 88);
+    ctx.fillStyle = '#818cf8'; ctx.fillText(`τ(CCW) = ${g2.toFixed(3)} N·m`, W - 210, H - 72);
+    const err = g1 > 0 ? Math.abs(g1 - g2) / g1 * 100 : 0;
+    ctx.fillStyle = err < 3 ? '#34d399' : err < 8 ? '#facc15' : '#f87171';
+    ctx.fillText(`%error = ${err.toFixed(1)}%`, W - 210, H - 56);
+  } else {
+    ctx.fillStyle = '#34d399'; ctx.fillText(`τ(k)  = ${gk.toFixed(3)} N·m`, W - 210, H - 88);
+    ctx.fillStyle = '#f472b6'; ctx.fillText(`W(u) calc = ${wu.toFixed(3)} N`, W - 210, H - 72);
+    ctx.fillStyle = '#facc15'; ctx.fillText(`m(u) ≈ ${(wu * 100).toFixed(1)} g`, W - 210, H - 56);
+  }
+  ctx.fillStyle = Math.abs(tilt) < 0.02 ? '#34d399' : '#64748b';
+  ctx.fillText(`เอียง ${deg}°`, W - 210, H - 38);
+  ctx.restore();
+}
+
+function updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu, sk, su, mk, fk) {
+  const x0d = X0.toFixed(1);
+  document.getElementById('ro-x0').textContent = x0d + ' cm';
+
+  if (currentMode === 'A') {
+    document.getElementById('ro-s1').textContent = (Math.abs(s1)*100).toFixed(1) + ' cm';
+    document.getElementById('ro-s2').textContent = (Math.abs(s2)*100).toFixed(1) + ' cm';
+    document.getElementById('ro-g1').textContent = g1.toFixed(3) + ' N·m';
+    document.getElementById('ro-g2').textContent = g2.toFixed(3) + ' N·m';
+    const err = g1 > 0 ? Math.abs(g1 - g2) / g1 * 100 : 0;
+    document.getElementById('ro-err').textContent = err.toFixed(2) + '%';
+    const diff = Math.abs(g1 - g2);
+    const ind = document.getElementById('bal-ind');
+    if (diff < 0.005) {
+      ind.className = 'balance-indicator bal-ok';
+      ind.textContent = '✅ สมดุล! Σ τ = 0';
+    } else if (g1 > g2) {
+      ind.className = 'balance-indicator bal-cw';
+      ind.textContent = '↻ ทอร์ก CW มากกว่า';
+    } else {
+      ind.className = 'balance-indicator bal-ccw';
+      ind.textContent = '↺ ทอร์ก CCW มากกว่า';
+    }
+  } else {
+    document.getElementById('ro-s1').textContent = (Math.abs(sk)*100).toFixed(1) + ' cm';
+    document.getElementById('ro-s2').textContent = (Math.abs(su)*100).toFixed(1) + ' cm';
+    document.getElementById('ro-g1').textContent = gk.toFixed(3) + ' N·m';
+    document.getElementById('ro-g2').textContent = (wu * Math.abs(su)).toFixed(3) + ' N·m';
+    document.getElementById('ro-err').textContent = '—';
+    document.getElementById('wu-calc').textContent = wu.toFixed(3);
+    document.getElementById('wu-mass').textContent = (wu * 100).toFixed(1);
+    const gu_torque = wu * Math.abs(su);
+    const diff = Math.abs(gk - gu_torque);
+    const ind = document.getElementById('bal-ind');
+    if (diff < 0.005) {
+      ind.className = 'balance-indicator bal-ok';
+      ind.textContent = '✅ สมดุล! W(u) ≈ ' + wu.toFixed(3) + ' N';
+    } else if (gk > gu_torque) {
+      ind.className = 'balance-indicator bal-cw';
+      ind.textContent = '↻ ทอร์ก m(k) มากกว่า';
+    } else {
+      ind.className = 'balance-indicator bal-ccw';
+      ind.textContent = '↺ ทอร์ก m(u) มากกว่า';
+    }
+  }
+}
+
+// ========= SLIDER SYNC =========
+function syncSliders() {
+  const pairs = [
+    ['sl-x1','vi-x1'], ['sl-x2','vi-x2'],
+    ['sl-xk','vi-xk'], ['sl-xu','vi-xu']
+  ];
+  pairs.forEach(([sid, vid]) => {
+    const sl = document.getElementById(sid);
+    const vi = document.getElementById(vid);
+    if (!sl || !vi) return;
+    sl.addEventListener('input', () => { vi.value = parseFloat(sl.value); updateAll(); });
+    vi.addEventListener('blur', () => {
+      let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(vi.value)||0));
+      vi.value = v; sl.value = v; updateAll();
+    });
+    vi.addEventListener('keydown', e => { if(e.key==='Enter') vi.blur(); });
+  });
+}
+
+function onM1Change() { updateAll(); }
+function updateAll() { draw(); }
+
+// ========= RESET =========
+function resetSim() {
+  if (currentMode === 'A') {
+    document.getElementById('sl-x1').value = 60;
+    document.getElementById('vi-x1').value = 60;
+    document.getElementById('sl-x2').value = 40;
+    document.getElementById('vi-x2').value = 40;
+    document.getElementById('sel-m1').value = 100;
+    document.getElementById('sel-m2').value = 200;
+  } else {
+    document.getElementById('sl-xk').value = 60;
+    document.getElementById('vi-xk').value = 60;
+    document.getElementById('sl-xu').value = 38;
+    document.getElementById('vi-xu').value = 38;
+    document.getElementById('sel-mk').value = 100;
+  }
+  draw();
+}
+
+// ========= HINT =========
+const hintContent = {
+  A: {
+    title: '💡 คำใบ้ — สมดุลทอร์ก',
+    html: `
+      <p>เงื่อนไขสมดุล: <strong>ทอร์ก CW = ทอร์ก CCW</strong></p>
+      <div class="eq">F(1) × S(1) = F(2) × S(2)</div>
+      <p>ถ้า M(1) = 100 g, M(2) = 200 g, S(1) = d<br>แล้ว S(2) = ?</p>
+      <div class="eq">1.00 × d = 2.00 × S(2)<br>S(2) = d / 2</div>
+      <p>มวลมากกว่า → ต้องอยู่ใกล้จุดหมุนกว่า</p>
+    `
+  },
+  B: {
+    title: '💡 คำใบ้ — ชั่งมวลไม่รู้ค่า',
+    html: `
+      <p>ใช้หลักสมดุลทอร์ก เพื่อหา W(u):</p>
+      <div class="eq">W(u) × S(u) = F(k) × S(k)</div>
+      <div class="eq">W(u) = [F(k) × S(k)] / S(u)</div>
+      <p>ย้าย m(u) จนไม้บรรทัดสมดุล แล้วอ่านค่า W(u) ที่คำนวณได้</p>
+    `
+  }
+};
+
+function showHint() {
+  const h = hintContent[currentMode];
+  document.getElementById('hint-title').textContent = h.title;
+  document.getElementById('hint-content').innerHTML = h.html;
+  document.getElementById('hintPopup').classList.add('show');
+}
+function closeHint() {
+  document.getElementById('hintPopup').classList.remove('show');
+}
+
+// ========= INIT =========
+window.addEventListener('DOMContentLoaded', () => {
+  canvas = document.getElementById('simCanvas');
+  syncSliders();
+  document.querySelectorAll('select').forEach(s => s.addEventListener('change', updateAll));
+  resizeCanvas();
+  draw();
+});
+</script>
+</body>
+</html>

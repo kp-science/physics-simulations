@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Physics Lab 01 — KP Science</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06090f;--bg2:#0d1117;--bg3:#161b27;--bg4:#1c2333;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --text:#f0f4f8;--muted:#7c8fa6;--card:#0d1421;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;line-height:1.6;overflow-x:hidden;min-height:100vh}
+
+/* Topbar */
+.topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 6%;display:flex;align-items:center;height:58px;gap:2rem}
+.logo{display:flex;align-items:center;gap:.5rem;text-decoration:none}
+.logo-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:900;color:#06090f;letter-spacing:-.5px}
+.logo-text{font-size:1rem;font-weight:700;letter-spacing:.3px}
+.logo-kp{color:var(--accent)}.logo-sc{color:var(--text)}
+.back-link{margin-left:auto;color:var(--muted);text-decoration:none;font-size:.87rem;font-weight:600;transition:.2s;display:flex;align-items:center;gap:.4rem}
+.back-link:hover{color:var(--accent)}
+
+/* Hero */
+.hero{padding:60px 6% 40px;text-align:center;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(56,189,248,0.04),transparent)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.22);color:var(--accent);padding:6px 16px;border-radius:8px;font-size:.78rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:1.25rem}
+.hero-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.8s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.hero h1{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;line-height:1.2;margin-bottom:.8rem}
+.hero h1 .accent{color:var(--accent)}
+.hero p{color:var(--muted);font-size:1rem;max-width:640px;margin:0 auto;line-height:1.8}
+
+/* Stats */
+.stats{display:flex;justify-content:center;gap:2.5rem;margin-top:2rem;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-n{font-size:1.8rem;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace;line-height:1.1}
+.stat-l{font-size:.75rem;color:var(--muted);margin-top:2px;letter-spacing:.3px;text-transform:uppercase}
+
+/* Filter chips */
+.filter-bar{padding:24px 6% 0;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
+.chip{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:6px 16px;border-radius:20px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:'Sarabun',sans-serif}
+.chip:hover{color:var(--text);border-color:var(--border2)}
+.chip.active{background:var(--accent);color:#06090f;border-color:var(--accent)}
+
+/* Grid */
+.sim-section{padding:40px 6% 80px}
+.sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.1rem;max-width:1400px;margin:0 auto}
+
+/* Card */
+.sim-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:.3s;text-decoration:none;color:var(--text);display:flex;flex-direction:column;position:relative}
+.sim-card:hover{transform:translateY(-4px);border-color:var(--card-accent,var(--accent));box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.sim-card:hover .sc-arrow{background:var(--card-accent,var(--accent));color:#06090f;border-color:var(--card-accent,var(--accent))}
+
+.sc-preview{height:120px;background:var(--bg3);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sc-preview-bg{position:absolute;inset:0;opacity:.4}
+.sc-num{position:absolute;top:8px;left:10px;font-family:'Share Tech Mono',monospace;font-size:.72rem;font-weight:700;color:var(--muted);z-index:2;background:rgba(6,9,15,0.6);padding:2px 8px;border-radius:4px}
+.sc-free{position:absolute;top:8px;right:10px;font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;z-index:2;background:rgba(52,211,153,0.1);color:var(--accent3);border:1px solid rgba(52,211,153,0.3);letter-spacing:.5px}
+.sc-icon{position:relative;z-index:1;font-size:2.6rem;filter:drop-shadow(0 0 16px rgba(56,189,248,0.4))}
+
+.sc-body{padding:1rem 1.1rem .7rem;flex:1;display:flex;flex-direction:column;gap:.4rem}
+.sc-topic{font-size:.66rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.sc-title{font-size:.92rem;font-weight:700;line-height:1.35;color:var(--text)}
+.sc-desc{font-size:.78rem;color:var(--muted);line-height:1.55;flex:1}
+
+.sc-footer{padding:.6rem 1.1rem .9rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+.sc-tag{display:inline-block;font-size:.64rem;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px}
+.tag-blue{background:rgba(56,189,248,0.1);color:var(--accent);border:1px solid rgba(56,189,248,0.2)}
+.tag-purple{background:rgba(129,140,248,0.1);color:var(--accent2);border:1px solid rgba(129,140,248,0.2)}
+.tag-green{background:rgba(52,211,153,0.1);color:var(--accent3);border:1px solid rgba(52,211,153,0.2)}
+.tag-orange{background:rgba(251,146,60,0.1);color:var(--accent4);border:1px solid rgba(251,146,60,0.2)}
+.tag-pink{background:rgba(244,114,182,0.1);color:var(--accent5);border:1px solid rgba(244,114,182,0.2)}
+.sc-arrow{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--muted);transition:.2s;flex-shrink:0}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:30px 6%;text-align:center;color:var(--muted);font-size:.82rem}
+footer a{color:var(--accent);text-decoration:none}
+
+.hidden{display:none !important}
+
+@media(max-width:640px){
+  .topbar{padding:0 4%;gap:1rem}
+  .hero{padding:40px 4% 30px}
+  .sim-section{padding:30px 4% 60px}
+  .stats{gap:1.5rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <a href="index.html" class="logo">
+    <div class="logo-mark">KP</div>
+    <div class="logo-text"><span class="logo-kp">KP</span><span class="logo-sc">Science</span></div>
+  </a>
+  <a href="index.html" class="back-link">← กลับหน้าแรก</a>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow"><span class="dot"></span>Virtual Physics Lab · Collection 01</div>
+  <h1>ห้องปฏิบัติการ<span class="accent">ฟิสิกส์เสมือน</span> ชุดที่ 1</h1>
+  <p>ชุดสื่อการทดลอง Interactive 22 การทดลอง ครอบคลุมเนื้อหากลศาสตร์ระดับมัธยมปลาย<br>การวัด · เวกเตอร์ · การเคลื่อนที่ · กฎนิวตัน · พลังงาน · การเคลื่อนที่วงกลม</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-n">22</div><div class="stat-l">Simulations</div></div>
+    <div class="stat"><div class="stat-n">6</div><div class="stat-l">Topics</div></div>
+    <div class="stat"><div class="stat-n">100%</div><div class="stat-l">Free</div></div>
+  </div>
+</section>
+
+<!-- Filter -->
+<div class="filter-bar">
+  <button class="chip active" data-filter="all">ทั้งหมด</button>
+  <button class="chip" data-filter="measure">การวัด</button>
+  <button class="chip" data-filter="vector">เวกเตอร์</button>
+  <button class="chip" data-filter="kinematics">การเคลื่อนที่</button>
+  <button class="chip" data-filter="newton">กฎนิวตัน</button>
+  <button class="chip" data-filter="energy">พลังงาน</button>
+  <button class="chip" data-filter="circular">วงกลม</button>
+</div>
+
+<!-- Grid -->
+<section class="sim-section">
+  <div class="sim-grid" id="grid">
+
+    <!-- 1 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/1. measuring_precision.html" class="sim-card" data-cat="measure" style="--card-accent:var(--accent5)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a0820,#22102a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(244,114,182,0.25),transparent 60%)"></div>
+        <div class="sc-num">01</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">📏</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Measurement · ม.4</div>
+        <div class="sc-title">Measuring Precision</div>
+        <p class="sc-desc">ฝึกการวัดด้วยเวอร์เนียร์และไมโครมิเตอร์ อ่านค่าอย่างแม่นยำ</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-pink">การวัด</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 2 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/2. vector_forces_sim.html" class="sim-card" data-cat="vector" style="--card-accent:var(--accent2)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0e0a20,#130d2a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(129,140,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">02</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🧭</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Vector · ม.4</div>
+        <div class="sc-title">Vector Addition of Forces</div>
+        <p class="sc-desc">การรวมเวกเตอร์แรงแบบกราฟิก พร้อม resultant real-time</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-purple">เวกเตอร์</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 3 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/3. torques_simulation.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">03</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">⚖️</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Torque · ม.4</div>
+        <div class="sc-title">Torques Simulation</div>
+        <p class="sc-desc">ทอร์กและสมดุล — ระบบคานและแรงหมุน</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 4 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/4. force_resolution_sim.html" class="sim-card" data-cat="vector" style="--card-accent:var(--accent2)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0e0a20,#130d2a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(129,140,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">04</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">➗</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Vector · ม.4</div>
+        <div class="sc-title">Force Resolution</div>
+        <p class="sc-desc">การแยกองค์ประกอบแรงในแกน x-y แบบ interactive</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-purple">เวกเตอร์</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 5 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/5. incline_forces.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">05</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">📐</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Forces · ม.4</div>
+        <div class="sc-title">Forces on Incline</div>
+        <p class="sc-desc">แรงบนพื้นเอียง — แรงตั้งฉาก แรงเสียดทาน และแรงลงเขา</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 6.1 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/6.1 pendulum_timer.html" class="sim-card" data-cat="measure" style="--card-accent:var(--accent5)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a0820,#22102a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(244,114,182,0.25),transparent 60%)"></div>
+        <div class="sc-num">06.1</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">⏱️</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Time Measurement · ม.4</div>
+        <div class="sc-title">Pendulum Timer</div>
+        <p class="sc-desc">นาฬิกาลูกตุ้ม วัดเวลาด้วยการแกว่ง</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-pink">การวัด</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 6.2 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/6.2water-clock-simulation.html" class="sim-card" data-cat="measure" style="--card-accent:var(--accent5)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a0820,#22102a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(244,114,182,0.25),transparent 60%)"></div>
+        <div class="sc-num">06.2</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">💧</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Time Measurement · ม.4</div>
+        <div class="sc-title">Water Clock</div>
+        <p class="sc-desc">นาฬิกาน้ำ — วัดเวลาด้วยอัตราการไหลคงที่</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-pink">การวัด</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 6.3 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/6.3 tape_timer_simulation.html" class="sim-card" data-cat="measure" style="--card-accent:var(--accent5)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a0820,#22102a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(244,114,182,0.25),transparent 60%)"></div>
+        <div class="sc-num">06.3</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">📼</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Time Measurement · ม.4</div>
+        <div class="sc-title">Tape Timer</div>
+        <p class="sc-desc">เครื่องเคาะสัญญาณเวลา วิเคราะห์การเคลื่อนที่จากจุดบนแถบ</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-pink">การวัด</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 7 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/7. strobe_photography_simulation.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent3)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1e18,#0d2820)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(52,211,153,0.25),transparent 60%)"></div>
+        <div class="sc-num">07</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">📸</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Kinematics · ม.4</div>
+        <div class="sc-title">Strobe Photography</div>
+        <p class="sc-desc">ภาพถ่ายสโตรโบสโคป วิเคราะห์การเคลื่อนที่เป็นช่วงๆ</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-green">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 8 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/8. straight-line-motion-simulation.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent3)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1e18,#0d2820)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(52,211,153,0.25),transparent 60%)"></div>
+        <div class="sc-num">08</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">➡️</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Kinematics · ม.4</div>
+        <div class="sc-title">Straight Line Motion</div>
+        <p class="sc-desc">การเคลื่อนที่แนวตรง พร้อมกราฟ s-t, v-t, a-t</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-green">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 9 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/9. galileo-water-clock-simulation.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent3)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1e18,#0d2820)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(52,211,153,0.25),transparent 60%)"></div>
+        <div class="sc-num">09</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🔬</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Kinematics · ม.4</div>
+        <div class="sc-title">Galileo's Water Clock</div>
+        <p class="sc-desc">การทดลองของกาลิเลโอ พิสูจน์กฎการตกของวัตถุ</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-green">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 10 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/10. spinning_disc_sim.html" class="sim-card" data-cat="circular" style="--card-accent:var(--accent4)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a1000,#221500)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(251,146,60,0.25),transparent 60%)"></div>
+        <div class="sc-num">10</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">💿</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Circular Motion · ม.5</div>
+        <div class="sc-title">Spinning Disc</div>
+        <p class="sc-desc">จานหมุน ความเร็วเชิงมุม และโมเมนต์ความเฉื่อย</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-orange">วงกลม</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 11 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/11. air_track_simulation.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent3)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1e18,#0d2820)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(52,211,153,0.25),transparent 60%)"></div>
+        <div class="sc-num">11</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🛷</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Kinematics · ม.4</div>
+        <div class="sc-title">Air Track</div>
+        <p class="sc-desc">รางลม — การเคลื่อนที่ไร้แรงเสียดทาน ทดสอบ Newton's 1st Law</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-green">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 12 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/12. turntable_gravity_simulation.html" class="sim-card" data-cat="circular" style="--card-accent:var(--accent4)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a1000,#221500)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(251,146,60,0.25),transparent 60%)"></div>
+        <div class="sc-num">12</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🎯</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Circular Motion · ม.5</div>
+        <div class="sc-title">Turntable Gravity</div>
+        <p class="sc-desc">แรงโน้มถ่วงบนจานหมุน — แรงเหวี่ยงและแรงสู่ศูนย์กลาง</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-orange">วงกลม</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 13 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/13. free-fall-experiment.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent3)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1e18,#0d2820)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 30%,rgba(52,211,153,0.25),transparent 60%)"></div>
+        <div class="sc-num">13</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🍎</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Kinematics · ม.4</div>
+        <div class="sc-title">Free Fall Experiment</div>
+        <p class="sc-desc">การทดลองตกอิสระ วัดค่า g ด้วยสโตรโบสโคป</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-green">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 14 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/14.mass_weight_simulation.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">14</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">⚖️</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Newton's Laws · ม.4</div>
+        <div class="sc-title">Mass vs Weight</div>
+        <p class="sc-desc">มวลและน้ำหนัก เปรียบเทียบบนดาวต่างๆ พร้อมค่า g</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 15 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/15. newtons_second_law_simulation.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 70% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">15</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🚀</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Newton's Laws · ม.4</div>
+        <div class="sc-title">Newton's Second Law</div>
+        <p class="sc-desc">F = ma — ปรับแรงและมวล สังเกตความเร่ง</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 16 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/16. trajectories_simulation.html" class="sim-card" data-cat="kinematics" style="--card-accent:var(--accent4)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a1000,#221500)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 30% 40%,rgba(251,146,60,0.25),transparent 60%)"></div>
+        <div class="sc-num">16</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🎯</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Projectile · ม.4</div>
+        <div class="sc-title">Trajectories</div>
+        <p class="sc-desc">วิถีโปรเจกไทล์ ปรับมุมและความเร็วต้น เปรียบเทียบระยะ</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-orange">การเคลื่อนที่</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 17 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/17. centripetal_force_simulation.html" class="sim-card" data-cat="circular" style="--card-accent:var(--accent4)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a1000,#221500)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(251,146,60,0.25),transparent 60%)"></div>
+        <div class="sc-num">17</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🪐</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Circular Motion · ม.5</div>
+        <div class="sc-title">Centripetal Force</div>
+        <p class="sc-desc">แรงสู่ศูนย์กลาง F = mv²/r ปรับรัศมีและความเร็ว</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-orange">วงกลม</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 18 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/18. newton_third_law_simulation.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">18</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🔄</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Newton's Laws · ม.4</div>
+        <div class="sc-title">Newton's Third Law</div>
+        <p class="sc-desc">แรงกิริยา-ปฏิกิริยา — ทุกแรงมีคู่แรงตรงข้ามเท่ากัน</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 19 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/19.pendulum_energy_sim.html" class="sim-card" data-cat="energy" style="--card-accent:var(--accent5)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#1a0820,#22102a)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 20%,rgba(244,114,182,0.25),transparent 60%)"></div>
+        <div class="sc-num">19</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🎢</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Energy · ม.4</div>
+        <div class="sc-title">Pendulum Energy</div>
+        <p class="sc-desc">พลังงานจลน์ & ศักย์ของลูกตุ้ม การอนุรักษ์พลังงาน</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-pink">พลังงาน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+    <!-- 20 -->
+    <a href="Virtual Physics Lab 01/Mechacnics/20. tilted_air_track.html" class="sim-card" data-cat="newton" style="--card-accent:var(--accent)">
+      <div class="sc-preview" style="background:linear-gradient(135deg,#0a1628,#0d2040)">
+        <div class="sc-preview-bg" style="background:radial-gradient(circle at 50% 50%,rgba(56,189,248,0.25),transparent 60%)"></div>
+        <div class="sc-num">20</div><div class="sc-free">FREE</div>
+        <div class="sc-icon">🛝</div>
+      </div>
+      <div class="sc-body">
+        <div class="sc-topic">Forces · ม.4</div>
+        <div class="sc-title">Tilted Air Track</div>
+        <p class="sc-desc">รางลมเอียง ศึกษาแรงดึงดูดบนพื้นเอียงไร้แรงเสียดทาน</p>
+      </div>
+      <div class="sc-footer"><span class="sc-tag tag-blue">กฎนิวตัน</span><div class="sc-arrow">→</div></div>
+    </a>
+
+  </div>
+</section>
+
+<footer>
+  <p>© KP Science · Virtual Physics Lab 01 — สื่อฟิสิกส์ Interactive สำหรับครูและนักเรียน</p>
+  <p style="margin-top:.4rem"><a href="index.html">← กลับหน้าแรก</a></p>
+</footer>
+
+<script>
+/* Filter chips */
+(function(){
+  const chips = document.querySelectorAll('.chip');
+  const cards = document.querySelectorAll('.sim-card');
+  chips.forEach(ch => ch.addEventListener('click', ()=>{
+    chips.forEach(c => c.classList.remove('active'));
+    ch.classList.add('active');
+    const f = ch.dataset.filter;
+    cards.forEach(card => {
+      if(f==='all' || card.dataset.cat===f) card.classList.remove('hidden');
+      else card.classList.add('hidden');
+    });
+  }));
+})();
+</script>
+</body>
+</html>
