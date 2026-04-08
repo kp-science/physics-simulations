@@ -1338,16 +1338,27 @@ function resetAll() {
 }
 
 // ============================================================
-// RESIZE
+// RESIZE  (iOS-safe: ล็อค size กันเวกเตอร์ drift ตอน URL bar ย่อ/ขยาย)
 // ============================================================
-function resizeCanvas() {
+let _lastW = 0, _lastH = 0, _resizeTimer = null;
+function resizeCanvas(force) {
   const canvas = document.getElementById('simCanvas');
   const container = canvas.parentElement;
   const w = container.clientWidth;
   const h = container.clientHeight;
-  canvas.width  = w > 10 ? w : 700;
-  canvas.height = h > 50 ? h : 500;
+  const newW = w > 10 ? w : 700;
+  const newH = h > 50 ? h : 500;
+  // ถ้าขนาดเปลี่ยนเล็กน้อย (<8px) บน iOS เพราะ URL bar — ไม่ต้อง resize
+  if (!force && Math.abs(newW - _lastW) < 8 && Math.abs(newH - _lastH) < 8) return;
+  _lastW = newW;
+  _lastH = newH;
+  canvas.width  = newW;
+  canvas.height = newH;
   draw();
+}
+function debouncedResize() {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(()=>resizeCanvas(false), 150);
 }
 
 // ============================================================
@@ -1372,13 +1383,15 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('sl-angA').addEventListener('input', updateAngleFromA);
   document.getElementById('sl-a1').addEventListener('input', updateAngleFromA);
 
-  // ResizeObserver for future resizes
-  new ResizeObserver(()=>resizeCanvas()).observe(document.querySelector('.canvas-area'));
+  // ResizeObserver with debounce (iOS-safe: ignore small URL-bar deltas)
+  new ResizeObserver(debouncedResize).observe(document.querySelector('.canvas-area'));
+  // ใช้ window.resize เฉพาะ orientation change (ไม่ fire ตอน scroll iOS)
+  window.addEventListener('orientationchange', ()=>setTimeout(()=>resizeCanvas(true),200));
 
   // Initial draw — wait for layout to settle
   setTimeout(()=>{
     requestAnimationFrame(()=>{
-      resizeCanvas();
+      resizeCanvas(true);
       initChallengeMode();
     });
   }, 100);
