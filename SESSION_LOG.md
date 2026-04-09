@@ -341,3 +341,85 @@ done
 - ขยายไป VPL01 โฟลเดอร์อื่น (Waves, Electricity, Optics ฯลฯ) ถ้ามี
 - Commit+push งานวันนี้ขึ้น GitHub เมื่อเจ้าของพร้อม
 
+---
+
+## 📋 COMMAND QUEUE — คำสั่งข้ามเครื่อง
+
+> **วิธีใช้:**
+> - เขียนคำสั่งใหม่ด้านล่างในรูปแบบ `[ ] ชื่อคำสั่ง — รายละเอียด`
+> - Scheduled task "kp-run-command-queue" บนทุกเครื่องจะอ่าน queue นี้และรันคำสั่งที่ยังไม่ได้ทำ (`[ ]`)
+> - หลังรันเสร็จจะเปลี่ยนเป็น `[x]` พร้อม timestamp อัตโนมัติ
+> - ไฟล์นี้ sync ระหว่างบ้าน ↔ ที่ทำงานผ่าน cloud — เขียนจากเครื่องไหนก็ได้
+
+### คำสั่งที่รองรับ:
+| คำสั่ง | ทำอะไร |
+|--------|--------|
+| `protect-new-files` | สแกนและเพิ่ม GA + frame protection + back button ให้ไฟล์ HTML ที่ขาด |
+| `update-session-log` | บันทึกสถานะงานล่าสุดลง SESSION_LOG |
+| `check-ga` | ตรวจว่าทุกไฟล์มี GA code `G-2YTJBNHP6D` ครบไหม |
+
+### Queue:
+<!-- เขียนคำสั่งใหม่ต่อด้านล่างนี้ -->
+
+---
+
+## [2026-04-10] — เครื่องบ้าน (session วันนี้)
+
+### ทำอะไรไปบ้าง
+
+**1. ตั้งค่า Google Analytics (G-2YTJBNHP6D)**
+- สร้าง GA4 Property ชื่อ "KP Science Website"
+- ใส่ GA tracking code ให้ทุกไฟล์ HTML ในโปรเจกต์ **54 ไฟล์** ด้วย Python script
+- Stream URL ควรแก้เป็น `kp-science.github.io/physics-simulations` (ตอนนี้ตั้งไว้แค่ root)
+- GA ทำงานได้แล้ว ยืนยันจาก Active users = 1 ใน Realtime dashboard
+
+**2. Early Access Modal (Google Form)**
+- เปลี่ยนปุ่ม "ลงชื่อรับสิทธิ์ Early Access" จากลิงก์ `#contact` → เปิด popup modal
+- ฝัง Google Form `1FAIpQLSdzrYmTAB0VYnhkPWa3WeR1qubqtomMGTrJMwEO8mqCnov_OA` ใน modal
+- กด ✕ หรือคลิกพื้นหลังเพื่อปิด modal ได้
+
+**3. Facebook Page Copy**
+- เขียน bio + first post สำหรับ Page "KP Science — สื่อฟิสิกส์ Interactive สำหรับครูไทย"
+
+**4. สร้างไฟล์ Marketing (ใน `_marketing/`)**
+- `brochure.html` — โบรชัวร์ A4 สำหรับส่งโรงเรียน (Cmd+P → Save as PDF)
+- `pricing.html` — ตาราง Pricing 3 แผน (ฟรี / Premium 390 บาท / School License 5,000 บาท) + Comparison table
+- `content-calendar.html` — แผนโพสต์ 4 สัปดาห์ 16 โพสต์
+
+**5. จัดโครงสร้างโฟลเดอร์**
+- สร้าง `_admin/` → ย้าย admin_passwords.html, KP_OrderBot.gs, KP_Orders.xlsx, add_protection.py
+- สร้าง `_marketing/` → ย้าย brochure.html, content-calendar.html, pricing.html
+- ไฟล์หน้าเว็บ (index, library, mechanics ฯลฯ) คงอยู่ที่ root
+
+**6. Scheduled Tasks**
+- สร้าง `kp-protect-new-files` — สแกนและเพิ่ม GA + frame protection + back button ให้ไฟล์ใหม่
+- สร้าง `kp-run-command-queue` — อ่าน Command Queue จาก SESSION_LOG.md แล้วรันคำสั่งอัตโนมัติ
+- สร้างระบบ Command Queue ใน SESSION_LOG.md นี้ เพื่อสื่อสารคำสั่งข้ามเครื่อง
+
+**7. อัปเดต CLAUDE.md**
+- เพิ่มส่วน Google Analytics — Measurement ID + กติกาบังคับใส่ GA ทุกไฟล์ใหม่
+
+### ไฟล์ที่แก้/สร้าง
+
+- ✏️ `index.html` — เพิ่ม Early Access modal + GA code
+- ✏️ ทุกไฟล์ HTML (54 ไฟล์) — GA code
+- 🆕 `_marketing/brochure.html`
+- 🆕 `_marketing/pricing.html`
+- 🆕 `_marketing/content-calendar.html`
+- 🆕 `_admin/` (ย้ายไฟล์เข้า)
+- ✏️ `CLAUDE.md` — เพิ่มกติกา GA
+- ✏️ `SESSION_LOG.md` — เพิ่ม Command Queue system
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- แก้ Stream URL ใน GA dashboard ให้เป็น `kp-science.github.io/physics-simulations`
+- สร้าง Facebook Page "KP Science" + โพสต์แรก (copy พร้อมแล้วในการสนทนา)
+- ตั้ง `kp-run-command-queue` ที่เครื่องที่ทำงานด้วย (task นี้มีแค่บ้านตอนนี้)
+- อัดคลิป screen record 30 วิ simulation ตัวแรก → โพสต์ Facebook
+
+### หมายเหตุ
+
+- Scheduled tasks ไม่ sync ข้ามเครื่อง — ต้องสร้างใหม่ที่เครื่องที่ทำงานด้วย
+- Command Queue: เขียน `[ ] protect-new-files` ในส่วน Queue ด้านบน แล้วรัน task `kp-run-command-queue` บนเครื่องไหนก็ได้
+- GA Measurement ID: `G-2YTJBNHP6D` — ใส่ไว้ใน CLAUDE.md แล้ว Claude จะรู้อัตโนมัติ
+
