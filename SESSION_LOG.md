@@ -272,3 +272,72 @@
 - โฟลเดอร์ sync ผ่าน cloud — แก้ที่ไหนอีกเครื่องเห็นเลย ไม่ต้อง git pull/push
 - ยังไม่ได้ commit/push `CLAUDE.md` + `SESSION_LOG.md` + การแก้ `index.html` + `virtual-physics-lab-01.html` ขึ้น GitHub (เจ้าของไม่ได้ตอบวิธี push — ข้ามไปก่อน cloud sync ใช้ได้อยู่)
 
+---
+
+## [2026-04-09] — เพิ่ม tab "📋 วิธีการทดลอง" ครบทุกไฟล์ VPL01/Mechanics
+
+### งานที่ทำ
+
+**สแกนและจัดกลุ่มไฟล์ VPL01/Mechanics ทั้งหมด 22 ไฟล์**
+- ✅ มี procedure อยู่แล้ว 8 ไฟล์: 2, 5, 8, 14, 15, 17, 18, 19
+- 🟡 มีแค่ callout 1 ไฟล์: 6.3
+- 🔴 ยังไม่มี 13 ไฟล์: 1, 3, 4, 6.1, 6.2, 7, 9, 10, 11, 12, 13, 16, 20
+
+**ตัดสินใจ workflow (เจ้าของเลือก option 3)**
+- ทำ template 1 ไฟล์ (เลือก `13. free-fall-experiment.html`) ให้ review ก่อน
+- เลือกรูปแบบ **เพิ่ม tab ใหม่** (ไม่ใช่เพิ่ม section ใน sim tab) เพื่อไม่ให้หน้ารก
+
+**Template structure (ใช้กับทุกไฟล์)**
+1. CSS ใหม่ก่อน `</style>` — classes: `.procedure-box`, `.proc-goal`, `.proc-list`, `.proc-sub`, `.proc-tip` (dark theme ใช้ `--accent` ฟ้า / `--accent2` ม่วง / `--accent3` เขียว)
+2. ปุ่มใน `<nav>` ระหว่าง sim ↔ theory: `<button onclick="showTab('procedure',this)">📋 วิธีการทดลอง</button>`
+3. `<div id="tab-procedure" class="tab-section">` ก่อน `<div id="tab-theory">` — มี `max-width:900px` จัดกลาง
+4. เนื้อหา: กล่อง 🎯 จุดประสงค์ → `<ol>` 6–8 ขั้น → สรุปผล + 2-3 sub-questions → 💡 ทดลองเพิ่มเติม
+
+**ภาษา Child-centered (บังคับทุกไฟล์)**
+- ไม่มี "ครูให้นักเรียน...", "ครูแจก..." ใช้ "นักเรียนกดปุ่ม...", "นักเรียนสังเกต..." แทน
+- อ้างอิง UI จริง: ปุ่ม/slider/card ของแต่ละ sim เจาะจง (wrap ใน `<strong>` หรือ `<em>`)
+- ใช้ `<span class="mono">` สำหรับสูตร/ตัวแปร
+
+**ไฟล์ที่แก้ในรอบนี้ (13 ไฟล์) — ทุกไฟล์ผ่าน verify**
+
+| # | ไฟล์ | หัวข้อ |
+|---|---|---|
+| 1 | measuring_precision | การวัดด้วยความละเอียด (sig figs, 4 ไม้บรรทัด) |
+| 3 | torques_simulation | สมดุลทอร์ก M₁X₁ = M₂X₂ |
+| 4 | force_resolution_sim | แตกแรง Fx = F cosθ, Fy = F sinθ |
+| 6.1 | pendulum_timer | ลูกตุ้ม T = 2π√(L/g) |
+| 6.2 | water-clock-simulation | นาฬิกาน้ำ อัตราไหล |
+| 7 | strobe_photography | สโตรบ v = Δx/Δt |
+| 9 | galileo-water-clock | Galileo รางเอียง a = g sinθ |
+| 10 | spinning_disc_sim | จานหมุนบนรางเอียง |
+| 11 | air_track_simulation | รางลมแนวระดับ 1.5m |
+| 12 | turntable_gravity | หา g ด้วยจานหมุน 33⅓ rpm |
+| **13** | **free-fall-experiment** | **ตกอิสระ (template ต้นฉบับ)** |
+| 16 | trajectories_simulation | วิถีโพรเจกไทล์ |
+| 20 | tilted_air_track | พลังงานยางยืด / calibration |
+
+**Verify script**
+```bash
+# ทุกไฟล์ต้องได้ 1|1|2 (1 ปุ่ม / 1 tab div / 2 ครั้งที่เจอ procedure-box = CSS def + HTML)
+for f in *.html; do
+  btn=$(grep -c "showTab('procedure'" "$f")
+  div=$(grep -c 'id="tab-procedure"' "$f")
+  css=$(grep -c "procedure-box" "$f")
+  echo "$btn|$div|$css  $f"
+done
+```
+ทุกไฟล์ผ่าน ✅
+
+### สถานะตอนนี้
+
+- ✅ VPL01/Mechanics 13 ไฟล์มี tab procedure แล้ว (รวมไฟล์ที่มีอยู่เดิม 8 ไฟล์ + 1 callout ไฟล์ 6.3 → รวมทั้งโฟลเดอร์ 22/22)
+- ✅ Layout ทุกไฟล์: 🎬 ทดลอง → 📋 วิธีการทดลอง → 📐 ทฤษฎีและอธิบาย
+- ⚠️ ยังไม่ได้ commit/push ขึ้น GitHub (sync ผ่าน cloud ทำงานปกติ)
+
+### งานที่อาจจะทำต่อ
+
+- อัปเกรดไฟล์ 6.3 จาก callout → tab เต็มรูปแบบ (ให้สม่ำเสมอกับที่เหลือ)
+- ตรวจรูปแบบ procedure ของไฟล์ที่มีอยู่เดิม 8 ไฟล์ (2, 5, 8, 14, 15, 17, 18, 19) ว่าใช้ `.instr` class แบบเดิมไหม จะแปลงเป็น tab procedure ให้เหมือนกันไหม
+- ขยายไป VPL01 โฟลเดอร์อื่น (Waves, Electricity, Optics ฯลฯ) ถ้ามี
+- Commit+push งานวันนี้ขึ้น GitHub เมื่อเจ้าของพร้อม
+
