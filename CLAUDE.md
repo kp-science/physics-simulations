@@ -50,6 +50,27 @@
 - Dark theme: bg `#06090f`, accent `#38bdf8` (cyan)
 - CSS vars: `--accent`, `--accent2` (purple), `--accent3` (green), `--accent4` (orange), `--accent5` (pink)
 
+## 📊 Google Analytics
+
+**Measurement ID:** `G-2YTJBNHP6D`
+
+**กติกาบังคับ:** ไฟล์ HTML ทุกไฟล์ที่สร้างใหม่หรือแก้ไข ต้องมี GA code นี้อยู่ทันทีหลัง `<head>` เสมอ:
+
+```html
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+```
+
+ก่อน commit ไฟล์ใหม่ ให้ verify ว่ามี `G-2YTJBNHP6D` อยู่ในไฟล์ด้วยทุกครั้ง
+
+---
+
 ## 🚫 ข้อห้าม
 
 - อย่าลบ `CLAUDE.md` หรือ `SESSION_LOG.md`
