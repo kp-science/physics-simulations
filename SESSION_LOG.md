@@ -423,3 +423,70 @@ done
 - Command Queue: เขียน `[ ] protect-new-files` ในส่วน Queue ด้านบน แล้วรัน task `kp-run-command-queue` บนเครื่องไหนก็ได้
 - GA Measurement ID: `G-2YTJBNHP6D` — ใส่ไว้ใน CLAUDE.md แล้ว Claude จะรู้อัตโนมัติ
 
+---
+
+## [2026-04-10 ช่วงบ่าย] — เครื่องบ้าน (session ต่อเนื่อง)
+
+### ทำอะไรไปบ้าง
+
+**8. สร้างคู่มือ Lab 22 ไฟล์ (HTML, พิมพ์ได้ A4)**
+
+สร้างไฟล์คู่มือการทดลองแยกสำหรับนักเรียน 22 ไฟล์ บันทึกที่ `Virtual Physics Lab 01/lab-manuals/`
+
+โครงสร้างทุกไฟล์:
+- ปกการทดลอง (หัวข้อ, เลขที่, ลิงก์ไป simulation, badge ชั้น/เวลา/ครู)
+- วัตถุประสงค์ (3 ข้อ)
+- ทฤษฎีพื้นฐาน (กล่อง theory border ฟ้า)
+- การใช้โปรแกรม (ตารางอธิบาย controls/sliders)
+- คำถาม Predict ก่อนทดลอง (POE รูปแบบม่วง 2 ข้อ)
+- วิธีการทดลอง (ขั้นตอนมีหมายเลข gradient)
+- ตารางบันทึกผล
+- สรุปผลการทดลอง (กล่องเส้นสำหรับเขียน)
+- แบบฝึกหัด (3 ข้อ)
+- หมายเหตุสำหรับครู (yellow background)
+
+ทุกไฟล์มี: GA code (G-2YTJBNHP6D), frame-protection meta, Google Fonts Sarabun, @media print A4
+
+### รายชื่อ 22 ไฟล์ที่สร้าง
+
+| ไฟล์ | หัวข้อ |
+|------|--------|
+| lab-01-measuring.html | การวัดและความละเอียดของการวัด |
+| lab-02-vectors.html | การบวกเวกเตอร์แรงและการสลายแรง |
+| lab-03-torques.html | สมดุลทอร์กบนคานดีดดุ้น |
+| lab-04-force-resolution.html | การสลายแรงและองค์ประกอบของแรง |
+| lab-05-incline.html | แรงบนพื้นเอียงและสมดุลสถิต |
+| lab-06-1-pendulum-timer.html | การวัดเวลาด้วยลูกตุ้มนาฬิกา |
+| lab-06-2-water-clock.html | การวัดเวลาด้วยนาฬิกาน้ำ |
+| lab-06-3-tape-timer.html | การวัดเวลาด้วยเครื่องเคาะสัญญาณเวลา |
+| lab-07-strobe.html | การถ่ายภาพแบบสโตรบและการวัดความเร็ว |
+| lab-08-straight-motion.html | การเคลื่อนที่แนวตรงและกราฟการเคลื่อนที่ |
+| lab-09-galileo.html | การทดลองของ Galileo บนรางเอียง |
+| lab-10-spinning-disc.html | จานหมุนบนรางเอียงและการหาค่า g |
+| lab-11-air-track.html | รางลมและกฎการอนุรักษ์โมเมนตัม |
+| lab-12-turntable-gravity.html | การหาค่า g ด้วยจานหมุน |
+| lab-13-free-fall.html | การตกอิสระและการหาค่า g |
+| lab-14-mass-weight.html | มวล น้ำหนัก และค่า g บนดาวต่างๆ |
+| lab-15-newton2.html | กฎข้อที่ 2 ของนิวตัน: F = ma |
+| lab-16-projectile.html | การเคลื่อนที่แบบโพรเจกไทล์ |
+| lab-17-centripetal.html | แรงสู่ศูนย์กลางและการเคลื่อนที่เป็นวงกลม |
+| lab-18-newton3.html | กฎข้อที่ 3 ของนิวตัน |
+| lab-19-pendulum-energy.html | พลังงานของลูกตุ้มนาฬิกา |
+| lab-20-tilted-track.html | รางลมเอียงและการอนุรักษ์พลังงาน |
+
+### ไฟล์ที่สร้าง
+
+- 🆕 `Virtual Physics Lab 01/lab-manuals/lab-01-measuring.html` ถึง `lab-20-tilted-track.html` (22 ไฟล์)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- Push ไฟล์ lab-manuals ทั้ง 22 ไฟล์ขึ้น GitHub (ยังไม่ได้ commit)
+- อาจเพิ่มลิงก์จาก `virtual-physics-lab-01.html` หรือ `index.html` ไปยังหน้า lab manuals
+- อาจสร้าง index หน้า `lab-manuals/index.html` รวมลิงก์ทั้ง 22 ไฟล์
+
+### หมายเหตุ
+
+- ไฟล์ทำงานด้วย Python generator script — content ของแต่ละ lab เขียนในรูปแบบ dict
+- พิมพ์ได้ผ่าน Cmd+P → A4, Print Background Graphics, No Margins (หรือ Smallest)
+- ลิงก์ใน cover page ชี้ไป simulation ใน `../Mechacnics/` (สะกดตรงตามโฟลเดอร์จริง)
+
