@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<\!-- Google tag (gtag.js) -->
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -404,6 +404,10 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:2.5rem 6
 @media(max-width:480px){
   .stat+.stat::before{display:none}
 }
+
+/* Download lock state */
+.dl-locked{border-color:rgba(148,163,184,0.5)!important;color:#94a3b8!important}
+.dl-locked:hover{border-color:rgba(148,163,184,0.7)!important;background:rgba(148,163,184,0.08)!important}
 </style>
 </head>
 <body>
@@ -629,6 +633,7 @@ function dlPdf(path, labNum) {
   }
 }
 function _doDl(path) {
+  if (typeof logDownload === 'function') logDownload(path);
   const a = document.createElement('a');
   a.href = path; a.download = '';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -703,10 +708,41 @@ function _doDl(path) {
 </body>
 </html>
 
-<\!-- Firebase + KP Auth -->
+<!-- Firebase + KP Auth -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="kp-auth.js"></script>
+<script>
+/* KP Download Lock — auto lock/unlock based on auth */
+(function(){
+  var FREE=[1,2,3,4,5];
+  function isFree(n){return FREE.some(function(f){return Math.abs(f-n)<0.01})||n<1}
+  function getLabBtns(){
+    var r=[];
+    document.querySelectorAll('.btn-dl-pdf,.sc-dl-btn,.lib-dl-btn').forEach(function(b){
+      var oc=b.getAttribute('onclick')||'';
+      var m=oc.match(/dlPdf\([^,]+,\s*([\d.]+)\)/);
+      if(m){var n=parseFloat(m[1]);if(!isFree(n))r.push(b)}
+    });
+    return r;
+  }
+  function update(user){
+    getLabBtns().forEach(function(b){
+      var t=b.textContent.replace(/^[\u2b07\u{1f512}\u{1f513}]\s*/u,'').replace(/^⬇\s*/,'');
+      if(user){b.classList.remove('dl-locked');b.textContent='⬇ '+t}
+      else{b.classList.add('dl-locked');b.textContent='\u{1f512} '+t}
+    });
+  }
+  update(null);
+  var iv=setInterval(function(){
+    if(typeof firebase!=='undefined'&&firebase.auth){
+      clearInterval(iv);
+      firebase.auth().onAuthStateChanged(update);
+    }
+  },200);
+  setTimeout(function(){clearInterval(iv)},10000);
+})();
+</script>
 </body>
 </html>

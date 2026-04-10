@@ -286,6 +286,22 @@ async function kpDownload(fileUrl, fileName) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+
+  // Log download
+  logDownload(fileName || fileUrl);
+}
+
+// ── Download Log ─────────────────────────────────────────
+function logDownload(fileName) {
+  if (!currentUser) return;
+  try {
+    db.collection('download_logs').add({
+      userId: currentUser.uid,
+      email: currentUser.email,
+      fileName: fileName,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) { console.error('logDownload error:', e); }
 }
 
 // ── Error translation ─────────────────────────────────────
