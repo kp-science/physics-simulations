@@ -490,3 +490,67 @@ done
 - พิมพ์ได้ผ่าน Cmd+P → A4, Print Background Graphics, No Margins (หรือ Smallest)
 - ลิงก์ใน cover page ชี้ไป simulation ใน `../Mechacnics/` (สะกดตรงตามโฟลเดอร์จริง)
 
+
+---
+
+## [2026-04-11] — Session ต่อเนื่อง (auth-aware downloads + UI updates)
+
+### ทำอะไรไปบ้าง
+
+**1. แปลง DOCX → PDF (17 เล่ม)**
+- สร้าง `convert_to_pdf.py` รันบน Mac ด้วย `docx2pdf` + Microsoft Word (รองรับฟอนต์ภาษาไทย TH Sarabun New)
+- PDF ทั้ง 17 ไฟล์บันทึกไว้ที่ `Virtual Physics Lab 01/lab-manuals-pdf/`
+- รายการ: Lab 1–5, 6.1, 6.2, 6.3, 7–15
+
+**2. เพิ่มปุ่มดาวน์โหลดคู่มือ Lab ใน simulation nav bar (17 ไฟล์)**
+- ทุก simulation มีปุ่ม `⬇ ดาวน์โหลดคู่มือ Lab` ใน `<nav>` ถัดจากปุ่มทฤษฎี
+- Style: pill shape, border-radius:20px, border:2px solid rgba(52,211,153,0.75), สีเขียว
+
+**3. เพิ่มปุ่มดาวน์โหลดใน `virtual-physics-lab-01.html` (การ์ดทุกใบ)**
+- ทุก Lab card มีปุ่ม `⬇ คู่มือ Lab` ที่ footer ของการ์ด
+
+**4. เพิ่มปุ่มดาวน์โหลดใน `library.html` (17 รายการ)**
+- ปุ่ม pill style ข้อความ "⬇ คู่มือ Lab" วางใน list view และ card grid
+
+**5. ระบบ Auth-aware Download**
+- `dlPdf(path, labNum)` ตรวจสอบ `currentUser` จาก Firebase ก่อนอนุญาตดาวน์โหลด
+- Lab 1–5: โหลดได้ฟรีทุกคน
+- Lab 6.1–15: ต้องล็อกอิน/สมัครสมาชิกก่อน → ถ้าไม่ได้ล็อกอินจะขึ้น popup
+- ใช้งานใน: `virtual-physics-lab-01.html`, `library.html`, และ simulation ทุก 12 ไฟล์ (Lab 6.1–15)
+- Firebase CDN + `kp-auth.js` + modal HTML/CSS ถูก inject ในทุกไฟล์ที่ต้องการ
+
+**6. ปรับ Early Access → สมาชิก KP Science (`index.html`)**
+- badge: 🔑 สิทธิ์สมาชิก KP Science (ฟรี)
+- รายการสิทธิ์ใหม่: เข้าถึงคู่มือ Lab ทุกเล่ม / แจ้งเตือน Lab ใหม่ / ใช้งานออฟไลน์ / เนื้อหาอนาคต
+- ปุ่ม CTA: `🔑 สมัครสมาชิกฟรีด้วย Google` → เรียก `showModal('login')` จาก Firebase auth
+
+### ไฟล์ที่เปลี่ยนแปลง
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| `index.html` | ปรับ Early Access section → Member signup |
+| `virtual-physics-lab-01.html` | เพิ่มปุ่มดาวน์โหลดทุก Lab card + auth-aware dlPdf |
+| `library.html` | เพิ่มปุ่ม pill style + auth-aware dlPdf ทุก 17 รายการ |
+| `Virtual Physics Lab 01/Mechacnics/*.html` (17 ไฟล์) | ปุ่ม pill style ใน nav |
+| `Virtual Physics Lab 01/Mechacnics/6.1–15 *.html` (12 ไฟล์) | lock download + Firebase modal |
+| `Virtual Physics Lab 01/lab-manuals-pdf/` | PDF คู่มือ Lab 17 เล่ม |
+
+### สถานะ Auth Download
+
+```
+Lab 1–5   → ดาวน์โหลดได้ฟรี (ไม่ต้อง login)
+Lab 6.1+  → ต้องเป็นสมาชิก (login ด้วย Google หรืออีเมล)
+blocked   → admin ปิดได้จาก dashboard
+```
+
+### ค้างไว้ / ต้องทำต่อ
+
+- ยังไม่ได้เพิ่มปุ่มดาวน์โหลดใน Lab 16–20 (ยังไม่มีไฟล์คู่มือ)
+- HEAD.lock เกิดบ่อยเมื่อ sandbox run git — แก้ด้วย `rm .git/HEAD.lock` ใน Terminal
+
+### หมายเหตุ
+
+- `currentUser` มาจาก `kp-auth.js` — ทุก role (member/premium/admin) โหลดได้, เฉพาะ blocked เท่านั้นที่ถูกบล็อก
+- `kp-auth.js` ต้อง path `../../kp-auth.js` จากใน `Mechacnics/` folder
+- HEAD.lock: sandbox ลบไม่ได้ เพราะ permission — ต้องลบผ่าน macOS Terminal เสมอ
+
