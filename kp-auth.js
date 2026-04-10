@@ -1,6 +1,6 @@
 // ============================================================
-//  KP Science — Auth System v1.0
-//  Firebase Authentication + Firestore quota
+//  KP Science — Auth System v2.0
+//  Firebase Authentication + Firestore + Topics Access Control
 // ============================================================
 
 const firebaseConfig = {
@@ -20,17 +20,33 @@ const db   = firebase.firestore();
 // ── Config ────────────────────────────────────────────────
 const DOWNLOAD_QUOTA = 3; // ดาวน์โหลดสูงสุดต่อเดือน
 
+// Topics ทั้งหมดในระบบ
+const ALL_TOPICS = ['mechanics', 'waves', 'astronomy', 'electricity', 'thermodynamics'];
+
+// Topics ที่ได้รับเมื่อสมัครใหม่ (Free member)
+const DEFAULT_TOPICS = ['mechanics'];
+
 // ── State ─────────────────────────────────────────────────
-let currentUser = null;
+let currentUser     = null;
+let currentUserData = null; // ข้อมูลจาก Firestore
 
 // ── Auth state listener ───────────────────────────────────
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   currentUser = user;
-  updateTopbar(user);
   if (user) {
-    unlockSimulations();
+    // โหลดข้อมูล user จาก Firestore
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      currentUserData = snap.exists ? snap.data() : null;
+    } catch(e) {
+      currentUserData = null;
+    }
+    updateTopbar(user);
+    applyTopicAccess();
   } else {
-    lockSimulations();
+    currentUserData = null;
+    updateTopbar(null);
+    lockAll();
   }
 });
 
@@ -43,35 +59,87 @@ function updateTopbar(user) {
   if (user) {
     if (loginBtn)  loginBtn.style.display  = 'none';
     if (userMenu)  userMenu.style.display  = 'flex';
-    if (userEmail) userEmail.textContent   = user.email.split('@')[0]; // แสดงแค่ชื่อ
+    if (userEmail) userEmail.textContent   = user.email.split('@')[0];
   } else {
     if (loginBtn)  loginBtn.style.display  = 'flex';
     if (userMenu)  userMenu.style.display  = 'none';
   }
 }
 
-// ── Lock / Unlock ─────────────────────────────────────────
-function lockSimulations() {
+// ── Topics Access Control ─────────────────────────────────
+
+// กำหนด topics ที่ user เข้าถึงได้
+function getUserTopics() {
+  if (!currentUserData) return [];
+  // admin หรือ premium เข้าได้ทุก topic
+  if (currentUserData.role === 'admin' || currentUserData.role === 'premium') {
+    return ALL_TOPICS;
+  }
+  // blocked เข้าไม่ได้เลย
+  if (currentUserData.role === 'blocked') return [];
+  // member ทั่วไปดูตาม topics ที่กำหนด
+  return currentUserData.topics || DEFAULT_TOPICS;
+}
+
+// ใช้สิทธิ์กับทุก element ที่มี data-locked
+function applyTopicAccess() {
+  const allowedTopics = getUserTopics();
+
   document.querySelectorAll('[data-locked="true"]').forEach(el => {
-    el.classList.add('kp-locked');
-    el.setAttribute('data-original-href', el.getAttribute('href') || '');
-    el.removeAttribute('href');
-    el.addEventListener('click', onLockedClick);
+    const topic = el.getAttribute('data-topic') || 'mechanics';
+    if (allowedTopics.includes(topic)) {
+      unlock(el);
+    } else {
+      lock(el);
+    }
   });
 }
 
-function unlockSimulations() {
-  document.querySelectorAll('[data-locked="true"]').forEach(el => {
-    el.classList.remove('kp-locked');
-    const original = el.getAttribute('data-original-href');
-    if (original) el.setAttribute('href', original);
-    el.removeEventListener('click', onLockedClick);
-  });
+function lockAll() {
+  document.querySelectorAll('[data-locked="true"]').forEach(el => lock(el));
+}
+
+function lock(el) {
+  if (el.classList.contains('kp-locked')) return;
+  el.classList.add('kp-locked');
+  const href = el.getAttribute('href');
+  if (href) el.setAttribute('data-original-href', href);
+  el.removeAttribute('href');
+  el.addEventListener('click', onLockedClick);
+}
+
+function unlock(el) {
+  el.classList.remove('kp-locked');
+  const original = el.getAttribute('data-original-href');
+  if (original) el.setAttribute('href', original);
+  el.removeEventListener('click', onLockedClick);
 }
 
 function onLockedClick(e) {
   e.preventDefault();
-  showModal('login');
+  if (!currentUser) {
+    showModal('login');
+  } else {
+    // login แล้วแต่ไม่มีสิทธิ์ topic นี้
+    showTopicAlert(e.currentTarget);
+  }
+}
+
+function showTopicAlert(el) {
+  const topic = el.getAttribute('data-topic') || 'mechanics';
+  const topicNames = {
+    mechanics:      'กลศาสตร์',
+    waves:          'คลื่นและเสียง',
+    astronomy:      'ดาราศาสตร์',
+    electricity:    'ไฟฟ้า',
+    thermodynamics: 'อุณหพลศาสตร์'
+  };
+  const t = document.getElementById('kp-quota-alert');
+  if (t) {
+    t.textContent = `🔒 สิทธิ์ "${topicNames[topic] || topic}" สำหรับ Premium เท่านั้น`;
+    t.style.display = 'flex';
+    setTimeout(() => t.style.display = 'none', 3500);
+  }
 }
 
 // ── Modal ─────────────────────────────────────────────────
@@ -93,7 +161,7 @@ function hideModal() {
 function switchTab(tab) {
   document.querySelectorAll('.kp-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.kp-tab-pane').forEach(t => t.classList.remove('active'));
-  const tabEl = document.getElementById('tab-' + tab);
+  const tabEl  = document.getElementById('tab-' + tab);
   const paneEl = document.getElementById('pane-' + tab);
   if (tabEl)  tabEl.classList.add('active');
   if (paneEl) paneEl.classList.add('active');
@@ -131,10 +199,10 @@ async function kpRegister() {
     errEl.textContent = 'กำลังสร้างบัญชี...';
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
 
-    // สร้างข้อมูลสมาชิกใน Firestore
     await db.collection('users').doc(cred.user.uid).set({
       email:              email,
       role:               'member',
+      topics:             DEFAULT_TOPICS,   // mechanics เท่านั้นตอนสมัคร
       createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
       downloadsThisMonth: 0,
       downloadMonth:      new Date().getMonth(),
@@ -147,6 +215,35 @@ async function kpRegister() {
   }
 }
 
+// ── Google Sign-In ────────────────────────────────────────
+async function kpLoginGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user   = result.user;
+
+    // ถ้า login ครั้งแรก → สร้าง user doc ใน Firestore
+    const userRef = db.collection('users').doc(user.uid);
+    const snap    = await userRef.get();
+    if (!snap.exists) {
+      await userRef.set({
+        email:              user.email,
+        role:               'member',
+        topics:             DEFAULT_TOPICS,
+        createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
+        downloadsThisMonth: 0,
+        downloadMonth:      new Date().getMonth(),
+        downloadYear:       new Date().getFullYear()
+      });
+    }
+    hideModal();
+  } catch(e) {
+    if (e.code === 'auth/popup-closed-by-user') return;
+    const errEl = document.getElementById('kp-login-err') || document.getElementById('kp-reg-err');
+    if (errEl) errEl.textContent = translateError(e.code);
+  }
+}
+
 // ── Logout ────────────────────────────────────────────────
 async function kpLogout() {
   await auth.signOut();
@@ -154,77 +251,53 @@ async function kpLogout() {
 
 // ── Download with quota ───────────────────────────────────
 async function kpDownload(fileUrl, fileName) {
-  if (!currentUser) {
-    showModal('login');
-    return;
-  }
+  if (!currentUser) { showModal('login'); return; }
 
   const userRef = db.collection('users').doc(currentUser.uid);
   const snap    = await userRef.get();
+  if (!snap.exists) { alert('ไม่พบข้อมูลสมาชิก'); return; }
 
-  if (!snap.exists) {
-    alert('ไม่พบข้อมูลสมาชิก กรุณาติดต่อผู้ดูแล');
-    return;
-  }
-
-  const data         = snap.data();
-  const nowMonth     = new Date().getMonth();
-  const nowYear      = new Date().getFullYear();
-
-  // Reset quota ถ้าขึ้นเดือนหรือปีใหม่
+  const data     = snap.data();
+  const nowMonth = new Date().getMonth();
+  const nowYear  = new Date().getFullYear();
   const sameMonth = data.downloadMonth === nowMonth && data.downloadYear === nowYear;
   const count     = sameMonth ? (data.downloadsThisMonth || 0) : 0;
 
   if (count >= DOWNLOAD_QUOTA) {
-    showQuotaAlert(count);
+    const t = document.getElementById('kp-quota-alert');
+    if (t) {
+      t.textContent = `⚠️ คุณใช้สิทธิ์ดาวน์โหลดครบ ${DOWNLOAD_QUOTA} ครั้งแล้วในเดือนนี้`;
+      t.style.display = 'flex';
+      setTimeout(() => t.style.display = 'none', 4000);
+    }
     return;
   }
 
-  // อัปเดต quota แล้วดาวน์โหลด
   await userRef.update({
-    downloadsThisMonth: firebase.firestore.FieldValue.increment(sameMonth ? 1 : 1),
+    downloadsThisMonth: firebase.firestore.FieldValue.increment(1),
     downloadMonth:      nowMonth,
     downloadYear:       nowYear,
     ...(sameMonth ? {} : { downloadsThisMonth: 1 })
   });
 
-  // trigger download
   const a = document.createElement('a');
   a.href = fileUrl;
   a.download = fileName || 'document';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-
-  // แจ้งเตือนเหลืออีกกี่ครั้ง
-  const remaining = DOWNLOAD_QUOTA - (sameMonth ? count + 1 : 1);
-  if (remaining === 0) {
-    alert('คุณใช้สิทธิ์ดาวน์โหลดครบแล้วในเดือนนี้ สิทธิ์จะรีเซ็ตในเดือนหน้า');
-  } else {
-    // silent — ไม่รบกวนผู้ใช้
-  }
-}
-
-function showQuotaAlert(count) {
-  const el = document.getElementById('kp-quota-alert');
-  if (el) {
-    el.style.display = 'flex';
-    setTimeout(() => el.style.display = 'none', 4000);
-  } else {
-    alert(`คุณใช้สิทธิ์ดาวน์โหลดครบ ${DOWNLOAD_QUOTA} ครั้งแล้วในเดือนนี้`);
-  }
 }
 
 // ── Error translation ─────────────────────────────────────
 function translateError(code) {
   const map = {
-    'auth/user-not-found':      'ไม่พบบัญชีนี้ในระบบ',
-    'auth/wrong-password':      'รหัสผ่านไม่ถูกต้อง',
-    'auth/invalid-credential':  'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
-    'auth/email-already-in-use':'อีเมลนี้มีบัญชีอยู่แล้ว',
-    'auth/invalid-email':       'รูปแบบอีเมลไม่ถูกต้อง',
-    'auth/weak-password':       'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
-    'auth/too-many-requests':   'ลองใหม่ภายหลัง (เข้าสู่ระบบผิดหลายครั้ง)',
+    'auth/user-not-found':         'ไม่พบบัญชีนี้ในระบบ',
+    'auth/wrong-password':         'รหัสผ่านไม่ถูกต้อง',
+    'auth/invalid-credential':     'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+    'auth/email-already-in-use':   'อีเมลนี้มีบัญชีอยู่แล้ว',
+    'auth/invalid-email':          'รูปแบบอีเมลไม่ถูกต้อง',
+    'auth/weak-password':          'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+    'auth/too-many-requests':      'ลองใหม่ภายหลัง (เข้าสู่ระบบผิดหลายครั้ง)',
     'auth/network-request-failed': 'ไม่มีการเชื่อมต่ออินเทอร์เน็ต',
   };
   return map[code] || 'เกิดข้อผิดพลาด: ' + code;
@@ -241,13 +314,11 @@ function clearErrors() {
   });
 }
 
-// ── Close modal on backdrop click ─────────────────────────
+// ── Backdrop & Escape ─────────────────────────────────────
 document.addEventListener('click', e => {
   const modal = document.getElementById('kp-auth-modal');
   if (modal && e.target === modal) hideModal();
 });
-
-// ── Enter key support ─────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') hideModal();
 });

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — KP Science</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06090f;--bg2:#0d1117;--bg3:#161b27;--bg4:#1c2333;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --danger:#f87171;--text:#f0f4f8;--muted:#7c8fa6;--card:#0d1421;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh}
+
+/* ── Login screen ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:2.5rem;width:100%;max-width:380px}
+.login-box h2{font-size:1.2rem;margin-bottom:.3rem}
+.login-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.3rem;font-weight:600}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:.65rem .9rem;border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;transition:.2s}
+.field input:focus{border-color:var(--accent)}
+.btn-primary{width:100%;background:var(--accent);color:#06090f;border:none;padding:.75rem;border-radius:9px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s}
+.btn-primary:hover{background:#7dd3fc}
+#login-err{color:var(--danger);font-size:.8rem;margin-bottom:.5rem;min-height:1.1rem}
+
+/* ── Dashboard ── */
+#dashboard{display:none;flex-direction:column;min-height:100vh}
+
+/* Topbar */
+.adm-topbar{background:rgba(6,9,15,0.95);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;height:56px;gap:1rem;position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:700;color:var(--accent)}
+.adm-badge{font-size:.7rem;background:rgba(251,146,60,0.15);color:var(--accent4);border:1px solid rgba(251,146,60,0.3);padding:2px 10px;border-radius:20px;font-weight:700}
+.adm-email{margin-left:auto;font-size:.8rem;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.adm-logout{background:none;border:1px solid var(--border2);color:var(--muted);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:.2s}
+.adm-logout:hover{color:var(--text);border-color:var(--border2)}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;padding:1.5rem 2rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.3rem}
+.stat-n{font-size:1.8rem;font-weight:700;font-family:'Share Tech Mono',monospace;color:var(--accent);line-height:1}
+.stat-l{font-size:.75rem;color:var(--muted);margin-top:.3rem;text-transform:uppercase;letter-spacing:.5px}
+
+/* Table section */
+.section{padding:0 2rem 3rem}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:gap}
+.section-title{font-size:1rem;font-weight:700}
+.search-inp{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.5rem .9rem;border-radius:8px;font-size:.85rem;font-family:inherit;outline:none;width:240px;transition:.2s}
+.search-inp:focus{border-color:var(--accent)}
+
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+thead tr{background:var(--bg3)}
+th{padding:.75rem 1rem;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;white-space:nowrap}
+tbody tr{border-top:1px solid var(--border);transition:.15s}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+td{padding:.8rem 1rem;vertical-align:middle}
+.td-email{font-family:'Share Tech Mono',monospace;font-size:.82rem}
+.td-date{color:var(--muted);font-size:.8rem}
+
+/* Role badge */
+.role-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700}
+.role-member{background:rgba(56,189,248,0.1);color:var(--accent);border:1px solid rgba(56,189,248,0.25)}
+.role-premium{background:rgba(251,146,60,0.1);color:var(--accent4);border:1px solid rgba(251,146,60,0.25)}
+.role-blocked{background:rgba(248,113,113,0.1);color:var(--danger);border:1px solid rgba(248,113,113,0.25)}
+.role-admin{background:rgba(129,140,248,0.1);color:var(--accent2);border:1px solid rgba(129,140,248,0.25)}
+
+/* Quota bar */
+.quota-bar{display:flex;align-items:center;gap:.5rem}
+.quota-track{width:70px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.quota-fill{height:100%;border-radius:3px;background:var(--accent3);transition:.3s}
+.quota-fill.warn{background:var(--accent4)}
+.quota-fill.full{background:var(--danger)}
+.quota-num{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--muted)}
+
+/* Action buttons */
+.actions{display:flex;gap:.4rem;flex-wrap:wrap}
+.btn-sm{border:1px solid var(--border2);background:none;color:var(--muted);padding:4px 10px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:inherit;transition:.2s;white-space:nowrap}
+.btn-sm:hover{color:var(--text);border-color:var(--accent)}
+.btn-sm.danger{border-color:rgba(248,113,113,0.3);color:var(--danger)}
+.btn-sm.danger:hover{background:rgba(248,113,113,0.08)}
+.btn-sm.success{border-color:rgba(52,211,153,0.3);color:var(--accent3)}
+.btn-sm.success:hover{background:rgba(52,211,153,0.08)}
+
+/* Toast */
+#toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--accent);color:var(--text);padding:.65rem 1.5rem;border-radius:10px;font-size:.85rem;z-index:9999;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1}
+
+/* Empty */
+.empty{text-align:center;padding:3rem;color:var(--muted)}
+
+@media(max-width:640px){
+  .adm-topbar{padding:0 1rem}
+  .stats-row,.section{padding-left:1rem;padding-right:1rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Login Screen ═══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🔐 KP Science Admin</h2>
+    <p>เข้าสู่ระบบด้วยบัญชี Admin เท่านั้น</p>
+    <div class="field">
+      <label>อีเมล</label>
+      <input type="email" id="adm-email" placeholder="admin@email.com" />
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="adm-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')adminLogin()" />
+    </div>
+    <div id="login-err"></div>
+    <button class="btn-primary" onclick="adminLogin()">เข้าสู่ระบบ</button>
+    <div style="display:flex;align-items:center;gap:.75rem;margin:1rem 0;color:var(--muted);font-size:.78rem">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,0.08)"></div>หรือ<div style="flex:1;height:1px;background:rgba(255,255,255,0.08)"></div>
+    </div>
+    <button onclick="adminGoogleLogin()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;background:#fff;color:#1f1f1f;border:none;padding:.68rem;border-radius:9px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:inherit">
+      <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      เข้าสู่ระบบด้วย Google
+    </button>
+  </div>
+</div>
+
+<!-- ═══ Dashboard ═══ -->
+<div id="dashboard">
+
+  <div class="adm-topbar">
+    <span class="adm-logo">KP Science</span>
+    <span class="adm-badge">ADMIN</span>
+    <span class="adm-email" id="adm-logged-email"></span>
+    <button class="adm-logout" onclick="adminLogout()">ออกจากระบบ</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-n" id="stat-total">—</div>
+      <div class="stat-l">สมาชิกทั้งหมด</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" id="stat-this-month">—</div>
+      <div class="stat-l">สมัครเดือนนี้</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" id="stat-downloads">—</div>
+      <div class="stat-l">ดาวน์โหลดเดือนนี้</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" id="stat-premium">—</div>
+      <div class="stat-l">Premium</div>
+    </div>
+  </div>
+
+  <!-- Member table -->
+  <div class="section">
+    <div class="section-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div class="section-title">รายชื่อสมาชิก</div>
+      <input class="search-inp" type="text" id="search" placeholder="ค้นหาอีเมล..." oninput="filterTable()" />
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>อีเมล</th>
+            <th>Role</th>
+            <th>ดาวน์โหลด/เดือน</th>
+            <th>วันที่สมัคร</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="member-tbody">
+          <tr><td colspan="6" class="empty">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- Topics Modal -->
+<div id="topics-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#0d1421;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:460px;padding:1.75rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <h3 style="font-size:1rem;font-weight:700">📚 กำหนด Topics</h3>
+      <button onclick="closeTopics()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem" id="topics-user-label"></p>
+    <div id="topics-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem"></div>
+    <div style="display:flex;gap:.75rem">
+      <button onclick="saveTopics()" style="flex:1;background:var(--accent);color:#06090f;border:none;padding:.65rem;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">บันทึก</button>
+      <button onclick="closeTopics()" style="flex:1;background:none;border:1px solid var(--border2);color:var(--muted);padding:.65rem;border-radius:8px;font-size:.9rem;cursor:pointer;font-family:inherit">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+const ADMIN_EMAIL = 'komanepapato@gmail.com';
+const DOWNLOAD_QUOTA = 3;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBTtSjqno1IVku27_J0lFY2dU0y8nq9B5U",
+  authDomain: "kp-science-f11ff.firebaseapp.com",
+  projectId: "kp-science-f11ff",
+  storageBucket: "kp-science-f11ff.firebasestorage.app",
+  messagingSenderId: "352992735315",
+  appId: "1:352992735315:web:c88b220ffc750862ab16a6",
+  measurementId: "G-LZFF138J33"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let allMembers = [];
+
+// ── Auth state ───────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (user && user.email === ADMIN_EMAIL) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    document.getElementById('adm-logged-email').textContent = user.email;
+    await loadMembers();
+  } else if (user) {
+    // login แล้ว แต่ไม่ใช่ admin
+    await auth.signOut();
+    document.getElementById('login-err').textContent = 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้';
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+  }
+});
+
+// ── Login ────────────────────────────────────────────────
+async function adminLogin() {
+  const email = document.getElementById('adm-email').value.trim();
+  const pass  = document.getElementById('adm-pass').value;
+  const errEl = document.getElementById('login-err');
+
+  if (email !== ADMIN_EMAIL) {
+    errEl.textContent = 'อีเมลนี้ไม่มีสิทธิ์ Admin';
+    return;
+  }
+
+  try {
+    errEl.textContent = 'กำลังตรวจสอบ...';
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    const msgs = {
+      'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
+      'auth/user-not-found': 'ไม่พบบัญชีนี้',
+      'auth/invalid-credential': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+      'auth/too-many-requests': 'ลองใหม่ภายหลัง',
+    };
+    errEl.textContent = msgs[e.code] || e.message;
+  }
+}
+
+async function adminLogout() {
+  await auth.signOut();
+}
+
+async function adminGoogleLogin() {
+  const errEl = document.getElementById('login-err');
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result   = await auth.signInWithPopup(provider);
+    if (result.user.email !== ADMIN_EMAIL) {
+      await auth.signOut();
+      errEl.textContent = 'Google account นี้ไม่มีสิทธิ์ Admin';
+    }
+  } catch(e) {
+    if (e.code === 'auth/popup-closed-by-user') return;
+    errEl.textContent = 'เกิดข้อผิดพลาด: ' + e.message;
+  }
+}
+
+// ── Load members ─────────────────────────────────────────
+async function loadMembers() {
+  try {
+    const snap = await db.collection('users').orderBy('createdAt','desc').get();
+    allMembers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    updateStats();
+    renderTable(allMembers);
+  } catch(e) {
+    console.error(e);
+    showToast('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ── Stats ────────────────────────────────────────────────
+function updateStats() {
+  const nowMonth = new Date().getMonth();
+  const nowYear  = new Date().getFullYear();
+
+  const thisMonth = allMembers.filter(m => {
+    if (!m.createdAt) return false;
+    const d = m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt);
+    return d.getMonth() === nowMonth && d.getFullYear() === nowYear;
+  }).length;
+
+  const totalDownloads = allMembers.reduce((sum, m) => {
+    const sameMonth = m.downloadMonth === nowMonth && m.downloadYear === nowYear;
+    return sum + (sameMonth ? (m.downloadsThisMonth || 0) : 0);
+  }, 0);
+
+  const premiumCount = allMembers.filter(m => m.role === 'premium').length;
+
+  document.getElementById('stat-total').textContent     = allMembers.length;
+  document.getElementById('stat-this-month').textContent = thisMonth;
+  document.getElementById('stat-downloads').textContent  = totalDownloads;
+  document.getElementById('stat-premium').textContent    = premiumCount;
+}
+
+// ── Render table ─────────────────────────────────────────
+function renderTable(members) {
+  const tbody = document.getElementById('member-tbody');
+  const nowMonth = new Date().getMonth();
+  const nowYear  = new Date().getFullYear();
+
+  if (members.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">ไม่พบสมาชิก</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = members.map((m, i) => {
+    const sameMonth = m.downloadMonth === nowMonth && m.downloadYear === nowYear;
+    const dlCount   = sameMonth ? (m.downloadsThisMonth || 0) : 0;
+    const dlPct     = Math.min((dlCount / DOWNLOAD_QUOTA) * 100, 100);
+    const fillClass = dlCount >= DOWNLOAD_QUOTA ? 'full' : dlCount >= DOWNLOAD_QUOTA - 1 ? 'warn' : '';
+
+    const roleClass = {
+      member:  'role-member',
+      premium: 'role-premium',
+      blocked: 'role-blocked',
+      admin:   'role-admin'
+    }[m.role] || 'role-member';
+
+    const roleLabel = {
+      member:  'Member',
+      premium: 'Premium',
+      blocked: 'Blocked',
+      admin:   'Admin'
+    }[m.role] || m.role;
+
+    const createdAt = m.createdAt
+      ? (m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt)).toLocaleDateString('th-TH', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    const isPremium = m.role === 'premium';
+    const isBlocked = m.role === 'blocked';
+
+    return `<tr data-email="${m.email || ''}">
+      <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.78rem">${i+1}</td>
+      <td class="td-email">${m.email || m.id}</td>
+      <td><span class="role-badge ${roleClass}">${roleLabel}</span></td>
+      <td>
+        <div class="quota-bar">
+          <div class="quota-track"><div class="quota-fill ${fillClass}" style="width:${dlPct}%"></div></div>
+          <span class="quota-num">${dlCount}/${DOWNLOAD_QUOTA}</span>
+        </div>
+      </td>
+      <td class="td-date">${createdAt}</td>
+      <td>
+        <div class="actions">
+          ${!isPremium ? `<button class="btn-sm success" onclick="setRole('${m.id}','premium')">⬆ Premium</button>` : `<button class="btn-sm" onclick="setRole('${m.id}','member')">↓ Member</button>`}
+          <button class="btn-sm" onclick="resetQuota('${m.id}')">🔄 Reset quota</button>
+          <button class="btn-sm" onclick="openTopics('${m.id}')">📚 Topics</button>
+          ${!isBlocked ? `<button class="btn-sm danger" onclick="setRole('${m.id}','blocked')">🚫 Block</button>` : `<button class="btn-sm success" onclick="setRole('${m.id}','member')">✓ Unblock</button>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Filter ───────────────────────────────────────────────
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = allMembers.filter(m => (m.email || '').toLowerCase().includes(q));
+  renderTable(filtered);
+}
+
+// ── Actions ──────────────────────────────────────────────
+async function setRole(uid, role) {
+  try {
+    await db.collection('users').doc(uid).update({ role });
+    const m = allMembers.find(x => x.id === uid);
+    if (m) m.role = role;
+    updateStats();
+    renderTable(allMembers);
+    filterTable();
+    showToast(`เปลี่ยน role เป็น "${role}" แล้ว`);
+  } catch(e) {
+    showToast('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+async function resetQuota(uid) {
+  try {
+    await db.collection('users').doc(uid).update({
+      downloadsThisMonth: 0,
+      downloadMonth: new Date().getMonth(),
+      downloadYear:  new Date().getFullYear()
+    });
+    const m = allMembers.find(x => x.id === uid);
+    if (m) { m.downloadsThisMonth = 0; m.downloadMonth = new Date().getMonth(); m.downloadYear = new Date().getFullYear(); }
+    updateStats();
+    renderTable(allMembers);
+    showToast('Reset quota แล้ว');
+  } catch(e) {
+    showToast('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+// ── Topics Modal ─────────────────────────────────────────
+const TOPIC_LIST = [
+  { id: 'mechanics',      label: '⚙️ กลศาสตร์' },
+  { id: 'waves',          label: '〰️ คลื่นและเสียง' },
+  { id: 'astronomy',      label: '🌌 ดาราศาสตร์' },
+  { id: 'electricity',    label: '⚡ ไฟฟ้า' },
+  { id: 'thermodynamics', label: '🌡️ อุณหพลศาสตร์' },
+];
+
+let topicsEditUid = null;
+
+function openTopics(uid) {
+  const m = allMembers.find(x => x.id === uid);
+  if (!m) return;
+  topicsEditUid = uid;
+
+  document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}`;
+
+  const currentTopics = m.topics || ['mechanics'];
+  const box = document.getElementById('topics-checkboxes');
+  box.innerHTML = TOPIC_LIST.map(t => `
+    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;padding:.5rem .75rem;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <input type="checkbox" value="${t.id}" ${currentTopics.includes(t.id) ? 'checked' : ''} style="accent-color:var(--accent);width:16px;height:16px">
+      ${t.label}
+    </label>
+  `).join('');
+
+  const modal = document.getElementById('topics-modal');
+  modal.style.display = 'flex';
+}
+
+function closeTopics() {
+  document.getElementById('topics-modal').style.display = 'none';
+  topicsEditUid = null;
+}
+
+async function saveTopics() {
+  if (!topicsEditUid) return;
+  const checked = [...document.querySelectorAll('#topics-checkboxes input:checked')].map(el => el.value);
+  if (checked.length === 0) { showToast('ต้องเลือกอย่างน้อย 1 topic'); return; }
+
+  try {
+    await db.collection('users').doc(topicsEditUid).update({ topics: checked });
+    const m = allMembers.find(x => x.id === topicsEditUid);
+    if (m) m.topics = checked;
+    closeTopics();
+    renderTable(allMembers);
+    showToast(`อัปเดต Topics แล้ว (${checked.length} รายการ)`);
+  } catch(e) {
+    showToast('เกิดข้อผิดพลาด: ' + e.message);
+  }
+}
+
+// ── Toast ────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
