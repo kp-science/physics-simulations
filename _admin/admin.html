@@ -253,15 +253,39 @@ td{padding:.8rem 1rem;vertical-align:middle}
 
 <div id="toast"></div>
 
-<!-- Topics Modal -->
-<div id="topics-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:#0d1421;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:460px;padding:1.75rem">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-      <h3 style="font-size:1rem;font-weight:700">กำหนด Topics</h3>
+<!-- Access Control Modal -->
+<div id="topics-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem;overflow-y:auto">
+  <div style="background:#0d1421;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:580px;padding:1.75rem;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <h3 style="font-size:1rem;font-weight:700">กำหนดสิทธิ์การเข้าถึง</h3>
       <button onclick="closeTopics()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">✕</button>
     </div>
     <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem" id="topics-user-label"></p>
-    <div id="topics-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem"></div>
+
+    <!-- Content Types -->
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">ประเภท Content</div>
+      <div id="content-types-checkboxes" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"></div>
+    </div>
+
+    <!-- Topics -->
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">หมวดวิชา (Topics)</div>
+      <div id="topics-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"></div>
+    </div>
+
+    <!-- Labs -->
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+        <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Labs (คู่มือ + ดาวน์โหลด)</div>
+        <div style="display:flex;gap:.4rem">
+          <button onclick="checkAllLabs(true)" style="background:none;border:1px solid var(--border2);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;font-family:inherit">เลือกทั้งหมด</button>
+          <button onclick="checkAllLabs(false)" style="background:none;border:1px solid var(--border2);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;font-family:inherit">ยกเลิกทั้งหมด</button>
+        </div>
+      </div>
+      <div id="labs-checkboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.4rem"></div>
+    </div>
+
     <div style="display:flex;gap:.75rem">
       <button onclick="saveTopics()" style="flex:1;background:var(--accent);color:#06090f;border:none;padding:.65rem;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">บันทึก</button>
       <button onclick="closeTopics()" style="flex:1;background:none;border:1px solid var(--border2);color:var(--muted);padding:.65rem;border-radius:8px;font-size:.9rem;cursor:pointer;font-family:inherit">ยกเลิก</button>
@@ -536,6 +560,7 @@ async function resetQuota(uid) {
 }
 
 // ── Topics Modal ─────────────────────────────────────────
+// ── Access Control Config ────────────────────────────────
 const TOPIC_LIST = [
   { id:'mechanics', label:'กลศาสตร์' },
   { id:'waves', label:'คลื่นและเสียง' },
@@ -543,32 +568,76 @@ const TOPIC_LIST = [
   { id:'electricity', label:'ไฟฟ้า' },
   { id:'thermodynamics', label:'อุณหพลศาสตร์' },
 ];
+const CONTENT_TYPES = [
+  { id:'simulation', label:'Simulation' },
+  { id:'lab_manual', label:'คู่มือ Lab' },
+  { id:'exam', label:'ข้อสอบ' },
+];
+const LAB_LIST = [
+  {id:'lab-1',label:'Lab 1'},{id:'lab-2',label:'Lab 2'},{id:'lab-3',label:'Lab 3'},
+  {id:'lab-4',label:'Lab 4'},{id:'lab-5',label:'Lab 5'},{id:'lab-6.1',label:'Lab 6.1'},
+  {id:'lab-6.2',label:'Lab 6.2'},{id:'lab-6.3',label:'Lab 6.3'},{id:'lab-7',label:'Lab 7'},
+  {id:'lab-8',label:'Lab 8'},{id:'lab-9',label:'Lab 9'},{id:'lab-10',label:'Lab 10'},
+  {id:'lab-11',label:'Lab 11'},{id:'lab-12',label:'Lab 12'},{id:'lab-13',label:'Lab 13'},
+  {id:'lab-14',label:'Lab 14'},{id:'lab-15',label:'Lab 15'},
+];
 let topicsEditUid = null;
+
+function _chk(id, val, checked, accent) {
+  return `<label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border);transition:.15s">
+    <input type="checkbox" name="${id}" value="${val}" ${checked?'checked':''} style="accent-color:${accent||'var(--accent)'};width:15px;height:15px"> ${val.replace('lab-','Lab ')}
+  </label>`;
+}
 
 function openTopics(uid) {
   const m = allMembers.find(x => x.id === uid);
   if (!m) return;
   topicsEditUid = uid;
-  document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}`;
-  const currentTopics = m.topics || ['mechanics'];
-  document.getElementById('topics-checkboxes').innerHTML = TOPIC_LIST.map(t => `
-    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;padding:.5rem .75rem;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
-      <input type="checkbox" value="${t.id}" ${currentTopics.includes(t.id)?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> ${t.label}
-    </label>`).join('');
+  document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}  ·  Role: ${m.role || 'member'}`;
+
+  const curTopics = m.topics || ['mechanics'];
+  const curContent = m.contentTypes || ['simulation','lab_manual','exam'];
+  const curLabs = m.labs || LAB_LIST.map(l=>l.id); // default: all labs
+
+  document.getElementById('content-types-checkboxes').innerHTML = CONTENT_TYPES.map(t =>
+    _chk('ctype', t.id, curContent.includes(t.id), 'var(--accent4)')
+  ).join('').replace(/>simulation</g, `>${CONTENT_TYPES[0].label}<`).replace(/>lab_manual</g, `>${CONTENT_TYPES[1].label}<`).replace(/>exam</g, `>${CONTENT_TYPES[2].label}<`);
+
+  document.getElementById('topics-checkboxes').innerHTML = TOPIC_LIST.map(t =>
+    `<label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <input type="checkbox" name="topic" value="${t.id}" ${curTopics.includes(t.id)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px"> ${t.label}
+    </label>`
+  ).join('');
+
+  document.getElementById('labs-checkboxes').innerHTML = LAB_LIST.map(l =>
+    `<label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;padding:.35rem .5rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <input type="checkbox" name="lab" value="${l.id}" ${curLabs.includes(l.id)?'checked':''} style="accent-color:var(--accent3);width:14px;height:14px"> ${l.label}
+    </label>`
+  ).join('');
+
   document.getElementById('topics-modal').style.display = 'flex';
 }
+
+function checkAllLabs(state) {
+  document.querySelectorAll('#labs-checkboxes input').forEach(el => el.checked = state);
+}
+
 function closeTopics() { document.getElementById('topics-modal').style.display='none'; topicsEditUid=null; }
 
 async function saveTopics() {
   if (!topicsEditUid) return;
-  const checked = [...document.querySelectorAll('#topics-checkboxes input:checked')].map(el => el.value);
-  if (checked.length === 0) { showToast('ต้องเลือกอย่างน้อย 1 topic'); return; }
+  const topics = [...document.querySelectorAll('input[name="topic"]:checked')].map(el => el.value);
+  const contentTypes = [...document.querySelectorAll('input[name="ctype"]:checked')].map(el => el.value);
+  const labs = [...document.querySelectorAll('input[name="lab"]:checked')].map(el => el.value);
+
+  if (topics.length === 0) { showToast('ต้องเลือกอย่างน้อย 1 หมวดวิชา'); return; }
+
   try {
-    await db.collection('users').doc(topicsEditUid).update({ topics: checked });
+    await db.collection('users').doc(topicsEditUid).update({ topics, contentTypes, labs });
     const m = allMembers.find(x => x.id === topicsEditUid);
-    if (m) m.topics = checked;
+    if (m) { m.topics = topics; m.contentTypes = contentTypes; m.labs = labs; }
     closeTopics(); renderTable(allMembers);
-    showToast(`อัปเดต Topics แล้ว (${checked.length} รายการ)`);
+    showToast(`อัปเดตสิทธิ์แล้ว (${topics.length} topics · ${contentTypes.length} content · ${labs.length} labs)`);
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
