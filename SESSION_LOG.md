@@ -425,6 +425,48 @@ done
 
 ---
 
+## [2026-04-11] — เครื่องบ้าน
+
+### ทำอะไรไปบ้าง
+
+**1. สร้าง Virtual Physics Lab 02 — Experiment 30: Waves on a Coiled Spring**
+- สร้าง simulation ครบถ้วนจาก lab manual Experiment 30 (คลื่นบนสปริงขด)
+- **Tab 1: Simulation** — 4 โหมดการทดลอง:
+  - พัลส์เดี่ยว (Transverse/Longitudinal/Rarefaction + Fixed/Free end)
+  - คลื่นนิ่ง (Standing Waves) ปรับ frequency ได้ แสดง nodes/antinodes
+  - สปริง 2 อัน (Two Springs) ต่างความหนาแน่น → reflection/transmission
+  - ซ้อนทับ (Superposition) ส่ง 2 พัลส์จาก 2 ฝั่ง
+- 2 โหมดบันทึก: **วัดค่าเอง** (Manual — มี stopwatch, ตารางกรอก) + **อัตโนมัติ** (Auto — วัดอัตโนมัติ)
+- ตาราง Data Chart I (Speed of Pulses) + Data Chart II (Speed of Waves) ตาม lab manual
+- Marker เชือกกลางสปริง แสดงทิศอนุภาคสั่น + ไม้บรรทัดซ้อน
+- Wave physics engine ใช้ 1D wave equation (200 nodes, Euler integration, CFL stable)
+- Canvas rendering สปริงขดแบบ zigzag/coil ที่เปลี่ยนรูปตามคลื่น
+- **Tab 2: วิธีการทดลอง** — 12 ขั้นตอนจาก lab manual เป็นภาษาไทย + ผลที่คาดหวัง
+- **Tab 3: ทฤษฎี** — อธิบายด้วย visual: mini-canvas animation 7 ตัว (transverse/longitudinal, fixed/free reflection, standing waves, superposition, two springs) + สูตร v = √(T/μ), v = fλ
+- ใช้ physics-simulation-builder skill + design tokens ของโปรเจกต์
+
+**2. รัน protect_new_file.py**
+- เพิ่ม KP Topbar + mobile order fix ให้ไฟล์ใหม่
+- ยืนยัน GA code G-2YTJBNHP6D ครบ
+
+### ไฟล์ที่แก้/สร้าง
+
+- 🆕 `Virtual Physics Lab 02/waves-on-coiled-spring.html` — simulation คลื่นบนสปริงขด (Experiment 30)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ทดสอบ simulation บน browser จริง ตรวจ edge cases
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+- สร้าง simulation เพิ่มสำหรับ Virtual Physics Lab 02
+
+### หมายเหตุ
+
+- Wave engine ใช้ 200 nodes + damping 0.15 → พัลส์สะท้อนไปกลับได้ ~10 ครั้งก่อนหมด
+- ค่าอ้างอิงจาก lab: transverse v ≈ 0.57-0.59 m/s, longitudinal v ≈ 0.67-0.70 m/s
+- ความเร็วคลื่นปรับได้ผ่าน slider ความตึง (T) ตามสูตร v = √(T/μ)
+
+---
+
 ## [2026-04-10 ช่วงบ่าย] — เครื่องบ้าน (session ต่อเนื่อง)
 
 ### ทำอะไรไปบ้าง
@@ -675,4 +717,105 @@ blocked   → admin ปิดได้จาก dashboard
 - Topbar บน simulation files ใช้ class `.kp-topbar` (ไม่ใช่ `.topbar` ของ index.html) เพื่อไม่ให้ CSS ชนกัน
 - Domain protection script ใน Demo ต้องไม่มี `</script>` ใน JS string — ใช้ `document.body.innerHTML` แทน `document.documentElement.innerHTML`
 - PDF ลายน้ำ: รัน `python3 _admin/add_watermark.py "Virtual Physics Lab 01/lab-manuals-pdf/" --all`
+
+---
+
+## [2026-04-11 session ต่อ] — สร้าง Experiment 31: Waves in a Ripple Tank
+
+### ทำอะไรไปบ้าง
+
+**1. สร้าง simulation ใหม่: `Virtual Physics Lab 02/31. waves-in-ripple-tank.html`**
+- ถังคลื่น (Ripple Tank) — Experiment 31 ครบทั้ง 3 การทดลองย่อย:
+  - **I. Stroboscope Calibration** — สโตรโบสโคป 6 ช่อง ปรับ N (slits/s) เพื่อ "หยุดคลื่น" วัด λ จริง
+  - **II. λ vs f** — ปรับความถี่ 8-18 Hz สังเกต λ เปลี่ยน (ผกผัน) พร้อมกราฟ mini chart
+  - **III. Speed vs Depth** — เปรียบเทียบน้ำลึก (10mm, v≈25 cm/s) กับน้ำตื้น (1mm, v≈21 cm/s) พร้อมแผ่นกระจก visual
+- **Canvas animation:** คลื่นวงกลมแผ่ออกจากแหล่งกำเนิดจุด, amplitude decay ∝ 1/√r
+- **Stroboscope effect:** sampling wave at discrete intervals — N=f → คลื่นนิ่ง, N=2f → λ ปรากฏ = λ/2
+- **Stroboscope disk:** แสดงจานหมุน 6 ช่องที่มุมขวาล่าง canvas
+- **Depth mode:** แสดงบริเวณน้ำลึก/ตื้นแยกกัน คลื่นเบียดกันในน้ำตื้น (λ สั้นลง)
+
+**2. โหมดบันทึกค่า 2 โหมด:**
+- **📏 วัดค่าเอง (default):** คลิก 2 จุดบน canvas วัดระยะ → บันทึกในตารางเอง
+- **🤖 อัตโนมัติ:** ค่า λ, v เติมอัตโนมัติในตารางและ readout
+
+**3. Tab 3 อัน:**
+- 🎬 Simulation — canvas + controls + data tables + mini graph
+- 📋 วิธีการทดลอง — ขั้นตอน 7 ข้อ + วิธีบันทึกผล
+- 📐 ทฤษฎี — visual อธิบาย v=fλ, สโตรโบสโคป, λ vs f, v vs depth พร้อม canvas diagrams
+
+**4. รัน `protect_new_file.py`** — เพิ่ม mobile layout fix อัตโนมัติ
+
+### ไฟล์ที่สร้าง/แก้
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| 🆕 `Virtual Physics Lab 02/31. waves-in-ripple-tank.html` | simulation ใหม่ครบ 3 การทดลอง |
+
+### ค้างไว้ / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+
+### หมายเหตุ
+
+- Physics data ตรงกับ Experiment 31 reference: λ=3.1cm@8Hz, v≈25cm/s deep, v≈21cm/s shallow
+- Accent color ใช้ `#818cf8` (purple) สำหรับหมวดคลื่น
+- ไฟล์ VPL02 ตอนนี้มี 3 ไฟล์: Lab 21 SHM, Lab 30 Waves on Spring, Lab 31 Ripple Tank
+
+---
+
+## [2026-04-11] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**สร้าง Experiment 32 — Wave Reflection (การสะท้อนของคลื่น)**
+- สร้างไฟล์ simulation ใหม่ `Virtual Physics Lab 02/32. wave-reflection.html`
+- อ้างอิงจาก Experiment 32 Reflection (ใบงานการทดลอง) + รูปแบบจากไฟล์ 31
+- ใช้ physics-simulation-builder skill + protect script
+
+**ฟีเจอร์หลัก:**
+- คลื่น 2 ชนิด: หน้าตรง (Plane) / วงกลม (Circular)
+- ผิวสะท้อน 3 ชนิด:
+  1. หน้าตรง (Flat) — ปรับมุม 0-75°, ตารางบันทึกค่า 7 แถว (α, θi, θr, %ผิดพลาด), กราฟ θi vs θr, export CSV
+  2. วงกลม (Circular) — เว้า/นูน, ลากตำแหน่งได้, ปุ่ม Reset Position
+  3. พาราโบลา (Parabolic) — เว้า/นูน, ลากตำแหน่งได้, แสดงจุดโฟกัส
+- โหมดบันทึก: Manual (default) / Auto
+- Wave rendering: arc-based ripple tank style, mirror source (flat), converge-diverge (curved concave/convex)
+- Shadow zone ตามรูปทรงผิวสะท้อน (โค้งตามวงกลม/พาราโบลา)
+- 3 Tabs: Simulation, วิธีการทดลอง, ทฤษฎี
+
+**ปรับปรุงหลังสร้าง (session เดียวกัน):**
+- แก้คำว่า "กระจก" → "ผิวสะท้อน" ทั้งหมด (ถังคลื่นใช้ท่อยาง ไม่ใช่กระจก)
+- แก้ทิศคลื่นสะท้อนหน้าตรง (y sign fix) ให้เคลื่อนที่ออกจากผิวสะท้อนถูกต้อง
+- เขียน protractor ใหม่ทั้งหมด: θi/θr arcs วัดจาก Normal ถูกต้อง, filled sectors
+- แก้คลื่นสะท้อนจากผิวเว้า: converge เข้า F → diverge ออกจาก F (ไม่ใช่แค่กระจายจาก F)
+- ขยายขอบผิวสะท้อนวงกลม/พาราโบลาให้ยาวถึงขอบ canvas
+- แก้ shadow zone วงกลมนูน (จากรูป X → ตามโค้ง)
+- ใช้ drawReflectedConvergeDiverge สำหรับทุกกรณี (ทั้งเว้าและนูน)
+- แหล่งกำเนิดวางกลาง canvas สำหรับผิวโค้ง (ไม่ auto วางที่ F)
+- **Manual mode:** ไม่แสดง θi/θr arcs + readout, เพิ่มเครื่องวัดมุม 360° ลาก+หมุนได้
+- **Auto mode:** แสดง θi/θr arcs + readout ค่ามุม
+- เพิ่ม α label (มุมระหว่าง Normal หลังผิวสะท้อนกับทิศคลื่นตกกระทบ)
+- เพิ่มเส้นทิศคลื่นตกกระทบ (ลูกศรประสีแดง) วางด้านหลังผิวสะท้อน
+- ตาราง: ทุกช่อง (α, θi, θr) กรอกตัวเลขได้ + คอลัมน์ %ผิดพลาด คำนวณอัตโนมัติ
+- Theory tab: เปลี่ยนเป็นทฤษฎีคลื่นผิวน้ำในถังคลื่น, ภาพ canvas เป็น ripple tank style ตรงกับ simulation
+- Procedure tab: ปรับให้ตรงกับ simulation ปัจจุบัน (11 ขั้นตอน)
+- รัน protect script หลายรอบ (MOBILE layout fix)
+
+### ไฟล์ที่แก้/สร้าง
+
+- 🆕 `Virtual Physics Lab 02/32. wave-reflection.html` — simulation การสะท้อนของคลื่น (แก้ไขหลายรอบ)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+
+### หมายเหตุ
+
+- ใช้ accent `#818cf8` (purple) ตามหมวดคลื่น ตรงกับไฟล์ 31
+- Physics: v=√(gh)≈25cm/s, λ=v/f, กฎสะท้อน θi=θr, mirror equation 1/v+1/u=1/f สำหรับ curved
+- เงามืดตามรูปทรง: flat=เส้นตรงเอียง, circular=โค้งวงกลม, parabolic=โค้งพาราโบลา
+- Manual mode: ไม่แสดงคำตอบ (θi, θr) ให้นักเรียนวัดเอง / Auto mode: แสดงทุกอย่าง
+- ไฟล์ VPL02 ตอนนี้มี 4 ไฟล์: Lab 21 SHM, Lab 30 Waves on Spring, Lab 31 Ripple Tank, Lab 32 Wave Reflection
 
