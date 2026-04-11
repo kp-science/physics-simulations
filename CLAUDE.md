@@ -71,6 +71,32 @@
 
 ---
 
+## 🛡️ เมื่อเพิ่มไฟล์ HTML ใหม่
+
+**บังคับ:** ทุกครั้งที่สร้างหรือเพิ่มไฟล์ HTML ใหม่เข้าโปรเจกต์ ต้องรันสคริปต์นี้:
+
+```bash
+python3 _admin/protect_new_file.py ชื่อไฟล์.html
+```
+
+หรือสแกน + แก้ทั้งโปรเจกต์:
+
+```bash
+python3 _admin/protect_new_file.py --scan --fix
+```
+
+สคริปต์จะเพิ่มให้อัตโนมัติ:
+1. Google Analytics (`G-2YTJBNHP6D`)
+2. Frame protection (ป้องกัน iframe)
+3. Domain protection (เฉพาะ Demo/)
+4. KP Topbar (nav bar + login)
+5. Mobile layout fix
+6. แก้ escaped comments
+
+**ถ้าผู้ใช้สั่ง "protect ไฟล์ใหม่"** → รัน `python3 _admin/protect_new_file.py --scan --fix`
+
+---
+
 ## 🚫 ข้อห้าม
 
 - อย่าลบ `CLAUDE.md` หรือ `SESSION_LOG.md`

@@ -509,8 +509,10 @@ function renderTable(members) {
   tbody.innerHTML = members.map((m, i) => {
     const sameMonth = m.downloadMonth === nowMonth && m.downloadYear === nowYear;
     const dlCount = sameMonth ? (m.downloadsThisMonth || 0) : 0;
-    const dlPct = Math.min((dlCount / DOWNLOAD_QUOTA) * 100, 100);
-    const fillClass = dlCount >= DOWNLOAD_QUOTA ? 'full' : dlCount >= DOWNLOAD_QUOTA - 1 ? 'warn' : '';
+    const userQuota = m.downloadQuota || DOWNLOAD_QUOTA; // per-user quota, default global
+    const isUnlimited = userQuota < 0;
+    const dlPct = isUnlimited ? 0 : Math.min((dlCount / userQuota) * 100, 100);
+    const fillClass = isUnlimited ? '' : (dlCount >= userQuota ? 'full' : dlCount >= userQuota - 1 ? 'warn' : '');
     const roleClass = { member:'role-member',premium:'role-premium',blocked:'role-blocked',admin:'role-admin' }[m.role] || 'role-member';
     const roleLabel = { member:'Member',premium:'Premium',blocked:'Blocked',admin:'Admin' }[m.role] || m.role;
     const createdAt = m.createdAt ? (m.createdAt.toDate ? m.createdAt.toDate() : new Date(m.createdAt)).toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'numeric'}) : '—';
@@ -520,11 +522,12 @@ function renderTable(members) {
       <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.78rem">${i+1}</td>
       <td class="td-email">${m.email || m.id}</td>
       <td><span class="role-badge ${roleClass}">${roleLabel}</span></td>
-      <td><div class="quota-bar"><div class="quota-track"><div class="quota-fill ${fillClass}" style="width:${dlPct}%"></div></div><span class="quota-num">${dlCount}/${DOWNLOAD_QUOTA}</span></div></td>
+      <td><div class="quota-bar"><div class="quota-track"><div class="quota-fill ${fillClass}" style="width:${isUnlimited ? 100 : dlPct}%;${isUnlimited ? 'background:var(--accent)' : ''}"></div></div><span class="quota-num">${isUnlimited ? dlCount+' / ∞' : dlCount+'/'+userQuota}</span></div></td>
       <td class="td-date">${createdAt}</td>
       <td><div class="actions">
         ${!isPremium ? `<button class="btn-sm success" onclick="setRole('${m.id}','premium')">Premium</button>` : `<button class="btn-sm" onclick="setRole('${m.id}','member')">Member</button>`}
-        <button class="btn-sm" onclick="resetQuota('${m.id}')">Reset</button>
+        <button class="btn-sm" onclick="setQuota('${m.id}')" title="ตั้งค่า quota">Quota</button>
+        <button class="btn-sm" style="${isUnlimited?'border-color:var(--accent);color:var(--accent)':''}" onclick="toggleUnlimited('${m.id}',${isUnlimited?'false':'true'})" title="${isUnlimited?'ยกเลิกไม่จำกัด':'ไม่จำกัด'}">${isUnlimited?'∞ ✓':'∞'}</button>
         <button class="btn-sm" onclick="openTopics('${m.id}')">Topics</button>
         ${!isBlocked ? `<button class="btn-sm danger" onclick="setRole('${m.id}','blocked')">Block</button>` : `<button class="btn-sm success" onclick="setRole('${m.id}','member')">Unblock</button>`}
       </div></td>
@@ -549,13 +552,30 @@ async function setRole(uid, role) {
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
-async function resetQuota(uid) {
+async function setQuota(uid) {
+  const m = allMembers.find(x => x.id === uid);
+  if (!m) return;
+  const current = m.downloadQuota || DOWNLOAD_QUOTA;
+  const input = prompt(`ตั้งค่า quota ดาวน์โหลด/เดือน สำหรับ ${m.email}\n\nปัจจุบัน: ${current < 0 ? 'ไม่จำกัด' : current}\nใส่ตัวเลข (เช่น 5, 10, 50):`, current < 0 ? DOWNLOAD_QUOTA : current);
+  if (input === null) return;
+  const num = parseInt(input);
+  if (isNaN(num) || num < 1) { showToast('กรุณาใส่ตัวเลขมากกว่า 0'); return; }
   try {
-    await db.collection('users').doc(uid).update({ downloadsThisMonth:0, downloadMonth:new Date().getMonth(), downloadYear:new Date().getFullYear() });
-    const m = allMembers.find(x => x.id === uid);
-    if (m) { m.downloadsThisMonth=0; m.downloadMonth=new Date().getMonth(); m.downloadYear=new Date().getFullYear(); }
+    await db.collection('users').doc(uid).update({ downloadQuota: num, downloadsThisMonth: 0, downloadMonth: new Date().getMonth(), downloadYear: new Date().getFullYear() });
+    if (m) { m.downloadQuota = num; m.downloadsThisMonth = 0; m.downloadMonth = new Date().getMonth(); m.downloadYear = new Date().getFullYear(); }
     updateStats(); renderTable(allMembers);
-    showToast('Reset quota แล้ว');
+    showToast(`ตั้ง quota = ${num} ครั้ง/เดือน + reset แล้ว`);
+  } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
+}
+
+async function toggleUnlimited(uid, setUnlimited) {
+  try {
+    const val = setUnlimited ? -1 : DOWNLOAD_QUOTA;
+    await db.collection('users').doc(uid).update({ downloadQuota: val });
+    const m = allMembers.find(x => x.id === uid);
+    if (m) m.downloadQuota = val;
+    updateStats(); renderTable(allMembers);
+    showToast(setUnlimited ? 'ตั้งเป็นไม่จำกัดแล้ว' : `กลับเป็น ${DOWNLOAD_QUOTA} ครั้ง/เดือน`);
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 

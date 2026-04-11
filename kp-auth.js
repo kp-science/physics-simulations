@@ -262,11 +262,13 @@ async function kpDownload(fileUrl, fileName) {
   const nowYear  = new Date().getFullYear();
   const sameMonth = data.downloadMonth === nowMonth && data.downloadYear === nowYear;
   const count     = sameMonth ? (data.downloadsThisMonth || 0) : 0;
+  const userQuota = data.downloadQuota || DOWNLOAD_QUOTA; // per-user quota from admin
+  const isUnlimited = userQuota < 0;
 
-  if (count >= DOWNLOAD_QUOTA) {
+  if (!isUnlimited && count >= userQuota) {
     const t = document.getElementById('kp-quota-alert');
     if (t) {
-      t.textContent = `⚠️ คุณใช้สิทธิ์ดาวน์โหลดครบ ${DOWNLOAD_QUOTA} ครั้งแล้วในเดือนนี้`;
+      t.textContent = `⚠️ คุณใช้สิทธิ์ดาวน์โหลดครบ ${userQuota} ครั้งแล้วในเดือนนี้`;
       t.style.display = 'flex';
       setTimeout(() => t.style.display = 'none', 4000);
     }

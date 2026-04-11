@@ -554,3 +554,125 @@ blocked   → admin ปิดได้จาก dashboard
 - `kp-auth.js` ต้อง path `../../kp-auth.js` จากใน `Mechacnics/` folder
 - HEAD.lock: sandbox ลบไม่ได้ เพราะ permission — ต้องลบผ่าน macOS Terminal เสมอ
 
+---
+
+## [2026-04-11 session ยาว] — เครื่องที่ทำงาน
+
+### ทำอะไรไปบ้าง
+
+**1. แก้ Auth Modal + Download Button (Lab 6.1-15 — 12 ไฟล์)**
+- ปัญหา: cowork ฝัง modal CSS/HTML/Firebase scripts ไว้ใน frame-busting `<script>` ทำให้ HTML พัง modal ไม่มี styling
+- แก้: ลบโค้ดผิดที่ออก → ใส่ frame-busting สะอาด + modal CSS ใน `<style>` หลัก + modal HTML ก่อน `</body>`
+- ใช้ CSS variables (var(--muted), var(--accent)) แทน hardcoded hex
+- เพิ่ม `.kp-divider::before/::after` pseudo-elements ให้เส้น divider "หรือ" แสดงถูกต้อง
+
+**2. ระบบ Lock/Unlock ดาวน์โหลด (14 ไฟล์)**
+- Lab 1-5: ปุ่ม `⬇` สีเขียว ดาวน์โหลดได้เลย
+- Lab 6+: ปุ่ม `🔒` สีเทา → กดแล้ว popup login
+- Login แล้ว: ปุ่มเปลี่ยนเป็น `⬇` สีเขียวอัตโนมัติ (ผ่าน Firebase onAuthStateChanged)
+- ใช้ใน: simulation files, virtual-physics-lab-01.html, library.html
+
+**3. แก้ `<\!--` → `<!--` ทั้งโปรเจกต์ (50+ ไฟล์)**
+- escaped comment ทำให้ข้อความ `<!-- Google tag -->` โผล่เป็นตัวอักษรบนหน้าเว็บ
+
+**4. แก้ git issues**
+- ลบ `.git/HEAD.lock` + `.git/objects/maintenance.lock`
+- ลบ `.git/refs/remotes/origin/HEAD 2` (cloud sync สร้างไฟล์ซ้ำ)
+
+**5. ปรึกษาธุรกิจ + วางแผน**
+- วิเคราะห์ material 3 ประเภท: Demo/Simulation, คู่มือ Lab, ข้อสอบ+Simulation
+- เสนอ Tier: Free / Premium 390 บาท/ปี / School License 5,000 บาท/ปี
+- เสนอฟีเจอร์ admin dashboard ที่ควรเพิ่ม
+
+**6. ปรับ Admin Dashboard (`_admin/admin.html`) — เพิ่ม 4 ฟีเจอร์ใหญ่**
+- **Tab Navigation:** ภาพรวม | สมาชิก | ดาวน์โหลด
+- **กราฟ 2 ตัว:** สมาชิกใหม่ 30 วัน (ฟ้า) + ดาวน์โหลด 30 วัน (เขียว) — CSS bar chart + hover tooltip
+- **ไฟล์ยอดนิยม:** ตารางแสดง Lab ที่ถูกดาวน์โหลดเยอะสุด
+- **Download Log:** ตาราง 100 รายการล่าสุด (ใคร โหลดอะไร เมื่อไหร่)
+- **สิทธิ์ละเอียด:** modal แก้ไขมี 3 หมวด — Content Types (Sim/คู่มือ/ข้อสอบ) + Topics (5 วิชา) + Labs (Lab 1-20 ทีละตัว)
+
+**7. Download Logging (`kp-auth.js` + simulation files)**
+- เพิ่ม `logDownload()` ใน `kp-auth.js` → เขียน Firestore `download_logs` collection
+- เรียก `logDownload()` ใน `_doDl()` ทุกไฟล์ (Lab 6.1-20 + VPL + library)
+
+**8. เพิ่ม Lab 16-20 เข้าระบบ (5 ไฟล์ simulation + admin + VPL + library)**
+- เพิ่มปุ่มดาวน์โหลด + auth modal + lock system ใน 5 simulation files
+- เพิ่ม Lab 16-20 ใน admin LAB_LIST (รวม 22 Labs)
+- เพิ่มปุ่ม `⬇ คู่มือ Lab` ใน virtual-physics-lab-01.html (5 การ์ด) + library.html (5 รายการ)
+
+**9. Banner "สมัครสมาชิกฟรี" (index + VPL + library)**
+- แถบสีเขียวอ่อน: 🔑 สมัครสมาชิกฟรี — ปลดล็อกคู่มือ Lab ดาวน์โหลดได้ทันที [สมัครเลย →]
+- ซ่อนอัตโนมัติเมื่อ login แล้ว
+
+**10. แก้ mobile layout ทั้งโปรเจกต์ (35 ไฟล์)**
+- VPL 22 ไฟล์ + Demo 13 ไฟล์: เพิ่ม CSS `order:-1` ให้ canvas ขึ้นก่อน controls บนมือถือ
+- แก้ iOS Safari drift bug ใน vector_forces_sim.html (threshold 8px + orientationchange)
+- ปรับ canvas height ใน free-fall-experiment.html บนมือถือ (50vw / max 280px)
+- ปรับ pendulum_energy_sim.html ให้ canvas ขึ้นก่อน controls บนมือถือ
+
+**11. แก้ hero section เพี้ยน ใน virtual-physics-lab-01.html**
+- ลบ CSS ซ้ำจาก index.html ที่ถูกใส่มาผิดไฟล์ (hero เต็มจอ + stats-bar ~30 บรรทัด)
+
+**12. ย้ายตำแหน่ง "ลูกทั้งสองตกพื้นพร้อมกัน" ใน demo02_01_shooter_dropper**
+- ย้าย result banner จากกลางล่าง → มุมขวาบน (ไม่บังวัตถุตอนตกถึงพื้น)
+
+**13. KP Topbar ทุกหน้า (50 ไฟล์)**
+- เพิ่ม topbar: Logo KP Science + Demo/Collections/Library/เกี่ยวกับ/ติดต่อ + ทดลองฟรี + เข้าสู่ระบบ
+- VPL 22 ไฟล์ + Demo 25 ไฟล์ + main pages 3 ไฟล์
+- ลบปุ่ม "← กลับหน้าแรก" เก่า (topbar แทน)
+- Login แล้ว: แสดงชื่อ user + ปุ่มออก
+- บนมือถือ: ซ่อน links + CTA เหลือแค่ logo + login
+- **แก้ topbar ถูก inject ผิดที่** ใน frame-busting (VPL 20 ไฟล์) + domain protection (Demo 25 ไฟล์)
+
+**14. แก้ Domain Protection Script (Demo 25 ไฟล์)**
+- ปัญหา: `</script>` ใน JS string ทำให้ browser ปิด script ก่อนกำหนด → stray text โผล่
+- แก้: เขียน protection script ใหม่ไม่มี `</script>` ใน string + ลบ stray text
+
+**15. ลายน้ำ PDF คู่มือ Lab (22 ไฟล์)**
+- ลายน้ำ "KP Science" ทแยงกลางหน้า (สีเทาจาง)
+- หัวกระดาษ "KP Science | kp-science.github.io/physics-simulations" มุมบนขวาทุกหน้า
+
+**16. สร้าง `_admin/protect_new_file.py` — สคริปต์ setup ไฟล์ใหม่อัตโนมัติ**
+- สแกน + แก้ไขอัตโนมัติ: GA, Frame protection, Domain protection, Topbar, Mobile layout, Comments
+- เพิ่มคำสั่งใน CLAUDE.md เพื่อให้ Claude ทุก session รู้จัก
+
+### ไฟล์ที่แก้/สร้าง
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| `kp-auth.js` | เพิ่ม `logDownload()` |
+| `_admin/admin.html` | เขียนใหม่: tab + กราฟ + download log + สิทธิ์ละเอียด |
+| `_admin/fix_auth_modal.py` | สคริปต์แก้ auth modal 12 ไฟล์ |
+| `_admin/add_lock_system.py` | สคริปต์เพิ่ม lock/unlock ดาวน์โหลด |
+| `_admin/add_dl_lab16_20.py` | สคริปต์เพิ่มดาวน์โหลด Lab 16-20 |
+| `_admin/fix_mobile_order.py` | สคริปต์แก้ mobile layout |
+| `_admin/add_topbar.py` | สคริปต์เพิ่ม topbar |
+| `_admin/fix_topbar_v2.py` | สคริปต์แก้ topbar ผิดตำแหน่ง |
+| `_admin/fix_demo_mobile.py` | สคริปต์แก้ demo mobile layout |
+| `_admin/add_watermark.py` | สคริปต์เพิ่มลายน้ำ PDF |
+| `_admin/protect_new_file.py` | สคริปต์ setup ไฟล์ใหม่อัตโนมัติ |
+| `Virtual Physics Lab 01/Mechacnics/*.html` (22 ไฟล์) | auth modal + lock + topbar + mobile fix |
+| `Demo/mechanics/**/*.html` (25 ไฟล์) | topbar + domain protection fix + mobile fix |
+| `index.html` | banner สมัครสมาชิก + แก้ `<!--` |
+| `virtual-physics-lab-01.html` | banner + ปุ่ม Lab 16-20 + แก้ hero CSS + lock system |
+| `library.html` | banner + ปุ่ม Lab 16-20 + lock system |
+| `mechanics.html` | topbar |
+| `course.html` | topbar |
+| `plane_mirror_reflection.html` | topbar |
+| `CLAUDE.md` | เพิ่มคำสั่ง protect ไฟล์ใหม่ |
+| `Virtual Physics Lab 01/lab-manuals-pdf/*.pdf` (22 ไฟล์) | ลายน้ำ + หัวกระดาษ |
+
+### ค้างไว้ / ต้องทำต่อ
+
+- `protect_new_file.py --scan` ยังเจอ issues เรื่อง mobile order ในบาง main pages (index, library, course) — ไม่กระทบการใช้งานจริง เพราะหน้าพวกนี้ไม่มี sim canvas
+- ข้อสอบ + Simulation (Interactive Exam) ยังไม่ได้สร้าง — รอเจ้าของตัดสินใจ
+- Facebook Page "KP Science" ยังไม่ได้สร้าง
+- ยังไม่ได้ commit/push ขึ้น GitHub
+
+### หมายเหตุ
+
+- **สั่ง "protect ไฟล์ใหม่"** ใน session ใดก็ได้ → Claude จะรัน `python3 _admin/protect_new_file.py --scan --fix`
+- Topbar บน simulation files ใช้ class `.kp-topbar` (ไม่ใช่ `.topbar` ของ index.html) เพื่อไม่ให้ CSS ชนกัน
+- Domain protection script ใน Demo ต้องไม่มี `</script>` ใน JS string — ใช้ `document.body.innerHTML` แทน `document.documentElement.innerHTML`
+- PDF ลายน้ำ: รัน `python3 _admin/add_watermark.py "Virtual Physics Lab 01/lab-manuals-pdf/" --all`
+
