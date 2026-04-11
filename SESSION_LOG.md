@@ -78,9 +78,64 @@
 
 ---
 
-<!-- ===== entry ใหม่เขียนต่อด้านล่างนี้ ===== -->
+## [2026-04-12 —:—] — เครื่องที่บ้าน
 
----
+### ทำอะไรไปบ้าง
+
+**1. สร้าง Simulation ใหม่: การหักเหของคลื่นน้ำในถาดคลื่น (Experiment 33: Refraction)**
+- สร้างจากเอกสาร Lab Experiment 33 — ครอบคลุมทั้ง Part A: normal incidence + angled boundary (30°)
+- มี 3 tab: 🎬 Simulation, 📋 วิธีการทดลอง, 📐 ทฤษฎี
+- 2 โหมดบันทึก: วัดค่าเอง (Manual — คลิกวัดระยะบน canvas) และ อัตโนมัติ (Auto — คำนวณ + บันทึกอัตโนมัติ)
+- Sliders: ความถี่ (4-20 Hz), มุมขอบ (0-45°), อัตราส่วนความเร็ว (1.05-2.0), ความเร็ว animation
+- Readout แสดง: λ_D, λ_S, v_D, v_S, อัตราส่วน, มุมหักเห (จาก Snell's Law)
+- ตารางบันทึกข้อมูล + ส่งออก CSV
+- Tab ทฤษฎี: 3 canvas diagrams (normal incidence, Snell's Law, wavefront bending mechanism)
+- ค่า physics ตรงกับข้อมูลทดลอง: f=8Hz → λ_D=3.10cm, λ_S=2.58cm, อัตราส่วน≈1.20
+
+**2. รัน protect_new_file.py**
+- เพิ่ม Google Analytics (G-2YTJBNHP6D), KP Topbar, mobile layout fix ให้ไฟล์ใหม่
+- แก้ CSS selector `nav` → `#simNav` เพื่อไม่ให้ conflict กับ KP topbar nav
+
+**3. แก้ไข Simulation v2 — Physics engine rewrite**
+- **แก้บัก:** คลื่นน้ำลึกเอียงตามมุมขอบเขต → แก้ให้วิ่งแนวนอนเสมอ (phase = kD·x − ωt)
+- **เพิ่ม depth sliders:** ปรับระดับน้ำลึก (5-15mm) และน้ำตื้น (1-8mm) ได้
+- **Dispersion relation จริง:** ω² = (gk + σk³/ρ)·tanh(kd) รวม surface tension ของน้ำ
+  - Newton-Raphson solver คำนวณ λ, v จาก depth + frequency
+  - ค่าที่ได้: f=8Hz, d=10mm → λ=3.09cm, v=24.7cm/s (ตรงกับข้อมูลทดลอง)
+- **Snell's Law ถูกต้อง:** ใช้ vector decomposition ของ k ที่ boundary
+  - Tangential k component อนุรักษ์: k_t = k_D·sinα
+  - Refracted direction คำนวณจาก k_r = k_t·t̂ + k_n·n̂
+  - Phase ต่อเนื่องที่ boundary อัตโนมัติ (ไม่ต้อง offset)
+- **Boundary orientation ตาม Figure 2:** ขอบเขตวิ่งจากล่างซ้ายไปบนขวา
+  - Normal ชี้ไปทาง shallow (cosα, sinα)
+  - แสดง angle arc θi, θr, เส้น normal เมื่อ angle > 0
+
+### ไฟล์ที่แก้/สร้าง
+- 🆕 `Virtual Physics Lab 02/33. wave-refraction-ripple-tank.html` — simulation การหักเหคลื่นน้ำ
+- ✏️ แก้ไข physics engine + depth sliders (v2)
+
+**4. Rewrite v3 — 4 การทดลอง + Stroboscope + Protractor**
+- ปรับ simulation จาก Manual/Auto ธรรมดา → 4 การทดลองแยกกัน:
+  - **I. วัด λ** — วัดความยาวคลื่นเอง, เทียบ λ_S/λ_D กับค่า auto, คำนวณ %error
+  - **II. Strobe** — Stroboscope 2 ตัว (น้ำลึก/น้ำตื้น), ปรับจนคลื่นหยุดนิ่ง, วัด f → คำนวณ v, %error
+  - **III. วัดมุม** — โปรแทรกเตอร์ 360° ลาก+หมุนได้, วัด θi/θr, เทียบ sinθ_r/sinθ_i กับ λ_S/λ_D, %error
+  - **IV. เทียบ** — นำเข้าข้อมูลจาก I & III มาเปรียบเทียบ %error ระหว่างกันและกับค่ามาตรฐาน
+- Controls เดิมใช้ได้ทุกการทดลอง (f, θ, D, S, speed)
+- Readout boxes แสดงเฉพาะโหมดอัตโนมัติ
+- ตารางบันทึกผลเปลี่ยนตามการทดลอง พร้อม %error อัตโนมัติ
+- Tab วิธีการทดลอง อัปเดตเป็น 4 ส่วน พร้อม Hint
+
+### ไฟล์ที่แก้/สร้าง
+- ✏️ `Virtual Physics Lab 02/33. wave-refraction-ripple-tank.html` — rewrite เป็น 4-experiment simulation (923 lines)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ทดสอบผ่านหมด: Exp 1-4, stroboscope freeze, protractor drag/rotate/snap, auto/manual mode
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ในอนาคตได้
+
+### หมายเหตุ
+- Stroboscope ใช้ time-quantization: drawWaves quantize เวลาตาม strobe freq แยก deep/shallow
+- Protractor: canvas overlay ลาก/หมุนได้ด้วย mousedown/mousemove
+- Dispersion relation: ω²=(gk+σk³/ρ)·tanh(kd), g=981, σ=73, ρ=1 (CGS)
 
 ## [2026-04-08 ช่วงท้าย session] — เครื่องที่ทำงาน
 
@@ -819,3 +874,287 @@ blocked   → admin ปิดได้จาก dashboard
 - Manual mode: ไม่แสดงคำตอบ (θi, θr) ให้นักเรียนวัดเอง / Auto mode: แสดงทุกอย่าง
 - ไฟล์ VPL02 ตอนนี้มี 4 ไฟล์: Lab 21 SHM, Lab 30 Waves on Spring, Lab 31 Ripple Tank, Lab 32 Wave Reflection
 
+---
+
+## [2026-04-11 ต่อ] — เครื่องที่บ้าน (session เดียวกัน)
+
+### ทำอะไรไปบ้าง
+
+**สร้าง Lab 32B — การสะท้อนของแสง (Reflection of Light)**
+- สร้างไฟล์ simulation ใหม่ `Virtual Physics Lab 02/32B. light-reflection.html`
+- อ้างอิงจาก Experiment 32 Reflection (ใบงานการทดลองเรื่องการสะท้อนของแสงด้วยกระจกเงาราบ + เข็มหมุด)
+- ใช้ physics-simulation-builder skill + protect script
+
+**ฟีเจอร์หลัก:**
+- การทดลองจำลอง: กระจกเงาราบ (top view), เข็มหมุด P₁-P₄, เส้น Normal, รังสีตกกระทบ/สะท้อน
+- **Manual mode (default):** นักเรียนคลิกวางเข็มหมุดสะท้อน P₃ P₄ บน canvas, ลากปรับตำแหน่งได้, โปรแทรกเตอร์ overlay (toggle), ตาราง input กรอก θi θr เอง, %Error คำนวณอัตโนมัติ, Hint system (สี 3 ระดับ: ตรงแนว/ใกล้/ไม่ตรง)
+- **Auto mode:** slider ปรับ θi (5-80°), แสดงรังสีสะท้อนพร้อมมุม arc + readout, ปุ่มบันทึกค่า, กราฟ θi vs θr (scatter + reference line y=x), Export CSV
+- ภาพเสมือน (virtual image): แสดง P₁' P₂' จางๆ เหนือกระจกใน manual mode
+- 3 Tabs: การทดลอง, วิธีการทดลอง, ทฤษฎี
+- Theory tab: 2 canvas diagrams (กฎการสะท้อน + การสร้างภาพในกระจกเงาราบ)
+- Procedure tab: ขั้นตอน real lab (12 ขั้นตอน) + virtual lab (ทั้ง 2 โหมด) + ตัวอย่างตาราง + สูตร %Error
+- รัน protect script → เพิ่ม Topbar + Mobile layout fix
+
+### ไฟล์ที่สร้าง
+
+- 🆕 `Virtual Physics Lab 02/32B. light-reflection.html` — simulation การสะท้อนของแสง
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+
+### หมายเหตุ
+
+- ใช้ accent `#fb923c` (orange) สำหรับหมวดแสง ตาม skill mapping
+- Physics: กฎการสะท้อน θi = θr, %Error = |θi - θr| / θi × 100
+- Manual mode: ไม่แสดงค่ามุมที่ถูกต้อง ให้นักเรียนวัดเองด้วย protractor overlay
+- ไฟล์ VPL02 ตอนนี้มี 5 ไฟล์: Lab 21 SHM, Lab 30 Waves on Spring, Lab 31 Ripple Tank, Lab 32 Wave Reflection, Lab 32B Light Reflection
+
+---
+
+## [2026-04-11 ต่อ #2] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**ปรับปรุง Lab 32B — การสะท้อนของแสง (major rework)**
+- เขียนใหม่ทั้ง simulation logic ตามคำสั่งผู้ใช้ 6 ข้อ
+
+**การเปลี่ยนแปลงหลัก:**
+1. **ย้ายกระจกมาตรงกลาง canvas** (mirrorY = H*0.45) เพื่อให้เงาเสมือนอยู่ภายใน canvas
+2. **Step-based workflow 4 ขั้นตอน:**
+   - Step 1: นักเรียนวาง P1, P2 เอง → เส้นรังสีตกกระทบปรากฏ + เงา P1', P2' เหนือกระจก
+   - Step 2: วาง P3, P4 → เส้นประรังสีสะท้อนปรากฏ
+   - Step 3: เส้น Normal ปรากฏ (ลากซ้าย-ขวาได้) + label "เลื่อนเส้นแนวฉากให้ตรงจุด"
+   - Step 4: เปิด protractor 360° วัดมุม → กรอกตาราง → บันทึก
+3. **เข็มหมุดทั้ง 4 ตัว วางเอง** (ไม่ใช่ slider กำหนดมุม) + ลากปรับตำแหน่งได้
+4. **เส้น Normal ลากได้** ตามแนวกระจก — แสดง ✓ ตรงจุด! เมื่อตรง POI
+5. **Protractor 360° ชนิด full circle** — ลากเลื่อน (กลาง) + หมุน (ขอบ) ด้วยเมาส์/touch
+6. **ตาราง %Error** เทียบกับมุมจริงที่โปรแกรมคำนวณภายใน (ไม่แสดงค่า true angle)
+7. **Step indicator dots** + hint box เปลี่ยนตามขั้นตอน
+8. Auto mode ปรับให้กระจกอยู่กลางเหมือน manual
+
+### ไฟล์ที่แก้
+
+- `Virtual Physics Lab 02/32B. light-reflection.html` — rewrite ทั้ง JS + ปรับ HTML panel
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+
+### หมายเหตุ
+
+- Protractor: outer ring หมุน, center ลาก, เส้นอ้างอิง 0°-180° / 90°-270° สีแดง
+- ทุก pin ลากปรับตำแหน่งได้หลังวาง (drag existing pins)
+- computeTrueAngles() คำนวณ θi_true, θr_true จาก geometry ภายใน
+- ไฟล์ VPL02 ยังมี 5 ไฟล์เท่าเดิม (แก้ไฟล์เดิม ไม่ได้สร้างใหม่)
+
+## [2026-04-11 ต่อ #3] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**สร้าง Lab 32C — การสะท้อนคลื่นไมโครเวฟ (Reflection of Microwaves)**
+- สร้างไฟล์ใหม่ `32C. microwave-reflection.html` ตาม reference จากหนังสือทดลอง
+- ใช้ accent สีม่วง (#818cf8) สำหรับหมวดคลื่น
+
+**3 Tabs:**
+1. **🎬 Simulation** — top-down view มี Transmitter horn, Receiver horn (ลากได้), Reflector, protractor แบบครึ่งวงกลม
+   - **โหมดบันทึกเอง (Manual):** ตั้ง θᵢ ด้วย slider → ลาก receiver หามุมที่สัญญาณแรงสุด → กรอก θᵣ → บันทึกลงตาราง + คำนวณ %Error
+   - **โหมดอัตโนมัติ (Auto):** ตั้ง θᵢ เริ่ม/สุดท้าย/ช่วงห่าง → สแกนอัตโนมัติ → ตาราง + กราฟ θᵢ vs θᵣ
+   - Signal strength: Gaussian falloff (σ=5°), แถบสัญญาณ gradient สี, hint box เปลี่ยนตามความแม่นยำ
+   - Wave animation (wavefronts เคลื่อนที่ตลอด)
+   - Export CSV ได้ทั้ง 2 โหมด
+2. **📋 วิธีการทดลอง** — อุปกรณ์, ขั้นตอน Manual 7 ข้อ, ขั้นตอน Auto 4 ข้อ, ตารางบันทึกผลตัวอย่าง, ข้อควรระวัง (ภาษาไทยทั้งหมด)
+3. **📐 ทฤษฎี** — visual canvas 3 ภาพ: กฎการสะท้อน (incident/reflected ray + arcs), การจัดอุปกรณ์ (ตามรูปในหนังสือ), กราฟ θᵢ vs θᵣ (slope=1) + สูตร %Error
+
+**ข้อมูลอ้างอิงจากหนังสือ:**
+- ความยาวคลื่น ~3 cm (ความถี่ ~10 GHz)
+- แผ่นสะท้อนขนาด 20 cm × 20 cm
+- ระยะ ~2 m จากแหล่งกำเนิดถึง reflector
+- เกณฑ์ %Error ภายใน 5%
+
+### ไฟล์ที่แก้
+
+- `Virtual Physics Lab 02/32C. microwave-reflection.html` — **สร้างใหม่**
+- รัน `protect_new_file.py --scan --fix` → เพิ่ม KP Topbar + Mobile fix
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- VPL02 ตอนนี้มี 6 ไฟล์: 21, 30, 31, 32, 32B, 32C
+
+### หมายเหตุ
+
+- Receiver ลากด้วยเมาส์/touch รอบ reflector เพื่อหามุมสะท้อน
+- Signal Gaussian: σ = 5° → สัญญาณลด 50% ที่ ±4° จากจุด peak
+- คำอธิบายวิธีการทดลองทั้ง tab เป็นภาษาไทยตามที่ผู้ใช้ขอ
+
+## [2026-04-11 ต่อ #4] — เครื่องที่บ้าน (session เดียวกัน)
+
+### ทำอะไรไปบ้าง
+
+**Rewrite Lab 32C — 2-Axis Detection (major redesign)**
+
+ผู้ใช้ขอรีดีไซน์ simulation ใหม่ทั้งหมด:
+
+1. **Canvas แบ่ง 2 มุมมอง:**
+   - **Plan View (ด้านบน):** ลากตัวรับซ้าย-ขวา → เปลี่ยนมุมแนวราบ θᵣ
+   - **Side View (ด้านข้าง):** ลากตัวรับบน-ล่าง → เปลี่ยนมุมแนวดิ่ง φᵣ (±20°)
+
+2. **สุ่มมุมทุกครั้ง:** กด "🎲 สุ่มมุมใหม่" → θᵢ (15°–75°), φᵢ (±18°) สุ่มใหม่
+
+3. **ไม่แสดงรังสี:** ผู้ทดลองเห็นแค่ตำแหน่ง TX/RX + สัญญาณ (bar + ตัวเลข %)
+
+4. **Workflow:** ลาก RX หา peak → กด "✓ เสร็จสิ้น" (ล็อก) → กด "📝 บันทึก" → เปิดเผยค่าจริง + %Error
+
+5. **Signal:** 2D Gaussian σ=5° จาก (θᵢ, φᵢ)
+
+6. **ตาราง:** แสดง θᵢ, φᵢ, θᵣ, φᵣ, %Error_θ, |Δφ| พร้อม color-code (เขียว=ผ่าน, แดง=ไม่ผ่าน)
+
+7. **Tab ทฤษฎี:** เพิ่ม visual diagram "การสะท้อนเมื่อระนาบเอียง" แสดง φᵣ = φᵢ
+
+### ไฟล์ที่แก้
+
+- `Virtual Physics Lab 02/32C. microwave-reflection.html` — **rewrite ทั้งหมด** (2-axis version)
+- รัน `protect_new_file.py` → เพิ่ม KP Topbar + Mobile fix
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push
+
+### หมายเหตุ
+
+- Plan View: ลาก RX บน arc ขวาของ reflector → θᵣ
+- Side View: ลาก RX บน-ล่าง → φᵣ (±20°)
+- กด "เสร็จสิ้น" ล็อก RX → กด "บันทึก" เปิดเผยค่าจริง
+- Auto mode ยังคงมี (สุ่ม+scan อัตโนมัติ + กราฟ)
+
+## [2026-04-12] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**สร้าง Lab 34 — Diffraction & Interference in a Ripple Tank**
+- สร้างไฟล์ใหม่ `34. wave-diffraction-interference.html` ตาม Experiment 34 จากหนังสือทดลอง
+- ใช้ accent สีม่วง (#818cf8) สำหรับหมวดคลื่น
+
+**3 Tabs:**
+1. **🎬 Simulation** — 2 การทดลองย่อย (sub-tab):
+   - **A — Single Slit Diffraction:** ปรับความกว้างช่อง (0.5λ–5λ) + ความถี่ (2–10 Hz)
+   - **B — Double Slit Interference:** ปรับระยะห่างช่อง (1λ–8λ) + ความถี่ (2–10 Hz)
+   - Wave animation ใช้ Huygens' principle: ทุก point source บนช่องเปิดปล่อยคลื่นวงกลม แล้ว superpose
+   - **โหมด Manual (default):** โปรแทรกเตอร์บน canvas (คลิกค้าง+ลาก) วัดมุม diffraction → กรอกค่า → บันทึกลงตาราง + คำนวณ %Error
+   - **โหมด Auto:** เลือกตัวแปรสแกน (ความกว้างช่อง/ระยะห่างช่อง/ความถี่) → ตั้ง start/end/step → สแกนอัตโนมัติ → ตาราง + กราฟ
+   - Export CSV ได้ทั้ง 2 โหมด
+2. **📋 วิธีการทดลอง** — อุปกรณ์ 6 รายการ, ขั้นตอน Manual+Auto ทั้ง 2 การทดลอง, ตารางบันทึกผลตัวอย่าง, ข้อควรระวัง (ภาษาไทยทั้งหมด)
+3. **📐 ทฤษฎี** — visual canvas 4 ภาพ:
+   - Huygens' Principle (secondary sources + envelope)
+   - Single Slit Diffraction (barrier, slit, diffracted waves, θ₁, formula a sin θ₁ = λ)
+   - Double Slit Interference (S₁/S₂, circular waves, constructive/destructive, d sin θ = nλ)
+   - กราฟ λ vs f (hyperbola) + θ₁ vs a/λ (single slit)
+
+**ข้อมูลฟิสิกส์:**
+- v = 20 cm/s (น้ำตื้น ~0.7 cm)
+- f = 5 Hz → λ = 4.0 cm
+- Single slit: a sin θ = mλ (minima), θ₁ = sin⁻¹(λ/a)
+- Double slit: d sin θ = nλ (constructive), d sin θ = (n+½)λ (destructive)
+- Nodal lines count = 2 × floor(d/λ - 0.5) (ทั้ง 2 ด้าน)
+
+### ไฟล์ที่แก้
+
+- `Virtual Physics Lab 02/34. wave-diffraction-interference.html` — **สร้างใหม่**
+- รัน `protect_new_file.py --scan --fix` → เพิ่ม KP Topbar + Mobile fix
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- VPL02 ตอนนี้มี 8 ไฟล์: 21, 30, 31, 32, 32B, 32C, 33, 34
+
+### หมายเหตุ
+
+- Wave rendering ใช้ pixel-by-pixel (ImageData) sample ทุก 3px เพื่อประสิทธิภาพ
+- Amplitude decay: 1/(r^0.35) ให้ pattern ชัดเจนแม้ไกลจาก slit
+- Protractor: คลิกค้าง+ลากบน canvas ด้านขวาของ barrier → วัดมุม θ จากแนวตั้งฉาก → auto-fill ช่อง input
+- Auto scan ทำงานสมบูรณ์: เลือก slit width/freq → สแกน → ตาราง + กราฟ θ₁ vs ตัวแปร
+
+## [2026-04-12 ต่อ] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**สร้าง Lab 37 — Standing Waves on a String**
+- สร้างไฟล์ใหม่ `37. standing-waves.html` ตาม Experiment 37 จากหนังสือทดลอง
+- ใช้ accent สีม่วง (#818cf8) สำหรับหมวดคลื่น
+
+**3 Tabs:**
+1. **🎬 Simulation** — คลื่นนิ่งบนเส้นเชือกแนวตั้ง:
+   - เชือกแขวนจาก doorbell (สั่น) ด้านบน → น้ำหนักถ่วงด้านล่าง
+   - **4 ตัวแปร:** น้ำหนัก W (0.01–3.0 N), ความถี่ f (10–120 Hz), ความยาวเชือก L (0.5–2.5 m), μ (0.5–20 g/m)
+   - Animation แสดง standing wave ด้วย sin(nπx/L)·cos(ωt) พร้อม envelope
+   - แสดง Nodes (จุดฟ้า) และ Antinodes (จุดม่วง)
+   - **Resonance quality:** คำนวณ detuning จาก n_exact → แสดง Q% บน canvas, ถ้า Q<30% แสดงข้อความเตือน
+   - Scale bar 10 cm, แสดง L, info box (n, λ, v, Q)
+   - **โหมด Manual (default):** คลิก Node 2 จุดบน canvas → วัดระยะ d → กรอกค่า → บันทึก → คำนวณ λ=2d, v=fλ, %Error เทียบกับ v=√(T/μ)
+   - **โหมด Auto:** เลือกสแกน W หรือ f → ตั้ง start/end/step → ตาราง (Trial, W, f, L, μ, v, λ, n, d) + กราฟ λ & v vs ตัวแปร
+   - Export CSV ได้ทั้ง 2 โหมด
+2. **📋 วิธีการทดลอง** — จุดประสงค์, อุปกรณ์ 6 รายการ, ขั้นตอน Manual 7 ขั้น + Auto 5 ขั้น, ตารางบันทึกผลตัวอย่าง, Hint, ข้อควรระวัง (ภาษาไทย)
+3. **📐 ทฤษฎี** — visual canvas 4 ภาพ:
+   - Superposition diagram (คลื่นขาไป + สะท้อน → คลื่นนิ่ง + N/A labels + λ/2 annotation)
+   - v = √(T/μ) diagram (เชือก + tension arrows + สูตร)
+   - Harmonic modes (n=1–4 แต่ละ mode สีต่างกัน + envelope + nodes)
+   - ผลของ tension (3 เชือกเทียบ: น้ำหนักน้อย/กลาง/มาก → จำนวน loop ต่างกัน)
+   - Formula boxes: λ=2d, v=√(T/μ), v=fλ, resonance L=nλ/2
+   - ตัวอย่างการคำนวณ 3 trials (W=0.029, 0.44, 1.32 N)
+
+**ข้อมูลฟิสิกส์:**
+- Default: f=60Hz (AC 6V), L=1.50m, μ=4.0g/m=0.004kg/m
+- v = √(T/μ), λ = v/f, n = 2L/λ, d = λ/2
+- ตรวจสอบค่า: W=0.44N → v=10.49 m/s, λ=0.175 m, n≈17 loops ✓
+- W=0.1N → v=5.00 m/s ✓, W=1.32N → v=18.17 m/s ✓
+
+**รัน protect_new_file.py**
+- เพิ่ม KP Topbar + Mobile fix ให้ไฟล์ใหม่
+- GA code (G-2YTJBNHP6D) มีอยู่แล้วตั้งแต่สร้าง
+
+### ไฟล์ที่แก้/สร้าง
+- 🆕 `Virtual Physics Lab 02/37. standing-waves.html` — **สร้างใหม่**
+- รัน `protect_new_file.py --scan --fix` → เพิ่ม KP Topbar + Mobile fix
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- VPL02 ตอนนี้มี 9 ไฟล์: 21, 30, 31, 32, 32B, 32C, 33, 34, 37
+
+### หมายเหตุ
+- Standing wave ใช้ resonance mode: n_nearest = round(2L/λ), detuning ควบคุม amplitude
+- Canvas วาดเชือกแนวตั้ง (doorbell บน, น้ำหนักล่าง) ตามรูปในหนังสือ Lab
+- คลิกวัด node: คลิก 2 จุดบน canvas → คำนวณ d จาก pixel distance / string length × L
+- Auto scan กราฟ: dual y-axis (λ เส้นทึบ สีเขียว + v เส้นประ สีม่วง)
+
+---
+
+## [2026-04-12 —:—] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+
+**1. Rewrite Lab 34 — Diffraction & Interference (He-Ne Laser)**
+- เปลี่ยนจาก Ripple Tank simulation → **Laser Diffraction & Interference** ตามเอกสาร Lab Experiment 34
+- สร้างใหม่ทั้งหมด 3 การทดลองย่อย:
+  - **A — Knife-Edge Diffraction:** เลื่อนใบมีดบังลำแสงเลเซอร์, Fresnel diffraction fringes, Fresnel integral computation
+  - **B — Single-Slit Diffraction:** ปรับความกว้างช่องด้วย slider, Fraunhofer diffraction pattern [sin(β)/β]², photometer ลากวัด intensity บน canvas
+  - **C — Diffraction Grating:** เลือกเกรตติง (5276/10000/3000/600 gr/cm), ปรับระยะ L, แสดง order maxima ตาม d·sin(θ)=mλ, ruler วัดตำแหน่ง, คำนวณ λ=d·x/L + %Error
+- ค่าอ้างอิง: λ(He-Ne) = 632.8 nm
+- 2 โหมดบันทึก: Manual (ลาก photometer อ่านค่า → กรอกเอง) และ Auto (สแกน → ตาราง + กราฟ)
+- 3 Tab: Simulation, วิธีการทดลอง, ทฤษฎี (4 canvas visuals: Huygens, Fresnel, Fraunhofer, Grating diagram)
+- Export CSV, ตารางตัวอย่างตรงกับเอกสาร lab
+- รัน protect_new_file.py → เพิ่ม GA, Mobile fix
+
+### ไฟล์ที่แก้/สร้าง
+- ✏️ `Virtual Physics Lab 02/34. wave-diffraction-interference.html` — rewrite เป็น Laser Diffraction simulation
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ในอนาคตได้
+
+### หมายเหตุ
+- Fresnel integral ใช้ trapezoidal numerical integration (25-60 steps ตาม |u|)
+- Pattern caching: compute once per parameter change, reuse for animation frames
+- Touch support สำหรับ photometer probe บน mobile
+- Grating calculation ตรงกับข้อมูลตัวอย่าง: 5276 gr/cm, L≈1.05m → x≈0.35m → λ≈633nm

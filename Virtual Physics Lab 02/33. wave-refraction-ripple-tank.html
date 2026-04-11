@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science simulation — การหักเหของคลื่นน้ำในถาดคลื่น</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#818cf8;--accent2:#38bdf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;--text:#e2e8f0;--muted:#94a3b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e1e4a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;white-space:nowrap}
+
+#simNav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+#simNav::-webkit-scrollbar{display:none}
+#simNav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+#simNav button:hover{border-color:var(--accent);color:var(--accent)}
+#simNav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* === Simulation Tab === */
+.sim-layout{display:flex;gap:0;height:calc(100vh - 130px);min-height:500px}
+.canvas-wrap{flex:1;position:relative;background:#050a14;overflow:hidden;min-width:0}
+.canvas-wrap canvas{display:block;width:100%;height:100%}
+.canvas-overlay{position:absolute;top:10px;left:10px;pointer-events:none;font-size:.75rem;color:var(--muted);background:rgba(10,14,26,.7);padding:4px 8px;border-radius:6px}
+.measure-info{position:absolute;bottom:10px;left:10px;font-size:.8rem;color:var(--accent3);background:rgba(10,14,26,.85);padding:6px 10px;border-radius:6px;display:none}
+
+.side-panel{width:380px;min-width:320px;max-width:420px;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:0;display:flex;flex-direction:column}
+.sp-section{padding:12px 16px;border-bottom:1px solid var(--border)}
+.sp-title{font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+
+/* Mode Toggle */
+.mode-toggle{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.mode-btn{flex:1;padding:8px;text-align:center;cursor:pointer;font-size:.82rem;font-weight:600;background:var(--panel2);color:var(--muted);border:none;font-family:'Sarabun',sans-serif;transition:.2s}
+.mode-btn.active{background:var(--accent);color:#0a0e1a}
+.mode-btn:hover:not(.active){color:var(--text)}
+
+/* Buttons */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;transition:.15s;font-size:.82rem}
+.btn-play{background:#1b5e20;color:#fff}
+.btn-play:hover{background:#2e7d32}
+.btn-play.playing{background:#b71c1c}
+.btn-play.playing:hover{background:#c62828}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-measure{background:#4a1d96;color:#fff}
+.btn-measure:hover{background:#5b21b6}
+.btn-measure.active{background:var(--accent);color:#0a0e1a}
+
+/* Sliders */
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.78rem;color:var(--muted);flex-shrink:0;min-width:50px}
+.sl-sym{font-weight:700;color:var(--accent);min-width:14px;text-align:center}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:60px}
+.sl-unit{font-size:.75rem;color:var(--muted);min-width:30px;flex-shrink:0}
+.val-input{width:52px;padding:2px 4px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.82rem;text-align:center;-moz-appearance:textfield;font-family:'Share Tech Mono',monospace;flex-shrink:0}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent)}
+
+/* Readout */
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.readout-box .label{font-size:.7rem;color:var(--muted);margin-bottom:2px}
+.readout-box .val{font-family:'Share Tech Mono',monospace;font-size:1.05rem;font-weight:700;color:var(--accent2)}
+.readout-box .val.green{color:var(--accent3)}
+.readout-box .val.purple{color:var(--accent)}
+.readout-box .val.orange{color:var(--accent4)}
+
+/* Data Table */
+.data-table-wrap{overflow-x:auto;margin-top:8px}
+table.data-tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+table.data-tbl th{background:var(--panel2);color:var(--accent);padding:6px 4px;border:1px solid var(--border);font-weight:700;white-space:nowrap}
+table.data-tbl td{padding:4px;border:1px solid var(--border);text-align:center;color:var(--text)}
+table.data-tbl td input{width:100%;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none}
+table.data-tbl td input:focus{background:rgba(56,189,248,.1)}
+table.data-tbl td.auto-val{color:var(--accent3);font-family:'Share Tech Mono',monospace;font-weight:600}
+table.data-tbl tr:hover{background:rgba(129,140,248,.06)}
+.tbl-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tbl-btns button{padding:4px 10px;font-size:.75rem;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;font-family:'Sarabun',sans-serif;transition:.15s}
+.tbl-btns button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Hint box */
+.hint-box{background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.25);border-radius:8px;padding:10px 12px;font-size:.78rem;color:var(--muted);line-height:1.5;margin-top:8px}
+.hint-box strong{color:var(--accent)}
+
+/* === Procedure Tab === */
+.proc-container{max-width:860px;margin:0 auto;padding:24px 20px}
+.proc-step{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;display:flex;gap:14px;align-items:flex-start}
+.proc-num{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#0a0e1a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0}
+.proc-text{flex:1;line-height:1.65;font-size:.9rem}
+.proc-text strong{color:var(--accent2)}
+.proc-text em{color:var(--accent3);font-style:normal}
+.proc-note{background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.25);border-radius:8px;padding:12px 14px;margin-top:14px;font-size:.82rem;color:var(--accent4);line-height:1.6}
+.proc-diagram{background:var(--panel2);border-radius:10px;padding:16px;margin:16px 0;text-align:center}
+.proc-diagram canvas{max-width:100%;border-radius:8px}
+.recording-guide{background:var(--panel);border:1px solid var(--accent3);border-radius:12px;padding:18px;margin-top:20px}
+.recording-guide h3{color:var(--accent3);font-size:1rem;margin-bottom:10px}
+.recording-guide ol{padding-left:20px;line-height:1.8;font-size:.88rem}
+
+/* === Theory Tab === */
+.theory-container{max-width:900px;margin:0 auto;padding:24px 20px}
+.theory-section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.theory-section h2{color:var(--accent);font-size:1.1rem;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.theory-section h3{color:var(--accent2);font-size:.95rem;margin:14px 0 8px}
+.theory-section p{line-height:1.7;font-size:.9rem;margin-bottom:10px}
+.formula-box{background:var(--panel2);border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin:12px 0;text-align:center;font-size:1.1rem}
+.formula-box .eq{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:1.25rem;font-weight:700}
+.formula-box .desc{font-size:.78rem;color:var(--muted);margin-top:6px}
+.theory-visual{background:var(--panel2);border-radius:10px;padding:10px;margin:14px 0;text-align:center}
+.theory-visual canvas{max-width:100%;border-radius:8px}
+.example-box{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:14px;margin:12px 0;font-size:.85rem;line-height:1.7}
+.example-box .ex-title{color:var(--accent3);font-weight:700;margin-bottom:6px}
+
+/* Footer */
+footer{text-align:center;padding:14px;font-size:.72rem;color:var(--muted);border-top:1px solid var(--border);background:var(--panel)}
+
+/* Responsive */
+@media(max-width:900px){
+  .sim-layout{flex-direction:column;height:auto}
+  .canvas-wrap{min-height:350px;max-height:50vh}
+  .side-panel{width:100%;max-width:100%;min-width:0;max-height:50vh}
+}
+@media(max-width:600px){
+  header{padding:12px 14px;gap:10px}
+  header h1{font-size:1.1rem}
+  nav{padding:8px 14px}
+  .sp-section{padding:10px 12px}
+  .readout-grid{grid-template-columns:1fr}
+}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body>
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ทดลองฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <div class="icon">🌊</div>
+  <div>
+    <h1>การหักเหของคลื่นน้ำในถาดคลื่น</h1>
+    <p>Refraction of Water Waves in a Ripple Tank — Experiment 33</p>
+  </div>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav id="simNav">
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<!-- ============ TAB 1: SIMULATION ============ -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="simCanvas"></canvas>
+      <div class="canvas-overlay" id="overlayInfo">กด ▶ เพื่อเริ่ม</div>
+      <div class="measure-info" id="measureInfo"></div>
+    </div>
+    <div class="side-panel">
+
+      <!-- Experiment Selector -->
+      <div class="sp-section">
+        <div class="sp-title">🔬 เลือกการทดลอง</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn active" id="expBtn1" onclick="setExp(1)" style="flex:1;min-width:70px;font-size:.72rem;padding:6px 4px">I. วัด λ</button>
+          <button class="btn" id="expBtn2" onclick="setExp(2)" style="flex:1;min-width:70px;font-size:.72rem;padding:6px 4px;background:var(--panel2);color:var(--muted);border:1px solid var(--border)">II. Strobe</button>
+          <button class="btn" id="expBtn3" onclick="setExp(3)" style="flex:1;min-width:70px;font-size:.72rem;padding:6px 4px;background:var(--panel2);color:var(--muted);border:1px solid var(--border)">III. วัดมุม</button>
+          <button class="btn" id="expBtn4" onclick="setExp(4)" style="flex:1;min-width:70px;font-size:.72rem;padding:6px 4px;background:var(--panel2);color:var(--muted);border:1px solid var(--border)">IV. เทียบ</button>
+        </div>
+        <div class="mode-toggle" style="margin-top:8px">
+          <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">📏 วัดค่าเอง</button>
+          <button class="mode-btn" id="modeAuto" onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <div class="hint-box" id="modeHint"><strong>การทดลอง I:</strong> คลิก 📏 วัด แล้วคลิก 2 จุดบนยอดคลื่นเพื่อวัด λ ทั้งน้ำลึกและน้ำตื้น</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="sp-section">
+        <div class="sp-title">ตัวแปรควบคุม</div>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+          <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+          <button class="btn btn-measure" id="measureBtn" onclick="toggleMeasure()">📏 วัด</button>
+        </div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent4)">f</span>
+          <span class="sl-label">ความถี่</span>
+          <input class="sl-range" type="range" id="sl-freq" min="4" max="20" step="1" value="8">
+          <input class="val-input" type="number" id="vi-freq" min="4" max="20" step="1" value="8">
+          <span class="sl-unit">Hz</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent)">θ</span>
+          <span class="sl-label">มุมขอบ</span>
+          <input class="sl-range" type="range" id="sl-angle" min="0" max="45" step="1" value="0">
+          <input class="val-input" type="number" id="vi-angle" min="0" max="45" step="1" value="0">
+          <span class="sl-unit">°</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent2)">D</span>
+          <span class="sl-label">น้ำลึก</span>
+          <input class="sl-range" type="range" id="sl-dDeep" min="5" max="15" step="0.5" value="10">
+          <input class="val-input" type="number" id="vi-dDeep" min="5" max="15" step="0.5" value="10">
+          <span class="sl-unit">mm</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent3)">S</span>
+          <span class="sl-label">น้ำตื้น</span>
+          <input class="sl-range" type="range" id="sl-dShallow" min="1" max="8" step="0.5" value="2">
+          <input class="val-input" type="number" id="vi-dShallow" min="1" max="8" step="0.5" value="2">
+          <span class="sl-unit">mm</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent5)">⏩</span>
+          <span class="sl-label">ความเร็ว</span>
+          <input class="sl-range" type="range" id="sl-speed" min="0.1" max="3" step="0.1" value="1">
+          <input class="val-input" type="number" id="vi-speed" min="0.1" max="3" step="0.1" value="1">
+          <span class="sl-unit">×</span>
+        </div>
+      </div>
+
+      <!-- Stroboscope Controls (Exp 2 only) -->
+      <div class="sp-section" id="strobeSection" style="display:none">
+        <div class="sp-title">🔦 Stroboscope</div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent2)">D</span>
+          <span class="sl-label">น้ำลึก</span>
+          <input class="sl-range" type="range" id="sl-strobeD" min="1" max="25" step="0.1" value="8">
+          <input class="val-input" type="number" id="vi-strobeD" min="1" max="25" step="0.1" value="8">
+          <span class="sl-unit">Hz</span>
+        </div>
+        <div id="strobeDStatus" style="font-size:.75rem;color:var(--accent4);margin:-2px 0 6px 20px">กำลังปรับ...</div>
+        <div class="sl-row">
+          <span class="sl-sym" style="color:var(--accent3)">S</span>
+          <span class="sl-label">น้ำตื้น</span>
+          <input class="sl-range" type="range" id="sl-strobeS" min="1" max="25" step="0.1" value="8">
+          <input class="val-input" type="number" id="vi-strobeS" min="1" max="25" step="0.1" value="8">
+          <span class="sl-unit">Hz</span>
+        </div>
+        <div id="strobeSStatus" style="font-size:.75rem;color:var(--accent4);margin:-2px 0 4px 20px">กำลังปรับ...</div>
+      </div>
+
+      <!-- Protractor Controls (Exp 3 only) -->
+      <div class="sp-section" id="protractorSection" style="display:none">
+        <div class="sp-title">📐 โปรแทรกเตอร์</div>
+        <div class="btn-row">
+          <button class="btn" style="background:var(--panel2);color:var(--muted);border:1px solid var(--border)" onclick="toggleProtractor()">👁 แสดง/ซ่อน</button>
+          <button class="btn" style="background:var(--panel2);color:var(--muted);border:1px solid var(--border)" onclick="snapProtractor()">🎯 จับที่ขอบเขต</button>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:6px">ลากตรงกลางเพื่อเลื่อน | ลากขอบเพื่อหมุน</div>
+      </div>
+
+      <!-- Readout (auto mode only) -->
+      <div class="sp-section" id="readoutSection">
+        <div class="sp-title">ค่าวัด (อัตโนมัติ)</div>
+        <div class="readout-grid">
+          <div class="readout-box"><div class="label">λ น้ำลึก</div><div class="val" id="rd-lamD">—</div></div>
+          <div class="readout-box"><div class="label">λ น้ำตื้น</div><div class="val green" id="rd-lamS">—</div></div>
+          <div class="readout-box"><div class="label">v น้ำลึก</div><div class="val" id="rd-vD">—</div></div>
+          <div class="readout-box"><div class="label">v น้ำตื้น</div><div class="val green" id="rd-vS">—</div></div>
+          <div class="readout-box"><div class="label">λ<sub>S</sub>/λ<sub>D</sub></div><div class="val purple" id="rd-ratio">—</div></div>
+          <div class="readout-box"><div class="label">θ หักเห</div><div class="val orange" id="rd-thetaR">—</div></div>
+        </div>
+      </div>
+
+      <!-- Data Tables (one per experiment) -->
+      <div class="sp-section" style="flex:1">
+        <div class="sp-title">ตารางบันทึกข้อมูล</div>
+
+        <!-- Exp 1 Table -->
+        <div id="tblWrap1" class="data-table-wrap">
+          <table class="data-tbl"><thead><tr>
+            <th>ครั้ง</th><th>f</th><th>λ<sub>D</sub></th><th>λ<sub>S</sub></th><th>λ<sub>S</sub>/λ<sub>D</sub><br><small>วัด</small></th><th>λ<sub>S</sub>/λ<sub>D</sub><br><small>auto</small></th><th>%err</th>
+          </tr></thead><tbody id="tbody1"></tbody></table>
+        </div>
+        <!-- Exp 2 Table -->
+        <div id="tblWrap2" class="data-table-wrap" style="display:none">
+          <table class="data-tbl"><thead><tr>
+            <th>ครั้ง</th><th>f<sub>strobe,D</sub></th><th>f<sub>strobe,S</sub></th><th>v<sub>D</sub></th><th>v<sub>S</sub></th><th>v<sub>S</sub>/v<sub>D</sub><br><small>วัด</small></th><th>λ<sub>S</sub>/λ<sub>D</sub><br><small>auto</small></th><th>%err</th>
+          </tr></thead><tbody id="tbody2"></tbody></table>
+        </div>
+        <!-- Exp 3 Table -->
+        <div id="tblWrap3" class="data-table-wrap" style="display:none">
+          <table class="data-tbl"><thead><tr>
+            <th>ครั้ง</th><th>θ<sub>i</sub></th><th>θ<sub>r</sub></th><th>sinθ<sub>r</sub>/sinθ<sub>i</sub><br><small>วัด</small></th><th>λ<sub>S</sub>/λ<sub>D</sub><br><small>auto</small></th><th>%err</th>
+          </tr></thead><tbody id="tbody3"></tbody></table>
+        </div>
+        <!-- Exp 4 Table placeholder (actual table is below canvas) -->
+        <div id="tblWrap4placeholder" style="display:none;padding:8px 0;font-size:.78rem;color:var(--muted);text-align:center">↓ ตารางบันทึกอยู่ด้านล่าง canvas</div>
+
+        <div class="tbl-btns">
+          <button onclick="addRow()">+ เพิ่มแถว</button>
+          <button onclick="recordAuto()" id="btnAutoFill" style="display:none">⚡ บันทึกอัตโนมัติ</button>
+          <button onclick="recordStrobe()" id="btnRecordStrobe" style="display:none">🔦 บันทึกค่า Strobe</button>
+          <button onclick="clearTbl()">🗑 ล้าง</button>
+          <button onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- Exp 4 Full-Width Table (below canvas) -->
+  <div id="tblWrap4" style="display:none;padding:12px 20px;background:var(--panel);border-top:1px solid var(--border)">
+    <div class="sp-title">📊 ตารางบันทึกข้อมูล — การทดลอง IV: เปรียบเทียบ</div>
+    <div class="data-table-wrap" style="margin-top:8px">
+      <table class="data-tbl"><thead><tr>
+        <th>ครั้ง</th><th>θ<sub>i</sub> (°)</th><th>θ<sub>r</sub> (°)</th><th>λ<sub>D</sub> (cm)</th><th>λ<sub>S</sub> (cm)</th><th>sinθ<sub>r</sub>/sinθ<sub>i</sub></th><th>λ<sub>S</sub>/λ<sub>D</sub></th><th>%err ระหว่างกัน</th><th>มาตรฐาน (auto)</th><th>%err มุม vs มาตรฐาน</th><th>%err λ vs มาตรฐาน</th>
+      </tr></thead><tbody id="tbody4"></tbody></table>
+    </div>
+    <div class="tbl-btns" style="margin-top:8px">
+      <button onclick="addRow()">+ เพิ่มแถว</button>
+      <button onclick="clearTbl()">🗑 ล้าง</button>
+      <button onclick="exportCSV()">📥 CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 2: PROCEDURE ============ -->
+<div id="tab-proc" class="tab-section">
+  <div class="proc-container">
+    <h2 style="color:var(--accent);margin-bottom:16px;font-size:1.2rem">📋 วิธีการทดลอง: การหักเหของคลื่นน้ำในถาดคลื่น</h2>
+
+    <h3 style="color:var(--accent2);margin:16px 0 8px">การทดลอง I — วัดความยาวคลื่น (λ)</h3>
+    <div class="proc-step"><div class="proc-num">1</div><div class="proc-text">เลือก <strong>I. วัด λ</strong> แล้วกด <strong>▶ เริ่ม</strong> ตั้ง <strong>มุมขอบ = 0°</strong> เพื่อให้คลื่นผ่านขอบเขตตั้งฉาก (ไม่หักเห)</div></div>
+    <div class="proc-step"><div class="proc-num">2</div><div class="proc-text">กดปุ่ม <strong>📏 วัด</strong> แล้ว<strong>คลิกจุดที่ 1</strong> บนยอดคลื่น (สันคลื่นสีสว่าง) ในบริเวณ<em>น้ำลึก</em> แล้ว<strong>คลิกจุดที่ 2</strong> บนยอดคลื่นถัดไป — ระบบจะแสดงระยะทาง (cm) นั่นคือ λ<sub>D</sub></div></div>
+    <div class="proc-step"><div class="proc-num">3</div><div class="proc-text">ทำเช่นเดียวกันในบริเวณ<em>น้ำตื้น</em> เพื่ออ่านค่า λ<sub>S</sub></div></div>
+    <div class="proc-step"><div class="proc-num">4</div><div class="proc-text">กดปุ่ม <strong>"+ เพิ่มแถว"</strong> แล้วพิมพ์ค่า λ<sub>D</sub> และ λ<sub>S</sub> ที่วัดได้ลงในตาราง — ระบบจะคำนวณ λ<sub>S</sub>/λ<sub>D</sub> เทียบกับค่ามาตรฐาน (auto) และ %error ให้อัตโนมัติ</div></div>
+    <div class="proc-step"><div class="proc-num">5</div><div class="proc-text"><strong>เปลี่ยนความถี่</strong> (f) แล้วทำซ้ำขั้นตอน 2-4 อย่างน้อย 5 ครั้ง ที่ความถี่ต่างกัน (เช่น f = 8, 10, 12, 14, 16 Hz)</div></div>
+    <div class="proc-step"><div class="proc-num">6</div><div class="proc-text">สังเกตว่าอัตราส่วน λ<sub>S</sub>/λ<sub>D</sub> <em>คงที่</em>ทุกความถี่หรือไม่ และ %error เทียบกับค่ามาตรฐานเป็นเท่าไร</div></div>
+
+    <h3 style="color:var(--accent2);margin:20px 0 8px">การทดลอง II — วัดอัตราเร็วด้วย Stroboscope</h3>
+    <div class="proc-step"><div class="proc-num">1</div><div class="proc-text">เลือก <strong>II. Strobe</strong> แล้วกด <strong>▶ เริ่ม</strong> — จะปรากฏตัวปรับ Stroboscope 2 ตัว (น้ำลึกและน้ำตื้น)</div></div>
+    <div class="proc-step"><div class="proc-num">2</div><div class="proc-text">ปรับ <strong>ความถี่ Strobe น้ำลึก (D)</strong> ค่อย ๆ เลื่อนจนคลื่นในบริเวณน้ำลึก<em>ดูหยุดนิ่ง</em> — เมื่อตรงจะแสดง "✅ คลื่นหยุดนิ่ง!" ค่าที่อ่านได้คือ<strong>ความถี่ของคลื่นน้ำลึก</strong></div></div>
+    <div class="proc-step"><div class="proc-num">3</div><div class="proc-text">ปรับ <strong>ความถี่ Strobe น้ำตื้น (S)</strong> จนคลื่นในบริเวณน้ำตื้นหยุดนิ่งเช่นกัน — ค่าที่ได้คือ<strong>ความถี่ของคลื่นน้ำตื้น</strong></div></div>
+    <div class="proc-step"><div class="proc-num">4</div><div class="proc-text">กด <strong>"🔦 บันทึกค่า Strobe"</strong> — ระบบจะบันทึก f<sub>strobe,D</sub> และ f<sub>strobe,S</sub> แล้วคำนวณ v = f × λ สำหรับแต่ละบริเวณ พร้อม %error</div></div>
+    <div class="proc-step"><div class="proc-num">5</div><div class="proc-text">ทำซ้ำที่ความถี่ต่าง ๆ แล้วสังเกตว่า <strong>v<sub>S</sub>/v<sub>D</sub> ≈ λ<sub>S</sub>/λ<sub>D</sub></strong> หรือไม่ (Hint: ความถี่คลื่นน้ำลึกและน้ำตื้นควรเท่ากัน เพราะ f คงที่ข้ามขอบเขต)</div></div>
+
+    <h3 style="color:var(--accent2);margin:20px 0 8px">การทดลอง III — วัดมุมตกกระทบและมุมหักเห</h3>
+    <div class="proc-step"><div class="proc-num">1</div><div class="proc-text">เลือก <strong>III. วัดมุม</strong> แล้วตั้ง<strong>มุมขอบ ≥ 15°</strong> (เช่น 30°) เพื่อให้เห็นการหักเหชัดเจน แล้วกด <strong>▶ เริ่ม</strong></div></div>
+    <div class="proc-step"><div class="proc-num">2</div><div class="proc-text">กดปุ่ม <strong>"👁 แสดง/ซ่อน"</strong> เพื่อแสดง<em>โปรแทรกเตอร์ 360°</em> บน canvas</div></div>
+    <div class="proc-step"><div class="proc-num">3</div><div class="proc-text"><strong>ลากตรงกลาง</strong> (จุดสีชมพู) เพื่อเลื่อนโปรแทรกเตอร์ไปที่จุดตัดขอบเขต หรือกด <strong>"🎯 จับที่ขอบเขต"</strong> เพื่อให้ snap อัตโนมัติ</div></div>
+    <div class="proc-step"><div class="proc-num">4</div><div class="proc-text"><strong>ลากขอบวงกลม</strong>เพื่อหมุนโปรแทรกเตอร์ ให้เส้น 0° (เส้นส้มประ) ขนานกับเส้นตั้งฉากของขอบเขต</div></div>
+    <div class="proc-step"><div class="proc-num">5</div><div class="proc-text"><strong>อ่านมุม θ<sub>i</sub></strong> (มุมที่คลื่นน้ำลึกทำกับเส้น 0°) และ <strong>θ<sub>r</sub></strong> (มุมที่คลื่นน้ำตื้นทำกับเส้น 0°) จากสเกลองศา แล้วกรอกลงตาราง</div></div>
+    <div class="proc-step"><div class="proc-num">6</div><div class="proc-text">ระบบจะคำนวณ <strong>sin θ<sub>r</sub>/sin θ<sub>i</sub></strong> แล้วเทียบกับ λ<sub>S</sub>/λ<sub>D</sub> ตามกฎสเนลล์ พร้อม %error</div></div>
+
+    <h3 style="color:var(--accent2);margin:20px 0 8px">การทดลอง IV — เปรียบเทียบอัตราส่วน (มุม vs ความยาวคลื่น)</h3>
+    <div class="proc-step"><div class="proc-num">1</div><div class="proc-text">เลือก <strong>IV. เทียบ</strong> แล้วตั้งมุมขอบตามต้องการ กด ▶ เริ่ม — ในการทดลองนี้มีทั้ง <strong>📏 เครื่องมือวัดระยะ</strong> และ <strong>📐 โปรแทรกเตอร์</strong> ให้ใช้พร้อมกัน</div></div>
+    <div class="proc-step"><div class="proc-num">2</div><div class="proc-text">วัด <strong>θ<sub>i</sub></strong> และ <strong>θ<sub>r</sub></strong> ด้วยโปรแทรกเตอร์ แล้ววัด <strong>λ<sub>D</sub></strong> และ <strong>λ<sub>S</sub></strong> ด้วยเครื่องมือวัดระยะ — กรอกค่าทั้ง 4 ลงในตาราง</div></div>
+    <div class="proc-step"><div class="proc-num">3</div><div class="proc-text">ระบบจะคำนวณ <strong>sin θ<sub>r</sub>/sin θ<sub>i</sub></strong> และ <strong>λ<sub>S</sub>/λ<sub>D</sub></strong> แล้วเปรียบเทียบ:
+      <br>• %error ระหว่างอัตราส่วนทั้งสอง (ตามกฎสเนลล์ ควรเท่ากัน)
+      <br>• %error ของแต่ละอัตราส่วนเทียบกับค่ามาตรฐาน (auto)</div></div>
+    <div class="proc-step"><div class="proc-num">4</div><div class="proc-text">ทำซ้ำที่มุมและความถี่ต่าง ๆ เพื่อตรวจสอบว่า <strong>sin θ<sub>r</sub>/sin θ<sub>i</sub> ≈ λ<sub>S</sub>/λ<sub>D</sub> ≈ v<sub>S</sub>/v<sub>D</sub></strong> ทุกสภาวะ</div></div>
+
+    <div class="proc-note">
+      💡 <strong>Hint:</strong> ตามกฎสเนลล์: sin θ<sub>r</sub>/sin θ<sub>i</sub> = λ<sub>S</sub>/λ<sub>D</sub> = v<sub>S</sub>/v<sub>D</sub> — อัตราส่วนทั้งสามควรได้ค่าเท่ากัน ถ้าวัดถูกต้อง ค่า %error ที่ต่ำแสดงว่าการวัดมีความแม่นยำสูง
+    </div>
+
+    <div class="recording-guide">
+      <h3>📝 วิธีบันทึกผลการทดลอง</h3>
+      <ol>
+        <li><strong>โหมดวัดค่าเอง (Manual):</strong> วัดค่าด้วยเครื่องมือบน canvas → กด "+ เพิ่มแถว" → พิมพ์ค่าที่วัดได้ → ระบบคำนวณ ratio + %error ให้</li>
+        <li><strong>โหมดอัตโนมัติ (Auto):</strong> กดปุ่ม "⚡ บันทึกอัตโนมัติ" → ระบบจะเติมค่าจากการคำนวณทั้งหมดให้ (ใช้ตรวจสอบคำตอบ)</li>
+        <li>กด <strong>"📥 CSV"</strong> เพื่อดาวน์โหลดข้อมูลเป็นไฟล์ตารางได้ทุกเมื่อ</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 3: THEORY ============ -->
+<div id="tab-theory" class="tab-section">
+  <div class="theory-container">
+    <div class="theory-section">
+      <h2>🌊 การหักเหของคลื่น (Wave Refraction) คืออะไร?</h2>
+      <p>การหักเห (Refraction) คือปรากฏการณ์ที่คลื่นเปลี่ยนทิศทางการเคลื่อนที่เมื่อเคลื่อนผ่านขอบเขตระหว่างตัวกลาง 2 ชนิดที่มีความเร็วคลื่นต่างกัน</p>
+      <p>ในถาดคลื่น เมื่อคลื่นน้ำเคลื่อนจากน้ำลึกไปยังน้ำตื้น (เหนือแผ่นแก้ว) ความเร็วคลื่นจะลดลง ทำให้ความยาวคลื่นสั้นลงด้วย แต่ความถี่ยังคงเท่าเดิม</p>
+      <div class="theory-visual"><canvas id="cvTheory1" width="700" height="260"></canvas></div>
+    </div>
+    <div class="theory-section">
+      <h2>📏 ความสัมพันธ์ v = fλ</h2>
+      <p>ความเร็วคลื่น เท่ากับ ผลคูณของความถี่กับความยาวคลื่น:</p>
+      <div class="formula-box"><div class="eq">v = f × λ</div><div class="desc">v = ความเร็วคลื่น (cm/s) | f = ความถี่ (Hz) | λ = ความยาวคลื่น (cm)</div></div>
+      <p>เมื่อคลื่นข้ามขอบเขต <strong>ความถี่ (f) คงที่</strong> แต่ v ลดลง → λ ลดลงด้วย:</p>
+      <div class="formula-box"><div class="eq">v<sub>D</sub>/v<sub>S</sub> = λ<sub>D</sub>/λ<sub>S</sub> = คงที่</div><div class="desc">D = deep (น้ำลึก) | S = shallow (น้ำตื้น)</div></div>
+    </div>
+    <div class="theory-section">
+      <h2>📐 กฎของสเนลล์ (Snell's Law)</h2>
+      <p>เมื่อคลื่นตกกระทบขอบเขตที่ทำมุม คลื่นจะหักเหตามกฎของสเนลล์:</p>
+      <div class="formula-box"><div class="eq">sin θ<sub>i</sub> / sin θ<sub>r</sub> = v<sub>D</sub> / v<sub>S</sub> = λ<sub>D</sub> / λ<sub>S</sub></div><div class="desc">θ<sub>i</sub> = มุมตกกระทบ | θ<sub>r</sub> = มุมหักเห (วัดจากเส้นตั้งฉาก)</div></div>
+      <div class="theory-visual"><canvas id="cvTheory2" width="700" height="320"></canvas></div>
+      <p>• คลื่นเข้าตัวกลางที่เร็วน้อยกว่า → หักเห<strong>เข้าหา</strong>เส้นตั้งฉาก (θ<sub>r</sub> &lt; θ<sub>i</sub>)</p>
+      <p>• คลื่นเข้าตัวกลางที่เร็วมากกว่า → หักเห<strong>ออกจาก</strong>เส้นตั้งฉาก</p>
+    </div>
+    <div class="theory-section">
+      <h2>🔬 ทำไมถึงเกิดการหักเห?</h2>
+      <div class="theory-visual"><canvas id="cvTheory3" width="700" height="240"></canvas></div>
+      <p>เมื่อหน้าคลื่นตกกระทบขอบเขตที่ทำมุม ส่วนของหน้าคลื่นที่ถึงน้ำตื้นก่อนจะชะลอตัวลง ขณะที่ส่วนที่ยังอยู่ในน้ำลึกยังเคลื่อนที่เร็ว ทำให้หน้าคลื่นบิดเบนทิศทาง</p>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 KP Science simulation — Refraction of Water Waves | ใช้เพื่อการศึกษาเท่านั้น</footer>
+
+<script>
+/* ===== TAB ===== */
+function showTab(name,btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('#simNav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='sim'){resizeCanvas();if(!isPlaying)draw();}
+  if(name==='theory')drawAllTheory();
+}
+
+/* ===== STATE ===== */
+const canvas=document.getElementById('simCanvas');
+const ctx=canvas.getContext('2d');
+let W=800,H=500;
+let isPlaying=false,t=0,animId=null,lastTs=null,speed=1.0;
+let mode='manual',currentExp=1;
+let measuring=false,measurePts=[];
+let trialCounts={1:0,2:0,3:0,4:0};
+
+// Physics
+let freq=8,boundaryAngleDeg=0,depthDeep=10,depthShallow=2;
+let omega,lambdaD,lambdaS,vD,vS,kD,kS;
+let thetaI,thetaR,krx_px=0,kry_px=0;
+
+// Stroboscope
+let strobeFreqD=8,strobeFreqS=8;
+
+// Protractor
+let prot={visible:false,cx:0,cy:0,rot:0,r:100,dragging:false,rotating:false,ox:0,oy:0,orot:0};
+
+// Tank
+let tankL,tankT,tankR,tankB,tankW,tankH,boundaryX;
+const TANK_PAD=40,SCALE=0.02;
+const G=981,SIGMA=73,RHO=1.0;
+
+// Sin LUT
+const SIN_N=2048,sinLUT=new Float32Array(SIN_N);
+for(let i=0;i<SIN_N;i++)sinLUT[i]=Math.sin(i*2*Math.PI/SIN_N);
+function fsin(p){const i=((p/(2*Math.PI)*SIN_N)%SIN_N+SIN_N)%SIN_N;return sinLUT[Math.floor(i)];}
+let offCv=null,offCtx=null;
+
+/* ===== DISPERSION ===== */
+function solveDispersion(d_cm,f_hz){
+  const w=2*Math.PI*f_hz,w2=w*w;
+  let k=w/Math.sqrt(G*d_cm);
+  for(let i=0;i<20;i++){
+    const k2=k*k,k3=k2*k,th=Math.tanh(k*d_cm),dth=1-th*th;
+    const F=(G*k+SIGMA*k3/RHO)*th-w2;
+    const Fp=(G+3*SIGMA*k2/RHO)*th+(G*k+SIGMA*k3/RHO)*d_cm*dth;
+    if(Math.abs(Fp)<1e-15)break;
+    k-=F/Fp;if(k<1)k=1;if(Math.abs(F/Fp)<1e-8)break;
+  }
+  const lam=2*Math.PI/k;return{k,lambda:lam,v:f_hz*lam};
+}
+
+function calcPhysics(){
+  omega=2*Math.PI*freq;
+  const deep=solveDispersion(depthDeep/10,freq),shallow=solveDispersion(depthShallow/10,freq);
+  vD=deep.v;lambdaD=deep.lambda;kD=deep.k;
+  vS=shallow.v;lambdaS=shallow.lambda;kS=shallow.k;
+  const alpha=boundaryAngleDeg*Math.PI/180;
+  thetaI=alpha;
+  const sinTr=Math.sin(alpha)*vS/vD;
+  thetaR=(Math.abs(sinTr)<=1)?Math.asin(sinTr):Math.PI/2;
+  const cosA=Math.cos(alpha),sinA=Math.sin(alpha),cosTr=Math.cos(thetaR);
+  const kt=kD*sinA,kn=kS*cosTr,s=SCALE;
+  krx_px=(kt*sinA+kn*cosA)*s;
+  kry_px=(-kt*cosA+kn*sinA)*s;
+  updateReadouts();
+}
+
+function updateReadouts(){
+  if(mode==='manual'){document.getElementById('readoutSection').style.display='none';return;}
+  document.getElementById('readoutSection').style.display='';
+  const f=(v,d=2)=>v.toFixed(d);
+  document.getElementById('rd-lamD').textContent=f(lambdaD)+' cm';
+  document.getElementById('rd-lamS').textContent=f(lambdaS)+' cm';
+  document.getElementById('rd-vD').textContent=f(vD,1)+' cm/s';
+  document.getElementById('rd-vS').textContent=f(vS,1)+' cm/s';
+  document.getElementById('rd-ratio').textContent=f(lambdaS/lambdaD,4);
+  document.getElementById('rd-thetaR').textContent=f(thetaR*180/Math.PI,1)+'°';
+}
+
+/* ===== RESIZE ===== */
+function resizeCanvas(){
+  const wrap=document.getElementById('canvasWrap');
+  W=canvas.width=wrap.clientWidth||800;H=canvas.height=wrap.clientHeight||500;
+  tankL=TANK_PAD;tankT=TANK_PAD;tankR=W-TANK_PAD;tankB=H-TANK_PAD;
+  tankW=tankR-tankL;tankH=tankB-tankT;boundaryX=tankL+tankW*0.48;
+  if(!prot.cx)prot.cx=boundaryX;if(!prot.cy)prot.cy=(tankT+tankB)/2;
+}
+
+/* ===== DRAW ===== */
+function draw(){
+  ctx.fillStyle='#050a14';ctx.fillRect(0,0,W,H);
+  drawWaves();drawStructure();
+  if((currentExp===3||currentExp===4)&&prot.visible)drawProtractor();
+  drawMeasureMarkers();drawScaleBar();
+}
+
+function quantizeStrobe(ct,sf){
+  if(sf<=0)return ct;const p=1/sf;return Math.floor(ct/p)*p;
+}
+
+function drawWaves(){
+  const sc=0.5;
+  const oW=Math.ceil((tankR-tankL)*sc),oH=Math.ceil((tankB-tankT)*sc);
+  if(oW<=0||oH<=0)return;
+  if(!offCv||offCv.width!==oW||offCv.height!==oH){offCv=document.createElement('canvas');offCv.width=oW;offCv.height=oH;offCtx=offCv.getContext('2d');}
+  const img=offCtx.createImageData(oW,oH),dd=img.data;
+  const kDpx=kD*SCALE;
+  const alpha=thetaI,cosA=Math.cos(alpha),sinA=Math.sin(alpha);
+  const bxS=(boundaryX-tankL)*sc,cyS=oH/2;
+
+  // Time (strobe quantization for exp 2)
+  let tD=t,tS=t;
+  if(currentExp===2){tD=quantizeStrobe(t,strobeFreqD);tS=quantizeStrobe(t,strobeFreqS);}
+  const poD=omega*tD,poS=omega*tS;
+
+  for(let j=0;j<oH;j++){
+    for(let i=0;i<oW;i++){
+      const rx=i-bxS,ry=j-cyS;
+      const dot=rx*cosA+ry*sinA;
+      const isS=dot>0;
+      const px=i/sc,py=j/sc;
+      let phase;
+      if(!isS){phase=kDpx*px-poD;}
+      else{phase=krx_px*px+kry_px*py-poS;}
+      const wave=fsin(phase),mix=(wave+1)*0.5;
+      const ef=Math.min(i/8,(oW-i)/8,j/8,(oH-j)/8,1);
+      const m=mix*Math.min(ef,1);
+      let r,g,b;
+      if(!isS){r=8+m*55;g=22+m*95;b=50+m*140;}
+      else{r=10+m*50;g=30+m*105;b=55+m*130;}
+      const idx=(j*oW+i)*4;dd[idx]=r;dd[idx+1]=g;dd[idx+2]=b;dd[idx+3]=255;
+    }
+  }
+  offCtx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(offCv,tankL,tankT,tankR-tankL,tankB-tankT);
+}
+
+function drawStructure(){
+  ctx.strokeStyle='#3a5a7a';ctx.lineWidth=2;ctx.strokeRect(tankL,tankT,tankW,tankH);
+  const bx=boundaryX,cy=(tankT+tankB)/2,alpha=thetaI;
+  const cosA=Math.cos(alpha),sinA=Math.sin(alpha);
+  const hL=tankH*0.7;
+  ctx.save();ctx.beginPath();
+  ctx.moveTo(bx-sinA*hL,cy+cosA*hL);ctx.lineTo(bx+sinA*hL,cy-cosA*hL);
+  ctx.strokeStyle='rgba(251,146,60,0.7)';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  ctx.fillStyle='rgba(52,211,153,0.5)';ctx.font='600 11px Sarabun';ctx.textAlign='center';
+  ctx.fillText('แผ่นแก้ว (น้ำตื้น)',boundaryX+(tankR-boundaryX)/2,tankT+16);
+  ctx.fillStyle='rgba(56,189,248,0.5)';ctx.fillText('น้ำลึก',tankL+(boundaryX-tankL)/2,tankT+16);
+  ctx.fillStyle='rgba(56,189,248,0.4)';ctx.font='10px Share Tech Mono';
+  ctx.fillText('Deep ('+depthDeep+' mm)',tankL+(boundaryX-tankL)/2,tankB-6);
+  ctx.fillStyle='rgba(52,211,153,0.4)';ctx.fillText('Shallow ('+depthShallow+' mm)',boundaryX+(tankR-boundaryX)/2,tankB-6);
+  ctx.fillStyle='#818cf8';ctx.fillRect(tankL-4,tankT,4,tankH);
+  ctx.save();ctx.translate(tankL-14,cy);ctx.rotate(-Math.PI/2);ctx.font='600 10px Sarabun';ctx.textAlign='center';ctx.fillText('Wave Generator',0,0);ctx.restore();
+  const info=document.getElementById('overlayInfo');
+  if(isPlaying){info.textContent='f='+freq+'Hz | λD='+lambdaD.toFixed(2)+'cm | λS='+lambdaS.toFixed(2)+'cm | t='+t.toFixed(1)+'s';}
+}
+
+/* ===== PROTRACTOR ===== */
+function drawProtractor(){
+  const c=ctx,cx=prot.cx,cy=prot.cy,r=prot.r,rot=prot.rot;
+  c.save();c.translate(cx,cy);c.rotate(rot);
+  c.beginPath();c.arc(0,0,r,0,2*Math.PI);c.fillStyle='rgba(255,255,255,0.05)';c.fill();
+  c.strokeStyle='rgba(255,255,255,0.3)';c.lineWidth=1.5;c.stroke();
+  // Degree ticks
+  for(let a=0;a<360;a+=5){
+    const rad=a*Math.PI/180,inner=(a%10===0)?(a%30===0?r-18:r-12):r-6;
+    c.beginPath();c.moveTo(Math.cos(rad)*inner,Math.sin(rad)*inner);
+    c.lineTo(Math.cos(rad)*r,Math.sin(rad)*r);
+    c.strokeStyle=(a%30===0)?'rgba(255,255,255,0.5)':'rgba(255,255,255,0.2)';c.lineWidth=1;c.stroke();
+    if(a%30===0){
+      c.fillStyle='rgba(255,255,255,0.6)';c.font='bold 9px Share Tech Mono';c.textAlign='center';c.textBaseline='middle';
+      c.fillText(a+'°',Math.cos(rad)*(r-25),Math.sin(rad)*(r-25));
+    }
+  }
+  // Crosshair
+  c.beginPath();c.moveTo(-12,0);c.lineTo(12,0);c.moveTo(0,-12);c.lineTo(0,12);
+  c.strokeStyle='rgba(244,114,182,0.7)';c.lineWidth=1.5;c.stroke();
+  // 0° reference line
+  c.beginPath();c.moveTo(-r,0);c.lineTo(r,0);c.strokeStyle='rgba(251,146,60,0.5)';c.lineWidth=1;c.setLineDash([4,3]);c.stroke();c.setLineDash([]);
+  c.restore();
+  // Center dot
+  c.beginPath();c.arc(cx,cy,4,0,2*Math.PI);c.fillStyle='#f472b6';c.fill();
+}
+
+function toggleProtractor(){prot.visible=!prot.visible;if(!isPlaying)draw();}
+function snapProtractor(){prot.cx=boundaryX;prot.cy=(tankT+tankB)/2;prot.rot=-thetaI;if(!isPlaying)draw();}
+
+// Protractor interaction
+canvas.addEventListener('mousedown',function(e){
+  if((currentExp!==3&&currentExp!==4)||!prot.visible)return;
+  const rect=canvas.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height;
+  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+  const dx=mx-prot.cx,dy=my-prot.cy,dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<20){prot.dragging=true;prot.ox=dx;prot.oy=dy;e.preventDefault();}
+  else if(dist>prot.r-25&&dist<prot.r+15){prot.rotating=true;prot.orot=Math.atan2(dy,dx)-prot.rot;e.preventDefault();}
+});
+canvas.addEventListener('mousemove',function(e){
+  if(!prot.dragging&&!prot.rotating)return;
+  const rect=canvas.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height;
+  const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+  if(prot.dragging){prot.cx=mx-prot.ox;prot.cy=my-prot.oy;}
+  if(prot.rotating){prot.rot=Math.atan2(my-prot.cy,mx-prot.cx)-prot.orot;}
+  if(!isPlaying)draw();
+});
+window.addEventListener('mouseup',()=>{prot.dragging=false;prot.rotating=false;});
+
+function drawMeasureMarkers(){
+  if(measurePts.length===0)return;
+  ctx.fillStyle='#f472b6';
+  measurePts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,5,0,2*Math.PI);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();});
+  if(measurePts.length===2){
+    const p1=measurePts[0],p2=measurePts[1];
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.strokeStyle='rgba(244,114,182,0.7)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    const dx=p2.x-p1.x,dy=p2.y-p1.y,dp=Math.sqrt(dx*dx+dy*dy),dc=dp*SCALE;
+    ctx.fillStyle='#f472b6';ctx.font='bold 13px Share Tech Mono';ctx.textAlign='center';
+    ctx.fillText(dc.toFixed(2)+' cm',(p1.x+p2.x)/2,(p1.y+p2.y)/2-10);
+    document.getElementById('measureInfo').style.display='block';
+    document.getElementById('measureInfo').textContent='ระยะ: '+dc.toFixed(2)+' cm ('+dp.toFixed(0)+' px)';
+  }
+}
+function drawScaleBar(){
+  const bp=1/SCALE,sx=tankR-bp-20,sy=tankB-12;
+  ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillRect(sx,sy,bp,3);ctx.fillRect(sx,sy-4,2,8);ctx.fillRect(sx+bp-2,sy-4,2,8);
+  ctx.font='10px Share Tech Mono';ctx.textAlign='center';ctx.fillText('1 cm',sx+bp/2,sy-7);
+}
+
+/* ===== ANIMATION ===== */
+function loop(ts){if(!lastTs)lastTs=ts;const dt=Math.min((ts-lastTs)/1000,0.05)*speed;lastTs=ts;t+=dt;draw();updateStrobeStatus();animId=requestAnimationFrame(loop);}
+function togglePlay(){
+  isPlaying=!isPlaying;const btn=document.getElementById('playBtn');
+  if(isPlaying){lastTs=null;animId=requestAnimationFrame(loop);btn.textContent='⏸ หยุด';btn.classList.add('playing');}
+  else{cancelAnimationFrame(animId);btn.textContent='▶ เริ่ม';btn.classList.remove('playing');}
+}
+function resetSim(){cancelAnimationFrame(animId);isPlaying=false;t=0;lastTs=null;document.getElementById('playBtn').textContent='▶ เริ่ม';document.getElementById('playBtn').classList.remove('playing');document.getElementById('overlayInfo').textContent='กด ▶ เพื่อเริ่ม';measurePts=[];document.getElementById('measureInfo').style.display='none';calcPhysics();draw();}
+
+/* ===== EXPERIMENT SWITCHING ===== */
+function setExp(n){
+  currentExp=n;
+  for(let i=1;i<=4;i++){
+    document.getElementById('expBtn'+i).style.background=(i===n)?'var(--accent)':'var(--panel2)';
+    document.getElementById('expBtn'+i).style.color=(i===n)?'#0a0e1a':'var(--muted)';
+    document.getElementById('expBtn'+i).style.border=(i===n)?'none':'1px solid var(--border)';
+    if(i<=3){const tw=document.getElementById('tblWrap'+i);if(tw)tw.style.display=(i===n)?'':'none';}
+  }
+  // Exp 4 table is full-width below canvas
+  document.getElementById('tblWrap4').style.display=(n===4)?'':'none';
+  document.getElementById('tblWrap4placeholder').style.display=(n===4)?'':'none';
+  document.getElementById('strobeSection').style.display=(n===2)?'':'none';
+  document.getElementById('protractorSection').style.display=(n===3||n===4)?'':'none';
+  document.getElementById('measureBtn').style.display=((n===1||n===4)&&mode==='manual')?'':'none';
+  document.getElementById('btnRecordStrobe').style.display=(n===2)?'':'none';
+  document.getElementById('btnAutoFill').style.display=(mode==='auto'&&n!==4)?'':'none';
+  if((n===3||n===4)&&!prot.cx){prot.cx=boundaryX;prot.cy=(tankT+tankB)/2;}
+  if(n!==3&&n!==4)prot.visible=false;
+  measuring=false;document.getElementById('measureBtn').classList.remove('active');document.getElementById('measureBtn').textContent='📏 วัด';canvas.style.cursor='default';
+  // Hide overlay info for exp 4
+  document.getElementById('overlayInfo').style.display=(n===4)?'none':'';
+  const hints={1:'<strong>I. วัด λ:</strong> คลิก 📏 วัด แล้วคลิก 2 จุดบนยอดคลื่นเพื่อวัดความยาวคลื่น ทั้งน้ำลึกและน้ำตื้น',
+    2:'<strong>II. Strobe:</strong> ปรับความถี่ Stroboscope จนคลื่นดูหยุดนิ่ง — ค่าที่ได้คือความถี่ของคลื่น',
+    3:'<strong>III. วัดมุม:</strong> กด 👁 เพื่อแสดงโปรแทรกเตอร์ ลากไปที่ขอบเขต แล้วอ่านมุม θ<sub>i</sub> และ θ<sub>r</sub>',
+    4:'<strong>IV. เทียบ:</strong> ใช้ 📏 วัดความยาวคลื่น + 📐 โปรแทรกเตอร์วัดมุม แล้วกรอกลงตาราง หรือ 📥 นำเข้าจาก I & III'};
+  document.getElementById('modeHint').innerHTML=hints[n];
+  updateReadouts();if(!isPlaying)draw();
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('modeManual').classList.toggle('active',m==='manual');
+  document.getElementById('modeAuto').classList.toggle('active',m==='auto');
+  document.getElementById('btnAutoFill').style.display=(m==='auto'&&currentExp!==4)?'':'none';
+  document.getElementById('measureBtn').style.display=((currentExp===1||currentExp===4)&&m==='manual')?'':'none';
+  if(m==='auto'){measuring=false;canvas.style.cursor='default';measurePts=[];document.getElementById('measureInfo').style.display='none';}
+  updateReadouts();if(!isPlaying)draw();
+}
+
+/* ===== MEASURE ===== */
+function toggleMeasure(){
+  measuring=!measuring;const btn=document.getElementById('measureBtn');
+  if(measuring){btn.classList.add('active');btn.textContent='📏 กำลังวัด...';canvas.style.cursor='crosshair';measurePts=[];document.getElementById('measureInfo').style.display='none';}
+  else{btn.classList.remove('active');btn.textContent='📏 วัด';canvas.style.cursor='default';}
+  if(!isPlaying)draw();
+}
+canvas.addEventListener('click',function(e){
+  if(!measuring||mode!=='manual'||(currentExp!==1&&currentExp!==4))return;
+  const rect=canvas.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height;
+  const x=(e.clientX-rect.left)*sx,y=(e.clientY-rect.top)*sy;
+  if(x<tankL||x>tankR||y<tankT||y>tankB)return;
+  if(measurePts.length>=2)measurePts=[];measurePts.push({x,y});if(!isPlaying)draw();
+});
+
+/* ===== STROBE STATUS ===== */
+function updateStrobeStatus(){
+  if(currentExp!==2)return;
+  const thres=0.3;
+  const dOk=Math.abs(strobeFreqD-freq)<thres;
+  const sOk=Math.abs(strobeFreqS-freq)<thres;
+  document.getElementById('strobeDStatus').textContent=dOk?'✅ คลื่นหยุดนิ่ง!':'กำลังปรับ... (Δf='+(Math.abs(strobeFreqD-freq)).toFixed(1)+')';
+  document.getElementById('strobeDStatus').style.color=dOk?'var(--accent3)':'var(--accent4)';
+  document.getElementById('strobeSStatus').textContent=sOk?'✅ คลื่นหยุดนิ่ง!':'กำลังปรับ... (Δf='+(Math.abs(strobeFreqS-freq)).toFixed(1)+')';
+  document.getElementById('strobeSStatus').style.color=sOk?'var(--accent3)':'var(--accent4)';
+}
+
+/* ===== SLIDERS ===== */
+const _v2s={'vi-freq':'sl-freq','vi-angle':'sl-angle','vi-dDeep':'sl-dDeep','vi-dShallow':'sl-dShallow','vi-speed':'sl-speed','vi-strobeD':'sl-strobeD','vi-strobeS':'sl-strobeS'};
+function onSliderChange(){
+  freq=parseFloat(document.getElementById('sl-freq').value);
+  boundaryAngleDeg=parseFloat(document.getElementById('sl-angle').value);
+  depthDeep=parseFloat(document.getElementById('sl-dDeep').value);
+  depthShallow=parseFloat(document.getElementById('sl-dShallow').value);
+  speed=parseFloat(document.getElementById('sl-speed').value);
+  strobeFreqD=parseFloat(document.getElementById('sl-strobeD').value);
+  strobeFreqS=parseFloat(document.getElementById('sl-strobeS').value);
+  calcPhysics();updateStrobeStatus();if(!isPlaying)draw();
+}
+function syncVal(inp){const sl=document.getElementById(_v2s[inp.id]);if(!sl)return;let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));inp.value=v;sl.value=v;onSliderChange();}
+
+/* ===== DATA TABLES ===== */
+function pctErr(meas,std){if(!std||std===0)return'—';return(Math.abs(meas-std)/Math.abs(std)*100).toFixed(1)+'%';}
+function ratioAuto(){return lambdaS/lambdaD;}
+
+// Exp 1: wavelength
+function addRow(){
+  const n=currentExp;trialCounts[n]++;
+  if(n===1)addRow1();else if(n===2)addRow2();else if(n===3)addRow3();else addRow4();
+}
+function addRow1(){
+  const tr=document.createElement('tr'),tc=trialCounts[1],ra=ratioAuto();
+  tr.innerHTML='<td>'+tc+'</td><td>'+freq+'</td><td><input type="number" step="0.01" placeholder="λD"></td><td><input type="number" step="0.01" placeholder="λS"></td><td class="auto-val">—</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">—</td>';
+  tr.dataset.autoRatio=ra;
+  const inps=tr.querySelectorAll('input');
+  inps[0].addEventListener('input',()=>calcRow1(tr));inps[1].addEventListener('input',()=>calcRow1(tr));
+  document.getElementById('tbody1').appendChild(tr);
+}
+function calcRow1(tr){
+  const inps=tr.querySelectorAll('input');
+  const ld=parseFloat(inps[0].value),ls=parseFloat(inps[1].value);
+  const cells=tr.querySelectorAll('.auto-val');
+  if(ld>0&&ls>0){const r=ls/ld,ar=parseFloat(tr.dataset.autoRatio);cells[0].textContent=r.toFixed(4);cells[2].textContent=pctErr(r,ar);}
+  else{cells[0].textContent='—';cells[2].textContent='—';}
+}
+
+// Exp 2: stroboscope
+function addRow2(){
+  const tr=document.createElement('tr'),tc=trialCounts[2],ra=ratioAuto();
+  tr.innerHTML='<td>'+tc+'</td><td><input type="number" step="0.1" placeholder="fD"></td><td><input type="number" step="0.1" placeholder="fS"></td><td class="auto-val">—</td><td class="auto-val">—</td><td class="auto-val">—</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">—</td>';
+  tr.dataset.autoRatio=ra;tr.dataset.lamD=lambdaD;tr.dataset.lamS=lambdaS;
+  const inps=tr.querySelectorAll('input');
+  inps[0].addEventListener('input',()=>calcRow2(tr));inps[1].addEventListener('input',()=>calcRow2(tr));
+  document.getElementById('tbody2').appendChild(tr);
+}
+function calcRow2(tr){
+  const inps=tr.querySelectorAll('input'),cells=tr.querySelectorAll('.auto-val');
+  const fD=parseFloat(inps[0].value),fS=parseFloat(inps[1].value);
+  const lD=parseFloat(tr.dataset.lamD),lS=parseFloat(tr.dataset.lamS);
+  if(fD>0&&fS>0){
+    const vd=fD*lD,vs=fS*lS,r=vs/vd,ar=parseFloat(tr.dataset.autoRatio);
+    cells[0].textContent=vd.toFixed(1);cells[1].textContent=vs.toFixed(1);cells[2].textContent=r.toFixed(4);cells[4].textContent=pctErr(r,ar);
+  }
+}
+function recordStrobe(){
+  trialCounts[2]++;const tc=trialCounts[2],ra=ratioAuto();
+  const tr=document.createElement('tr');
+  const vd=strobeFreqD*lambdaD,vs=strobeFreqS*lambdaS,r=vs/vd;
+  tr.innerHTML='<td>'+tc+'</td><td class="auto-val">'+strobeFreqD.toFixed(1)+'</td><td class="auto-val">'+strobeFreqS.toFixed(1)+'</td><td class="auto-val">'+vd.toFixed(1)+'</td><td class="auto-val">'+vs.toFixed(1)+'</td><td class="auto-val">'+r.toFixed(4)+'</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">'+pctErr(r,ra)+'</td>';
+  document.getElementById('tbody2').appendChild(tr);
+}
+
+// Exp 3: angle
+function addRow3(){
+  const tr=document.createElement('tr'),tc=trialCounts[3],ra=ratioAuto();
+  tr.innerHTML='<td>'+tc+'</td><td><input type="number" step="0.1" placeholder="θi"></td><td><input type="number" step="0.1" placeholder="θr"></td><td class="auto-val">—</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">—</td>';
+  tr.dataset.autoRatio=ra;
+  const inps=tr.querySelectorAll('input');
+  inps[0].addEventListener('input',()=>calcRow3(tr));inps[1].addEventListener('input',()=>calcRow3(tr));
+  document.getElementById('tbody3').appendChild(tr);
+}
+function calcRow3(tr){
+  const inps=tr.querySelectorAll('input'),cells=tr.querySelectorAll('.auto-val');
+  const ti=parseFloat(inps[0].value),tr2=parseFloat(inps[1].value);
+  if(ti>0&&tr2>0&&ti<90&&tr2<90){
+    const si=Math.sin(ti*Math.PI/180),sr=Math.sin(tr2*Math.PI/180),r=sr/si,ar=parseFloat(tr.dataset.autoRatio);
+    cells[0].textContent=r.toFixed(4);cells[2].textContent=pctErr(r,ar);
+  }
+}
+
+// Exp 4: comparison
+function addRow4(){
+  const tr=document.createElement('tr'),tc=trialCounts[4];
+  tr.innerHTML='<td>'+tc+'</td><td><input type="number" step="0.1" placeholder="θi"></td><td><input type="number" step="0.1" placeholder="θr"></td><td><input type="number" step="0.01" placeholder="λD"></td><td><input type="number" step="0.01" placeholder="λS"></td><td class="auto-val">—</td><td class="auto-val">—</td><td class="auto-val">—</td><td class="auto-val">'+ratioAuto().toFixed(4)+'</td><td class="auto-val">—</td><td class="auto-val">—</td>';
+  tr.dataset.autoRatio=ratioAuto();
+  const inps=tr.querySelectorAll('input');
+  for(let i=0;i<4;i++) inps[i].addEventListener('input',()=>calcRow4(tr));
+  document.getElementById('tbody4').appendChild(tr);
+}
+function calcRow4(tr){
+  const inps=tr.querySelectorAll('input'),cells=tr.querySelectorAll('.auto-val');
+  const ti=parseFloat(inps[0].value),trv=parseFloat(inps[1].value);
+  const ld=parseFloat(inps[2].value),ls=parseFloat(inps[3].value);
+  const ar=parseFloat(tr.dataset.autoRatio);
+  let sinR=NaN,lamR=NaN;
+  if(ti>0&&trv>0&&ti<90&&trv<90) sinR=Math.sin(trv*Math.PI/180)/Math.sin(ti*Math.PI/180);
+  if(ld>0&&ls>0) lamR=ls/ld;
+  cells[0].textContent=isNaN(sinR)?'—':sinR.toFixed(4);
+  cells[1].textContent=isNaN(lamR)?'—':lamR.toFixed(4);
+  cells[2].textContent=(!isNaN(sinR)&&!isNaN(lamR))?pctErr(sinR,lamR):'—';
+  // cells[3] = standard (already set)
+  cells[4].textContent=!isNaN(sinR)?pctErr(sinR,ar):'—';
+  cells[5].textContent=!isNaN(lamR)?pctErr(lamR,ar):'—';
+}
+
+function recordAuto(){
+  if(currentExp===1){trialCounts[1]++;const tc=trialCounts[1],ra=ratioAuto();const tr=document.createElement('tr');tr.innerHTML='<td>'+tc+'</td><td class="auto-val">'+freq+'</td><td class="auto-val">'+lambdaD.toFixed(2)+'</td><td class="auto-val">'+lambdaS.toFixed(2)+'</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">0.0%</td>';document.getElementById('tbody1').appendChild(tr);}
+  else if(currentExp===2){recordStrobe();}
+  else if(currentExp===3){trialCounts[3]++;const tc=trialCounts[3],ra=ratioAuto(),ti=thetaI*180/Math.PI,tr2=thetaR*180/Math.PI,sr=Math.sin(thetaR)/Math.sin(thetaI);const tr=document.createElement('tr');tr.innerHTML='<td>'+tc+'</td><td class="auto-val">'+ti.toFixed(1)+'</td><td class="auto-val">'+tr2.toFixed(1)+'</td><td class="auto-val">'+sr.toFixed(4)+'</td><td class="auto-val">'+ra.toFixed(4)+'</td><td class="auto-val">'+pctErr(sr,ra)+'</td>';document.getElementById('tbody3').appendChild(tr);}
+}
+
+function clearTbl(){document.getElementById('tbody'+currentExp).innerHTML='';trialCounts[currentExp]=0;}
+function exportCSV(){
+  const wrap=document.getElementById('tblWrap'+currentExp);if(!wrap)return;
+  const rows=wrap.querySelectorAll('tr');let csv='';
+  rows.forEach(r=>{const v=[];r.querySelectorAll('th,td').forEach(c=>{const inp=c.querySelector('input');v.push(inp?inp.value:c.textContent.trim());});csv+=v.join(',')+'\n';});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='refraction_exp'+currentExp+'_data.csv';a.click();
+}
+
+/* ===== THEORY ===== */
+function drawAllTheory(){drawTheory1();drawTheory2();drawTheory3();}
+function drawTheory1(){
+  const cv=document.getElementById('cvTheory1');if(!cv)return;const c=cv.getContext('2d'),w=cv.width,h=cv.height;
+  c.fillStyle='#111827';c.fillRect(0,0,w,h);const mx=w*0.45;
+  c.fillStyle='#0c1e38';c.fillRect(40,40,mx-40,h-80);c.fillStyle='#0f2a3e';c.fillRect(mx,40,w-mx-40,h-80);
+  c.strokeStyle='#fb923c';c.lineWidth=2;c.setLineDash([6,4]);c.beginPath();c.moveTo(mx,30);c.lineTo(mx,h-30);c.stroke();c.setLineDash([]);
+  c.font='bold 14px Sarabun';c.textAlign='center';c.fillStyle='#38bdf8';c.fillText('น้ำลึก (deep)',mx/2+20,32);
+  c.fillStyle='#34d399';c.fillText('น้ำตื้น (shallow)',(mx+w-40)/2,32);
+  // Deep: wider spacing (λ_D = 70px)
+  const lD=70;
+  c.strokeStyle='rgba(56,189,248,0.6)';c.lineWidth=2.5;
+  for(let x=55;x<mx;x+=lD){c.beginPath();c.moveTo(x,50);c.lineTo(x,h-50);c.stroke();}
+  // Shallow: narrower spacing (λ_S = 38px, ratio ~1.8)
+  const lS=38;
+  c.strokeStyle='rgba(52,211,153,0.6)';c.lineWidth=2.5;
+  for(let x=mx+12;x<w-50;x+=lS){c.beginPath();c.moveTo(x,50);c.lineTo(x,h-50);c.stroke();}
+  // Direction arrows
+  c.fillStyle='#38bdf8';drawArrow(c,80,h/2,mx-20,h/2,2);c.fillStyle='#34d399';drawArrow(c,mx+20,h/2,w-70,h/2,2);
+  // λ labels with braces
+  c.font='bold 12px Share Tech Mono';
+  c.fillStyle='#38bdf8';c.strokeStyle='#38bdf8';c.lineWidth=1.5;
+  const bY=h-42;c.beginPath();c.moveTo(55,bY-3);c.lineTo(55,bY+3);c.moveTo(55,bY);c.lineTo(55+lD,bY);c.moveTo(55+lD,bY-3);c.lineTo(55+lD,bY+3);c.stroke();
+  c.textAlign='center';c.fillText('λ_D',55+lD/2,bY-6);
+  c.fillStyle='#34d399';c.strokeStyle='#34d399';
+  c.beginPath();c.moveTo(mx+12,bY-3);c.lineTo(mx+12,bY+3);c.moveTo(mx+12,bY);c.lineTo(mx+12+lS,bY);c.moveTo(mx+12+lS,bY-3);c.lineTo(mx+12+lS,bY+3);c.stroke();
+  c.fillText('λ_S',mx+12+lS/2,bY-6);
+  // Speed labels
+  c.font='12px Sarabun';c.fillStyle='#94a3b8';
+  c.fillText('v ใหญ่ → λ ยาว',mx/2+20,h-15);c.fillText('v เล็ก → λ สั้น',(mx+w-40)/2,h-15);
+}
+function drawTheory2(){
+  const cv=document.getElementById('cvTheory2');if(!cv)return;const c=cv.getContext('2d'),w=cv.width,h=cv.height;
+  c.fillStyle='#111827';c.fillRect(0,0,w,h);const mx=w*0.45;
+  c.fillStyle='#0c1e38';c.fillRect(40,40,mx-40,h-80);c.fillStyle='#0f2a3e';c.fillRect(mx,40,w-mx-40,h-80);
+  c.strokeStyle='#fb923c';c.lineWidth=2;c.beginPath();c.moveTo(mx,30);c.lineTo(mx,h-30);c.stroke();
+  c.strokeStyle='rgba(255,255,255,0.3)';c.lineWidth=1;c.setLineDash([4,4]);c.beginPath();c.moveTo(mx-120,h/2);c.lineTo(mx+120,h/2);c.stroke();c.setLineDash([]);
+  const tI=30*Math.PI/180,rL=120;
+  c.strokeStyle='#38bdf8';c.lineWidth=2.5;c.beginPath();c.moveTo(mx-rL*Math.cos(tI),h/2-rL*Math.sin(tI));c.lineTo(mx,h/2);c.stroke();
+  drawArrowHead(c,mx,h/2,Math.atan2(rL*Math.sin(tI),rL*Math.cos(tI)),'#38bdf8');
+  const tR=Math.asin(Math.sin(tI)/1.2);
+  c.strokeStyle='#34d399';c.lineWidth=2.5;c.beginPath();c.moveTo(mx,h/2);c.lineTo(mx+rL*Math.cos(tR),h/2+rL*Math.sin(tR));c.stroke();
+  drawArrowHead(c,mx+rL*Math.cos(tR),h/2+rL*Math.sin(tR),Math.atan2(rL*Math.sin(tR),rL*Math.cos(tR)),'#34d399');
+  c.strokeStyle='#38bdf8';c.lineWidth=1.5;c.beginPath();c.arc(mx,h/2,35,Math.PI*1.5,Math.PI*1.5+tI);c.stroke();
+  c.fillStyle='#38bdf8';c.font='bold 13px Share Tech Mono';c.textAlign='center';c.fillText('θᵢ=30°',mx-50,h/2-20);
+  c.strokeStyle='#34d399';c.beginPath();c.arc(mx,h/2,35,Math.PI*0.5-tR,Math.PI*0.5);c.stroke();
+  c.fillStyle='#34d399';c.fillText('θᵣ≈24.6°',mx+60,h/2+30);
+  c.fillStyle='#e2e8f0';c.font='bold 14px Share Tech Mono';c.fillText('sin θᵢ / sin θᵣ = v_D / v_S',w/2,h-20);
+  c.font='bold 14px Sarabun';c.textAlign='center';c.fillStyle='#38bdf8';c.fillText('น้ำลึก (v ใหญ่)',mx/2+20,32);c.fillStyle='#34d399';c.fillText('น้ำตื้น (v เล็ก)',(mx+w-40)/2,32);
+}
+function drawTheory3(){
+  const cv=document.getElementById('cvTheory3');if(!cv)return;const c=cv.getContext('2d'),w=cv.width,h=cv.height;
+  c.fillStyle='#111827';c.fillRect(0,0,w,h);const mx=w*0.45;
+  c.fillStyle='#0c1e38';c.fillRect(40,30,mx-40,h-60);c.fillStyle='#0f2a3e';c.fillRect(mx,30,w-mx-40,h-60);
+  // Boundary
+  c.strokeStyle='#fb923c';c.lineWidth=2;c.beginPath();c.moveTo(mx,20);c.lineTo(mx,h-20);c.stroke();
+
+  // Incident angle 30°, refracted ~24.6° (ratio 1.2)
+  const tI=30*Math.PI/180, tR=Math.asin(Math.sin(tI)/1.2);
+  // Wave direction vectors
+  const dxI=Math.cos(tI),dyI=Math.sin(tI); // incident direction (rightward + downward)
+  const dxR=Math.cos(tR),dyR=Math.sin(tR); // refracted direction
+
+  // Deep side: wavefronts perpendicular to wave direction, spaced λ_D apart
+  const lamD=55, lamS=55/1.2; // pixel spacings
+  // Wavefront perpendicular direction
+  const pxI=-dyI, pyI=dxI; // perpendicular to incident direction
+  const pxR=-dyR, pyR=dxR; // perpendicular to refracted direction
+
+  c.lineWidth=2.5;
+  // Draw deep wavefronts: parallel lines moving along (dxI,dyI), drawn perpendicular
+  for(let n=-6;n<=0;n++){
+    const cx2=mx+n*lamD*dxI, cy2=h/2+n*lamD*dyI;
+    if(cx2<50)continue;
+    const alpha=0.35+(-n)*0.1;
+    c.strokeStyle='rgba(56,189,248,'+Math.min(alpha,0.9)+')';
+    c.beginPath();
+    c.moveTo(cx2+pxI*120, Math.max(35,cy2+pyI*120));
+    c.lineTo(cx2-pxI*120, Math.min(h-35,cy2-pyI*120));
+    c.stroke();
+  }
+  // Draw shallow wavefronts: parallel lines with shorter spacing, different angle
+  for(let n=1;n<=7;n++){
+    const cx2=mx+n*lamS*dxR, cy2=h/2+n*lamS*dyR;
+    if(cx2>w-50)continue;
+    const alpha=0.3+n*0.08;
+    c.strokeStyle='rgba(52,211,153,'+Math.min(alpha,0.85)+')';
+    c.beginPath();
+    c.moveTo(cx2+pxR*120, Math.max(35,cy2+pyR*120));
+    c.lineTo(cx2-pxR*120, Math.min(h-35,cy2-pyR*120));
+    c.stroke();
+  }
+  // Direction arrows
+  c.fillStyle='#38bdf8';
+  drawArrow(c,mx-180,h/2-180*dyI/dxI,mx-30,h/2-30*dyI/dxI,2);
+  c.fillStyle='#34d399';
+  drawArrow(c,mx+30,h/2+30*dyR/dxR,mx+160,h/2+160*dyR/dxR,2);
+  // Normal dashed line
+  c.strokeStyle='rgba(255,255,255,0.2)';c.lineWidth=1;c.setLineDash([3,3]);
+  c.beginPath();c.moveTo(mx-70,h/2);c.lineTo(mx+70,h/2);c.stroke();c.setLineDash([]);
+  // Labels
+  c.fillStyle='#38bdf8';c.font='bold 12px Sarabun';c.textAlign='center';
+  c.fillText('v ใหญ่ → λ ยาว',mx/2+20,h-8);
+  c.fillStyle='#34d399';c.fillText('v เล็ก → λ สั้น',(mx+w-40)/2,h-8);
+  c.fillStyle='#fb923c';c.font='bold 11px Sarabun';
+  c.fillText('หน้าคลื่นหักเห — ระยะห่างสั้นลง',w/2,28);
+}
+function drawArrow(c,x1,y1,x2,y2,w2){c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.strokeStyle=c.fillStyle;c.lineWidth=w2;c.stroke();drawArrowHead(c,x2,y2,Math.atan2(y2-y1,x2-x1),c.fillStyle);}
+function drawArrowHead(c,x,y,a,col){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=col;c.beginPath();c.moveTo(0,0);c.lineTo(-10,-5);c.lineTo(-10,5);c.closePath();c.fill();c.restore();}
+
+/* ===== INIT ===== */
+window.addEventListener('DOMContentLoaded',()=>{
+  Object.entries(_v2s).forEach(([vi,si])=>{const sl=document.getElementById(si),inp=document.getElementById(vi);if(!sl||!inp)return;sl.addEventListener('input',()=>{inp.value=parseFloat(sl.value);onSliderChange();});inp.addEventListener('blur',()=>syncVal(inp));inp.addEventListener('keydown',e=>{if(e.key==='Enter')syncVal(inp);});});
+  resizeCanvas();calcPhysics();draw();setExp(1);setMode('manual');
+});
+window.addEventListener('resize',()=>{resizeCanvas();calcPhysics();if(!isPlaying)draw();});
+</script>
+</body>
+</html>
