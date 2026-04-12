@@ -41,14 +41,37 @@ auth.onAuthStateChanged(async user => {
     } catch(e) {
       currentUserData = null;
     }
+    // ── Sync watermark tier จาก Firestore → localStorage ──
+    syncWatermarkTier(currentUserData);
     updateTopbar(user);
     applyTopicAccess();
   } else {
     currentUserData = null;
+    // ── ลบ tier เมื่อ logout → ลายน้ำกลับมา ──
+    try { localStorage.removeItem('kp_access_tier'); } catch(e){}
+    if (typeof KPWatermark !== 'undefined') KPWatermark.show();
     updateTopbar(null);
     lockAll();
   }
 });
+
+// ── Watermark Tier Sync ──────────────────────────────────
+function syncWatermarkTier(userData) {
+  try {
+    if (!userData) return;
+    const tier = userData.access_tier || '';
+    const role = userData.role || 'member';
+    // role admin/premium หรือ access_tier ที่ตั้งไว้ → ปลดลายน้ำ
+    const unlockTiers = ['pro', 'premium', 'admin'];
+    if (unlockTiers.includes(tier) || unlockTiers.includes(role)) {
+      localStorage.setItem('kp_access_tier', tier || role);
+      if (typeof KPWatermark !== 'undefined') KPWatermark.check();
+    } else {
+      localStorage.removeItem('kp_access_tier');
+      if (typeof KPWatermark !== 'undefined') KPWatermark.show();
+    }
+  } catch(e) {}
+}
 
 // ── UI: Topbar ────────────────────────────────────────────
 function updateTopbar(user) {

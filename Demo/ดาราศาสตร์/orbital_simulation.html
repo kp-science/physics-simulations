@@ -1,0 +1,1315 @@
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<!-- อ้างอิง: NASA NSSDCA Planetary Fact Sheet (2020) | Kepler (1619) | Newton (1687) -->
+<!-- ขอบเขต: จำลองวงโคจรแบบ 2D ด้วย Newtonian gravity | ไม่รวมแรงระหว่างดาวเคราะห์ -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>การโคจรของดาวเคราะห์ — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #03040d;
+  --panel:  #0a0e1c;
+  --panel2: #10172a;
+  --border: #1a2a45;
+  --accent: #fb923c;
+  --a2:     #818cf8;
+  --a3:     #34d399;
+  --a4:     #fbbf24;
+  --text:   #e2e8f0;
+  --muted:  #64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#060914,#0f172a);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1a1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;white-space:nowrap}
+
+.scope{background:#04060f;border-left:3px solid var(--accent);padding:5px 20px;font-size:11px;color:var(--muted)}
+
+nav{display:flex;gap:4px;padding:8px 20px;background:#080b18;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.83rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Control bar */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.83rem;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-play{background:#14532d;color:#86efac;border:1px solid #166534}
+.btn-play.playing{background:#7f1d1d;color:#fca5a5;border-color:#991b1b}
+.btn-reset{background:#1e3a8a;color:#93c5fd;border:1px solid #1d4ed8}
+.btn-zoom{background:#1a1a3a;color:var(--a2);border:1px solid var(--a2);font-size:.78rem}
+.cbar-sep{width:1px;height:22px;background:var(--border)}
+.tog{padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.tog:hover{border-color:var(--a3);color:var(--a3)}
+.tog.on{border-color:var(--a3);color:var(--a3);background:#052e1e}
+
+/* Layout */
+.sim-layout{display:flex;height:calc(100vh - 196px);min-height:460px}
+.cvs-wrap{flex:1;position:relative;overflow:hidden;background:#01020a}
+#simCanvas{display:block;width:100%;height:100%;cursor:crosshair}
+.sim-panel{width:272px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.psec{border-bottom:1px solid var(--border);padding-bottom:10px}
+.ptitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+
+/* Sliders */
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sl-lbl{font-size:.79rem;color:var(--muted);flex-shrink:0;min-width:50px}
+.sl-r{flex:1;accent-color:var(--accent);cursor:pointer;height:4px}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:30px;flex-shrink:0;text-align:right}
+.vi{width:56px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--a2);border-radius:5px;color:var(--a3);font-weight:700;font-size:.81rem;text-align:center;-moz-appearance:textfield;flex-shrink:0}
+.vi::-webkit-outer-spin-button,.vi::-webkit-inner-spin-button{-webkit-appearance:none}
+.vi:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+/* Time display */
+.time-box{text-align:center;padding:7px;background:var(--panel2);border-radius:8px;border:1px solid var(--border)}
+.time-val{font-size:1.4rem;font-weight:700;color:var(--a4);font-family:'Share Tech Mono',monospace}
+.time-lbl{font-size:.7rem;color:var(--muted)}
+
+/* Planet list */
+.pli{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.pli:hover{background:var(--panel2);border-color:var(--border)}
+.pli.sel{background:#0c1a30;border-color:var(--accent)}
+.pli-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:2px solid;transition:.15s}
+.pli-name{font-size:.81rem;font-weight:600;flex:1}
+.pli-t{font-size:.7rem;color:var(--muted);font-family:'Share Tech Mono',monospace}
+
+/* Real-time card */
+.rt-card{background:var(--panel2);border-radius:9px;border:1px solid var(--accent);padding:11px}
+.rt-name{font-size:.95rem;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.rt-row{display:flex;justify-content:space-between;align-items:center;font-size:.77rem;padding:3px 0;border-bottom:1px solid var(--border)}
+.rt-row:last-child{border-bottom:none}
+.rt-row .lbl{color:var(--muted)}
+.rt-row .val{color:var(--a3);font-weight:600;font-family:'Share Tech Mono',monospace}
+
+/* Data table */
+.dsec{padding:18px;overflow-x:auto}
+.dsec h2{font-size:1.05rem;color:var(--accent);margin-bottom:12px}
+table.dt{width:100%;border-collapse:collapse;font-size:.81rem}
+table.dt th{background:var(--panel);color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+table.dt td{padding:7px 10px;border-bottom:1px solid var(--border)}
+table.dt tr:hover td{background:var(--panel)}
+table.dt .nc{display:flex;align-items:center;gap:7px;font-weight:600}
+table.dt .num{font-family:'Share Tech Mono',monospace;color:var(--a3)}
+
+/* Kepler section */
+.ksec{padding:18px;max-width:820px}
+.ksec h2{font-size:1.05rem;color:var(--accent);margin-bottom:16px}
+.klaw{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:16px 18px;margin-bottom:12px}
+.klaw-n{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px}
+.klaw h3{font-size:.97rem;color:var(--text);margin-bottom:7px}
+.klaw p{font-size:.83rem;color:var(--muted);line-height:1.7}
+.fbox{background:var(--panel2);border-left:3px solid var(--a3);border-radius:0 7px 7px 0;padding:9px 13px;font-family:'Share Tech Mono',monospace;font-size:.86rem;color:var(--a3);margin-top:9px}
+
+.footer{text-align:center;padding:7px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)}
+
+@media(max-width:900px){.sim-layout{flex-direction:column;height:auto}.cvs-wrap{height:55vw;min-height:300px}.sim-panel{width:100%;border-left:none;border-top:1px solid var(--border)}}
+
+.klaw-demo{margin-top:13px;padding-top:13px;border-top:1px solid var(--border)}
+.klaw-demo canvas{display:block;border-radius:8px;width:100%;max-width:560px;
+  background:#01020a;border:1px solid var(--border);margin-bottom:8px}
+.k-ctrl{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:.79rem;color:var(--muted)}
+.k-btn{padding:4px 11px;border-radius:5px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);cursor:pointer;font-size:.78rem;font-family:'Sarabun',sans-serif;transition:all .2s}
+.k-btn:hover{border-color:var(--a3);color:var(--a3)}
+.k-btn.on{border-color:var(--a3);color:var(--a3);background:#052e1e}
+.k-sl{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted)}
+.k-sl input[type=range]{width:100px;accent-color:var(--a2)}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body>
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../../index.html#demos">Demo</a><a href="../../index.html#collections">Collections</a><a href="../../library.html">Library</a><a href="../../index.html#about">เกี่ยวกับ</a><a href="../../index.html#contact">ติดต่อ</a></div>
+  <a href="../../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <div class="icon">🪐</div>
+  <div>
+    <h1>การโคจรของดาวเคราะห์</h1>
+    <p>Planetary Orbital Mechanics · ฟิสิกส์ดาราศาสตร์ · ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<div class="scope">⚠️ จำลอง 2D ด้วย F = GM/r² | ไม่รวมแรงระหว่างดาวเคราะห์ | ค่า a, e จาก NASA NSSDCA Planetary Fact Sheet 2020</div>
+
+<nav>
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('data',this)">📊 ข้อมูลดาวเคราะห์</button>
+  <button onclick="showSec('kepler',this)">📐 กฎของเคปเลอร์</button>
+</nav>
+
+<!-- ═══ SIMULATION ═══ -->
+<div class="section active" id="sec-sim">
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="cbar-sep"></div>
+    <button class="tog on"  id="tTrail"  onclick="togFeat('trail')">เส้นทาง</button>
+    <button class="tog on"  id="tLabel"  onclick="togFeat('label')">ชื่อดาว</button>
+    <button class="tog on"  id="tOrbit"  onclick="togFeat('orbit')">วงโคจร</button>
+    <button class="tog"     id="tFocus"  onclick="togFeat('focus')">ล็อคกล้อง</button>
+    <button class="tog"     id="tVel"    onclick="togFeat('vel')">เวกเตอร์ v</button>
+    <div class="cbar-sep"></div>
+    <button class="btn btn-zoom" onclick="zoomTo()">🔍 ซูมดาวที่เลือก</button>
+  </div>
+
+  <div class="sim-layout">
+    <div class="cvs-wrap"><canvas id="simCanvas"></canvas></div>
+
+    <div class="sim-panel">
+      <!-- Time -->
+      <div class="psec">
+        <div class="time-box">
+          <div class="time-lbl">เวลาจำลอง</div>
+          <div class="time-val mono" id="timeDisp">0d</div>
+          <div class="time-lbl">ปี / วัน</div>
+        </div>
+      </div>
+
+      <!-- Speed & Zoom -->
+      <div class="psec">
+        <div class="ptitle">ควบคุม</div>
+        <div class="sl-row">
+          <span class="sl-lbl">ความเร็ว</span>
+          <input class="sl-r" type="range" id="slSpeed" min="-1" max="4.7" step="0.01" value="0">
+          <input class="vi" type="number" id="viSpeed" min="0.1" max="50000" step="0.1" value="1">
+          <span class="sl-unit">yr/s</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">ซูม</span>
+          <input class="sl-r" type="range" id="slZoom" min="0.5" max="25" step="0.1" value="2">
+          <input class="vi" type="number" id="viZoom" min="0.5" max="25" step="0.1" value="2">
+          <span class="sl-unit">×</span>
+        </div>
+      </div>
+
+      <!-- Planet list -->
+      <div class="psec">
+        <div class="ptitle">แสดง/ซ่อน &amp; เลือกดาว</div>
+        <div style="display:flex;gap:5px;margin-bottom:7px">
+          <button onclick="setAllVis(true)"  style="flex:1;padding:3px;font-size:.71rem;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--a3);cursor:pointer">ทั้งหมด</button>
+          <button onclick="setAllVis(false)" style="flex:1;padding:3px;font-size:.71rem;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer">ล้าง</button>
+        </div>
+        <div id="planetList" style="display:flex;flex-direction:column;gap:3px"></div>
+      </div>
+
+      <!-- Realtime card -->
+      <div id="rtWrap" style="display:none">
+        <div class="ptitle">ข้อมูล real-time</div>
+        <div class="rt-card">
+          <div class="rt-name"><span id="rtDot" style="width:9px;height:9px;border-radius:50%;display:inline-block"></span><span id="rtName">—</span></div>
+          <div class="rt-row"><span class="lbl">ระยะห่าง (r)</span><span class="val" id="rtDist">—</span></div>
+          <div class="rt-row"><span class="lbl">ความเร็ว (v)</span><span class="val" id="rtVel">—</span></div>
+          <div class="rt-row"><span class="lbl">คาบ (T)</span><span class="val" id="rtPer">—</span></div>
+          <div class="rt-row"><span class="lbl">โคจรแล้ว</span><span class="val" id="rtOrb">—</span></div>
+          <div class="rt-row"><span class="lbl">Perihelion</span><span class="val" id="rtPeri">—</span></div>
+          <div class="rt-row"><span class="lbl">Aphelion</span><span class="val" id="rtAph">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DATA TABLE ═══ -->
+<div class="section" id="sec-data">
+  <div class="dsec">
+    <h2>📊 ข้อมูลดาวเคราะห์จาก NASA NSSDCA 2020</h2>
+    <table class="dt">
+      <thead><tr>
+        <th>ดาวเคราะห์</th><th>a (AU)</th><th>e</th>
+        <th>Perihelion (AU)</th><th>Aphelion (AU)</th>
+        <th>T (ปี)</th><th>T²/a³</th><th>v̄ (km/s)</th>
+      </tr></thead>
+      <tbody id="dtBody"></tbody>
+    </table>
+    <p style="font-size:.77rem;color:var(--muted);margin-top:10px">* T²/a³ ≈ 1.000 — ยืนยันกฎเคปเลอร์ข้อ 3 ในหน่วย AU และ ปี (M☉ = 1)</p>
+  </div>
+</div>
+
+<!-- ═══ KEPLER ═══ -->
+<div class="section" id="sec-kepler">
+  <div class="ksec">
+    <h2>📐 กฎการเคลื่อนที่ของดาวเคราะห์ — โยฮันเนส เคปเลอร์ (1609–1619)</h2>
+
+    <!-- ══ กฎข้อที่ 1 ══ -->
+    <div class="klaw">
+      <div class="klaw-n">กฎข้อที่ 1 — กฎวงรี (Law of Ellipses)</div>
+      <h3>ดาวเคราะห์โคจรรอบดวงอาทิตย์เป็นวงรี โดยมีดวงอาทิตย์อยู่ที่โฟกัสจุดหนึ่ง</h3>
+      <p>วงโคจรเป็น ellipse ไม่ใช่วงกลม ดวงอาทิตย์ไม่ได้อยู่กึ่งกลาง แต่อยู่ที่จุดโฟกัส F₁ ดังนั้น r₁+r₂ = 2a = ค่าคงตัวเสมอ</p>
+      <div class="fbox">r = a(1−e²)/(1+e·cosθ) &nbsp;|&nbsp; r₁+r₂ = 2a &nbsp;|&nbsp; perihelion = a(1−e) &nbsp;|&nbsp; aphelion = a(1+e)</div>
+      <div class="klaw-demo">
+        <canvas id="kc1" width="540" height="260"></canvas>
+        <div class="k-ctrl">
+          <span>ความเยื้องศูนย์ e:</span>
+          <div class="k-sl"><span>0</span>
+            <input type="range" id="k1sl" min="0.02" max="0.92" step="0.01" value="0.50"
+              oninput="k1.e=parseFloat(this.value);document.getElementById('k1ev').textContent=parseFloat(this.value).toFixed(2)">
+            <span>0.9</span>
+          </div>
+          <span id="k1ev" style="color:var(--a2);font-weight:700;min-width:30px">0.50</span>
+          <span style="color:var(--muted);font-size:.75rem">ลากสไลด์เพื่อเปลี่ยนรูปวงรี</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ กฎข้อที่ 2 ══ -->
+    <div class="klaw">
+      <div class="klaw-n">กฎข้อที่ 2 — กฎพื้นที่เท่ากัน (Law of Equal Areas)</div>
+      <h3>เส้นจากดวงอาทิตย์ถึงดาวเคราะห์กวาดพื้นที่เท่ากันในเวลาเท่ากัน</h3>
+      <p>ดาวเคราะห์ (และดาวหาง) เคลื่อนที่เร็วที่สุดตอนใกล้ดวงอาทิตย์ (perihelion) และช้าสุดตอนไกล (aphelion) หางของดาวหางชี้ออกจากดวงอาทิตย์เสมอ และยาวขึ้นเมื่อใกล้ดวงอาทิตย์เพราะลมสุริยะแรงขึ้น</p>
+      <div class="fbox">dA/dt = L/2m = ค่าคงตัว &nbsp;|&nbsp; v·r·sin(α) = ค่าคงตัว &nbsp;|&nbsp; v_peri × r_peri = v_aph × r_aph</div>
+      <div class="klaw-demo">
+        <canvas id="kc2" width="560" height="290"></canvas>
+        <div class="k-ctrl">
+          <button class="k-btn on" id="k2play" onclick="k2_togglePlay()">⏸ หยุด</button>
+          <button class="k-btn" id="k2area" onclick="k2_toggleAreas()">แสดงพื้นที่เท่ากัน</button>
+          <span style="font-size:.75rem;color:var(--muted)">สีสว่าง=เร็ว (perihelion) | สีมืด=ช้า (aphelion) | หางยาว=ใกล้ดวงอาทิตย์</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ กฎข้อที่ 3 ══ -->
+    <div class="klaw">
+      <div class="klaw-n">กฎข้อที่ 3 — กฎคาบ (Law of Periods)</div>
+      <h3>T² ∝ a³ — กำลังสองของคาบแปรผันตรงกับกำลังสามของกึ่งแกนเอก</h3>
+      <p>ดาวใกล้ดวงอาทิตย์โคจรครบรอบเร็วกว่าดาวไกล สังเกตจาก simulation: วงใน (สีเหลือง a=0.5 AU) โคจรหลายรอบขณะที่วงนอก (สีม่วง a=4 AU) ยังไม่ถึงครึ่งวง</p>
+      <div class="fbox">T² = (4π²/GM)·a³ &nbsp;→&nbsp; T = a^(3/2) ปี &nbsp;|&nbsp; T²/a³ = 1.000 (ทุกดวง)</div>
+      <div class="klaw-demo">
+        <canvas id="kc3" width="540" height="260"></canvas>
+        <div class="k-ctrl">
+          <span style="font-size:.75rem;color:var(--muted)">ดาวทุกดวงเริ่มที่ perihelion พร้อมกัน — นับรอบที่โคจรครบ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ นิวตัน ══ -->
+    <div class="klaw" style="border-color:var(--a2)">
+      <div class="klaw-n" style="color:var(--a2)">นิวตัน (1687) — สาเหตุของกฎเคปเลอร์</div>
+      <h3>แรงโน้มถ่วงสากล F = GMm/r²</h3>
+      <p>นิวตันพิสูจน์ว่ากฎของเคปเลอร์ทั้งสามเป็นผลมาจากแรงโน้มถ่วงแบบ inverse-square law Simulation นี้ใช้สมการของนิวตันคำนวณตำแหน่งทุก frame ด้วย Symplectic Euler integration</p>
+      <div class="fbox">a⃗ = −(GM/r³)·r⃗ &nbsp;|&nbsp; GM☉ = 4π² AU³/yr² &nbsp;|&nbsp; Symplectic Euler: v′=v+a·dt, x′=x+v′·dt</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer"><div class="footer">อ้างอิง: NASA NSSDCA Planetary Fact Sheet 2020 | Kepler (1619) | Newton (1687) | หลักสูตรแกนกลาง 2551 &nbsp;|&nbsp; © 2568 KP Science simulation สงวนลิขสิทธิ์</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// PLANET DATA — NASA NSSDCA 2020
+// ═══════════════════════════════════════════════
+const PD = [
+  {name:'Mercury',th:'ดาวพุธ',   a:0.38710,e:0.20563,color:'#a0a0a0',r:2.5,rKm:2439, moons:0,  vmean:47.4,rings:false},
+  {name:'Venus',  th:'ดาวศุกร์', a:0.72333,e:0.00677,color:'#e8cda0',r:4.5,rKm:6052, moons:0,  vmean:35.0,rings:false},
+  {name:'Earth',  th:'โลก',      a:1.00000,e:0.01671,color:'#4fc3f7',r:5.0,rKm:6371, moons:1,  vmean:29.8,rings:false},
+  {name:'Mars',   th:'ดาวอังคาร',a:1.52366,e:0.09341,color:'#ef5350',r:3.5,rKm:3390, moons:2,  vmean:24.1,rings:false},
+  {name:'Jupiter',th:'ดาวพฤหัส', a:5.20336,e:0.04839,color:'#f7971e',r:9.0,rKm:71492,moons:95, vmean:13.1,rings:false},
+  {name:'Saturn', th:'ดาวเสาร์', a:9.53707,e:0.05386,color:'#ffd54f',r:7.5,rKm:60268,moons:146,vmean:9.7, rings:true},
+  {name:'Uranus', th:'ดาวยูเรนัส',a:19.1913,e:0.04726,color:'#80deea',r:5.5,rKm:25362,moons:28, vmean:6.8, rings:false},
+  {name:'Neptune',th:'ดาวเนปจูน',a:30.0690,e:0.00859,color:'#5c6bc0',r:5.0,rKm:24622,moons:16, vmean:5.4, rings:false},
+];
+const GM = 4*Math.PI*Math.PI; // AU³/yr²
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let planets=[], simTime=0, isPlaying=false, animId=null, lastTs=null;
+let speed=1, zoom=2, selIdx=2;
+let showTrail=true, showLabel=true, showOrbit=true, lockCam=false, showVel=false;
+let stars=[], canvas, ctx, CW, CH;
+const BS = 9.5; // base scale px/AU at zoom=1
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function initPlanets(){
+  planets = PD.map(d=>{
+    const p = Object.assign({},d);
+    const r0 = p.a*(1-p.e);                          // perihelion
+    p.x=r0; p.y=0; p.vx=0;
+    p.vy = Math.sqrt(GM*(1+p.e)/(p.a*(1-p.e)));      // vis-viva at perihelion
+    p.period = Math.pow(p.a,1.5);                    // Kepler 3rd: T=a^(3/2) yr
+    p.trail=[]; p.orbits=0; p.prevAng=0; p.visible=true;
+    return p;
+  });
+}
+
+function initStars(){
+  stars=Array.from({length:200},()=>({
+    x:Math.random(),y:Math.random(),
+    s:Math.random()*1.4+0.3,a:Math.random()*0.65+0.3
+  }));
+}
+
+// ═══════════════════════════════════════════════
+// PHYSICS — Symplectic Euler + adaptive sub-stepping
+// ═══════════════════════════════════════════════
+let _fc=0;
+function update(dt){
+  _fc++;
+  planets.forEach(p=>{
+    const r2=p.x*p.x+p.y*p.y, r=Math.sqrt(r2), r3=r2*r;
+    p.vx += -GM*p.x/r3*dt;
+    p.vy += -GM*p.y/r3*dt;
+    p.x  += p.vx*dt;
+    p.y  += p.vy*dt;
+    // orbit count
+    const ang=Math.atan2(p.y,p.x);
+    if(p.prevAng< -Math.PI/2 && ang>Math.PI/2) p.orbits=Math.max(0,p.orbits-1);
+    if(p.prevAng>  Math.PI/2 && ang<-Math.PI/2) p.orbits++;
+    p.prevAng=ang;
+    // trail — store velocity magnitude for Kepler 2nd law coloring
+    if(showTrail && _fc%2===0){
+      const vm=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+      p.trail.push({x:p.x,y:p.y,v:vm});
+      if(p.trail.length>320) p.trail.shift();
+    }
+  });
+  simTime+=dt;
+}
+
+// ═══════════════════════════════════════════════
+// COORDINATE HELPERS
+// ═══════════════════════════════════════════════
+function sc(){ return zoom*BS; }
+function ox(){ return lockCam ? CW/2-planets[selIdx].x*sc() : CW/2; }
+function oy(){ return lockCam ? CH/2+planets[selIdx].y*sc() : CH/2; }
+function sx(wx){ return ox()+wx*sc(); }
+function sy(wy){ return oy()-wy*sc(); }
+
+// ═══════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle='#01020a'; ctx.fillRect(0,0,CW,CH);
+
+  // Stars
+  stars.forEach(s=>{
+    ctx.beginPath(); ctx.arc(s.x*CW,s.y*CH,s.s,0,Math.PI*2);
+    ctx.fillStyle=`rgba(200,210,255,${s.a})`; ctx.fill();
+  });
+
+  const O={x:ox(),y:oy()}, S=sc();
+
+  if(showOrbit) drawOrbits(O,S);
+  if(showTrail) drawTrails();
+
+  // Sun glow
+  const sg=ctx.createRadialGradient(O.x,O.y,0,O.x,O.y,30);
+  sg.addColorStop(0,'rgba(255,220,80,.4)'); sg.addColorStop(.5,'rgba(255,140,20,.1)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(O.x,O.y,30,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+
+  // Sun body — 10px (Mercury perihelion @ zoom4 = 0.307×38=11.7px > 10px ✓)
+  ctx.beginPath(); ctx.arc(O.x,O.y,10,0,Math.PI*2);
+  const sf=ctx.createRadialGradient(O.x-2,O.y-2,1,O.x,O.y,10);
+  sf.addColorStop(0,'#fff7cc'); sf.addColorStop(.5,'#ffd700'); sf.addColorStop(1,'#ff8c00');
+  ctx.fillStyle=sf; ctx.fill();
+
+  // Planets
+  planets.forEach((p,i)=>{
+    if(!p.visible) return;
+    const px=sx(p.x), py=sy(p.y);
+
+    // Saturn rings
+    if(p.rings){
+      ctx.save();
+      ctx.strokeStyle='#c8a84088'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.ellipse(px,py,p.r*2.5,p.r*.75,.3,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle='#ffd54f44'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.ellipse(px,py,p.r*1.9,p.r*.57,.3,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Selection glow
+    if(i===selIdx){
+      ctx.beginPath(); ctx.arc(px,py,p.r+5,0,Math.PI*2);
+      ctx.fillStyle=p.color+'28'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px,py,p.r+2.5,0,Math.PI*2);
+      ctx.fillStyle=p.color+'45'; ctx.fill();
+    }
+
+    // Planet
+    ctx.beginPath(); ctx.arc(px,py,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color; ctx.fill();
+    if(p.name==='Earth'){
+      ctx.beginPath(); ctx.arc(px-1,py-1,p.r*.5,0,Math.PI*2);
+      ctx.fillStyle='#2ecc71'; ctx.fill();
+    }
+
+    // Velocity vector
+    if(showVel && i===selIdx){
+      const VS=5, vex=sx(p.x+p.vx*VS), vey=sy(p.y+p.vy*VS);
+      ctx.save();
+      ctx.strokeStyle='#facc15'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(vex,vey); ctx.stroke();
+      const a=Math.atan2(vey-py,vex-px);
+      ctx.translate(vex,vey); ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-8,-4); ctx.lineTo(-8,4); ctx.closePath();
+      ctx.fillStyle='#facc15'; ctx.fill();
+      ctx.restore();
+      const vmag=(Math.sqrt(p.vx*p.vx+p.vy*p.vy)*29.78).toFixed(1);
+      ctx.fillStyle='#facc15'; ctx.font='10px Share Tech Mono,monospace';
+      ctx.fillText(vmag+' km/s', vex+5, vey-4);
+    }
+
+    // Label
+    if(showLabel && S>4){
+      ctx.fillStyle = i===selIdx ? p.color : p.color+'bb';
+      ctx.font=(i===selIdx?'bold ':'')+`11px Sarabun,sans-serif`;
+      ctx.fillText(p.th, px+p.r+4, py-p.r-2);
+    }
+  });
+
+  drawReadout();
+  drawScaleBar(S);
+}
+
+// ─── Orbits ───────────────────────────────────
+function drawOrbits(O,S){
+  planets.forEach((p,i)=>{
+    if(!p.visible) return;
+    // ใช้ค่า e จริงเสมอ — ดวงอาทิตย์อยู่ที่โฟกัส 1
+    const a=p.a*S, c=p.a*p.e*S, b=Math.sqrt(a*a-c*c);
+    const isSel=(i===selIdx);
+
+    ctx.save();
+    ctx.strokeStyle = isSel ? p.color+'70' : '#ffffff12';
+    ctx.lineWidth   = isSel ? 1.5 : 0.5;
+    ctx.setLineDash([3,5]);
+    ctx.beginPath();
+    // center of ellipse อยู่ที่ (ox-c, oy) → sun อยู่ที่โฟกัส 1
+    ctx.ellipse(O.x-c, O.y, a, b, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+
+    if(!isSel) return;
+
+    // ─ markers สำหรับดาวที่เลือก ─
+    const CX=O.x-c;          // center of ellipse
+    const periX=O.x+p.a*(1-p.e)*S;  // perihelion (sun + r_peri)
+    const aphX =O.x-p.a*(1+p.e)*S;  // aphelion
+    const f2X  =CX-c;                // focus 2 (empty)
+
+    ctx.save();
+    // แกนหลัก (dashed)
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle='#ffffff15'; ctx.lineWidth=.8;
+    ctx.beginPath(); ctx.moveTo(periX,O.y); ctx.lineTo(aphX,O.y); ctx.stroke();
+    // แกนรอง
+    ctx.strokeStyle='#ffffff08';
+    ctx.beginPath(); ctx.moveTo(CX,O.y-b); ctx.lineTo(CX,O.y+b); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ศูนย์กลางวงรี ○
+    if(a>50){
+      ctx.beginPath(); ctx.arc(CX,O.y,4,0,Math.PI*2);
+      ctx.strokeStyle='#ffffff40'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.fillStyle='#ffffff10'; ctx.fill();
+      ctx.fillStyle='#ffffff55'; ctx.font='9px Sarabun,sans-serif';
+      ctx.fillText('ศูนย์กลางวงรี',CX+6,O.y-7);
+    }
+
+    // โฟกัส 2 ×
+    if(a>70){
+      const fp=5;
+      ctx.strokeStyle='#ffffff40'; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(f2X-fp,O.y-fp); ctx.lineTo(f2X+fp,O.y+fp); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(f2X+fp,O.y-fp); ctx.lineTo(f2X-fp,O.y+fp); ctx.stroke();
+      ctx.fillStyle='#ffffff50'; ctx.font='9px Sarabun,sans-serif';
+      ctx.fillText('โฟกัส 2 (ว่าง)',f2X+6,O.y-7);
+      // Sun = focus 1
+      ctx.fillStyle='#ffd70080'; ctx.font='9px Sarabun,sans-serif';
+      ctx.fillText('☀ โฟกัส 1',O.x+6,O.y+16);
+    }
+
+    // Perihelion dot + label
+    ctx.beginPath(); ctx.arc(periX,O.y,3.5,0,Math.PI*2);
+    ctx.fillStyle='#facc15'; ctx.fill();
+    if(a>40){
+      ctx.fillStyle='#facc15'; ctx.font='10px Sarabun,sans-serif';
+      ctx.fillText('Perihelion',periX+5,O.y-7);
+      ctx.fillStyle='#fbbf2490'; ctx.font='9px Share Tech Mono,monospace';
+      ctx.fillText((p.a*(1-p.e)).toFixed(4)+' AU',periX+5,O.y+9);
+    }
+
+    // Aphelion dot + label
+    ctx.beginPath(); ctx.arc(aphX,O.y,3.5,0,Math.PI*2);
+    ctx.fillStyle='#818cf8'; ctx.fill();
+    if(a>40){
+      ctx.fillStyle='#818cf8'; ctx.font='10px Sarabun,sans-serif';
+      ctx.fillText('Aphelion',aphX-65,O.y-7);
+      ctx.fillStyle='#818cf890'; ctx.font='9px Share Tech Mono,monospace';
+      ctx.fillText((p.a*(1+p.e)).toFixed(4)+' AU',aphX-65,O.y+9);
+    }
+
+    // e label
+    ctx.fillStyle=p.color+'cc'; ctx.font='bold 10px Sarabun,sans-serif';
+    ctx.fillText(`e = ${p.e.toFixed(5)}`, Math.min(CX-30,CW-180), O.y-b-9);
+
+    ctx.restore();
+  });
+}
+
+// ─── Trails (color = velocity, Kepler 2nd law) ─
+function drawTrails(){
+  planets.forEach((p,i)=>{
+    if(!p.visible || p.trail.length<2) return;
+    const vMax=p.trail.reduce((m,t)=>Math.max(m,t.v),0.001);
+    const vMin=p.trail.reduce((m,t)=>Math.min(m,t.v),999);
+    const isSel=(i===selIdx);
+    ctx.save();
+    for(let j=1;j<p.trail.length;j++){
+      const fade=j/p.trail.length;
+      const vn=vMax>vMin?(p.trail[j].v-vMin)/(vMax-vMin):0.5;
+      let clr;
+      if(isSel){
+        // สีดาว (ช้า) → ขาว (เร็ว)
+        const rc=parseInt(p.color.slice(1,3),16);
+        const gc=parseInt(p.color.slice(3,5),16);
+        const bc=parseInt(p.color.slice(5,7),16);
+        const r=Math.round(rc+vn*(255-rc)).toString(16).padStart(2,'0');
+        const g=Math.round(gc+vn*(255-gc)).toString(16).padStart(2,'0');
+        const b=Math.round(bc+vn*(255-bc)).toString(16).padStart(2,'0');
+        const aa=Math.floor(fade*.85*255).toString(16).padStart(2,'0');
+        clr=`#${r}${g}${b}${aa}`;
+      } else {
+        clr=p.color+Math.floor(fade*.35*255).toString(16).padStart(2,'0');
+      }
+      ctx.beginPath();
+      ctx.moveTo(sx(p.trail[j-1].x),sy(p.trail[j-1].y));
+      ctx.lineTo(sx(p.trail[j].x),  sy(p.trail[j].y));
+      ctx.strokeStyle=clr; ctx.lineWidth=isSel?1.4:.6; ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+// ─── Readout ─────────────────────────────────
+function drawReadout(){
+  const yrs=Math.floor(simTime);
+  const days=Math.round((simTime-yrs)*365.25);
+  document.getElementById('timeDisp').textContent = yrs>0 ? `${yrs}y ${days}d` : `${Math.round(simTime*365.25)}d`;
+  const p=planets[selIdx]; if(!p) return;
+  const r=Math.sqrt(p.x*p.x+p.y*p.y);
+  const v=Math.sqrt(p.vx*p.vx+p.vy*p.vy)*29.78;
+  document.getElementById('rtDist').textContent = r.toFixed(4)+' AU';
+  document.getElementById('rtVel').textContent  = v.toFixed(2)+' km/s';
+  document.getElementById('rtPer').textContent  = p.period.toFixed(3)+' yr';
+  document.getElementById('rtOrb').textContent  = p.orbits+' รอบ';
+  document.getElementById('rtPeri').textContent = (p.a*(1-p.e)).toFixed(4)+' AU';
+  document.getElementById('rtAph').textContent  = (p.a*(1+p.e)).toFixed(4)+' AU';
+}
+
+// ─── Scale bar ───────────────────────────────
+function drawScaleBar(S){
+  const barAU = S>=50?0.5 : S>=20?1 : S>=8?2 : 5;
+  const bpx=barAU*S, bx=14, by=CH-16;
+  ctx.fillStyle='#ffffff70'; ctx.fillRect(bx,by,bpx,2);
+  ctx.fillRect(bx,by-4,2,8); ctx.fillRect(bx+bpx,by-4,2,8);
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Share Tech Mono,monospace';
+  ctx.fillText(`${barAU} AU`,bx+bpx/2-14,by-7);
+}
+
+// ═══════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════
+function loop(ts){
+  if(!lastTs) lastTs=ts;
+  const wdt=Math.min((ts-lastTs)/1000,.05); lastTs=ts;
+  const dtTot=wdt*speed;
+  const MAX_STEP=0.004; // yr — keeps Mercury stable (T_Mercury/60 = 0.004 yr)
+  const steps=Math.min(Math.ceil(dtTot/MAX_STEP),600);
+  const dts=dtTot/steps;
+  for(let i=0;i<steps;i++) update(dts);
+  draw();
+  animId=requestAnimationFrame(loop);
+}
+
+function togglePlay(){
+  isPlaying=!isPlaying;
+  const btn=document.getElementById('playBtn');
+  if(isPlaying){ lastTs=null; animId=requestAnimationFrame(loop); btn.textContent='⏸ หยุด'; btn.classList.add('playing'); }
+  else{ cancelAnimationFrame(animId); btn.textContent='▶ เริ่ม'; btn.classList.remove('playing'); }
+}
+
+function resetSim(){
+  cancelAnimationFrame(animId); isPlaying=false; simTime=0; lastTs=null; _fc=0;
+  document.getElementById('playBtn').textContent='▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  initPlanets(); draw();
+}
+
+// ═══════════════════════════════════════════════
+// UI CONTROLS
+// ═══════════════════════════════════════════════
+function togFeat(f){
+  const map={trail:'showTrail',label:'showLabel',orbit:'showOrbit',focus:'lockCam',vel:'showVel'};
+  const ids={trail:'tTrail',label:'tLabel',orbit:'tOrbit',focus:'tFocus',vel:'tVel'};
+  if(f==='trail') showTrail=!showTrail;
+  else if(f==='label') showLabel=!showLabel;
+  else if(f==='orbit') showOrbit=!showOrbit;
+  else if(f==='focus') lockCam=!lockCam;
+  else if(f==='vel') showVel=!showVel;
+  const st=f==='trail'?showTrail:f==='label'?showLabel:f==='orbit'?showOrbit:f==='focus'?lockCam:showVel;
+  document.getElementById(ids[f]).classList.toggle('on',st);
+  if(!isPlaying) draw();
+}
+
+function zoomTo(){
+  const p=PD[selIdx];
+  const aph=p.a*(1+p.e);
+  const tgtScale=Math.min(CW,CH)*.4/aph;
+  zoom=Math.max(.5,Math.min(25,parseFloat((tgtScale/BS).toFixed(1))));
+  document.getElementById('slZoom').value=zoom;
+  document.getElementById('viZoom').value=zoom.toFixed(1);
+  if(!isPlaying) draw();
+}
+
+function setAllVis(v){
+  planets.forEach((p,i)=>{ p.visible=v; updDot(i,v); });
+  if(!isPlaying) draw();
+}
+
+function toggleVis(i,e){
+  e.stopPropagation();
+  planets[i].visible=!planets[i].visible;
+  updDot(i,planets[i].visible);
+  if(!isPlaying) draw();
+}
+
+function updDot(i,v){
+  const dot=document.getElementById('pdot-'+i);
+  if(!dot) return;
+  dot.style.background=v?PD[i].color:'transparent';
+  dot.style.opacity=v?'1':'.4';
+}
+
+function selectPlanet(i){
+  selIdx=i;
+  document.querySelectorAll('.pli').forEach((el,j)=>el.classList.toggle('sel',j===i));
+  document.getElementById('rtDot').style.background=PD[i].color;
+  document.getElementById('rtName').textContent=PD[i].th+' ('+PD[i].name+')';
+  document.getElementById('rtWrap').style.display='block';
+  if(!isPlaying) draw();
+}
+
+function showSec(n,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+n).classList.add('active');
+  btn.classList.add('active');
+  if(n==='sim'){ keplerStop(); resizeCvs(); if(!isPlaying) draw(); }
+  else if(n==='kepler'){ keplerStart(); }
+  else { keplerStop(); }
+}
+
+function resizeCvs(){
+  const w=document.querySelector('.cvs-wrap');
+  if(!w) return;
+  canvas.width=w.clientWidth; canvas.height=w.clientHeight;
+  CW=canvas.width; CH=canvas.height;
+  if(!isPlaying) draw();
+}
+
+// ═══════════════════════════════════════════════
+// BUILD UI
+// ═══════════════════════════════════════════════
+function buildPlanetList(){
+  const list=document.getElementById('planetList');
+  list.innerHTML='';
+  PD.forEach((d,i)=>{
+    const el=document.createElement('div');
+    el.className='pli'+(i===selIdx?' sel':'');
+    el.id='pli-'+i;
+    const T=Math.pow(d.a,1.5).toFixed(2);
+    el.innerHTML=`
+      <span id="pdot-${i}" class="pli-dot" style="background:${d.color};border-color:${d.color};cursor:pointer" onclick="toggleVis(${i},event)" title="ซ่อน/แสดง"></span>
+      <span class="pli-name" onclick="selectPlanet(${i})">${d.th}</span>
+      <span class="pli-t">${T} yr</span>`;
+    list.appendChild(el);
+  });
+}
+
+function buildDataTable(){
+  const tb=document.getElementById('dtBody');
+  PD.forEach(d=>{
+    const T=Math.pow(d.a,1.5);
+    const t2a3=(T*T/Math.pow(d.a,3)).toFixed(4);
+    const ok=Math.abs(parseFloat(t2a3)-1)<0.001;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="nc"><span style="width:9px;height:9px;border-radius:50%;background:${d.color};display:inline-block"></span>${d.th}</span></td>
+      <td class="num">${d.a.toFixed(5)}</td>
+      <td class="num">${d.e.toFixed(5)}</td>
+      <td class="num">${(d.a*(1-d.e)).toFixed(4)}</td>
+      <td class="num">${(d.a*(1+d.e)).toFixed(4)}</td>
+      <td class="num">${T.toFixed(4)}</td>
+      <td class="num" style="color:${ok?'#34d399':'#fb923c'}">${t2a3}</td>
+      <td class="num">${d.vmean}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SLIDER INIT
+// ═══════════════════════════════════════════════
+function initSliders(){
+  // Speed — log scale
+  document.getElementById('slSpeed').addEventListener('input',function(){
+    speed=parseFloat(Math.pow(10,parseFloat(this.value)).toFixed(3));
+    document.getElementById('viSpeed').value=speed;
+  });
+  document.getElementById('viSpeed').addEventListener('change',function(){
+    let v=Math.max(.1,Math.min(50000,parseFloat(this.value)||1));
+    speed=v; this.value=v;
+    document.getElementById('slSpeed').value=Math.log10(v).toFixed(3);
+  });
+
+  // Zoom
+  document.getElementById('slZoom').addEventListener('input',function(){
+    zoom=parseFloat(this.value);
+    document.getElementById('viZoom').value=zoom.toFixed(1);
+    if(!isPlaying) draw();
+  });
+  document.getElementById('viZoom').addEventListener('change',function(){
+    let v=Math.max(.5,Math.min(25,parseFloat(this.value)||4));
+    zoom=v; this.value=v.toFixed(1);
+    document.getElementById('slZoom').value=v;
+    if(!isPlaying) draw();
+  });
+
+  // Canvas click → select planet
+  document.getElementById('simCanvas').addEventListener('click',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(CW/rect.width);
+    const my=(e.clientY-rect.top)*(CH/rect.height);
+    let best=-1,bestD=22;
+    planets.forEach((p,i)=>{
+      if(!p.visible) return;
+      const dx=sx(p.x)-mx, dy=sy(p.y)-my;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<bestD){ bestD=d; best=i; }
+    });
+    if(best>=0) selectPlanet(best);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// STARTUP
+// ═══════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  canvas=document.getElementById('simCanvas');
+  ctx=canvas.getContext('2d');
+  resizeCvs();
+  initStars();
+  initPlanets();
+  buildPlanetList();
+  buildDataTable();
+  initSliders();
+  selectPlanet(2); // Earth default
+  draw();
+});
+window.addEventListener('resize',resizeCvs);
+
+
+// ══════════════════════════════════════════════════════════════
+// KEPLER MINI-SIMULATIONS
+// ══════════════════════════════════════════════════════════════
+const KGM = 4*Math.PI*Math.PI;
+
+// ── Law 1: Ellipse Explorer (Physics-based — Kepler 2nd law speed) ──
+const K1_A = 1.8; // semi-major axis AU
+const k1 = { e:0.50, prevE:-1, anim:null, last:null,
+              x:0, y:0, vx:0, vy:0, trail:[] };
+
+function k1_reset(){
+  // เริ่มที่ perihelion (ขวาสุด), ความเร็วสูงสุดชี้ขึ้น
+  k1.x  = K1_A*(1-k1.e);
+  k1.y  = 0;
+  k1.vx = 0;
+  k1.vy = Math.sqrt(KGM*(1+k1.e)/(K1_A*(1-k1.e))); // vis-viva at perihelion
+  k1.trail = [];
+  k1.prevE = k1.e;
+}
+
+function k1_draw(){
+  const cv=document.getElementById('kc1'); if(!cv) return;
+  const C=cv.getContext('2d'), W=cv.width, H=cv.height;
+  C.fillStyle='#01020a'; C.fillRect(0,0,W,H);
+  const e=k1.e;
+  const S=Math.min(W,H)*0.41/K1_A;
+  const ecx=W*0.5, ecy=H*0.5;
+  const a=K1_A*S, b=a*Math.sqrt(1-e*e), cf=K1_A*e*S;
+  // ☀ at right focus F1, × at left focus F2
+  const F1x=ecx+cf, F1y=ecy;
+  const F2x=ecx-cf, F2y=ecy;
+
+  // Orbit ellipse (เส้นประ)
+  C.save(); C.strokeStyle='#818cf848'; C.lineWidth=1; C.setLineDash([3,4]);
+  C.beginPath(); C.ellipse(ecx,ecy,a,b,0,0,Math.PI*2); C.stroke();
+  // Axes
+  C.strokeStyle='#ffffff08'; C.lineWidth=0.7;
+  C.beginPath(); C.moveTo(ecx-a-8,ecy); C.lineTo(ecx+a+8,ecy); C.stroke();
+  C.beginPath(); C.moveTo(ecx,ecy-b-8); C.lineTo(ecx,ecy+b+8); C.stroke();
+  C.setLineDash([]); C.restore();
+
+  // Planet canvas position (physics: sun at origin)
+  const px=F1x+k1.x*S, py=F1y-k1.y*S;
+  const r_au=Math.sqrt(k1.x*k1.x+k1.y*k1.y);
+  const r2_au=Math.sqrt((px-F2x)**2+(py-F2y)**2)/S;
+
+  // Trail — สีสว่าง=เร็ว (ใกล้ perihelion), สีมืด=ช้า (ใกล้ aphelion)
+  if(k1.trail.length>1){
+    const vMax=k1.trail.reduce((m,t)=>Math.max(m,t.v),0.001);
+    const vMin=k1.trail.reduce((m,t)=>Math.min(m,t.v),999);
+    C.save();
+    for(let j=1;j<k1.trail.length;j++){
+      const fade=j/k1.trail.length;
+      const vn=vMax>vMin?(k1.trail[j].v-vMin)/(vMax-vMin):0.5;
+      const br=Math.round(80+vn*175);
+      C.beginPath();
+      C.moveTo(F1x+k1.trail[j-1].x*S, F1y-k1.trail[j-1].y*S);
+      C.lineTo(F1x+k1.trail[j].x*S,   F1y-k1.trail[j].y*S);
+      C.strokeStyle=`rgba(${br},${Math.round(br*0.82)},255,${(fade*fade*0.75).toFixed(2)})`;
+      C.lineWidth=1.3; C.stroke();
+    }
+    C.restore();
+  }
+
+  // r1 line (☀→planet, ทอง) และ r2 line (F2→planet, ม่วง)
+  C.save();
+  C.strokeStyle='#facc1568'; C.lineWidth=1.4;
+  C.beginPath(); C.moveTo(F1x,F1y); C.lineTo(px,py); C.stroke();
+  C.strokeStyle='#818cf858'; C.lineWidth=1;
+  C.beginPath(); C.moveTo(F2x,F2y); C.lineTo(px,py); C.stroke();
+  C.restore();
+
+  // Perihelion & Aphelion markers
+  const periX=ecx+a, aphX=ecx-a;
+  C.fillStyle='#facc15'; C.beginPath(); C.arc(periX,ecy,3,0,Math.PI*2); C.fill();
+  C.fillStyle='#818cf8'; C.beginPath(); C.arc(aphX,ecy,3,0,Math.PI*2); C.fill();
+
+  // ศูนย์กลาง ○
+  C.beginPath(); C.arc(ecx,ecy,3.5,0,Math.PI*2);
+  C.strokeStyle='#ffffff30'; C.lineWidth=1; C.stroke();
+
+  // ☀ Sun (F1, right focus)
+  const sg=C.createRadialGradient(F1x,F1y,0,F1x,F1y,16);
+  sg.addColorStop(0,'rgba(255,220,80,.55)'); sg.addColorStop(.6,'rgba(255,140,20,.1)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  C.beginPath(); C.arc(F1x,F1y,16,0,Math.PI*2); C.fillStyle=sg; C.fill();
+  C.beginPath(); C.arc(F1x,F1y,8,0,Math.PI*2);
+  const sf=C.createRadialGradient(F1x-2,F1y-2,1,F1x,F1y,8);
+  sf.addColorStop(0,'#fffae0'); sf.addColorStop(.5,'#ffd700'); sf.addColorStop(1,'#ff8c00');
+  C.fillStyle=sf; C.fill();
+
+  // × F2 (left focus)
+  C.save(); const fp=5;
+  C.strokeStyle='#818cf870'; C.lineWidth=1.5;
+  C.beginPath(); C.moveTo(F2x-fp,F2y-fp); C.lineTo(F2x+fp,F2y+fp); C.stroke();
+  C.beginPath(); C.moveTo(F2x+fp,F2y-fp); C.lineTo(F2x-fp,F2y+fp); C.stroke();
+  C.restore();
+
+  // Planet body
+  const pg=C.createRadialGradient(px-1,py-1,1,px,py,6);
+  pg.addColorStop(0,'#b0e8ff'); pg.addColorStop(1,'#4fc3f7');
+  C.beginPath(); C.arc(px,py,5,0,Math.PI*2); C.fillStyle=pg; C.fill();
+
+  // ป้ายบอกความเร็ว ณ ตำแหน่งปัจจุบัน
+  const v_kmps=(Math.sqrt(k1.vx*k1.vx+k1.vy*k1.vy)*29.78).toFixed(1);
+  const nearPeri = r_au < K1_A*(1-e*0.5);
+  const nearAph  = r_au > K1_A*(1+e*0.5);
+  // Speed label follows planet
+  if(a>60){
+    const lx=px+8, ly=py-10;
+    C.font='bold 10px Sarabun,sans-serif';
+    if(nearPeri){
+      C.fillStyle='#facc15'; C.fillText('⚡ เร็วสุด!',Math.min(lx,W-72),Math.max(ly,12));
+    } else if(nearAph){
+      C.fillStyle='#818cf8'; C.fillText('🐌 ช้าสุด',Math.min(lx,W-65),Math.max(ly,12));
+    }
+  }
+
+  // Labels
+  if(a>60){
+    C.font='9px Sarabun,sans-serif';
+    C.fillStyle='#facc15';
+    C.fillText('จุดใกล้',Math.min(periX+5,W-50),ecy-8);
+    C.fillText('Perihelion',Math.min(periX+5,W-72),ecy+14);
+    C.fillStyle='#818cf8';
+    C.fillText('จุดไกล',Math.max(2,aphX-44),ecy-8);
+    C.fillText('Aphelion',Math.max(2,aphX-52),ecy+14);
+    C.fillStyle='#ffd70080'; C.fillText('☀ F₁',F1x-(cf>50?36:9),F1y+21);
+    C.fillStyle='#818cf860'; C.fillText('F₂',F2x-18,F2y-9);
+    C.fillStyle='#ffffff28'; C.fillText('○ ศูนย์กลาง',ecx+5,ecy-8);
+    C.fillStyle='#64748b'; C.font='8px Sarabun,sans-serif';
+    C.fillText('← แกนเอก (2a) →',ecx-30,ecy+b+16);
+  }
+
+  // Info panel
+  C.font='11px Share Tech Mono,monospace';
+  C.fillStyle='#facc15cc'; C.fillText('r₁ = '+r_au.toFixed(3)+' AU',8,17);
+  C.fillStyle='#818cf8cc'; C.fillText('r₂ = '+r2_au.toFixed(3)+' AU',8,32);
+  const sum=(r_au+r2_au);
+  C.fillStyle=Math.abs(sum-2*K1_A)<0.05?'#34d399':'#f87171';
+  C.fillText('r₁+r₂ = '+sum.toFixed(3)+' AU = 2a ✓',8,47);
+  C.fillStyle='#64748b'; C.fillText('2a = '+(2*K1_A).toFixed(3)+' AU (ค่าคงตัว)',8,62);
+  // ความเร็ว — สีแดง=เร็ว (ใกล้ perihelion), สีฟ้า=ช้า
+  const vMax_theory=(Math.sqrt(KGM*(1+e)/(K1_A*(1-e)))*29.78).toFixed(1);
+  const vMin_theory=(Math.sqrt(KGM*(1-e)/(K1_A*(1+e)))*29.78).toFixed(1);
+  C.fillStyle=nearPeri?'#fbbf24':nearAph?'#818cf8':'#38bdf8';
+  C.fillText('v = '+v_kmps+' km/s',8,77);
+  C.fillStyle='#4b5563'; C.font='9px Share Tech Mono,monospace';
+  C.fillText('v_peri='+vMax_theory+' v_aph='+vMin_theory,8,90);
+  C.fillStyle='#fb923c'; C.font='bold 12px Sarabun,sans-serif';
+  C.fillText('e = '+e.toFixed(2),W-55,18);
+}
+
+function k1_tick(ts){
+  if(!k1.last){ k1.last=ts; k1_reset(); k1.anim=requestAnimationFrame(k1_tick); return; }
+  const wdt=Math.min((ts-k1.last)/1000,0.05); k1.last=ts;
+  // reset เมื่อ slider เปลี่ยน
+  if(Math.abs(k1.e-k1.prevE)>0.001) k1_reset();
+  // integrate orbit ด้วย Symplectic Euler + adaptive sub-stepping
+  const dt_tot=wdt*0.45; // yr per wall second
+  const steps=Math.min(Math.ceil(dt_tot/0.004),300);
+  const dts=dt_tot/steps;
+  for(let i=0;i<steps;i++){
+    const r2=k1.x*k1.x+k1.y*k1.y, r=Math.sqrt(r2), r3=r2*r;
+    k1.vx+=-KGM*k1.x/r3*dts; k1.vy+=-KGM*k1.y/r3*dts;
+    k1.x+=k1.vx*dts; k1.y+=k1.vy*dts;
+  }
+  const vm=Math.sqrt(k1.vx*k1.vx+k1.vy*k1.vy);
+  k1.trail.push({x:k1.x,y:k1.y,v:vm});
+  if(k1.trail.length>110) k1.trail.shift();
+  k1_draw();
+  k1.anim=requestAnimationFrame(k1_tick);
+}
+
+// ── Law 2: Comet Simulation ──────────────────────────────────
+// Comet parameters: a=2.5 AU, e=0.87 (similar to comet Encke)
+// r_peri = 0.325 AU, r_aph = 4.675 AU → v ratio ≈ 14×
+const K2A=2.5, K2E=0.87;
+const k2 = {
+  x:K2A*(1-K2E), y:0, vx:0,
+  vy:0, // set in init
+  trail:[], anim:null, last:null,
+  playing:true, showAreas:false, sectors:null
+};
+
+function k2_precompute(){
+  const T=Math.pow(K2A,1.5), dt=T/800;
+  let x=K2A*(1-K2E), y=0, vx=0;
+  let vy=Math.sqrt(KGM*(1+K2E)/(K2A*(1-K2E)));
+  const pts=[];
+  for(let s=0;s<800;s++){
+    const r2=x*x+y*y, r=Math.sqrt(r2), r3=r2*r;
+    vx+=-KGM*x/r3*dt; vy+=-KGM*y/r3*dt;
+    x+=vx*dt; y+=vy*dt;
+    if(s%100===0) pts.push({x,y});
+  }
+  return pts;
+}
+
+function k2_reset(){
+  k2.x=K2A*(1-K2E); k2.y=0; k2.vx=0;
+  k2.vy=Math.sqrt(KGM*(1+K2E)/(K2A*(1-K2E)));
+  k2.trail=[];
+}
+
+function k2_draw(){
+  const cv=document.getElementById('kc2'); if(!cv) return;
+  const C=cv.getContext('2d'), W=cv.width, H=cv.height;
+  C.fillStyle='#01020a'; C.fillRect(0,0,W,H);
+
+  // Layout: Sun slightly right of center
+  const S=52; // px/AU
+  const sunX=Math.round(W*0.62), sunY=H/2;
+  function toX(wx){ return sunX+wx*S; }
+  function toY(wy){ return sunY-wy*S; }
+
+  // Stars (static, seeded)
+  C.fillStyle='rgba(200,210,255,0.5)';
+  for(let i=0;i<60;i++){
+    const sx=(((i*7919+31)%W+W)%W), sy=(((i*6271+17)%H+H)%H);
+    C.beginPath(); C.arc(sx,sy,((i%3)*.4+.3),0,Math.PI*2); C.fill();
+  }
+
+  // Orbit ellipse
+  const a=K2A*S, c_f=K2A*K2E*S, b=Math.sqrt(a*a-c_f*c_f);
+  const elCX=sunX-c_f;
+  C.save(); C.strokeStyle='#4fc3f718'; C.lineWidth=0.8; C.setLineDash([3,5]);
+  C.beginPath(); C.ellipse(elCX,sunY,a,b,0,0,Math.PI*2); C.stroke();
+  C.setLineDash([]); C.restore();
+
+  // Equal-area sectors
+  if(k2.showAreas && k2.sectors){
+    const cols=['#ef4444','#f97316','#eab308','#84cc16','#22d3ee','#6366f1','#a855f7','#ec4899'];
+    k2.sectors.forEach((p,i)=>{
+      const nxt=k2.sectors[(i+1)%k2.sectors.length];
+      C.save(); C.beginPath(); C.moveTo(sunX,sunY);
+      C.lineTo(toX(p.x),toY(p.y)); C.lineTo(toX(nxt.x),toY(nxt.y)); C.closePath();
+      C.fillStyle=cols[i]+'44'; C.fill();
+      C.strokeStyle=cols[i]+'77'; C.lineWidth=0.7; C.stroke();
+      C.restore();
+    });
+  }
+
+  // Dust trail (curved, follows orbit)
+  if(k2.trail.length>1){
+    C.save();
+    for(let j=1;j<k2.trail.length;j++){
+      const frac=j/k2.trail.length;
+      const a16=Math.floor(frac*frac*160).toString(16).padStart(2,'0');
+      C.strokeStyle='#fde68a'+a16; C.lineWidth=frac*2.2+0.3;
+      C.beginPath(); C.moveTo(toX(k2.trail[j-1].x),toY(k2.trail[j-1].y));
+      C.lineTo(toX(k2.trail[j].x),toY(k2.trail[j].y)); C.stroke();
+    }
+    C.restore();
+  }
+
+  // Comet canvas position
+  const cx=toX(k2.x), cy=toY(k2.y);
+  const r=Math.sqrt(k2.x*k2.x+k2.y*k2.y);
+
+  // Ion tail: anti-solar direction, length ∝ 1/r
+  const tdX=k2.x/r, tdY=k2.y/r;   // unit vector: sun → comet (AU space)
+  const tailLen=Math.min(S*1.8/(r*r*0.08+0.04), S*5.5); // px, longer when close
+  const tipX=cx+tdX*tailLen, tipY=cy-tdY*tailLen;
+  // Draw 3 ion tail lines (main + two side tendrils)
+  C.save();
+  const perpX=tdY, perpY=tdX; // canvas perpendicular
+  for(let s=-1;s<=1;s++){
+    const offx=perpX*s*3.5, offy=perpY*s*3.5;
+    const alpha=s===0?0.85:0.35, lw=s===0?3:1.5;
+    const spread=s===0?1:1.7;
+    const ig=C.createLinearGradient(cx+offx,cy+offy, tipX+offx*spread,tipY+offy*spread);
+    ig.addColorStop(0,`rgba(170,225,255,${alpha})`);
+    ig.addColorStop(0.35,`rgba(120,190,255,${alpha*0.5})`);
+    ig.addColorStop(1,'rgba(80,150,255,0)');
+    C.beginPath(); C.moveTo(cx+offx,cy+offy); C.lineTo(tipX+offx*spread,tipY+offy*spread);
+    C.strokeStyle=ig; C.lineWidth=lw; C.stroke();
+  }
+  C.restore();
+
+  // Sun glow + body
+  const sg=C.createRadialGradient(sunX,sunY,0,sunX,sunY,26);
+  sg.addColorStop(0,'rgba(255,220,80,.5)'); sg.addColorStop(.55,'rgba(255,140,20,.1)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  C.beginPath(); C.arc(sunX,sunY,26,0,Math.PI*2); C.fillStyle=sg; C.fill();
+  C.beginPath(); C.arc(sunX,sunY,9,0,Math.PI*2);
+  const sf=C.createRadialGradient(sunX-2,sunY-2,1,sunX,sunY,9);
+  sf.addColorStop(0,'#fffae0'); sf.addColorStop(.5,'#ffd700'); sf.addColorStop(1,'#ff8c00');
+  C.fillStyle=sf; C.fill();
+
+  // Comet coma (fuzzy glow)
+  const coma=C.createRadialGradient(cx,cy,0,cx,cy,11);
+  coma.addColorStop(0,'rgba(210,240,255,0.95)');
+  coma.addColorStop(.4,'rgba(150,210,255,0.35)');
+  coma.addColorStop(1,'rgba(100,170,255,0)');
+  C.beginPath(); C.arc(cx,cy,11,0,Math.PI*2); C.fillStyle=coma; C.fill();
+  // Nucleus
+  C.beginPath(); C.arc(cx,cy,2.5,0,Math.PI*2); C.fillStyle='#e8f4ff'; C.fill();
+
+  // Perihelion/Aphelion markers
+  const periSX=toX(K2A*(1-K2E));
+  const aphSX=toX(-K2A*(1+K2E));
+  C.fillStyle='#facc15'; C.beginPath(); C.arc(periSX,sunY,2.5,0,Math.PI*2); C.fill();
+  C.font='9px Sarabun,sans-serif'; C.fillStyle='#facc1590'; C.fillText('P',periSX+3,sunY-6);
+  C.fillStyle='#818cf8'; C.beginPath(); C.arc(aphSX,sunY,2.5,0,Math.PI*2); C.fill();
+  C.fillStyle='#818cf890'; C.fillText('A',aphSX-11,sunY-6);
+  C.fillStyle='#ffd70060'; C.fillText('☀',sunX-5,sunY+20);
+
+  // Info panel
+  const v_kmps=(Math.sqrt(k2.vx*k2.vx+k2.vy*k2.vy)*29.78).toFixed(1);
+  const tailAU=(tailLen/S).toFixed(1);
+  C.font='11px Share Tech Mono,monospace';
+  C.fillStyle='#e2e8f0'; C.fillText('r = '+r.toFixed(3)+' AU',6,17);
+  C.fillStyle=r<1?'#f87171':'#facc15';
+  C.fillText('v = '+v_kmps+' km/s',6,32);
+  C.fillStyle='#93c5fd80'; C.font='10px Share Tech Mono,monospace';
+  C.fillText('tail ≈ '+tailAU+' AU',6,47);
+  if(r<0.5){
+    C.fillStyle='#fbbf24'; C.font='bold 10px Sarabun,sans-serif';
+    C.fillText('← เร็วสุด! ใกล้ดวงอาทิตย์',6,H-10);
+  } else if(r>3.5){
+    C.fillStyle='#818cf8'; C.font='bold 10px Sarabun,sans-serif';
+    C.fillText('→ ช้าสุด ไกลดวงอาทิตย์',6,H-10);
+  }
+}
+
+function k2_tick(ts){
+  if(!k2.last) k2.last=ts;
+  const wdt=Math.min((ts-k2.last)/1000,0.05); k2.last=ts;
+  if(k2.playing){
+    const dt_tot=wdt*0.28;
+    const steps=Math.min(Math.ceil(dt_tot/0.004),200);
+    const dts=dt_tot/steps;
+    for(let i=0;i<steps;i++){
+      const r2=k2.x*k2.x+k2.y*k2.y, r=Math.sqrt(r2), r3=r2*r;
+      k2.vx+=-KGM*k2.x/r3*dts; k2.vy+=-KGM*k2.y/r3*dts;
+      k2.x+=k2.vx*dts; k2.y+=k2.vy*dts;
+    }
+    if(Math.floor(ts/40)%2===0){
+      k2.trail.push({x:k2.x,y:k2.y});
+      if(k2.trail.length>90) k2.trail.shift();
+    }
+  }
+  k2_draw();
+  k2.anim=requestAnimationFrame(k2_tick);
+}
+
+function k2_togglePlay(){
+  k2.playing=!k2.playing;
+  const btn=document.getElementById('k2play');
+  if(btn){ btn.textContent=k2.playing?'⏸ หยุด':'▶ เล่น'; btn.classList.toggle('on',k2.playing); }
+}
+function k2_toggleAreas(){
+  k2.showAreas=!k2.showAreas;
+  const btn=document.getElementById('k2area'); if(btn) btn.classList.toggle('on',k2.showAreas);
+}
+
+// ── Law 3: Period Comparison ─────────────────────────────────
+const K3_PLANETS=[
+  {a:0.55,color:'#fbbf24',th:'a=0.55',orbits:0},
+  {a:1.00,color:'#4fc3f7',th:'a=1.00',orbits:0},
+  {a:2.00,color:'#f97316',th:'a=2.00',orbits:0},
+  {a:4.00,color:'#a78bfa',th:'a=4.00',orbits:0},
+];
+const k3={t:0, anim:null, last:null, planets:null};
+
+function k3_init(){
+  k3.t=0;
+  k3.planets=K3_PLANETS.map(d=>{
+    const r0=d.a; // circular (e=0 for simplicity)
+    return {a:d.a,color:d.color,th:d.th,
+      x:r0,y:0,vx:0,vy:Math.sqrt(KGM/r0),
+      period:Math.pow(d.a,1.5),orbits:0,prevAng:0};
+  });
+}
+
+function k3_draw(){
+  const cv=document.getElementById('kc3'); if(!cv) return;
+  const C=cv.getContext('2d'), W=cv.width, H=cv.height;
+  C.fillStyle='#01020a'; C.fillRect(0,0,W,H);
+  const cx=W*0.46, cy=H*0.5;
+  const S=(Math.min(W,H)*0.46)/4.2;
+  function toX(x){ return cx+x*S; } function toY(y){ return cy-y*S; }
+  // Orbit circles
+  k3.planets.forEach(p=>{
+    C.save(); C.strokeStyle=p.color+'28'; C.lineWidth=0.7; C.setLineDash([2,4]);
+    C.beginPath(); C.arc(cx,cy,p.a*S,0,Math.PI*2); C.stroke();
+    C.setLineDash([]); C.restore();
+  });
+  // Sun
+  const sg=C.createRadialGradient(cx,cy,0,cx,cy,18);
+  sg.addColorStop(0,'rgba(255,220,80,.5)'); sg.addColorStop(.6,'rgba(255,140,20,.08)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  C.beginPath(); C.arc(cx,cy,18,0,Math.PI*2); C.fillStyle=sg; C.fill();
+  C.beginPath(); C.arc(cx,cy,8,0,Math.PI*2);
+  const sf=C.createRadialGradient(cx-2,cy-2,1,cx,cy,8);
+  sf.addColorStop(0,'#fffae0'); sf.addColorStop(.5,'#ffd700'); sf.addColorStop(1,'#ff8c00');
+  C.fillStyle=sf; C.fill();
+  // Planets
+  k3.planets.forEach(p=>{
+    const px=toX(p.x), py=toY(p.y);
+    // glow
+    C.beginPath(); C.arc(px,py,5.5,0,Math.PI*2);
+    C.fillStyle=p.color+'30'; C.fill();
+    // body
+    C.beginPath(); C.arc(px,py,3.5,0,Math.PI*2);
+    C.fillStyle=p.color; C.fill();
+  });
+  // Labels (right side)
+  const labelX=W-5;
+  C.textAlign='right';
+  k3.planets.forEach((p,i)=>{
+    const T=p.period.toFixed(2);
+    const ly=H*0.14+i*26;
+    C.fillStyle=p.color; C.font='bold 10px Share Tech Mono,monospace';
+    C.fillText(p.th+' AU',labelX,ly);
+    C.fillStyle='#94a3b8'; C.font='10px Share Tech Mono,monospace';
+    C.fillText('T='+T+' yr | '+p.orbits+' รอบ',labelX,ly+13);
+  });
+  C.textAlign='left';
+  C.fillStyle='#4b5563'; C.font='10px Sarabun,sans-serif';
+  C.fillText('t = '+k3.t.toFixed(2)+' yr',6,H-8);
+}
+
+function k3_tick(ts){
+  if(!k3.last) k3.last=ts;
+  const wdt=Math.min((ts-k3.last)/1000,0.05); k3.last=ts;
+  const dt=wdt*0.55;
+  k3.t+=dt;
+  k3.planets.forEach(p=>{
+    const r2=p.x*p.x+p.y*p.y, r=Math.sqrt(r2), r3=r2*r;
+    p.vx+=-KGM*p.x/r3*dt; p.vy+=-KGM*p.y/r3*dt;
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    const ang=Math.atan2(p.y,p.x);
+    if(p.prevAng>Math.PI/2 && ang<-Math.PI/2) p.orbits++;
+    p.prevAng=ang;
+  });
+  k3_draw();
+  k3.anim=requestAnimationFrame(k3_tick);
+}
+
+// ── Start / Stop all Kepler sims ─────────────────────────────
+function keplerStart(){
+  if(!k2.sectors){ k2_reset(); k2.sectors=k2_precompute(); }
+  if(!k3.planets) k3_init();
+  if(!k1.anim){ k1.last=null; k1.anim=requestAnimationFrame(k1_tick); }
+  if(!k2.anim){ k2.last=null; k2.anim=requestAnimationFrame(k2_tick); }
+  if(!k3.anim){ k3.last=null; k3.anim=requestAnimationFrame(k3_tick); }
+}
+function keplerStop(){
+  [k1,k2,k3].forEach(k=>{ if(k.anim){ cancelAnimationFrame(k.anim); k.anim=null; k.last=null; } });
+}
+
+</script>
+
+<!-- KP Watermark -->
+<script src="../../_shared/watermark.js"></script>
+</body>
+</html>

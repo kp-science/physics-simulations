@@ -99,7 +99,7 @@ def get_topbar_html(root_path):
 <nav class="kp-topbar">
   <a href="{root_path}index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
   <div class="tb-links"><a href="{root_path}index.html#demos">Demo</a><a href="{root_path}index.html#collections">Collections</a><a href="{root_path}library.html">Library</a><a href="{root_path}index.html#about">\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e01\u0e31\u0e1a</a><a href="{root_path}index.html#contact">\u0e15\u0e34\u0e14\u0e15\u0e48\u0e2d</a></div>
-  <a href="{root_path}index.html#demos" class="tb-cta">\U0001f3ac \u0e17\u0e14\u0e25\u0e2d\u0e07\u0e1f\u0e23\u0e35</a>
+  <a href="{root_path}index.html#demos" class="tb-cta">\U0001f3ac \u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e1f\u0e23\u0e35</a>
   <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">\U0001f511 \u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a</button>
   <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">\u0e2d\u0e2d\u0e01</button></div>
 </nav>

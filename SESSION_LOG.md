@@ -1158,3 +1158,48 @@ blocked   → admin ปิดได้จาก dashboard
 - Pattern caching: compute once per parameter change, reuse for animation frames
 - Touch support สำหรับ photometer probe บน mobile
 - Grating calculation ตรงกับข้อมูลตัวอย่าง: 5276 gr/cm, L≈1.05m → x≈0.35m → λ≈633nm
+
+---
+
+## [2026-04-12 — บ้าน]
+
+### ทำอะไรไปบ้าง
+- สร้างระบบ **Watermark Overlay Module** สำหรับ simulation ทุกไฟล์
+  - `_shared/watermark.js` — โมดูลลายน้ำ v2 (overlay canvas แยก, ไม่แตะ logic simulation)
+  - แสดงลายน้ำ "KP Science / Virtual Physics Lab" จางๆ 12% บน canvas หลัก
+  - ปลดล็อกได้ผ่าน `localStorage('kp_access_tier', 'pro')` → ลายน้ำหาย
+  - API: `KPWatermark.remove()`, `.show()`, `.check()`
+  - Sync ข้ามแท็บผ่าน `storage` event
+- **อัปเดต `protect_new_file.py`** — เพิ่ม 3 การตรวจใหม่:
+  - `WATERMARK` — inject `<script src="watermark.js">` อัตโนมัติ (VPL01 + VPL02 + Demo)
+  - `TOPBAR_CSS` — ตรวจจับกรณี topbar HTML มี แต่ CSS หายไป
+  - แก้ label scan output
+- **ใส่ watermark ครบ 56 ไฟล์:** VPL01 (22) + VPL02 (9) + Demo (25)
+- **แก้บัค watermark v1 → v2:**
+  - v1 แปะ overlay บนทุก canvas (graph, theory, hidden) → v2 เฉพาะ canvas แรกที่ ≥400px
+  - v1 ใช้ attribute size → canvas HiDPI ล้น/เยื้อง → v2 ใช้ CSS display size (offsetWidth)
+  - v1 opacity 7% จางเกินบนพื้นหลังลวดลาย → v2 เพิ่มเป็น 12%
+  - v2 ปรับ font size อัตโนมัติตามขนาด canvas (24-48px)
+- **แก้บัค topbar CSS หาย** ใน 8 ไฟล์ VPL01 — inject CSS + แก้ `nav { }` selector เป็น `nav:not(.kp-topbar)` เพื่อไม่ override topbar
+- ลบ inline watermark เดิมจาก Lab 37 (ใช้ overlay module แทน)
+- อัปเดต `CLAUDE.md` เพิ่มเอกสาร Watermark System
+- เปลี่ยน dev server ใน `.claude/launch.json` ให้ serve จาก project root (แก้ปัญหา `../_shared/` path 404)
+
+### ไฟล์ที่แก้/สร้าง
+- ✨ `_shared/watermark.js` — สร้างใหม่ (watermark overlay module v2)
+- ✏️ `_admin/protect_new_file.py` — เพิ่ม WATERMARK + TOPBAR_CSS check/fix
+- ✏️ `CLAUDE.md` — เพิ่ม section Watermark System
+- ✏️ `.claude/launch.json` — เปลี่ยน server root
+- ✏️ `Virtual Physics Lab 02/37. standing-waves.html` — ลบ inline watermark
+- ✏️ VPL01 8 ไฟล์ (3,4,5,16,17,18,19,20) — เพิ่ม topbar CSS + แก้ nav selector
+- ✏️ VPL01 22 ไฟล์ + VPL02 9 ไฟล์ + Demo 25 ไฟล์ — inject watermark script tag
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push
+- ระบบ login/admin ยังไม่ได้เชื่อมต่อกับ watermark (ต้องเซ็ต `kp_access_tier` ใน localStorage เมื่อ login สำเร็จ)
+- VPL02 ตอนนี้มี 9 ไฟล์: 21, 30, 31, 32, 32B, 32C, 33, 34, 37
+
+### หมายเหตุ
+- Watermark ใช้ overlay canvas แยก (`pointer-events: none`, `z-index: 999`) → ไม่กระทบ interaction ของ simulation
+- ไฟล์ใหม่ในอนาคต → รัน `python3 _admin/protect_new_file.py --scan --fix` จะ inject watermark ให้อัตโนมัติ
+- Canvas context ไม่รองรับ CSS `var(--...)` — ระวังเรื่องนี้เสมอเมื่อวาดบน canvas

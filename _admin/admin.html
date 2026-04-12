@@ -286,6 +286,26 @@ td{padding:.8rem 1rem;vertical-align:middle}
       <div id="labs-checkboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.4rem"></div>
     </div>
 
+    <!-- Watermark Tier -->
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.78rem;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">🎨 ลายน้ำ (Watermark)</div>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem">เลือก tier เพื่อปลดล็อกลายน้ำบน Simulation — tier pro/premium/admin จะซ่อนลายน้ำอัตโนมัติ</p>
+      <div id="tier-select" style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+          <input type="radio" name="access_tier" value="" style="accent-color:var(--muted);width:15px;height:15px"> ไม่ปลดล็อก (แสดงลายน้ำ)
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+          <input type="radio" name="access_tier" value="pro" style="accent-color:var(--accent3);width:15px;height:15px"> Pro (ปลดลายน้ำ)
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+          <input type="radio" name="access_tier" value="premium" style="accent-color:var(--accent4);width:15px;height:15px"> Premium (ปลดลายน้ำ)
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+          <input type="radio" name="access_tier" value="admin" style="accent-color:var(--accent2);width:15px;height:15px"> Admin (ปลดลายน้ำ)
+        </label>
+      </div>
+    </div>
+
     <div style="display:flex;gap:.75rem">
       <button onclick="saveTopics()" style="flex:1;background:var(--accent);color:#06090f;border:none;padding:.65rem;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit">บันทึก</button>
       <button onclick="closeTopics()" style="flex:1;background:none;border:1px solid var(--border2);color:var(--muted);padding:.65rem;border-radius:8px;font-size:.9rem;cursor:pointer;font-family:inherit">ยกเลิก</button>
@@ -521,7 +541,7 @@ function renderTable(members) {
     return `<tr data-email="${m.email || ''}">
       <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.78rem">${i+1}</td>
       <td class="td-email">${m.email || m.id}</td>
-      <td><span class="role-badge ${roleClass}">${roleLabel}</span></td>
+      <td><span class="role-badge ${roleClass}">${roleLabel}</span>${m.access_tier ? `<span class="role-badge" style="margin-left:4px;background:rgba(129,140,248,0.1);color:var(--accent2);border:1px solid rgba(129,140,248,0.25);font-size:.65rem">🎨 ${m.access_tier}</span>` : ''}</td>
       <td><div class="quota-bar"><div class="quota-track"><div class="quota-fill ${fillClass}" style="width:${isUnlimited ? 100 : dlPct}%;${isUnlimited ? 'background:var(--accent)' : ''}"></div></div><span class="quota-num">${isUnlimited ? dlCount+' / ∞' : dlCount+'/'+userQuota}</span></div></td>
       <td class="td-date">${createdAt}</td>
       <td><div class="actions">
@@ -637,6 +657,12 @@ function openTopics(uid) {
     </label>`
   ).join('');
 
+  // Watermark tier
+  const curTier = m.access_tier || '';
+  document.querySelectorAll('input[name="access_tier"]').forEach(el => {
+    el.checked = el.value === curTier;
+  });
+
   document.getElementById('topics-modal').style.display = 'flex';
 }
 
@@ -651,15 +677,18 @@ async function saveTopics() {
   const topics = [...document.querySelectorAll('input[name="topic"]:checked')].map(el => el.value);
   const contentTypes = [...document.querySelectorAll('input[name="ctype"]:checked')].map(el => el.value);
   const labs = [...document.querySelectorAll('input[name="lab"]:checked')].map(el => el.value);
+  const accessTierEl = document.querySelector('input[name="access_tier"]:checked');
+  const access_tier = accessTierEl ? accessTierEl.value : '';
 
   if (topics.length === 0) { showToast('ต้องเลือกอย่างน้อย 1 หมวดวิชา'); return; }
 
   try {
-    await db.collection('users').doc(topicsEditUid).update({ topics, contentTypes, labs });
+    await db.collection('users').doc(topicsEditUid).update({ topics, contentTypes, labs, access_tier });
     const m = allMembers.find(x => x.id === topicsEditUid);
-    if (m) { m.topics = topics; m.contentTypes = contentTypes; m.labs = labs; }
+    if (m) { m.topics = topics; m.contentTypes = contentTypes; m.labs = labs; m.access_tier = access_tier; }
     closeTopics(); renderTable(allMembers);
-    showToast(`อัปเดตสิทธิ์แล้ว (${topics.length} topics · ${contentTypes.length} content · ${labs.length} labs)`);
+    const tierMsg = access_tier ? ` · ลายน้ำ: ${access_tier}` : ' · ลายน้ำ: แสดง';
+    showToast(`อัปเดตสิทธิ์แล้ว (${topics.length} topics · ${contentTypes.length} content · ${labs.length} labs${tierMsg})`);
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
