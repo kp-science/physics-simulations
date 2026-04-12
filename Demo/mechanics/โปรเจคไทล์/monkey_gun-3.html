@@ -266,6 +266,18 @@ canvas{display:block;width:100%;height:100%;}
         <input class="val-input" type="number" id="vi-ht" min="2" max="8" step="0.1" value="5.5">
         <span class="sl-unit">m</span>
       </div>
+      <div class="sl-row">
+        <span class="sl-lbl"><em>θ</em> มุมยิง</span>
+        <input class="sl-range" type="range" id="sl-theta" min="5" max="80" step="0.5" value="28.3" style="max-width:none;flex:1;">
+        <input class="val-input" type="number" id="vi-theta" min="5" max="80" step="0.5" value="28.3">
+        <span class="sl-unit">°</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--muted);">
+          <input type="checkbox" id="chk-autoaim" style="accent-color:var(--accent);width:16px;height:16px;">
+          🎯 เล็งตรงเป้าอัตโนมัติ
+        </label>
+      </div>
     </div>
 
   </div>
@@ -607,6 +619,7 @@ let prev_bx = 0, prev_by = 0, prev_my = 0;
 
 // params
 let v0 = 12, dist = 8, h_gun = 1.2, h_target = 5.5;
+let thetaManual = 28.3; // มุมยิงจาก slider (องศา)
 let x_gun = 1.5, y_gun, x_target, y_target, theta;
 
 // live positions
@@ -615,11 +628,26 @@ let bx, by, mx, my;
 // ============================================================
 // DERIVED PARAMS
 // ============================================================
+function isAutoAim() {
+  const chk = document.getElementById('chk-autoaim');
+  return chk && chk.checked;
+}
 function computeParams() {
   y_gun    = h_gun;
   x_target = x_gun + dist;
   y_target = h_target;
-  theta    = Math.atan2(y_target - y_gun, x_target - x_gun);
+  if (isAutoAim()) {
+    theta = Math.atan2(y_target - y_gun, x_target - x_gun);
+    // sync slider
+    const deg = theta * 180 / Math.PI;
+    thetaManual = +deg.toFixed(1);
+    const sEl = document.getElementById('sl-theta');
+    const vEl = document.getElementById('vi-theta');
+    if (sEl) sEl.value = thetaManual;
+    if (vEl) vEl.value = thetaManual;
+  } else {
+    theta = thetaManual * Math.PI / 180;
+  }
 }
 
 function initState() {
@@ -691,9 +719,13 @@ function draw() {
   ctx.fillRect(gx_c - ws(0.45), gy_c - ws(0.07), ws(0.9), ws(0.14));
 
   // ===== GUN TUBE =====
+  // ใช้ visual angle (canvas coords) ให้ปืนขนานกับเส้นไกด์
+  const scaleX_ = (W - PL - PR) / WW;
+  const scaleY_ = (H - PT - PB) / WH;
+  const visualTheta = Math.atan2(Math.sin(theta)*scaleY_, Math.cos(theta)*scaleX_);
   ctx.save();
   ctx.translate(gx_c, gy_c);
-  ctx.rotate(-theta);
+  ctx.rotate(-visualTheta);
   const tLen = ws(1.3), tH = ws(0.12);
   const tGrad = ctx.createLinearGradient(0, -tH/2, 0, tH/2);
   tGrad.addColorStop(0, '#94a3b8'); tGrad.addColorStop(1, '#475569');
@@ -763,6 +795,20 @@ function draw() {
     ctx.fillStyle = 'rgba(251,146,60,0.75)';
     ctx.font = `${Math.max(8,ws(0.26))}px Sarabun`; ctx.textAlign = 'left';
     ctx.fillText('ถ้าไม่มีแรงโน้มถ่วง', wx(x_gun + v0*Math.cos(theta)*0.8)+4, wy(y_gun + v0*Math.sin(theta)*0.8)-4);
+  }
+
+  // ===== AIM REFERENCE LINE (manual mode: show where target is) =====
+  if (!isAutoAim()) {
+    const aimTheta = Math.atan2(y_target - y_gun, x_target - x_gun);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.moveTo(wx(x_gun), wy(y_gun));
+    ctx.lineTo(wx(x_target), wy(y_target));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = `${Math.max(8,ws(0.22))}px Sarabun`; ctx.textAlign = 'left';
+    ctx.fillText('เส้นเล็งตรง (' + (aimTheta*180/Math.PI).toFixed(1) + '°)', wx((x_gun+x_target)/2)+4, wy((y_gun+y_target)/2)-4);
   }
 
   // ===== TRAJECTORY DOTS =====
@@ -1019,10 +1065,11 @@ window.addEventListener('DOMContentLoaded', () => {
     { s:'sl-dist',  v:'vi-dist',  cb: val => { dist    = val; } },
     { s:'sl-hg',    v:'vi-hg',    cb: val => { h_gun   = val; } },
     { s:'sl-ht',    v:'vi-ht',    cb: val => { h_target= val; } },
+    { s:'sl-theta', v:'vi-theta', cb: val => { thetaManual = val; }, noReset: true },
     { s:'sl-speed', v:'vi-speed', cb: val => { simSpeed= val; } },
   ];
 
-  cfg.forEach(({ s, v, cb }) => {
+  cfg.forEach(({ s, v, cb, noReset }) => {
     const sEl = document.getElementById(s);
     const vEl = document.getElementById(v);
     if (!sEl || !vEl) return;
@@ -1030,15 +1077,30 @@ window.addEventListener('DOMContentLoaded', () => {
     sEl.addEventListener('input', () => {
       const val = parseFloat(sEl.value);
       vEl.value = val; cb(val);
-      if (!isPlaying) { initState(); }
+      if (!isPlaying) { if (noReset) { computeParams(); draw(); } else initState(); }
     });
     vEl.addEventListener('blur', () => {
       let val = Math.max(+sEl.min, Math.min(+sEl.max, parseFloat(vEl.value) || 0));
       vEl.value = val; sEl.value = val; cb(val);
-      if (!isPlaying) { initState(); }
+      if (!isPlaying) { if (noReset) { computeParams(); draw(); } else initState(); }
     });
     vEl.addEventListener('keydown', e => { if (e.key === 'Enter') vEl.blur(); });
   });
+
+  // Auto-aim checkbox
+  const autoAimChk = document.getElementById('chk-autoaim');
+  const thetaSl = document.getElementById('sl-theta');
+  const thetaVi = document.getElementById('vi-theta');
+  function syncAutoAim() {
+    const auto = autoAimChk.checked;
+    thetaSl.disabled = auto;
+    thetaVi.disabled = auto;
+    thetaSl.style.opacity = auto ? '0.4' : '1';
+    thetaVi.style.opacity = auto ? '0.4' : '1';
+    if (!isPlaying) initState();
+  }
+  autoAimChk.addEventListener('change', syncAutoAim);
+  syncAutoAim(); // init
 
   document.querySelectorAll('#chk-nograv,#chk-dots,#chk-fall').forEach(c => {
     c.addEventListener('change', () => { if (!isPlaying) draw(); });
