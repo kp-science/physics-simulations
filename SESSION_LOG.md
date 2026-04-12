@@ -1203,3 +1203,270 @@ blocked   → admin ปิดได้จาก dashboard
 - Watermark ใช้ overlay canvas แยก (`pointer-events: none`, `z-index: 999`) → ไม่กระทบ interaction ของ simulation
 - ไฟล์ใหม่ในอนาคต → รัน `python3 _admin/protect_new_file.py --scan --fix` จะ inject watermark ให้อัตโนมัติ
 - Canvas context ไม่รองรับ CSS `var(--...)` — ระวังเรื่องนี้เสมอเมื่อวาดบน canvas
+
+---
+
+## [2026-04-12 session ยาว] — เครื่องที่บ้าน (Opus)
+
+### ทำอะไรไปบ้าง
+
+**1. อัปเดต index.html — นำเข้าไฟล์ Demo ใหม่ + VPL02 + Lab 21 SHM**
+
+- เพิ่ม section **Virtual Physics Lab 02** (6 การ์ด: Exp 30, 31, 32, 33, 34, 37) พร้อม canvas animation preview 6 ตัว
+- เพิ่มการ์ด **Exp 21: SHM รางลม** ใน VPL01 section พร้อม canvas renderer สปริง-มวล
+- อัปเดต Stats Bar: 30+ → 40+ Simulation
+- Canvas renderers ใหม่ 7 ตัว: `vpl-shm`, `vpl2-spring-wave`, `vpl2-ripple-tank`, `vpl2-wave-reflect`, `vpl2-refraction`, `vpl2-diffraction`, `vpl2-standing`
+
+**2. อัปเดต Collections accordion**
+
+- เปลี่ยนชื่อ "Simulation" → **"Demo"** + หมวดย่อย expand/collapse ได้
+- **กลศาสตร์** (12 ลิงก์ตรงไปไฟล์ Demo: บทเรียนรวม, หน่วย SI, Reaction Time, Constant Velocity, Kinematics, Vector, Shooter & Dropper, Monkey Gun, Atwood, Guinea & Feather, Rolling Ball, SHM)
+- **คลื่น** (5 ลิงก์: Ripple Tank, Waves, Wave Components, Seismic Wave, คลื่นผิวน้ำ)
+- **แสง** (1: Plane Mirror Reflection) — เปลี่ยนจาก SOON เป็น active
+- **แม่เหล็กไฟฟ้า** (1: Magnetic Field) — เพิ่มใหม่
+- **ดาราศาสตร์** (1: Orbital Simulation) — แก้ลิงก์ตรงไปไฟล์
+- ไฟฟ้า / อุณหพลศาสตร์ — ยังเป็น SOON
+- เพิ่ม VPL02 ใน Virtual Lab accordion (9 การทดลอง)
+- ลบลิงก์ที่เปิดไม่ได้: `waves.html`, `electricity.html`, `thermo.html`
+- เพิ่ม CSS `.acc-sub-toggle`, `.acc-sub-list`, `.acc-sub-item` + JS `toggleSubList()`
+
+**3. ออกแบบ Demo cards section ใหม่**
+
+- เปลี่ยนจาก 8 การ์ดกลศาสตร์อย่างเดียว → **9 การ์ดจากทุกหมวด**:
+  - กลศาสตร์ 4 ใบ (Guinea & Feather, Monkey Gun, Vector, Atwood)
+  - คลื่น 2 ใบ (Ripple Tank, Waves)
+  - แสง 1 ใบ (Plane Mirror)
+  - แม่เหล็ก 1 ใบ (Magnetic Field)
+  - ดาราศาสตร์ 1 ใบ (Orbital)
+- ลิงก์ "ดูทั้งหมด" ชี้ไป `#collections` แทน `mechanics.html`
+
+**4. เปลี่ยน "ทดลองฟรี" → "ใช้งานฟรี" (66 ไฟล์)**
+
+- แก้ topbar CTA ทุกไฟล์ HTML + อัปเดต template ใน `protect_new_file.py`
+
+**5. อัปเดต library.html**
+
+- เพิ่ม Lab 21 SHM ใน VPL01
+- เพิ่ม section VPL02 (9 ไฟล์)
+- เพิ่ม Demo คลื่น (5), แสง (2), แม่เหล็ก (1), ดาราศาสตร์ (1)
+
+**6. Watermark — ระบบปลดล็อกใน Admin**
+
+- เพิ่มส่วน "🎨 ลายน้ำ" ใน admin modal (radio: ไม่ปลดล็อก / Pro / Premium / Admin)
+- บันทึก `access_tier` ลง Firestore
+- แสดง badge `🎨 tier` ในตารางสมาชิก
+- เพิ่ม `syncWatermarkTier()` ใน `kp-auth.js` — login → อ่าน tier จาก Firestore → set localStorage → ลายน้ำหายอัตโนมัติ
+- Logout → ลบ tier → ลายน้ำกลับมา
+
+**7. แก้ปุ่มดาวน์โหลดคู่มือ Lab (8 ไฟล์ VPL01)**
+
+- เพิ่ม CSS `.btn-dl-pdf` ที่ขาดใน: 3, 4, 5, 16, 17, 18, 19, 20
+
+**8. Monkey Gun — ปรับมุมยิงอิสระ**
+
+- เพิ่ม slider มุม θ (5°–80°) + checkbox "🎯 เล็งตรงเป้าอัตโนมัติ"
+- Auto-aim off: ปรับมุมเอง กระสุนอาจพลาด / Auto-aim on: ล็อกตรง target ชนเสมอ
+- แก้ visual angle ของกระบอกปืนให้ขนานกับเส้นไกด์ (แก้ aspect ratio bug)
+- เพิ่มเส้นประ "เส้นเล็งตรง" ให้นักเรียนเปรียบเทียบ
+
+**9. แก้ Ripple Tank (Demo/คลื่น/ripple_tank_1.html)**
+
+- แก้บั๊ก clipRect ตัดรังสีสะท้อนออกสำหรับผิวสะท้อนนูน (cx, xp)
+- ก่อนแก้: เลือก นูนวงกลม/นูนพาราโบลา → canvas ว่าง
+- หลังแก้: คลื่นตกกระทบ + สะท้อนแสดงถูกต้องทุก mirror type
+
+**10. Protect ไฟล์ใหม่**
+
+- รัน `protect_new_file.py --scan --fix` — Demo ใหม่ 8 ไฟล์ได้ GA + Topbar + Watermark
+
+### ไฟล์ที่แก้/สร้าง
+
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| `index.html` | VPL02 section, Lab 21 SHM card, 7 canvas renderers, Demo cards ใหม่ 9 ใบ, Collections เป็น Demo accordion + sub-list, stats 40+, ใช้งานฟรี |
+| `library.html` | เพิ่ม Lab 21, VPL02 9 ไฟล์, Demo คลื่น/แสง/แม่เหล็ก/ดาราศาสตร์ |
+| `kp-auth.js` | เพิ่ม `syncWatermarkTier()` + logout ลบ tier |
+| `_admin/admin.html` | เพิ่ม watermark tier control (radio + save + badge) |
+| `_admin/protect_new_file.py` | เปลี่ยน "ทดลองฟรี" → "ใช้งานฟรี" ใน topbar template |
+| `Demo/คลื่น/ripple_tank_1.html` | แก้ clipRect bug สำหรับ convex mirrors |
+| `Demo/mechanics/โปรเจคไทล์/monkey_gun-3.html` | slider มุม + auto-aim + visual angle fix |
+| `VPL01 Mechacnics/3,4,5,16,17,18,19,20` (8 ไฟล์) | เพิ่ม CSS `.btn-dl-pdf` |
+| ทุกไฟล์ HTML (66 ไฟล์) | "ทดลองฟรี" → "ใช้งานฟรี" |
+| Demo ใหม่ 8 ไฟล์ | GA + Topbar + Watermark (ผ่าน protect script) |
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+
+- ยังไม่ได้ commit/push ขึ้น GitHub
+
+---
+
+## 📐 SPEC สำหรับ session หน้า — ปรับ Layout index.html
+
+> **คำสั่ง:** เปิด session ใหม่ แล้วสั่ง "ทำตาม Layout Spec ใน SESSION_LOG" — Claude จะอ่านแล้วทำได้เลย
+
+### งาน 1: ลด Hero + เพิ่ม visual ด้านขวา
+
+**ปัจจุบัน:** `.hero { min-height: 100vh }` + เนื้อหาอยู่ซ้ายอย่างเดียว ด้านขวาว่างเปล่า
+
+**เปลี่ยนเป็น:**
+- `.hero { min-height: 70vh }` (ลดจาก 100vh)
+- เพิ่ม `.hero-visual` ด้านขวา ใช้ CSS grid 2 คอลัมน์
+- ด้านขวาแสดง **canvas animation ตัวอย่าง** (เช่น ลูกตุ้มแกว่ง + เส้นกราฟ energy) หรือ iframe เล็กๆ โชว์ simulation จริง
+- มือถือ: ซ่อน `.hero-visual` เหลือแค่ text
+
+**CSS แก้:**
+```css
+.hero { min-height: 70vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
+.hero-visual { position: relative; }
+@media(max-width: 768px) { .hero { grid-template-columns: 1fr; } .hero-visual { display: none; } }
+```
+
+### งาน 2: ย้าย "Why KP Science" ขึ้นมา
+
+**ปัจจุบัน:** ลำดับ = Demo → VPL01 → VPL02 → **Why** → Collections → About
+**เปลี่ยนเป็น:** Demo → **Why** → VPL01 → VPL02 → Collections → About
+
+**วิธีทำ:** ย้าย `<section id="why">...</section>` ทั้ง block + `<div class="sdiv">` ที่ตามมา ไปวางหลัง `</section>` ของ Demo cards (ก่อน VPL01)
+
+### งาน 3: Filter chips ใน Demo cards
+
+**ปัจจุบัน:** แสดง 9 การ์ดทั้งหมดเรียงกัน ต้อง scroll ไกล
+
+**เปลี่ยนเป็น:**
+- เพิ่ม **filter chips** ก่อน `.demo-grid`:
+```html
+<div class="demo-filters">
+  <button class="demo-chip active" data-cat="all">ทั้งหมด</button>
+  <button class="demo-chip" data-cat="mechanics">⚙️ กลศาสตร์</button>
+  <button class="demo-chip" data-cat="waves">〰️ คลื่น</button>
+  <button class="demo-chip" data-cat="optics">🔦 แสง</button>
+  <button class="demo-chip" data-cat="magnetism">🧲 แม่เหล็ก</button>
+  <button class="demo-chip" data-cat="astronomy">🪐 ดาราศาสตร์</button>
+</div>
+```
+- แต่ละ `<a class="demo-card">` เพิ่ม `data-cat="mechanics"` ฯลฯ
+- JS กรอง: คลิก chip → ซ่อน/แสดง card ตาม data-cat
+- CSS: `.demo-chip { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:.82rem; font-weight:600; } .demo-chip.active { background:var(--accent); color:#06090f; border-color:var(--accent); }`
+
+### งาน 4: รวม VPL01 + VPL02 เป็น compact section
+
+**ปัจจุบัน:** VPL01 = 7 การ์ด section, VPL02 = 6 การ์ด section → ยาวมาก
+
+**เปลี่ยนเป็น:** section เดียว "Virtual Physics Lab" มี 2 tab (หรือ 2 row):
+
+**Option A (tab):**
+```html
+<section id="vpl">
+  <div class="sec-header-row">
+    <div>
+      <div class="sec-label">Virtual Physics Lab</div>
+      <h2 class="sec-title">ห้องปฏิบัติการฟิสิกส์เสมือน</h2>
+    </div>
+  </div>
+  <div class="vpl-tabs">
+    <button class="vpl-tab active" onclick="switchVPL('vpl1',this)">VPL 01 · กลศาสตร์ (22)</button>
+    <button class="vpl-tab" onclick="switchVPL('vpl2',this)">VPL 02 · คลื่น (9)</button>
+  </div>
+  <div id="vpl1" class="vpl-panel active">
+    <!-- 4 การ์ดเด่น + ปุ่ม "ดูทั้ง 22 การทดลอง →" -->
+  </div>
+  <div id="vpl2" class="vpl-panel">
+    <!-- 4 การ์ดเด่น + ปุ่ม "ดูทั้ง 9 การทดลอง →" -->
+  </div>
+</section>
+```
+
+**Option B (compact 2 rows):**
+- VPL01: แสดง 4 การ์ดเด่น (จาก 7) + ลิงก์ "ดูทั้ง 22 →"
+- VPL02: แสดง 3 การ์ดเด่น (จาก 6) + ลิงก์ "ดูทั้ง 9 →"
+- ทั้งหมดอยู่ใน section เดียว
+
+**เลือก Option A** (tab) — ประหยัดพื้นที่สุด
+
+### ลำดับ section หลังปรับ (ใหม่)
+
+1. Hero (70vh + visual)
+2. Stats bar
+3. CTA Banner (สมัครสมาชิก)
+4. **Demo cards** (9 การ์ด + filter chips)
+5. **Why KP Science** (ย้ายขึ้นมา)
+6. **Virtual Physics Lab** (tab VPL01/VPL02 — compact)
+7. Collections (Demo accordion + Virtual Lab accordion)
+8. About
+9. How to use
+10. Early Access / สมัครสมาชิก
+11. Contact
+12. Footer
+
+### หมายเหตุสำหรับ Claude ที่ทำงานต่อ
+
+- อ่าน `CLAUDE.md` ก่อนเสมอ — มี GA code, protect script, design tokens
+- ไฟล์หลักที่แก้คือ `index.html` (~1900 บรรทัด)
+- Canvas renderers อยู่ท้ายไฟล์ใน `<script>` — อย่าลบ!
+- test: เปิด preview server ด้วย `.claude/launch.json` (port 8765)
+- ทุกครั้งที่แก้ CSS ให้เช็ค mobile responsive ด้วย (`@media max-width: 768px`)
+
+---
+
+## [2026-04-12 --:--] — เครื่องที่ทำงาน
+
+### ทำอะไรไปบ้าง
+
+**1. งาน 1: Hero 70vh + grid + hero-visual canvas**
+- เปลี่ยน `.hero{min-height:100vh;display:flex}` → `min-height:70vh;display:grid;grid-template-columns:1fr 1fr;gap:2rem`
+- ลบ `max-width:680px` ออกจาก `.hero-inner` (ใช้ grid แทน)
+- เพิ่ม `.hero-visual` + `#hero-vis-canvas` CSS
+- เพิ่ม `<div class="hero-visual"><canvas id="hero-vis-canvas"></canvas></div>` ใน HTML
+- เพิ่ม JS pendulum animation (ลูกตุ้ม + กราฟ KE/PE/E_total) ใน `#hero-vis-canvas`
+- Mobile: `.hero-visual{display:none}` + `grid-template-columns:1fr;min-height:60vh`
+
+**2. งาน 2: ย้าย "Why KP Science" ขึ้นก่อน VPL01**
+- ลำดับใหม่: Hero → Stats → Demos → **Why** → VPL01 → VPL02 → Collections
+- ตัด block `sdiv + section#why` ออกจากหลัง VPL02
+- วางใหม่ระหว่าง Demos section กับ VPL01
+
+**3. งาน 3: Filter chips ใน Demo cards**
+- เพิ่ม CSS `.demo-filters`, `.demo-chip`, `.demo-chip.active`
+- เพิ่ม `<div class="demo-filters">` ก่อน `.demo-grid` มี 6 chips: ทั้งหมด / กลศาสตร์ / คลื่น / แสง / แม่เหล็ก / ดาราศาสตร์
+- เพิ่ม `data-cat` ให้ 9 การ์ดใน demo-grid
+- เพิ่ม `function filterDemo(chip)` ใน JS
+
+### ไฟล์ที่แก้
+- `index.html` — Hero grid layout, hero-visual canvas, Why section ย้าย, filter chips
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **งาน 4 (ยังไม่ทำ):** รวม VPL01 + VPL02 เป็น section เดียวแบบ tab (ดู SPEC ใน session ก่อน)
+- ยังไม่ได้ commit/push
+
+### หมายเหตุ
+- Hero canvas `#hero-vis-canvas` ใช้ `getBoundingClientRect()` ใน render loop (ไม่ได้แคช W/H) เพราะ DPR scaling ทำใน resize event
+- filter chips ทำงานโดย toggle `display:none` บน `.demo-card` โดยตรง (ไม่ได้ซ่อน wrapper)
+
+---
+
+## [2026-04-12 --:-- (ต่อ)] — เครื่องที่ทำงาน
+
+### ทำอะไรไปบ้าง
+
+**งาน 4: รวม VPL01 + VPL02 เป็น section เดียวแบบ tab**
+- ลบ `<section id="vpl01">` และ `<section id="vpl02">` (+ sdiv ตรงกลาง) ออก
+- แทนด้วย `<section id="vpl">` section เดียว มี:
+  - `.vpl-tabs` → 2 ปุ่ม tab: "VPL 01 · กลศาสตร์ (22)" และ "VPL 02 · คลื่น & แสง (9) NEW"
+  - `#vpl1-panel` (active default) → 7 การ์ด VPL01 + ปุ่ม "ดูทั้ง 22 การทดลอง →"
+  - `#vpl2-panel` → 6 การ์ด VPL02 + ปุ่ม "ดูทั้ง 9 การทดลอง →"
+- เพิ่ม CSS `.vpl-tabs`, `.vpl-tab`, `.vpl-tab.active`, `.vpl-panel`, `.vpl-panel.active`
+- เพิ่ม JS `function switchVPL(id, btn)` — toggle active class
+
+**แก้บั๊ก hero-vis-canvas ไม่แสดง**
+- ปัญหา: `resize()` ถูกเรียกก่อน CSS layout คำนวณเสร็จ → canvas ได้ขนาด 0×0
+- แก้: ย้าย `resize()` เข้าไปใน `draw()` loop (เรียกครั้งเดียวหลัง W/H > 0) + guard `if(!W||!H) return rAF(draw)`
+
+### ไฟล์ที่แก้
+- `index.html` — VPL tab section, hero-vis-canvas fix, filterDemo selector fix (#demos .demo-card)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push
+
+### หมายเหตุ
+- screenshot tool ดำเมื่อ scroll — เกิดจาก canvas rAF หลายตัวพร้อมกัน (dc-preview-canvas ทุกการ์ด) ไม่ใช่ bug
+- ลิงก์ "ดูทั้ง 9 การทดลอง →" ใน VPL02 tab ชี้ไป `virtual-physics-lab-02.html` (ยังไม่มีไฟล์นี้ — ทำในอนาคต)
