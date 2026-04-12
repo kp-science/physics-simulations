@@ -133,6 +133,10 @@ def check_file(filepath):
     if 'kp-topbar' not in content and 'class="topbar"' not in content:
         issues.append('TOPBAR')
 
+    # 4a. Topbar HTML exists but CSS missing
+    if 'kp-topbar' in content and '.kp-topbar{' not in content and '.kp-topbar {' not in content:
+        issues.append('TOPBAR_CSS')
+
     # 4b. Topbar in wrong position (inside script)
     tp = content.find('kp-topbar')
     cs = content.find('<meta charset')
@@ -197,6 +201,13 @@ def fix_file(filepath, issues=None):
                 content = content[:pos] + '\n' + get_topbar_html(root_path) + content[pos:]
                 changed = True
 
+    # Fix topbar CSS missing (HTML exists but no CSS)
+    if 'TOPBAR_CSS' in issues and '.kp-topbar{' not in content and '.kp-topbar {' not in content:
+        style_end = content.find('</style>')
+        if style_end != -1:
+            content = content[:style_end] + TOPBAR_CSS + content[style_end:]
+            changed = True
+
     # Fix topbar position
     if 'TOPBAR_POS' in issues:
         # Remove topbar from wrong position
@@ -256,6 +267,7 @@ def scan_all():
                     'FRAME': 'ขาด Frame Protection',
                     'DOMAIN': 'ขาด Domain Protection',
                     'TOPBAR': 'ขาด KP Topbar',
+                    'TOPBAR_CSS': 'Topbar ขาด CSS',
                     'TOPBAR_POS': 'Topbar อยู่ผิดตำแหน่ง',
                     'COMMENT': 'มี <\\!-- (escaped comment)',
                     'MOBILE': 'ขาด mobile order fix',
