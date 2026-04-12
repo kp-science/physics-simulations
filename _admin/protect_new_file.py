@@ -148,9 +148,9 @@ def check_file(filepath):
         # Has grid layout but no mobile order fix
         issues.append('MOBILE')
 
-    # 7. Watermark (VPL01/VPL02 simulation files)
-    is_vpl = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath
-    if is_vpl and 'watermark.js' not in content:
+    # 7. Watermark (VPL01/VPL02/Demo simulation files)
+    is_sim = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Demo/' in filepath
+    if is_sim and 'watermark.js' not in content and fname != 'index.html':
         issues.append('WATERMARK')
 
     return issues
