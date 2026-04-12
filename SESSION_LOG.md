@@ -1406,67 +1406,42 @@ blocked   → admin ปิดได้จาก dashboard
 - test: เปิด preview server ด้วย `.claude/launch.json` (port 8765)
 - ทุกครั้งที่แก้ CSS ให้เช็ค mobile responsive ด้วย (`@media max-width: 768px`)
 
----
-
-## [2026-04-12 --:--] — เครื่องที่ทำงาน
-
-### ทำอะไรไปบ้าง
-
-**1. งาน 1: Hero 70vh + grid + hero-visual canvas**
-- เปลี่ยน `.hero{min-height:100vh;display:flex}` → `min-height:70vh;display:grid;grid-template-columns:1fr 1fr;gap:2rem`
-- ลบ `max-width:680px` ออกจาก `.hero-inner` (ใช้ grid แทน)
-- เพิ่ม `.hero-visual` + `#hero-vis-canvas` CSS
-- เพิ่ม `<div class="hero-visual"><canvas id="hero-vis-canvas"></canvas></div>` ใน HTML
-- เพิ่ม JS pendulum animation (ลูกตุ้ม + กราฟ KE/PE/E_total) ใน `#hero-vis-canvas`
-- Mobile: `.hero-visual{display:none}` + `grid-template-columns:1fr;min-height:60vh`
-
-**2. งาน 2: ย้าย "Why KP Science" ขึ้นก่อน VPL01**
-- ลำดับใหม่: Hero → Stats → Demos → **Why** → VPL01 → VPL02 → Collections
-- ตัด block `sdiv + section#why` ออกจากหลัง VPL02
-- วางใหม่ระหว่าง Demos section กับ VPL01
-
-**3. งาน 3: Filter chips ใน Demo cards**
-- เพิ่ม CSS `.demo-filters`, `.demo-chip`, `.demo-chip.active`
-- เพิ่ม `<div class="demo-filters">` ก่อน `.demo-grid` มี 6 chips: ทั้งหมด / กลศาสตร์ / คลื่น / แสง / แม่เหล็ก / ดาราศาสตร์
-- เพิ่ม `data-cat` ให้ 9 การ์ดใน demo-grid
-- เพิ่ม `function filterDemo(chip)` ใน JS
-
-### ไฟล์ที่แก้
-- `index.html` — Hero grid layout, hero-visual canvas, Why section ย้าย, filter chips
-
-### ค้างไว้ที่ไหน / ต้องทำต่อ
-- **งาน 4 (ยังไม่ทำ):** รวม VPL01 + VPL02 เป็น section เดียวแบบ tab (ดู SPEC ใน session ก่อน)
-- ยังไม่ได้ commit/push
-
-### หมายเหตุ
-- Hero canvas `#hero-vis-canvas` ใช้ `getBoundingClientRect()` ใน render loop (ไม่ได้แคช W/H) เพราะ DPR scaling ทำใน resize event
-- filter chips ทำงานโดย toggle `display:none` บน `.demo-card` โดยตรง (ไม่ได้ซ่อน wrapper)
 
 ---
 
-## [2026-04-12 --:-- (ต่อ)] — เครื่องที่ทำงาน
+## [2026-04-12] — เครื่องที่ทำงาน
 
 ### ทำอะไรไปบ้าง
 
-**งาน 4: รวม VPL01 + VPL02 เป็น section เดียวแบบ tab**
-- ลบ `<section id="vpl01">` และ `<section id="vpl02">` (+ sdiv ตรงกลาง) ออก
-- แทนด้วย `<section id="vpl">` section เดียว มี:
-  - `.vpl-tabs` → 2 ปุ่ม tab: "VPL 01 · กลศาสตร์ (22)" และ "VPL 02 · คลื่น & แสง (9) NEW"
-  - `#vpl1-panel` (active default) → 7 การ์ด VPL01 + ปุ่ม "ดูทั้ง 22 การทดลอง →"
-  - `#vpl2-panel` → 6 การ์ด VPL02 + ปุ่ม "ดูทั้ง 9 การทดลอง →"
+**1. Hero 70vh + 2-column grid + pendulum canvas (งาน 1)**
+- `.hero` เปลี่ยนจาก `min-height:100vh; display:flex` → `min-height:70vh; display:grid; grid-template-columns:1fr 1fr; gap:2rem`
+- ลบ `max-width:680px` ออกจาก `.hero-inner`
+- เพิ่ม `.hero-visual` + `#hero-vis-canvas` — แสดง pendulum animation + กราฟ KE/PE/E_total แบบ real-time
+- Mobile (`max-width:768px`): `.hero-visual{display:none}`, hero grid กลับเป็น 1 column
+
+**2. ย้าย Why KP Science ขึ้นก่อน VPL (งาน 2)**
+- ลำดับ section ใหม่: Hero → Stats → CTA → Demos → **Why** → VPL → Collections → About → …
+- ตัด `sdiv + section#why` ออกจากหลัง VPL02 แล้วแทรกก่อน VPL01
+
+**3. Filter chips ใน Demo section (งาน 3)**
+- เพิ่ม `.demo-filters` + 6 chip buttons ก่อน `.demo-grid`: ทั้งหมด / ⚙️ กลศาสตร์ / 〰️ คลื่น / 🔦 แสง / 🧲 แม่เหล็ก / 🪐 ดาราศาสตร์
+- เพิ่ม `data-cat` ให้ demo-card ทั้ง 9 ใบ
+- เพิ่ม `function filterDemo(chip)` — toggle active chip + show/hide card
+
+**4. รวม VPL01 + VPL02 เป็น tab section เดียว (งาน 4)**
+- ลบ `section#vpl01`, `section#vpl02`, sdiv ตรงกลาง
+- สร้าง `section#vpl` ใหม่ มี `.vpl-tabs` (2 ปุ่ม) + 2 panel:
+  - `#vpl1-panel` — 7 การ์ด VPL01 + ลิงก์ "ดูทั้ง 22 การทดลอง →"
+  - `#vpl2-panel` — 6 การ์ด VPL02 + ลิงก์ "ดูทั้ง 9 การทดลอง →" (ชี้ virtual-physics-lab-02.html)
 - เพิ่ม CSS `.vpl-tabs`, `.vpl-tab`, `.vpl-tab.active`, `.vpl-panel`, `.vpl-panel.active`
-- เพิ่ม JS `function switchVPL(id, btn)` — toggle active class
-
-**แก้บั๊ก hero-vis-canvas ไม่แสดง**
-- ปัญหา: `resize()` ถูกเรียกก่อน CSS layout คำนวณเสร็จ → canvas ได้ขนาด 0×0
-- แก้: ย้าย `resize()` เข้าไปใน `draw()` loop (เรียกครั้งเดียวหลัง W/H > 0) + guard `if(!W||!H) return rAF(draw)`
+- เพิ่ม `function switchVPL(id, btn)` ใน JS
 
 ### ไฟล์ที่แก้
-- `index.html` — VPL tab section, hero-vis-canvas fix, filterDemo selector fix (#demos .demo-card)
+- `index.html` — ทั้ง 4 งานข้างต้น (~1,500+ บรรทัด)
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ commit/push
+- ยังไม่ได้ commit/push ขึ้น GitHub
+- `virtual-physics-lab-02.html` ยังไม่มีไฟล์ (ลิงก์ใน VPL02 tab ยังชี้ไปหน้าที่ไม่มี)
 
 ### หมายเหตุ
-- screenshot tool ดำเมื่อ scroll — เกิดจาก canvas rAF หลายตัวพร้อมกัน (dc-preview-canvas ทุกการ์ด) ไม่ใช่ bug
-- ลิงก์ "ดูทั้ง 9 การทดลอง →" ใน VPL02 tab ชี้ไป `virtual-physics-lab-02.html` (ยังไม่มีไฟล์นี้ — ทำในอนาคต)
+- screenshot preview tool ดำเมื่อ scroll — เกิดจาก canvas rAF หลายตัวพร้อมกัน (dc-preview-canvas แต่ละการ์ด) ไม่ใช่ bug — verify ด้วย `preview_eval` แทน
