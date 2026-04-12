@@ -92,8 +92,37 @@ python3 _admin/protect_new_file.py --scan --fix
 4. KP Topbar (nav bar + login)
 5. Mobile layout fix
 6. แก้ escaped comments
+7. Watermark overlay (เฉพาะ VPL01 + VPL02)
 
 **ถ้าผู้ใช้สั่ง "protect ไฟล์ใหม่"** → รัน `python3 _admin/protect_new_file.py --scan --fix`
+
+---
+
+## 🔒 Watermark System
+
+ไฟล์ simulation ทุกไฟล์ใน VPL01 + VPL02 มีลายน้ำ "KP Science" แสดงบน canvas
+
+**โครงสร้าง:**
+- `_shared/watermark.js` — โมดูลลายน้ำ (overlay canvas, ไม่แตะ logic ของ simulation)
+- `protect_new_file.py` — inject `<script src="...watermark.js">` อัตโนมัติเมื่อรัน `--scan --fix`
+
+**การปลดล็อก (ซ่อนลายน้ำ):**
+```js
+// ระบบ login/admin เซ็ตค่านี้เมื่อผู้ใช้มีสิทธิ์
+localStorage.setItem('kp_access_tier', 'pro');   // tier: pro, premium, admin
+KPWatermark.check();  // ตรวจสิทธิ์แล้วซ่อนอัตโนมัติ
+
+// เมื่อ logout
+localStorage.removeItem('kp_access_tier');
+KPWatermark.show();   // ลายน้ำกลับมา
+```
+
+**API:**
+- `KPWatermark.remove()` — ซ่อนลายน้ำทันที
+- `KPWatermark.show()` — แสดงลายน้ำ
+- `KPWatermark.check()` — ตรวจ localStorage แล้วซ่อน/แสดงอัตโนมัติ
+
+**หมายเหตุ:** ลายน้ำ sync ข้ามแท็บผ่าน `storage` event — login แท็บหนึ่ง ลายน้ำหายทุกแท็บ
 
 ---
 

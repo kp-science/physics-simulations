@@ -17,6 +17,7 @@
     5. Topbar CSS
     6. Mobile layout fix (canvas order:-1)
     7. แก้ <\\!-- เป็น <!--
+    8. Watermark overlay (VPL01 + VPL02 simulation files)
 ═══════════════════════════════════════════════════════════════
 """
 import os, re, sys, glob
@@ -147,6 +148,11 @@ def check_file(filepath):
         # Has grid layout but no mobile order fix
         issues.append('MOBILE')
 
+    # 7. Watermark (VPL01/VPL02 simulation files)
+    is_vpl = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath
+    if is_vpl and 'watermark.js' not in content:
+        issues.append('WATERMARK')
+
     return issues
 
 
@@ -204,6 +210,15 @@ def fix_file(filepath, issues=None):
                 content = content[:pos] + '\n' + get_topbar_html(root_path) + content[pos:]
                 changed = True
 
+    # Add watermark script (VPL files)
+    if 'WATERMARK' in issues and 'watermark.js' not in content:
+        wm_root = get_root_path(filepath)
+        wm_tag = f'\n<!-- KP Watermark -->\n<script src="{wm_root}_shared/watermark.js"></script>\n'
+        body_end = content.rfind('</body>')
+        if body_end != -1:
+            content = content[:body_end] + wm_tag + content[body_end:]
+            changed = True
+
     if changed:
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -244,6 +259,7 @@ def scan_all():
                     'TOPBAR_POS': 'Topbar อยู่ผิดตำแหน่ง',
                     'COMMENT': 'มี <\\!-- (escaped comment)',
                     'MOBILE': 'ขาด mobile order fix',
+                    'WATERMARK': 'ขาด Watermark overlay',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1
