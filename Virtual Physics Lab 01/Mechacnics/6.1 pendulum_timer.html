@@ -248,7 +248,6 @@ footer { padding: 12px; text-align: center; color: var(--muted); font-size: 0.75
   <div class="cbar">
     <button id="playBtn" class="btn btn-play" onclick="togglePlay()">▶ เริ่ม</button>
     <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
-    <button class="btn btn-record" onclick="recordTrial()">📊 บันทึกค่าลงตาราง</button>
     <button class="btn btn-clear" onclick="clearTrials()">🗑 ล้างตาราง</button>
     <span style="color:var(--muted);font-size:0.8rem;margin-left:auto;">
       💡 เริ่มจับเวลา → นับจำนวนแกว่ง (ครบรอบ) → หารหาคาบ
@@ -309,10 +308,10 @@ footer { padding: 12px; text-align: center; color: var(--muted); font-size: 0.75
           <span class="sl-unit">รอบ</span>
         </div>
         <div style="display:flex;gap:6px;margin:8px 0;">
-          <button id="swStartBtn" class="btn btn-play" style="flex:1;" onclick="startStopwatch()">▶ Start</button>
-          <button id="swStopBtn" class="btn btn-reset" style="flex:1;" onclick="stopStopwatch()">⏹ Stop</button>
+          <button id="swToggleBtn" class="btn btn-play" style="flex:1;" onclick="toggleStopwatch()">▶ Start</button>
           <button class="btn btn-clear" onclick="resetStopwatch()">↺</button>
         </div>
+        <button class="btn btn-record" style="width:100%;margin-top:6px;" onclick="recordTrial()">📊 บันทึกค่าลงตาราง</button>
         <div class="readout">
           <div class="row"><span>เวลาที่จับได้ (t)</span><b id="rd-swTime">0.000 s</b></div>
           <div class="row"><span>จำนวนรอบที่ตั้งไว้</span><b id="rd-swCount">10 รอบ (ตั้งไว้)</b></div>
@@ -770,49 +769,52 @@ function draw() {
   ctx.fillText('g = ' + g_val.toFixed(2) + ' m/s²', 20, 74);
 
   // ============ STOPWATCH UI inside canvas (top-right) ============
-  const swX = W - 240, swY = 14;
-  const swW = 224, swH = 112;
+  const compact = W < 520;
+  const swW = compact ? 150 : 224;
+  const swH = compact ? 74 : 112;
+  const swX = W - swW - (compact ? 8 : 16), swY = compact ? 6 : 14;
+  const accentSW = swRunning ? '#34d399' : '#38bdf8';
 
   // panel bg
   ctx.fillStyle = 'rgba(12,18,34,0.92)';
-  ctx.strokeStyle = swRunning ? '#34d399' : '#38bdf8';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = accentSW;
+  ctx.lineWidth = compact ? 1.5 : 2;
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(swX, swY, swW, swH, 10);
+  if (ctx.roundRect) ctx.roundRect(swX, swY, swW, swH, compact ? 7 : 10);
   else ctx.rect(swX, swY, swW, swH);
   ctx.fill();
   ctx.stroke();
 
   // title row
-  ctx.fillStyle = swRunning ? '#34d399' : '#38bdf8';
-  ctx.font = 'bold 11px Sarabun';
+  ctx.fillStyle = accentSW;
+  ctx.font = compact ? 'bold 9px Sarabun' : 'bold 11px Sarabun';
   ctx.textAlign = 'left';
-  ctx.fillText('⏱ STOPWATCH', swX + 12, swY + 18);
+  ctx.fillText('⏱ STOPWATCH', swX + 8, swY + (compact ? 13 : 18));
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px Sarabun';
+  ctx.font = compact ? '8px Sarabun' : '10px Sarabun';
   ctx.textAlign = 'right';
-  ctx.fillText(swRunning ? '● RUNNING' : (swTime > 0 ? '⏸ STOPPED' : 'READY'), swX + swW - 12, swY + 18);
+  ctx.fillText(swRunning ? '● RUNNING' : (swTime > 0 ? '⏸ STOPPED' : 'READY'), swX + swW - 8, swY + (compact ? 13 : 18));
 
   // big time display
-  ctx.fillStyle = swRunning ? '#34d399' : '#38bdf8';
-  ctx.font = 'bold 34px Share Tech Mono';
+  ctx.fillStyle = accentSW;
+  ctx.font = compact ? 'bold 22px Share Tech Mono' : 'bold 34px Share Tech Mono';
   ctx.textAlign = 'center';
-  ctx.fillText(swTime.toFixed(3), swX + swW / 2, swY + 62);
-  ctx.font = '11px Share Tech Mono';
+  ctx.fillText(swTime.toFixed(3), swX + swW / 2, swY + (compact ? 40 : 62));
+  ctx.font = compact ? '9px Share Tech Mono' : '11px Share Tech Mono';
   ctx.fillStyle = '#94a3b8';
-  ctx.fillText('seconds', swX + swW / 2, swY + 78);
+  ctx.fillText('seconds', swX + swW / 2, swY + (compact ? 52 : 78));
 
   // N target + computed T
   ctx.fillStyle = '#e2e8f0';
-  ctx.font = 'bold 11px Share Tech Mono';
+  ctx.font = compact ? 'bold 9px Share Tech Mono' : 'bold 11px Share Tech Mono';
   ctx.textAlign = 'left';
-  ctx.fillText('N ตั้งไว้: ' + N_target, swX + 14, swY + 100);
+  ctx.fillText('N: ' + N_target, swX + 8, swY + (compact ? 67 : 100));
 
   if (swTime > 0) {
     const Tm = swTime / N_target;
     ctx.textAlign = 'right';
     ctx.fillStyle = '#34d399';
-    ctx.fillText('T = ' + Tm.toFixed(3) + 's', swX + swW - 14, swY + 100);
+    ctx.fillText('T=' + Tm.toFixed(3) + 's', swX + swW - 8, swY + (compact ? 67 : 100));
   }
   ctx.textAlign = 'left';
 
@@ -871,24 +873,27 @@ function resetSim() {
 }
 
 // ================= STOPWATCH =================
-function startStopwatch() {
-  if (!isPlaying) {
-    alert('กรุณากดปุ่ม "เริ่ม" ให้ลูกตุ้มแกว่งก่อน แล้วจึงกด Start นาฬิกา');
-    return;
+function toggleStopwatch() {
+  if (swRunning) {
+    // Stop
+    swRunning = false;
+    syncStopwatchBtn();
+    updateReadout();
+  } else {
+    // Start
+    if (!isPlaying) {
+      alert('กรุณากดปุ่ม "เริ่ม" ให้ลูกตุ้มแกว่งก่อน แล้วจึงกด Start นาฬิกา');
+      return;
+    }
+    swRunning = true;
+    autoStoppedFlag = false;
+    swTime = 0;
+    swCount = 0;
+    syncStopwatchBtn();
   }
-  if (swRunning) return;
-  swRunning = true;
-  autoStoppedFlag = false;
-  swTime = 0;
-  swCount = 0;
-  syncStopwatchBtn();
 }
-
-function stopStopwatch() {
-  swRunning = false;
-  syncStopwatchBtn();
-  updateReadout();
-}
+function startStopwatch() { if (!swRunning) toggleStopwatch(); }
+function stopStopwatch() { if (swRunning) toggleStopwatch(); }
 
 function resetStopwatch() {
   swRunning = false;
@@ -901,17 +906,18 @@ function resetStopwatch() {
 }
 
 function syncStopwatchBtn() {
-  const s = document.getElementById('swStartBtn');
-  const p = document.getElementById('swStopBtn');
-  if (!s || !p) return;
+  const btn = document.getElementById('swToggleBtn');
+  if (!btn) return;
   if (swRunning) {
-    s.textContent = '⏳ กำลังจับ';
-    s.style.opacity = '0.6';
-    p.style.opacity = '1';
+    btn.textContent = '⏹ Stop';
+    btn.classList.remove('btn-play');
+    btn.classList.add('playing');
+    btn.style.background = '#b71c1c';
   } else {
-    s.textContent = '▶ Start';
-    s.style.opacity = '1';
-    p.style.opacity = '0.8';
+    btn.textContent = '▶ Start';
+    btn.classList.add('btn-play');
+    btn.classList.remove('playing');
+    btn.style.background = '';
   }
 }
 
