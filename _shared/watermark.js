@@ -110,7 +110,8 @@
     // ตั้ง CSS ให้ตรงกับ display size ของ canvas เป้าหมาย
     oc.style.cssText =
       'position:absolute;top:0;left:0;pointer-events:none;z-index:999;' +
-      'width:' + dw + 'px;height:' + dh + 'px;';
+      'width:' + dw + 'px;height:' + dh + 'px;' +
+      'background:transparent !important;border:none !important;';
 
     parent.insertBefore(oc, simCanvas.nextSibling);
     drawWatermark(oc);
