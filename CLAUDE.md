@@ -98,6 +98,32 @@ python3 _admin/protect_new_file.py --scan --fix
 
 ---
 
+## ⚠️ กติกาสำคัญ: ซิงก์ไฟล์ใหม่เข้ากับ Admin Panel
+
+**เมื่อเพิ่ม/แก้ไข/ลบ lab หรือ simulation** ใน VPL01/VPL02 → **ต้องอัปเดต `_admin/admin.html` ด้วยเสมอ**
+
+ใน `_admin/admin.html` มี list ที่ admin ใช้เซ็ตสิทธิ์สมาชิก:
+- **`LAB_LIST`** (ประมาณบรรทัด ~618) — รายชื่อ lab ทั้งหมดที่ admin ติ๊กอนุญาต/ปฏิเสธให้สมาชิกแต่ละคนได้
+- **`TOPIC_LIST`** — หัวข้อ (mechanics, waves, astronomy, electricity, thermodynamics)
+- **`CONTENT_TYPES`** — ประเภทเนื้อหา (simulation, lab_manual, exam)
+
+### ✅ Checklist เมื่อเพิ่ม lab ใหม่
+
+- [ ] สร้างไฟล์ `.html` ใน VPL01/Mechacnics หรือ VPL02
+- [ ] รัน `python3 _admin/protect_new_file.py --scan --fix`
+- [ ] **เพิ่ม entry ใหม่ใน `LAB_LIST` ของ `_admin/admin.html`** (format: `{id:'lab-XX',label:'Lab XX (ชื่อ)'}`)
+  - จัดเรียงตามเลข lab (lab-33 → lab-33b → lab-34 → lab-35 → lab-37 ฯลฯ)
+  - `id` ใช้ตัวพิมพ์เล็กเสมอ (เช่น `lab-33b` ไม่ใช่ `lab-33B`)
+- [ ] ทดสอบเปิด admin panel → แก้ไขสิทธิ์สมาชิก → ดูว่า checkbox lab ใหม่ขึ้นถูกต้อง
+- [ ] บันทึกใน `SESSION_LOG.md` ว่าได้แก้ `_admin/admin.html` ด้วย
+
+### ❌ ถ้าลืม
+
+- Admin จะ**ติ๊กสิทธิ์ lab ใหม่ไม่ได้** → สมาชิกอาจเข้าถึงหรือถูกบล็อกผิด
+- สิทธิ์ default `curLabs = m.labs || LAB_LIST.map(l=>l.id)` จะให้ lab ใหม่แก่ทุกคนโดยอัตโนมัติ (อาจไม่ตรงเจตนา)
+
+---
+
 ## 🔒 Watermark System
 
 ไฟล์ simulation ทุกไฟล์ใน VPL01 + VPL02 มีลายน้ำ "KP Science" แสดงบน canvas
