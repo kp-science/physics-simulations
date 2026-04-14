@@ -53,11 +53,11 @@ const ACCESS_SCHEMA = [
     id: 'demo', label: 'Demo (หลักการวิทยาศาสตร์)', icon: '🎬', phase: 1,
     kind: 'subjects',
     items: [
-      { id: 'mechanics',      label: 'กลศาสตร์',      icon: '⚙️' },
-      { id: 'waves',          label: 'คลื่นและเสียง', icon: '🌊' },
-      { id: 'astronomy',      label: 'ดาราศาสตร์',    icon: '🌌' },
-      { id: 'electricity',    label: 'ไฟฟ้า',         icon: '⚡' },
-      { id: 'thermodynamics', label: 'อุณหพลศาสตร์', icon: '🔥' }
+      { id: 'mechanics', label: 'กลศาสตร์',   icon: '⚙️' },
+      { id: 'waves',     label: 'คลื่น',      icon: '🌊' },
+      { id: 'astronomy', label: 'ดาราศาสตร์', icon: '🌌' },
+      { id: 'optics',    label: 'แสง',        icon: '💡' },
+      { id: 'magnetism', label: 'แม่เหล็ก',   icon: '🧲' }
     ]
   },
   {
@@ -128,8 +128,10 @@ const LEGACY_TOPIC_MAP = {
   mechanics:      'demo:mechanics',
   waves:          'demo:waves',
   astronomy:      'demo:astronomy',
-  electricity:    'demo:electricity',
-  thermodynamics: 'demo:thermodynamics',
+  optics:         'demo:optics',
+  magnetism:      'demo:magnetism',
+  electricity:    'demo:magnetism',   // legacy: รวมกับแม่เหล็ก
+  thermodynamics: 'demo:mechanics',   // legacy: fallback
   // v2 (simulation/document based)
   sim_demo:       'demo:*',
   sim_vpl01:      'vlab:vpl01:*',

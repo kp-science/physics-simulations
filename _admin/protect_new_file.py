@@ -40,8 +40,26 @@ def extract_lab_id(filename):
     return 'lab-' + m.group(1).lower()
 
 def get_access_string(filepath):
-    """Return access string for a lab file, e.g. 'vlab:vpl01:lab-16'"""
+    """Return access string for a lab/demo file"""
     fname = os.path.basename(filepath)
+
+    # Demo files — subject based on folder name
+    if '/Demo/' in filepath:
+        # เช็ค path segments เพื่อหา subject
+        THAI_SUBJECT = {
+            'mechanics':   'mechanics',
+            'คลื่น':       'waves',
+            'ดาราศาสตร์': 'astronomy',
+            'แสง':         'optics',
+            'แม่เหล็ก':   'magnetism'
+        }
+        for seg in filepath.split('/'):
+            for thai, subj in THAI_SUBJECT.items():
+                if thai in seg:
+                    return f'demo:{subj}'
+        return 'demo:mechanics'  # fallback
+
+    # VPL files
     lab_id = extract_lab_id(fname)
     if not lab_id:
         return None
@@ -184,9 +202,10 @@ def check_file(filepath):
     if is_sim and 'watermark.js' not in content and fname != 'index.html':
         issues.append('WATERMARK')
 
-    # 8. Access Guard (VPL01/VPL02 files — ต้องมี firebase + kp-auth.js + kpPageAccess)
+    # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
     is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath
-    if is_vlab and fname != 'index.html':
+    is_demo_sim = '/Demo/' in filepath  # Demo ก็ต้องการ page guard
+    if (is_vlab or is_demo_sim) and fname != 'index.html':
         if 'firebase-app-compat' not in content:
             issues.append('FIREBASE_CDN')
         if 'kp-auth.js' not in content:
@@ -307,6 +326,10 @@ def fix_file(filepath, issues=None):
                 listing = get_root_path(filepath) + 'virtual-physics-lab-01.html'
             elif '/Virtual Physics Lab 02/' in filepath:
                 listing = get_root_path(filepath) + 'virtual-physics-lab-02.html'
+            elif '/Demo/' in filepath:
+                # map subject → demo listing page
+                subject = access.split(':')[1] if ':' in access else 'mechanics'
+                listing = get_root_path(filepath) + f'demo-{subject}.html'
             else:
                 listing = get_root_path(filepath) + 'index.html'
             guard_tag = (

@@ -1913,3 +1913,55 @@ match /settings/{docId} {
 ### ค้างไว้ที่ไหน
 - ⚠️ User ต้องเพิ่ม Firestore rules สำหรับ `settings/{docId}` ก่อน features นี้จะใช้งานได้จริง
 - ยังไม่ได้ commit/push
+
+**13. Phase 1 Complete — Demo access control + schema ปรับให้ตรง folder จริง**
+
+**User feedback:** กด "🚫 ปิด" preset → VPL ถูกล็อก แต่ Demo ยังเปิดอยู่ → Demo ไม่มีระบบล็อกเลย
+
+**1. ปรับ `ACCESS_SCHEMA.demo.items` ให้ตรงกับ Demo/ folder จริง**
+- เดิม: `mechanics, waves, astronomy, electricity, thermodynamics` (electricity/thermo ไม่มี content จริง)
+- ใหม่: `mechanics, waves, astronomy, optics, magnetism` (ตรงตาม folder `Demo/`)
+- `LEGACY_TOPIC_MAP` เพิ่ม `optics`, `magnetism` + map legacy `electricity → demo:magnetism`, `thermodynamics → demo:mechanics` (fallback)
+
+**2. Inject `data-locked` + `data-access` บนลิงก์ Demo ทุกหน้า**
+- `index.html` — 13 ลิงก์ (Featured Demos 8 + accordion 5)
+- `demo-mechanics.html` — 25 ลิงก์
+- `demo-waves.html` — 5 ลิงก์
+- `demo-optics.html` — 1 ลิงก์
+- `demo-magnetism.html` — 1 ลิงก์
+- `demo-astronomy.html` — 1 ลิงก์
+- `library.html` — 33 ลิงก์
+- **รวม:** 79 ลิงก์ Demo ล็อกเพิ่ม
+
+Pattern ของลิงก์ Demo: `href="Demo/<folder>/...html"` → `data-access="demo:<subject>"`
+- Thai folder mapping: `mechanics→mechanics, คลื่น→waves, ดาราศาสตร์→astronomy, แสง→optics, แม่เหล็ก→magnetism`
+
+**3. เพิ่ม Firebase + kp-auth.js + CSS lock overlay ใน 5 demo-*.html**
+- เดิม: ไม่มี firebase เลย (modal login ใช้ไม่ได้)
+- ใหม่: inject firebase CDN 3 ตัว + kp-auth.js + CSS `.kp-locked::after`
+
+**4. Update `_admin/protect_new_file.py` รองรับ Demo**
+- `get_access_string()` — map `/Demo/<thai-folder>/` → `demo:<subject>` อัตโนมัติ
+- `check_file()` — ตรวจ ACCESS_GUARD ในไฟล์ `/Demo/` ด้วย (เดิมตรวจแค่ VPL)
+- `fix_file()` — redirect path สำหรับ Demo ไปที่ `demo-<subject>.html`
+
+**5. รัน `--scan --fix`**
+- Inject Firebase + kp-auth + ACCESS_GUARD ให้ Demo files ทุกไฟล์ใน `Demo/mechanics/`, `Demo/คลื่น/`, `Demo/ดาราศาสตร์/`, `Demo/แสง/`, `Demo/แม่เหล็ก/`
+- รวม 30+ ไฟล์
+
+### ไฟล์ที่แก้
+- `kp-auth.js` — ACCESS_SCHEMA.demo + LEGACY_TOPIC_MAP
+- `_admin/admin.html` — ACCESS_SCHEMA.demo
+- `_admin/protect_new_file.py` — get_access_string + check_file + fix_file
+- `index.html`, `library.html`, 5× demo-*.html — inject link locks + CSS + firebase
+- Demo/**/*.html — inject page guards (30+ ไฟล์ผ่าน protect script)
+
+### ผลหลังแก้ (visitor ไม่ login)
+- กด "🚫 ปิด" ใน admin → Demo+VLab+Manual ล็อกทั้งหมด ✅
+- กด "🎬 แค่ Demo" → Demo เปิด, VLab+Manual ล็อก
+- กด "🔓 เปิดหมด" → Demo+VLab เปิด, Manual ล็อก
+- กำหนดเอง → แต่ละวิชา Demo เปิด/ปิดแยกได้
+
+### หมายเหตุ
+- Demo folder ภาษาไทยมี space/อักขระพิเศษ → protect script handle ได้ (พบใน `กฎนิวตัน`, `โปรเจคไทล์` ฯลฯ)
+- Subjects ใน schema ตอนนี้ตรงกับเนื้อหาจริง 5 วิชา (ถ้าเพิ่ม electricity/thermodynamics ในอนาคต แค่เพิ่ม item ใน ACCESS_SCHEMA.demo.items ทั้ง 2 ไฟล์)
