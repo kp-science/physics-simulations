@@ -20,45 +20,89 @@ const db   = firebase.firestore();
 // ── Config ────────────────────────────────────────────────
 const DOWNLOAD_QUOTA = 3; // ดาวน์โหลดสูงสุดต่อเดือน
 
-// ── Access Categories (โครงสร้างใหม่ v3) ─────────────────
-// แทนที่ระบบ topics แบบหัวข้อฟิสิกส์ (mechanics/waves/...) เดิม
-// แบ่งตามประเภทเนื้อหา × แหล่งที่มา
-const ACCESS_CATEGORIES = [
+// ═════════════════════════════════════════════════════════
+// ── Access Schema v4 (Phase 1) ───────────────────────────
+// Format: "category:source:item" string-based
+// Examples:
+//   "demo:mechanics"           — Demo วิชากลศาสตร์
+//   "demo:*"                   — Demo ทุกวิชา (bundle)
+//   "vlab:vpl01:lab-16"        — Virtual Lab 01 Lab 16 (per-item)
+//   "vlab:vpl01:*"             — Virtual Lab 01 ทั้ง series (bundle)
+//   "manual:vpl01:*"           — คู่มือ VPL01 ทั้งหมด
+//   "*"                        — Superuser (admin)
+// ═════════════════════════════════════════════════════════
+
+// รายการ lab IDs แต่ละ series (ใช้ render per-item drill-down ใน admin)
+const VLAB_SERIES = {
+  vpl01: {
+    label: 'Virtual Lab 01',
+    labs: ['lab-1','lab-2','lab-3','lab-4','lab-5','lab-6.1','lab-6.2','lab-6.3',
+           'lab-7','lab-8','lab-9','lab-10','lab-11','lab-12','lab-13','lab-14',
+           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21']
+  },
+  vpl02: {
+    label: 'Virtual Lab 02',
+    labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
+           'lab-34','lab-35','lab-37']
+  }
+};
+
+const ACCESS_SCHEMA = [
+  // ── Phase 1 (active) ──
   {
-    id: 'simulation',
-    label: 'Simulation',
-    icon: '🎬',
+    id: 'demo', label: 'Demo (หลักการวิทยาศาสตร์)', icon: '🎬', phase: 1,
+    kind: 'subjects',
     items: [
-      { id: 'sim_demo',  label: 'Demo (ทุกหัวข้อ)', icon: '✨' },
-      { id: 'sim_vpl01', label: 'Virtual Lab 01',   icon: '🧪' },
-      { id: 'sim_vpl02', label: 'Virtual Lab 02',   icon: '🔬' }
+      { id: 'mechanics',      label: 'กลศาสตร์',      icon: '⚙️' },
+      { id: 'waves',          label: 'คลื่นและเสียง', icon: '🌊' },
+      { id: 'astronomy',      label: 'ดาราศาสตร์',    icon: '🌌' },
+      { id: 'electricity',    label: 'ไฟฟ้า',         icon: '⚡' },
+      { id: 'thermodynamics', label: 'อุณหพลศาสตร์', icon: '🔥' }
     ]
   },
   {
-    id: 'document',
-    label: 'เอกสาร',
-    icon: '📄',
-    items: [
-      { id: 'doc_vpl01', label: 'Virtual Lab 01', icon: '📘' },
-      { id: 'doc_vpl02', label: 'Virtual Lab 02', icon: '📗' }
-    ]
-  }
+    id: 'vlab', label: 'Virtual Lab (ฝึกทักษะ)', icon: '🧪', phase: 1,
+    kind: 'series',
+    items: Object.keys(VLAB_SERIES).map(k => ({ id: k, label: VLAB_SERIES[k].label, labs: VLAB_SERIES[k].labs }))
+  },
+  {
+    id: 'manual', label: 'คู่มือ Lab', icon: '📘', phase: 1,
+    kind: 'series',
+    items: Object.keys(VLAB_SERIES).map(k => ({ id: k, label: VLAB_SERIES[k].label, labs: VLAB_SERIES[k].labs }))
+  },
+  // ── Phase 2 (placeholder) ──
+  { id: 'exam',    label: 'ข้อสอบ + Simulation',     icon: '📝', phase: 2, comingSoon: true },
+  { id: 'examsim', label: 'Simulation สร้างข้อสอบ',   icon: '🎯', phase: 2, comingSoon: true },
+  // ── Phase 3 (placeholder) ──
+  { id: 'course',  label: 'คอสออนไลน์',              icon: '📚', phase: 3, comingSoon: true }
 ];
 
-// Flat list ของ access id ทั้งหมด (สำหรับ admin/premium ที่เข้าได้ทุกอย่าง)
-const ALL_TOPICS = ACCESS_CATEGORIES.reduce((a, c) => a.concat(c.items.map(i => i.id)), []);
+// Role defaults (preset)
+const ROLE_ACCESS_PRESETS = {
+  blocked:  [],
+  member:   ['demo:*'],
+  pro:      ['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*'],
+  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
+  ultimate: ['*'],
+  admin:    ['*']
+};
 
-// สิทธิ์เริ่มต้นเมื่อสมัครใหม่ (Free member) — เห็น Demo เฉยๆ
-const DEFAULT_TOPICS = ['sim_demo'];
-
-// Legacy topic mapping — map หัวข้อเดิม (mechanics/waves/...) ให้ทำงานต่อได้
-// ใช้ใน applyTopicAccess() เพื่อให้ element ที่มี data-topic="mechanics" ยังล็อก/ปลดล็อกได้
+// Legacy topic mapping (v1 + v2 → v4)
+// v1: mechanics/waves/... → demo:mechanics/demo:waves + vlab:vpl01:* (for old data-topic)
+// v2: sim_demo/sim_vpl01/doc_vpl01 → demo:*/vlab:vpl01:*/manual:vpl01:*
 const LEGACY_TOPIC_MAP = {
-  mechanics:      'sim_vpl01',
-  waves:          'sim_vpl02',
-  astronomy:      'sim_vpl02',
-  electricity:    'sim_vpl02',
-  thermodynamics: 'sim_vpl02'
+  // v1 (physics topic based)
+  mechanics:      'demo:mechanics',
+  waves:          'demo:waves',
+  astronomy:      'demo:astronomy',
+  electricity:    'demo:electricity',
+  thermodynamics: 'demo:thermodynamics',
+  // v2 (simulation/document based)
+  sim_demo:       'demo:*',
+  sim_vpl01:      'vlab:vpl01:*',
+  sim_vpl02:      'vlab:vpl02:*',
+  doc_vpl01:      'manual:vpl01:*',
+  doc_vpl02:      'manual:vpl02:*'
 };
 
 // ── State ─────────────────────────────────────────────────
@@ -72,14 +116,14 @@ auth.onAuthStateChanged(async user => {
     // โหลดข้อมูล user จาก Firestore
     try {
       const snap = await db.collection('users').doc(user.uid).get();
-      currentUserData = snap.exists ? snap.data() : null;
+      currentUserData = snap.exists ? migrateAccess(snap.data()) : null;
     } catch(e) {
       currentUserData = null;
     }
     // ── Sync watermark tier จาก Firestore → localStorage ──
     syncWatermarkTier(currentUserData);
     updateTopbar(user);
-    applyTopicAccess();
+    applyAccessControl();
   } else {
     currentUserData = null;
     // ── ลบ tier เมื่อ logout → ลายน้ำกลับมา ──
@@ -124,39 +168,98 @@ function updateTopbar(user) {
   }
 }
 
-// ── Topics Access Control ─────────────────────────────────
+// ── Access Control (v4) ───────────────────────────────────
 
-// กำหนด topics ที่ user เข้าถึงได้
-function getUserTopics() {
-  if (!currentUserData) return [];
-  // admin หรือ premium เข้าได้ทุก topic
-  if (currentUserData.role === 'admin' || currentUserData.role === 'premium') {
-    return ALL_TOPICS;
+// Migrate user data → ensure `access` field exists
+function migrateAccess(userData) {
+  if (!userData) return userData;
+  if (Array.isArray(userData.access) && userData.access.length) return userData;
+
+  const access = [];
+  const role = userData.role || 'member';
+
+  // Admin/premium เสมอเข้าได้ทุกอย่าง
+  if (role === 'admin' || role === 'premium') {
+    return { ...userData, access: ['*'] };
   }
-  // blocked เข้าไม่ได้เลย
-  if (currentUserData.role === 'blocked') return [];
-  // member ทั่วไปดูตาม topics ที่กำหนด
-  return currentUserData.topics || DEFAULT_TOPICS;
+  if (role === 'blocked') {
+    return { ...userData, access: [] };
+  }
+
+  // Derive จาก legacy topics field
+  (userData.topics || []).forEach(t => {
+    const mapped = LEGACY_TOPIC_MAP[t];
+    if (mapped && !access.includes(mapped)) access.push(mapped);
+  });
+
+  // Derive จาก legacy labs field (granular per-lab access)
+  // Note: ถ้ามี vlab:vpl01:* แล้ว ไม่ต้องเพิ่ม per-lab
+  const labs = userData.labs || [];
+  const hasVpl01Bundle = access.includes('vlab:vpl01:*');
+  const hasVpl02Bundle = access.includes('vlab:vpl02:*');
+  labs.forEach(labId => {
+    const inVpl01 = VLAB_SERIES.vpl01.labs.includes(labId);
+    const inVpl02 = VLAB_SERIES.vpl02.labs.includes(labId);
+    if (inVpl01 && !hasVpl01Bundle) {
+      const k = 'vlab:vpl01:' + labId;
+      if (!access.includes(k)) access.push(k);
+    } else if (inVpl02 && !hasVpl02Bundle) {
+      const k = 'vlab:vpl02:' + labId;
+      if (!access.includes(k)) access.push(k);
+    }
+  });
+
+  // ถ้ายังไม่มีอะไรเลย → default member
+  if (!access.length) access.push('demo:*');
+
+  return { ...userData, access };
 }
 
-// ใช้สิทธิ์กับทุก element ที่มี data-locked
-function applyTopicAccess() {
-  const allowedTopics = getUserTopics();
+// Core: เช็คว่า user มีสิทธิ์ access string ที่ต้องการไหม
+function hasAccess(required) {
+  if (!required) return true;
+  if (!currentUserData) return false;
+  const userAccess = currentUserData.access || [];
 
-  document.querySelectorAll('[data-locked="true"]').forEach(el => {
-    let topic = el.getAttribute('data-topic') || 'sim_demo';
-    // Map legacy topic ids (mechanics/waves/...) → new ids (sim_vpl01/sim_vpl02/...)
-    if (LEGACY_TOPIC_MAP[topic]) topic = LEGACY_TOPIC_MAP[topic];
-    if (allowedTopics.includes(topic)) {
-      unlock(el);
-    } else {
-      lock(el);
+  // Superuser
+  if (userAccess.includes('*')) return true;
+  // Exact
+  if (userAccess.includes(required)) return true;
+  // Wildcard parent (e.g. "vlab:vpl01:*" → covers "vlab:vpl01:lab-16")
+  const parts = required.split(':');
+  for (let i = parts.length - 1; i > 0; i--) {
+    if (userAccess.includes(parts.slice(0, i).join(':') + ':*')) return true;
+  }
+  return false;
+}
+
+// คืน flat list ของทุก access ที่ user มี (expand wildcards)
+function getUserAccess() {
+  return (currentUserData && currentUserData.access) || [];
+}
+
+// Back-compat: code เก่าอาจเรียก getUserTopics() อยู่
+function getUserTopics() { return getUserAccess(); }
+
+// ใช้สิทธิ์กับทุก element ที่มี data-locked หรือ data-access
+function applyAccessControl() {
+  document.querySelectorAll('[data-locked="true"], [data-access]').forEach(el => {
+    // Prefer data-access (v4), fallback to data-topic (v1/v2)
+    let required = el.getAttribute('data-access');
+    if (!required) {
+      const legacy = el.getAttribute('data-topic') || 'demo:mechanics';
+      required = LEGACY_TOPIC_MAP[legacy] || legacy;
     }
+    if (hasAccess(required)) unlock(el);
+    else lock(el);
   });
 }
 
+// Back-compat alias
+function applyTopicAccess() { applyAccessControl(); }
+
 function lockAll() {
-  document.querySelectorAll('[data-locked="true"]').forEach(el => lock(el));
+  document.querySelectorAll('[data-locked="true"], [data-access]').forEach(el => lock(el));
 }
 
 function lock(el) {
@@ -186,17 +289,26 @@ function onLockedClick(e) {
 }
 
 function showTopicAlert(el) {
-  let topic = el.getAttribute('data-topic') || 'sim_demo';
-  if (LEGACY_TOPIC_MAP[topic]) topic = LEGACY_TOPIC_MAP[topic];
-  // หาชื่อจาก ACCESS_CATEGORIES
-  let topicName = topic;
-  for (const cat of ACCESS_CATEGORIES) {
-    const hit = cat.items.find(i => i.id === topic);
-    if (hit) { topicName = cat.label + ': ' + hit.label; break; }
+  let required = el.getAttribute('data-access');
+  if (!required) {
+    const legacy = el.getAttribute('data-topic') || 'demo:mechanics';
+    required = LEGACY_TOPIC_MAP[legacy] || legacy;
+  }
+  // หาชื่อจาก ACCESS_SCHEMA
+  const [catId, srcId, itemId] = required.split(':');
+  let label = required;
+  const cat = ACCESS_SCHEMA.find(c => c.id === catId);
+  if (cat) {
+    label = cat.label;
+    if (srcId && srcId !== '*' && cat.items) {
+      const src = cat.items.find(i => i.id === srcId);
+      if (src) label += ' · ' + src.label;
+      if (itemId && itemId !== '*') label += ' · ' + itemId;
+    }
   }
   const t = document.getElementById('kp-quota-alert');
   if (t) {
-    t.textContent = `🔒 สิทธิ์ "${topicName}" สำหรับสมาชิกที่ได้รับอนุญาตเท่านั้น`;
+    t.textContent = `🔒 สิทธิ์ "${label}" สำหรับสมาชิกที่ได้รับอนุญาตเท่านั้น`;
     t.style.display = 'flex';
     setTimeout(() => t.style.display = 'none', 3500);
   }
@@ -271,7 +383,8 @@ async function kpRegister() {
     await db.collection('users').doc(cred.user.uid).set({
       email:              email,
       role:               'member',
-      topics:             DEFAULT_TOPICS,   // mechanics เท่านั้นตอนสมัคร
+      access:             ROLE_ACCESS_PRESETS.member,   // v4: ['demo:*']
+      topics:             ['sim_demo'],                  // legacy back-compat
       createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
       downloadsThisMonth: 0,
       downloadMonth:      new Date().getMonth(),
@@ -298,7 +411,8 @@ async function kpLoginGoogle() {
       await userRef.set({
         email:              user.email,
         role:               'member',
-        topics:             DEFAULT_TOPICS,
+        access:             ROLE_ACCESS_PRESETS.member,   // v4: ['demo:*']
+        topics:             ['sim_demo'],                  // legacy back-compat
         createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
         downloadsThisMonth: 0,
         downloadMonth:      new Date().getMonth(),
@@ -320,13 +434,59 @@ async function kpLogout() {
 
 // ── Profile ───────────────────────────────────────────────
 const ROLE_LABELS = {
-  member:  { text: 'สมาชิก',      cls: 'kp-role-member',  icon: '🆓' },
-  premium: { text: 'พรีเมียม',    cls: 'kp-role-premium', icon: '💎' },
-  admin:   { text: 'ผู้ดูแล',     cls: 'kp-role-admin',   icon: '👑' },
-  blocked: { text: 'ถูกระงับ',    cls: 'kp-role-blocked', icon: '🚫' }
+  member:   { text: 'สมาชิก',      cls: 'kp-role-member',  icon: '🆓' },
+  pro:      { text: 'โปร',         cls: 'kp-role-premium', icon: '⭐' },
+  premium:  { text: 'พรีเมียม',    cls: 'kp-role-premium', icon: '💎' },
+  ultimate: { text: 'Ultimate',    cls: 'kp-role-admin',   icon: '🏆' },
+  admin:    { text: 'ผู้ดูแล',     cls: 'kp-role-admin',   icon: '👑' },
+  blocked:  { text: 'ถูกระงับ',    cls: 'kp-role-blocked', icon: '🚫' }
 };
 
-// TOPIC_LABELS: อ้างอิงจาก ACCESS_CATEGORIES (ดูด้านบน) — ไม่ต้อง duplicate
+// Render section ในโปรไฟล์ของแต่ละ category ใน ACCESS_SCHEMA
+function renderProfileCategory(cat) {
+  const header = '<div class="kp-topic-group-head">' + cat.icon + ' ' + cat.label +
+                 (cat.comingSoon ? ' <span class="kp-coming-soon">🔜 เร็วๆ นี้</span>' : '') +
+                 '</div>';
+
+  // Coming Soon → แสดงแค่ header + hint
+  if (cat.comingSoon) {
+    return '<div class="kp-topic-group kp-group-coming">' + header +
+           '<div class="kp-coming-hint">อยู่ระหว่างพัฒนา</div></div>';
+  }
+
+  let rows = '';
+  if (cat.kind === 'subjects') {
+    // Demo — แสดง subjects
+    rows = cat.items.map(item => {
+      const ok = hasAccess(cat.id + ':' + item.id);
+      return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
+             '<span><span class="kp-topic-ico">' + item.icon + '</span> ' + item.label + '</span>' +
+             '<span>' + (ok ? '✅' : '🔒') + '</span></div>';
+    }).join('');
+  } else if (cat.kind === 'series') {
+    // VLab / Manual — แสดง series + นับ lab ที่เข้าถึงได้
+    rows = cat.items.map(item => {
+      const bundle = hasAccess(cat.id + ':' + item.id + ':*');
+      const total  = (item.labs || []).length;
+      let unlockedCount;
+      if (bundle) {
+        unlockedCount = total;
+      } else {
+        unlockedCount = (item.labs || []).filter(l => hasAccess(cat.id + ':' + item.id + ':' + l)).length;
+      }
+      const ok = unlockedCount > 0;
+      const detail = bundle ? 'ทั้งหมด (' + total + ' รายการ)'
+                            : (unlockedCount > 0 ? unlockedCount + '/' + total + ' รายการ'
+                                                 : 'ยังไม่มีสิทธิ์');
+      return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
+             '<span>' + item.label + '</span>' +
+             '<span class="kp-topic-detail">' + detail + ' ' + (ok ? '✅' : '🔒') + '</span></div>';
+    }).join('');
+  }
+
+  return '<div class="kp-topic-group">' + header + rows + '</div>';
+}
+
 
 async function showProfile() {
   if (!currentUser) { showModal('login'); return; }
@@ -385,20 +545,10 @@ function renderProfile() {
   }
 
   // Topics (render แบบ grouped ตาม ACCESS_CATEGORIES)
-  const allowed = getUserTopics();
+  // Access (render แบบ grouped ตาม ACCESS_SCHEMA v4)
   const topicsEl = document.getElementById('kp-profile-topics');
   if (topicsEl) {
-    topicsEl.innerHTML = ACCESS_CATEGORIES.map(cat => {
-      const header = '<div class="kp-topic-group-head">' + cat.icon + ' ' + cat.label + '</div>';
-      const rows = cat.items.map(item => {
-        const ok = allowed.includes(item.id);
-        return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
-               '<span><span class="kp-topic-ico">' + item.icon + '</span> ' + item.label + '</span>' +
-               '<span>' + (ok ? '✅' : '🔒') + '</span>' +
-               '</div>';
-      }).join('');
-      return '<div class="kp-topic-group">' + header + rows + '</div>';
-    }).join('');
+    topicsEl.innerHTML = ACCESS_SCHEMA.map(cat => renderProfileCategory(cat)).join('');
   }
 
   // Watermark status

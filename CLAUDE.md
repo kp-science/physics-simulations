@@ -102,16 +102,59 @@ python3 _admin/protect_new_file.py --scan --fix
 
 **เมื่อเพิ่ม/แก้ไข/ลบ lab หรือ simulation** ใน VPL01/VPL02 → **ต้องอัปเดต `_admin/admin.html` ด้วยเสมอ**
 
-ใน `_admin/admin.html` มี list ที่ admin ใช้เซ็ตสิทธิ์สมาชิก:
-- **`LAB_LIST`** (ประมาณบรรทัด ~618) — รายชื่อ lab ทั้งหมดที่ admin ติ๊กอนุญาต/ปฏิเสธให้สมาชิกแต่ละคนได้
-- **`ACCESS_GROUPS`** (v3, 2026-04-14) — โครงสร้างสิทธิ์เข้าถึงแบบใหม่ (แทน `TOPIC_LIST` เดิม)
-  - **Simulation**: `sim_demo` (Demo), `sim_vpl01` (VPL01), `sim_vpl02` (VPL02)
-  - **เอกสาร**: `doc_vpl01` (VPL01), `doc_vpl02` (VPL02)
-- **`CONTENT_TYPES`** — ประเภทเนื้อหา (simulation, lab_manual, exam) — legacy, คงไว้ backward compat
+ใน `_admin/admin.html` + `kp-auth.js` ใช้ **Access Schema v4 (Phase 1)** — ระบบ access string แบบ `category:source:item`
 
-**ซิงก์กับ `kp-auth.js`:** ถ้าเพิ่ม access id ใหม่ใน `ACCESS_GROUPS` ของ admin → ต้องเพิ่มใน `ACCESS_CATEGORIES` ของ `kp-auth.js` ด้วย (IDs ต้องตรงกัน)
+### 📐 Access String Format
 
-**Legacy topic mapping (ใน kp-auth.js):** ไฟล์เก่าที่มี `data-topic="mechanics"` ฯลฯ จะถูก map ไป `sim_vpl01`/`sim_vpl02` อัตโนมัติผ่าน `LEGACY_TOPIC_MAP` (อย่าเพิ่งลบออกถ้าไม่ได้ migrate ทุกไฟล์)
+```
+<category>:<source>:<item>
+```
+
+ตัวอย่าง:
+- `demo:mechanics` — Demo วิชากลศาสตร์ (subject-level)
+- `demo:*` — Demo ทุกวิชา (bundle)
+- `vlab:vpl01:lab-16` — Virtual Lab 01 Lab 16 (per-item)
+- `vlab:vpl01:*` — Virtual Lab 01 ทั้ง series (bundle)
+- `manual:vpl01:*` — คู่มือ VPL01 ทั้งหมด
+- `*` — Superuser (admin)
+
+### 📂 Categories (ใน `ACCESS_SCHEMA`)
+
+**Phase 1 (active):**
+- `demo` × subjects: `mechanics`, `waves`, `astronomy`, `electricity`, `thermodynamics`
+- `vlab` × series: `vpl01` (lab-1..21), `vpl02` (lab-30,31,32,32b,32c,33,33b,34,35,37)
+- `manual` × series: `vpl01`, `vpl02` (labs เหมือน vlab)
+
+**Phase 2-3 (placeholder — coming soon):**
+- `exam`, `examsim` (Phase 2 — ข้อสอบ + Sim สร้างข้อสอบ)
+- `course` (Phase 3 — คอสออนไลน์)
+
+### 🎭 Role Presets
+
+`ROLE_ACCESS_PRESETS` (sync ระหว่าง admin + kp-auth.js):
+- `blocked` → `[]`
+- `member` → `['demo:*']`
+- `pro` → `['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*']`
+- `premium` → `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*']`
+- `ultimate` → `['*']`
+- `admin` → `['*']`
+
+### 🗄️ Firestore User Document
+
+```js
+users/{uid}: {
+  email, role, access_tier, createdAt, ...
+  access: ['demo:*', 'vlab:vpl01:*'],   // ⬅️ v4 primary field
+  topics: [...], labs: [...]             // ⬅️ legacy back-compat (ยังเซฟไว้)
+}
+```
+
+### ⚠️ กฎสำคัญ
+
+1. **เพิ่ม lab ใหม่ใน VPL01/VPL02** → ต้องเพิ่มใน `VLAB_SERIES` **ของทั้ง** `kp-auth.js` และ `_admin/admin.html` (2 ที่ ต้อง sync)
+2. **เพิ่ม category ใหม่** (เช่น `course`, `exam` ที่ยังเป็น coming soon) → เพิ่มใน `ACCESS_SCHEMA` ของทั้ง 2 ไฟล์
+3. **อย่าลบ `LEGACY_TOPIC_MAP`** — ไฟล์เก่าที่มี `data-topic="mechanics"` ฯลฯ ยังใช้อยู่ (จะ map เป็น `demo:mechanics` อัตโนมัติ)
+4. **ใน HTML หน้าใหม่** ให้ใช้ `data-access="vlab:vpl01:lab-16"` แทน `data-topic="mechanics"` (ชัดเจนกว่า)
 
 ### ✅ Checklist เมื่อเพิ่ม lab ใหม่
 

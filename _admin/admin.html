@@ -262,29 +262,20 @@ td{padding:.8rem 1rem;vertical-align:middle}
     </div>
     <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem" id="topics-user-label"></p>
 
-    <!-- Content Types -->
-    <div style="margin-bottom:1.25rem">
-      <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">ประเภท Content</div>
-      <div id="content-types-checkboxes" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem"></div>
-    </div>
-
-    <!-- Topics -->
-    <div style="margin-bottom:1.25rem">
-      <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">หมวดวิชา (Topics)</div>
-      <div id="topics-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem"></div>
-    </div>
-
-    <!-- Labs -->
-    <div style="margin-bottom:1.5rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
-        <div style="font-size:.78rem;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Labs (คู่มือ + ดาวน์โหลด)</div>
-        <div style="display:flex;gap:.4rem">
-          <button onclick="checkAllLabs(true)" style="background:none;border:1px solid var(--border2);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;font-family:inherit">เลือกทั้งหมด</button>
-          <button onclick="checkAllLabs(false)" style="background:none;border:1px solid var(--border2);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;font-family:inherit">ยกเลิกทั้งหมด</button>
-        </div>
+    <!-- Quick Presets -->
+    <div style="margin-bottom:1.25rem;padding:.75rem;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:.78rem;color:var(--accent2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.55rem">⚡ Quick Presets</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <button type="button" onclick="applyPreset('member')"   class="preset-btn" style="background:rgba(148,163,184,.15);border:1px solid rgba(148,163,184,.4);color:#cbd5e1;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🆓 Free</button>
+        <button type="button" onclick="applyPreset('pro')"      class="preset-btn" style="background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.4);color:#7dd3fc;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">⭐ Pro</button>
+        <button type="button" onclick="applyPreset('premium')"  class="preset-btn" style="background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.4);color:#d8b4fe;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">💎 Premium</button>
+        <button type="button" onclick="applyPreset('ultimate')" class="preset-btn" style="background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);color:#fdba74;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🏆 Ultimate</button>
+        <button type="button" onclick="applyPreset('blocked')"  class="preset-btn" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🚫 Blocked</button>
       </div>
-      <div id="labs-checkboxes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.4rem"></div>
     </div>
+
+    <!-- Access sections (rendered by openTopics) -->
+    <div id="access-sections"></div>
 
     <!-- Watermark Tier -->
     <div style="margin-bottom:1.5rem">
@@ -599,33 +590,57 @@ async function toggleUnlimited(uid, setUnlimited) {
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 
-// ── Topics Modal ─────────────────────────────────────────
-// ── Access Control Config (v3 — ปรับโครงสร้าง 2026-04-14) ────
-// แบ่งเป็น 2 หมวดใหญ่: Simulation × (Demo / VPL01 / VPL02) + เอกสาร × (VPL01 / VPL02)
-const ACCESS_GROUPS = [
-  {
-    id:'simulation',
-    label:'🎬 Simulation',
-    accent:'var(--accent)',   // cyan
+// ═════════════════════════════════════════════════════════
+// ── Access Schema v4 (Phase 1) — sync กับ kp-auth.js ────
+// ═════════════════════════════════════════════════════════
+const VLAB_SERIES = {
+  vpl01: {
+    label: 'Virtual Lab 01',
+    labs: ['lab-1','lab-2','lab-3','lab-4','lab-5','lab-6.1','lab-6.2','lab-6.3',
+           'lab-7','lab-8','lab-9','lab-10','lab-11','lab-12','lab-13','lab-14',
+           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21']
+  },
+  vpl02: {
+    label: 'Virtual Lab 02',
+    labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
+           'lab-34','lab-35','lab-37']
+  }
+};
+
+const ACCESS_SCHEMA = [
+  // Phase 1
+  { id:'demo',   label:'🎬 Demo (หลักการวิทยาศาสตร์)', phase:1, kind:'subjects', accent:'var(--accent)',
     items:[
-      { id:'sim_demo',  label:'Demo (ทุกหัวข้อ)' },
-      { id:'sim_vpl01', label:'Virtual Lab 01' },
-      { id:'sim_vpl02', label:'Virtual Lab 02' }
+      { id:'mechanics',      label:'กลศาสตร์' },
+      { id:'waves',          label:'คลื่นและเสียง' },
+      { id:'astronomy',      label:'ดาราศาสตร์' },
+      { id:'electricity',    label:'ไฟฟ้า' },
+      { id:'thermodynamics', label:'อุณหพลศาสตร์' }
     ]
   },
-  {
-    id:'document',
-    label:'📄 เอกสาร',
-    accent:'var(--accent4)',  // orange
-    items:[
-      { id:'doc_vpl01', label:'Virtual Lab 01' },
-      { id:'doc_vpl02', label:'Virtual Lab 02' }
-    ]
-  }
+  { id:'vlab',   label:'🧪 Virtual Lab (ฝึกทักษะ)', phase:1, kind:'series', accent:'var(--accent3)',
+    items: Object.keys(VLAB_SERIES).map(k=>({id:k, label:VLAB_SERIES[k].label, labs:VLAB_SERIES[k].labs}))
+  },
+  { id:'manual', label:'📘 คู่มือ Lab', phase:1, kind:'series', accent:'var(--accent4)',
+    items: Object.keys(VLAB_SERIES).map(k=>({id:k, label:VLAB_SERIES[k].label, labs:VLAB_SERIES[k].labs}))
+  },
+  // Phase 2-3 (placeholder)
+  { id:'exam',    label:'📝 ข้อสอบ + Simulation',    phase:2, comingSoon:true },
+  { id:'examsim', label:'🎯 Simulation สร้างข้อสอบ', phase:2, comingSoon:true },
+  { id:'course',  label:'📚 คอสออนไลน์',             phase:3, comingSoon:true }
 ];
-// Flat list (ไว้ default ให้ทุกคนถ้าไม่มีการเซ็ต)
-const TOPIC_LIST = ACCESS_GROUPS.reduce((a,g)=>a.concat(g.items),[]);
-// Legacy — คงไว้ backward compat (อาจมี user doc เก่าที่มี contentTypes field)
+
+// Role presets (sync กับ kp-auth.js ROLE_ACCESS_PRESETS)
+const ROLE_ACCESS_PRESETS = {
+  blocked:  [],
+  member:   ['demo:*'],
+  pro:      ['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*'],
+  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
+  ultimate: ['*'],
+  admin:    ['*']
+};
+
+// Legacy content types — ไว้สำหรับ user doc เก่าเท่านั้น
 const CONTENT_TYPES = [
   { id:'simulation', label:'Simulation' },
   { id:'lab_manual', label:'คู่มือ Lab' },
@@ -653,39 +668,60 @@ function _chk(id, val, checked, accent) {
   </label>`;
 }
 
+// ── Migrate legacy member data → access array ────────────
+function migrateLegacyAccess(m) {
+  if (Array.isArray(m.access) && m.access.length) return m.access.slice();
+  // Default จาก role
+  if (m.role === 'admin' || m.role === 'ultimate') return ['*'];
+  if (m.role === 'premium') return ROLE_ACCESS_PRESETS.premium.slice();
+  if (m.role === 'pro')     return ROLE_ACCESS_PRESETS.pro.slice();
+  if (m.role === 'blocked') return [];
+  // Map legacy topics
+  const access = [];
+  const LEGACY = {
+    mechanics:'demo:mechanics', waves:'demo:waves', astronomy:'demo:astronomy',
+    electricity:'demo:electricity', thermodynamics:'demo:thermodynamics',
+    sim_demo:'demo:*', sim_vpl01:'vlab:vpl01:*', sim_vpl02:'vlab:vpl02:*',
+    doc_vpl01:'manual:vpl01:*', doc_vpl02:'manual:vpl02:*'
+  };
+  (m.topics||[]).forEach(t=>{ const n=LEGACY[t]; if (n && !access.includes(n)) access.push(n); });
+  // Legacy labs → per-item
+  (m.labs||[]).forEach(labId=>{
+    const inVpl01 = VLAB_SERIES.vpl01.labs.includes(labId);
+    const inVpl02 = VLAB_SERIES.vpl02.labs.includes(labId);
+    if (inVpl01 && !access.includes('vlab:vpl01:*')) {
+      const k='vlab:vpl01:'+labId; if(!access.includes(k)) access.push(k);
+    } else if (inVpl02 && !access.includes('vlab:vpl02:*')) {
+      const k='vlab:vpl02:'+labId; if(!access.includes(k)) access.push(k);
+    }
+  });
+  if (!access.length) access.push('demo:*');
+  return access;
+}
+
+// ── hasAccess check (same logic as kp-auth.js) ───────────
+function accessHas(list, required) {
+  if (!required) return true;
+  if (list.includes('*')) return true;
+  if (list.includes(required)) return true;
+  const parts = required.split(':');
+  for (let i = parts.length - 1; i > 0; i--) {
+    if (list.includes(parts.slice(0,i).join(':') + ':*')) return true;
+  }
+  return false;
+}
+
+// Current edit state
+let currentAccess = []; // เก็บ array ของ access string
+
 function openTopics(uid) {
   const m = allMembers.find(x => x.id === uid);
   if (!m) return;
   topicsEditUid = uid;
   document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}  ·  Role: ${m.role || 'member'}`;
 
-  const curTopics = m.topics || ['sim_demo'];
-  const curContent = m.contentTypes || ['simulation','lab_manual','exam'];
-  const curLabs = m.labs || LAB_LIST.map(l=>l.id); // default: all labs
-
-  document.getElementById('content-types-checkboxes').innerHTML = CONTENT_TYPES.map(t =>
-    _chk('ctype', t.id, curContent.includes(t.id), 'var(--accent4)')
-  ).join('').replace(/>simulation</g, `>${CONTENT_TYPES[0].label}<`).replace(/>lab_manual</g, `>${CONTENT_TYPES[1].label}<`).replace(/>exam</g, `>${CONTENT_TYPES[2].label}<`);
-
-  // Topics — render แบบ grouped (Simulation × Demo/VPL01/VPL02 + เอกสาร × VPL01/VPL02)
-  document.getElementById('topics-checkboxes').innerHTML = ACCESS_GROUPS.map(g => `
-    <div style="margin-bottom:.75rem">
-      <div style="font-size:.8rem;font-weight:700;color:${g.accent};margin-bottom:.4rem;letter-spacing:.02em">${g.label}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-left:.5rem">
-        ${g.items.map(item => `
-          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .7rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border);transition:.15s">
-            <input type="checkbox" name="topic" value="${item.id}" ${curTopics.includes(item.id)?'checked':''} style="accent-color:${g.accent};width:15px;height:15px"> ${item.label}
-          </label>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
-
-  document.getElementById('labs-checkboxes').innerHTML = LAB_LIST.map(l =>
-    `<label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;padding:.35rem .5rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
-      <input type="checkbox" name="lab" value="${l.id}" ${curLabs.includes(l.id)?'checked':''} style="accent-color:var(--accent3);width:14px;height:14px"> ${l.label}
-    </label>`
-  ).join('');
+  currentAccess = migrateLegacyAccess(m);
+  renderAccessSections();
 
   // Watermark tier
   const curTier = m.access_tier || '';
@@ -696,6 +732,113 @@ function openTopics(uid) {
   document.getElementById('topics-modal').style.display = 'flex';
 }
 
+// ── Render Access sections (Phase 1 + Coming Soon) ───────
+function renderAccessSections() {
+  const root = document.getElementById('access-sections');
+  if (!root) return;
+  root.innerHTML = ACCESS_SCHEMA.map(cat => {
+    if (cat.comingSoon) {
+      return `<div style="margin-bottom:.6rem;padding:.6rem .75rem;background:var(--bg3);border:1px dashed var(--border);border-radius:8px;opacity:.6">
+        <div style="font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center">
+          <span>${cat.label}</span>
+          <span style="font-size:.7rem;background:rgba(168,85,247,.15);color:#d8b4fe;padding:2px 8px;border-radius:999px">🔜 เร็วๆ นี้ (Phase ${cat.phase})</span>
+        </div>
+      </div>`;
+    }
+    if (cat.kind === 'subjects') return renderSubjectsSection(cat);
+    if (cat.kind === 'series')   return renderSeriesSection(cat);
+    return '';
+  }).join('');
+}
+
+function renderSubjectsSection(cat) {
+  const bundleChecked = accessHas(currentAccess, cat.id + ':*');
+  const items = cat.items.map(item => {
+    const full = cat.id + ':' + item.id;
+    const checked = bundleChecked || currentAccess.includes(full);
+    return `<label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .7rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <input type="checkbox" data-access="${full}" ${checked?'checked':''} ${bundleChecked?'disabled':''} onchange="onAccessChange()" style="accent-color:${cat.accent};width:15px;height:15px"> ${item.label}
+    </label>`;
+  }).join('');
+  return `<div style="margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div style="font-size:.82rem;color:${cat.accent};font-weight:700">${cat.label}</div>
+      <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;color:var(--muted)">
+        <input type="checkbox" data-access="${cat.id}:*" ${bundleChecked?'checked':''} onchange="onAccessChange()" style="accent-color:${cat.accent};width:14px;height:14px"> ทั้งหมด
+      </label>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-left:.4rem">${items}</div>
+  </div>`;
+}
+
+function renderSeriesSection(cat) {
+  const seriesRows = cat.items.map(series => {
+    const bundleKey = cat.id + ':' + series.id + ':*';
+    const bundleChecked = accessHas(currentAccess, bundleKey);
+    const unlockedCount = series.labs.filter(l => accessHas(currentAccess, cat.id + ':' + series.id + ':' + l)).length;
+    const total = series.labs.length;
+    const drillId = 'drill-' + cat.id + '-' + series.id;
+    return `<div style="margin-bottom:.5rem;padding:.55rem .7rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-size:.85rem;flex:1">
+          <input type="checkbox" data-access="${bundleKey}" ${bundleChecked?'checked':''} onchange="onAccessChange()" style="accent-color:${cat.accent};width:15px;height:15px">
+          <span style="font-weight:600">${series.label}</span>
+          <span style="font-size:.72rem;color:var(--muted);font-weight:500">(${bundleChecked?total+'/'+total:unlockedCount+'/'+total})</span>
+        </label>
+        <button type="button" onclick="toggleDrill('${drillId}')" style="background:none;border:1px solid var(--border2);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.7rem;cursor:pointer;font-family:inherit">▾ เลือกเฉพาะ lab</button>
+      </div>
+      <div id="${drillId}" style="display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--border)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.35rem">
+          ${series.labs.map(labId => {
+            const full = cat.id + ':' + series.id + ':' + labId;
+            const checked = bundleChecked || currentAccess.includes(full);
+            return `<label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.74rem;padding:.3rem .45rem;background:var(--bg);border-radius:5px;border:1px solid var(--border)">
+              <input type="checkbox" data-access="${full}" ${checked?'checked':''} ${bundleChecked?'disabled':''} onchange="onAccessChange()" style="accent-color:${cat.accent};width:13px;height:13px"> ${labId.replace('lab-','L')}
+            </label>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:1rem">
+    <div style="font-size:.82rem;color:${cat.accent};font-weight:700;margin-bottom:.5rem">${cat.label}</div>
+    ${seriesRows}
+  </div>`;
+}
+
+// ── เปิด/ปิด drill-down per-series ────────────────────────
+function toggleDrill(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── เมื่อมีการ check/uncheck checkbox ใดๆ → sync currentAccess ──
+function onAccessChange() {
+  const checked = [...document.querySelectorAll('#access-sections input[type="checkbox"]:checked')]
+    .map(el => el.getAttribute('data-access'));
+  // ถ้ามี bundle (:*) checked → ลบ per-item ใน series นั้นออก (clean data)
+  const clean = [];
+  checked.forEach(k => {
+    if (k.endsWith(':*')) { clean.push(k); return; }
+    const parts = k.split(':');
+    // ถ้า parent bundle มีอยู่ → skip
+    let hasBundle = false;
+    for (let i = parts.length - 1; i > 0; i--) {
+      if (checked.includes(parts.slice(0,i).join(':') + ':*')) { hasBundle = true; break; }
+    }
+    if (!hasBundle) clean.push(k);
+  });
+  currentAccess = clean;
+  renderAccessSections();  // rerender เพื่อ disable children ของ bundle ที่เปิดใหม่
+}
+
+// ── Apply preset (Free/Pro/Premium/Ultimate/Blocked) ─────
+function applyPreset(name) {
+  currentAccess = (ROLE_ACCESS_PRESETS[name] || []).slice();
+  renderAccessSections();
+  showToast(`ใช้ preset: ${name}`);
+}
+
 function checkAllLabs(state) {
   document.querySelectorAll('#labs-checkboxes input').forEach(el => el.checked = state);
 }
@@ -704,21 +847,38 @@ function closeTopics() { document.getElementById('topics-modal').style.display='
 
 async function saveTopics() {
   if (!topicsEditUid) return;
-  const topics = [...document.querySelectorAll('input[name="topic"]:checked')].map(el => el.value);
-  const contentTypes = [...document.querySelectorAll('input[name="ctype"]:checked')].map(el => el.value);
-  const labs = [...document.querySelectorAll('input[name="lab"]:checked')].map(el => el.value);
+
+  const access = currentAccess.slice();
   const accessTierEl = document.querySelector('input[name="access_tier"]:checked');
   const access_tier = accessTierEl ? accessTierEl.value : '';
 
-  if (topics.length === 0) { showToast('ต้องเลือกอย่างน้อย 1 หมวดวิชา'); return; }
+  // Derive legacy fields (backward compat: ให้ code เก่ายังเช็คได้)
+  const legacyTopics = [];
+  if (accessHas(access, 'demo:*') || ACCESS_SCHEMA[0].items.some(s=>accessHas(access,'demo:'+s.id))) legacyTopics.push('sim_demo');
+  if (accessHas(access, 'vlab:vpl01:*')) legacyTopics.push('sim_vpl01');
+  if (accessHas(access, 'vlab:vpl02:*')) legacyTopics.push('sim_vpl02');
+  if (accessHas(access, 'manual:vpl01:*')) legacyTopics.push('doc_vpl01');
+  if (accessHas(access, 'manual:vpl02:*')) legacyTopics.push('doc_vpl02');
+
+  const legacyLabs = [];
+  ['vpl01','vpl02'].forEach(s => {
+    VLAB_SERIES[s].labs.forEach(l => {
+      if (accessHas(access, 'vlab:' + s + ':' + l)) legacyLabs.push(l);
+    });
+  });
 
   try {
-    await db.collection('users').doc(topicsEditUid).update({ topics, contentTypes, labs, access_tier });
+    await db.collection('users').doc(topicsEditUid).update({
+      access,                    // ⬅️ v4 primary field
+      topics: legacyTopics,      // ⬅️ legacy back-compat
+      labs: legacyLabs,          // ⬅️ legacy back-compat
+      access_tier
+    });
     const m = allMembers.find(x => x.id === topicsEditUid);
-    if (m) { m.topics = topics; m.contentTypes = contentTypes; m.labs = labs; m.access_tier = access_tier; }
+    if (m) { m.access = access; m.topics = legacyTopics; m.labs = legacyLabs; m.access_tier = access_tier; }
     closeTopics(); renderTable(allMembers);
     const tierMsg = access_tier ? ` · ลายน้ำ: ${access_tier}` : ' · ลายน้ำ: แสดง';
-    showToast(`อัปเดตสิทธิ์แล้ว (${topics.length} topics · ${contentTypes.length} content · ${labs.length} labs${tierMsg})`);
+    showToast(`อัปเดตสิทธิ์แล้ว (${access.length} access entries${tierMsg})`);
   } catch(e) { showToast('เกิดข้อผิดพลาด: ' + e.message); }
 }
 

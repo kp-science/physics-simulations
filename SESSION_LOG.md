@@ -1631,3 +1631,63 @@ blocked   → admin ปิดได้จาก dashboard
 
 ### หมายเหตุ
 - ถ้าต้องการเพิ่มหมวดใหม่ในอนาคต (เช่น `exam_vpl01`, `video_youtube`) เพิ่มใน `ACCESS_GROUPS` ของ admin.html + `ACCESS_CATEGORIES` ของ kp-auth.js พร้อมกันเสมอ (IDs ต้องตรงกัน)
+
+**6. Phase 1 Rollout — Access Schema v4 (`category:source:item`)**
+
+เปลี่ยนระบบสิทธิ์จาก v3 (flat `topics: ['sim_vpl01',...]`) → v4 (access strings `['vlab:vpl01:*',...]`) เพื่อรองรับ:
+- ✨ Bundle + Per-item ในระบบเดียว (เช่น `vlab:vpl01:*` หรือ `vlab:vpl01:lab-16`)
+- 🔜 Phase 2 (exam, examsim) + Phase 3 (course) — ออกแบบ placeholder ไว้ให้เพิ่มได้โดยไม่กระทบ core
+- 💳 Per-item purchase — แค่ append access string ตอนชำระเงินเสร็จ
+- ⭐ Wildcard (`*` = superuser, `demo:*` = ทั้ง category)
+
+**Phase 1 Categories (active):**
+- `demo` × subjects (mechanics/waves/astronomy/electricity/thermodynamics)
+- `vlab` × series (vpl01 = lab-1..21, vpl02 = lab-30..37)
+- `manual` × series (vpl01/vpl02)
+
+**Phase 2-3 Placeholders (coming soon):**
+- `exam`, `examsim` (Phase 2)
+- `course` (Phase 3)
+
+**Role Presets:**
+```
+blocked: []
+member:  ['demo:*']
+pro:     ['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*']
+premium: ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*']
+ultimate/admin: ['*']
+```
+
+**ไฟล์ที่แก้:**
+- `kp-auth.js`:
+  - เพิ่ม `ACCESS_SCHEMA`, `ROLE_ACCESS_PRESETS`, `VLAB_SERIES`, `LEGACY_TOPIC_MAP` (v1+v2→v4)
+  - เพิ่ม `hasAccess(required)`, `migrateAccess(userData)`, `applyAccessControl()`, `renderProfileCategory()`
+  - Auto-migrate user data ตอนโหลดจาก Firestore
+  - Register/Google sign-in เซฟ `access: ['demo:*']` (v4 primary field)
+  - Back-compat: `data-topic` ยังทำงาน, `getUserTopics()`, `applyTopicAccess()` เป็น alias
+- `index.html`:
+  - เพิ่ม CSS `.kp-coming-soon`, `.kp-topic-detail`, `.kp-group-coming`, `.kp-coming-hint`
+- `_admin/admin.html`:
+  - Topics Modal UI ใหม่: Quick Presets (Free/Pro/Premium/Ultimate/Blocked) + 3 sections (Demo/VLab/Manual) + Phase 2-3 placeholders
+  - Drill-down per-lab (ปุ่ม "▾ เลือกเฉพาะ lab") สำหรับ VLab + Manual
+  - `migrateLegacyAccess(m)` — แปลง user เก่า → access array
+  - `accessHas()`, `onAccessChange()`, `applyPreset()`, `renderAccessSections()`
+  - `saveTopics()` เขียน `access` array + derive `topics`/`labs` legacy fields ไว้ด้วย (back-compat)
+- `CLAUDE.md`:
+  - เอกสารโครงสร้าง access v4 ฉบับเต็ม (format, categories, role presets, Firestore schema)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **Auto-migration ทั้ง database:** ตอนนี้ migrate แบบ lazy (เฉพาะ user ที่ login/admin เปิด) — ถ้าอยาก migrate บน batch ทั้งหมด ต้องเขียน admin function เพิ่ม
+- **หน้าเว็บเก่า** ยังใช้ `data-topic` อยู่ — ยังทำงานผ่าน LEGACY_TOPIC_MAP แต่ควร migrate เป็น `data-access` ทีหลัง
+- **Phase 2 (exam, examsim):** placeholder พร้อม — เมื่อมีเนื้อหาจริง ทำแค่:
+  1. เปลี่ยน `comingSoon: true` → `false` ใน ACCESS_SCHEMA
+  2. เพิ่ม items array (kind: 'bundles' หรือ 'series')
+  3. ใส่ `data-access="exam:bundle-id"` บนหน้า
+- **Phase 3 (course):** เหมือน Phase 2 แต่เพิ่ม Firestore collection `courses/` + progress tracking
+- ยังไม่ได้ commit/push
+
+### หมายเหตุ
+- รูปแบบ `category:source:item` ออกแบบให้อ่านง่าย + extensible
+- Wildcard `*` รองรับทุกระดับ — `*`, `demo:*`, `vlab:vpl01:*`
+- Admin UI มี drill-down button ("▾ เลือกเฉพาะ lab") ซ่อนไว้ default เพื่อ keep UI สะอาด
+- เมื่อติ๊ก bundle (`:*`) per-item ใต้มันจะ disable อัตโนมัติ (ป้องกันข้อมูลซ้ำ)
