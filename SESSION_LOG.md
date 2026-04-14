@@ -1445,3 +1445,86 @@ blocked   → admin ปิดได้จาก dashboard
 
 ### หมายเหตุ
 - screenshot preview tool ดำเมื่อ scroll — เกิดจาก canvas rAF หลายตัวพร้อมกัน (dc-preview-canvas แต่ละการ์ด) ไม่ใช่ bug — verify ด้วย `preview_eval` แทน
+
+---
+
+## [2026-04-14 — เครื่องที่บ้าน]
+
+### ทำอะไรไปบ้าง
+
+**1. สร้าง Lab 33B — การหักเหของแสง (อากาศสู่แก้ว/ของเหลว)**
+- ไฟล์ใหม่: `Virtual Physics Lab 02/33B. light-refraction-glass.html`
+- อ้างอิงจากเอกสารการทดลอง "Refraction of Light Waves Traveling from Air to Glass" (ภาพสแกน)
+- ใช้โครงสร้างเดียวกับ `32B. light-reflection.html` (single-file, dark theme, 3 tabs)
+
+**ฟีเจอร์หลัก:**
+- 3 Tab: การทดลอง | วิธีการทดลอง | ทฤษฎี
+- เปลี่ยนจากวัด d/d' (ตามต้นฉบับ) → วัดมุม θ₁, θ₂ ด้วยโปรแทรกเตอร์ 360° (ลาก+หมุนได้)
+- **เลือกวัสดุ 8 ชนิด:**
+  - กล่องแก้ว: Crown Glass (n=1.52), Flint Glass (n=1.62), Dense Flint (n=1.76), Diamond (n=2.42)
+  - กล่องของเหลว: Water (n=1.33), Oil (n=1.47), Glycerol (n=1.47), CS₂ (n=1.63)
+  - สีกล่องเปลี่ยนตามวัสดุ + มีเส้นคลื่นสำหรับของเหลว
+- **โหมดบันทึกค่าเอง (Manual):** 4 ขั้นตอน — วาง P₁P₂ เหนือแก้ว → วาง P₃P₄ ใต้แก้ว → ดูรังสีหักเห → วัดมุมด้วยโปรแทรกเตอร์
+- **โหมดอัตโนมัติ (Auto):** slider ปรับ θ₁ (5°-85°), แสดง Incident/Refracted/Emerging ray + wavefront AB/CD, readout θ₁, θ₂, n, v
+- ตารางบันทึกผล: θ₁, θ₂, sinθ₁, sinθ₂, n = sinθ₁/sinθ₂, %Error + export CSV
+- กราฟ sinθ₁ vs sinθ₂ (เส้นตรงผ่าน origin ความชัน = 1/n)
+- **ทฤษฎี 3 canvas:** (1) Snell's Law diagram, (2) Wavefront + d/d' explanation, (3) Total Internal Reflection 3 scenarios
+- ตารางดัชนีหักเหวัสดุ 9 ชนิด พร้อมความเร็วแสงและมุมวิกฤต
+
+**2. รัน protect_new_file.py --scan --fix**
+- ไฟล์ใหม่ผ่าน GA, watermark, topbar ครบ
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/33B. light-refraction-glass.html` — สร้างใหม่ทั้งไฟล์
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+
+### หมายเหตุ
+- mobile order fix ยังขาดเหมือนไฟล์ VPL02 อื่นๆ ทั้งหมด (ปัญหาเดิมของ protect script)
+
+---
+
+## [2026-04-14 — เครื่องที่บ้าน (session 2)]
+
+### ทำอะไรไปบ้าง
+
+**1. สร้าง Lab 35 — ภาพจากเลนส์นูน (Images and Converging Lenses)**
+- ไฟล์ใหม่: `Virtual Physics Lab 02/35. images-converging-lenses.html`
+- อ้างอิงจากเอกสาร Experiment 35 (ภาพสแกนใบงาน)
+- ใช้โครงสร้าง single-file dark theme เดียวกับ VPL02 อื่นๆ
+
+**ฟีเจอร์หลัก:**
+- 3 Tab: 🎬 การทดลอง | 📋 วิธีการทดลอง | 📐 ทฤษฎี
+- **Part A: หาความยาวโฟกัส** — รังสีขนาน 5 เส้นจากวัตถุไกล ผ่านเลนส์นูนรวมที่จุดโฟกัส, ลากจอหาตำแหน่งชัด
+- **Part B: ศึกษาภาพ** — วัตถุ (ลูกศร), เลนส์, จอ ลากได้บนม้านั่งเชิงแสง, แสดง 3 principal rays (แดง/เขียว/น้ำเงิน)
+- **โหมดวัดค่าเอง (Manual, default):** ลากวัตถุ/เลนส์/จอ บน optical bench, อ่านค่าจากสเกล, พิมพ์ลงตาราง, focus indicator (เขียว/เหลือง/แดง) + hint
+- **โหมดอัตโนมัติ (Auto):** slider ปรับ d_o (3-80 cm) และ f (5-25 cm), ray diagram + readout อัตโนมัติ, ตารางบันทึก + กราฟ 1/d_o vs 1/d_i
+- **Physics engine:** Thin Lens Equation 1/f = 1/d_o + 1/d_i, Magnification M = -d_i/d_o
+  - ภาพจริง (d_o > f): 3 rays converge, inverted image
+  - ภาพเสมือน (d_o < f): dashed backward extensions, erect enlarged virtual image
+  - d_o = f: no image (parallel rays after lens)
+- **ตาราง Part A:** 3 trials, X(L), X(c), f = X(c)-X(L), ค่าเฉลี่ย
+- **ตาราง Part B:** บันทึก X(O), X(L), X(S), d_o, d_i, f_calc, ภาพ, ขนาด
+- **ตาราง Auto:** d_o, d_i, 1/d_o, 1/d_i, M, ชนิดภาพ + export CSV
+- **กราฟ Auto:** 1/d_o vs 1/d_i scatter plot พร้อมเส้นทฤษฎี y = -x + 1/f (dashed)
+- **ทฤษฎี 3 canvas:**
+  1. Ray diagram 3 เส้นหลัก พร้อม labels สี color-coded
+  2. 5 กรณีตำแหน่งวัตถุ (d_o > 2f, =2f, f<d_o<2f, =f, <f) พร้อมคำอธิบาย
+  3. Thin Lens Equation derivation (similar triangles, d_o/d_i brackets)
+- **ตาราง summary:** 5 กรณี — ชนิด, ทิศทาง, ขนาดภาพ
+
+**2. รัน protect_new_file.py --scan --fix**
+- ไฟล์ใหม่ผ่าน GA (G-2YTJBNHP6D), KP Topbar, Watermark ครบ
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/35. images-converging-lenses.html` — สร้างใหม่ทั้งไฟล์
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ commit/push
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ถ้าต้องการ
+
+### หมายเหตุ
+- mobile order fix ยังขาดเหมือนไฟล์ VPL02 อื่นๆ ทั้งหมด (ปัญหาเดิมของ protect script)
+- f default = 10 cm ตรงกับข้อมูลทดลองจากเอกสาร (ค่าเฉลี่ย ~10.20 cm)
