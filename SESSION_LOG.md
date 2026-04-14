@@ -1865,3 +1865,51 @@ ultimate/admin: ['*']
 ### ค้างไว้ที่ไหน
 - ยังไม่ได้ commit/push
 - สมาชิกที่สมัครไว้ก่อนอาจมี `access: ['demo:*']` เก่า → ยังต้อง admin เข้าไปอัพเกรด หรือ auto-upgrade script
+
+**12. Admin UI — ตั้งค่าสิทธิ์ Anonymous ได้ (Firestore `settings/public`)**
+
+**เพิ่มความสามารถ:** Admin เปลี่ยนสิทธิ์ anonymous ได้ผ่าน admin panel — ไม่ต้องแก้โค้ด
+
+**Firestore Schema:**
+```
+settings/public: {
+  anonymous_access: ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'],
+  updated_at: timestamp,
+  updated_by: 'admin@email'
+}
+```
+
+**ไฟล์ที่แก้:**
+- `kp-auth.js`:
+  - เปลี่ยน `ANONYMOUS_ACCESS` → `ANONYMOUS_ACCESS_FALLBACK` (ใช้เฉพาะเมื่อโหลด Firestore ไม่ได้)
+  - เพิ่ม `publicSettings` state + `loadPublicSettings()` + `getAnonymousAccess()`
+  - เรียก `loadPublicSettings()` ทันทีที่ script โหลด (parallel กับ auth) + re-apply access ถ้า user ยัง anonymous
+- `_admin/admin.html`:
+  - เพิ่มการ์ด "🌐 สิทธิ์ผู้เข้าชมทั่วไป" ที่ด้านบน Members tab
+  - 4 preset buttons: 🔓 เปิดหมด / 🎬 แค่ Demo / 🎬⚡ Demo+VPL01 / 🚫 ปิด
+  - ปุ่ม "⚙️ กำหนดเอง" → เปิด topics-modal ใน `editMode='anonymous'` (reuse UI เดียวกับ user)
+  - เพิ่ม state `editMode` + `anonymousAccessCache`
+  - functions: `loadAnonymousSettings()`, `renderAnonymousSummary()`, `saveAnonymousAccess()`, `applyAnonymousPreset()`, `openAnonymousSettings()`
+  - `saveTopics()` branch: anonymous → write `settings/public`, user → write `users/{uid}` (เดิม)
+  - `closeTopics()` reset `editMode = 'user'`
+  - `openTopics()` reset `editMode = 'user'` + แสดง watermark section กลับ
+  - เพิ่ม `loadAnonymousSettings()` ใน `Promise.all()` ตอน admin login
+
+**⚠️ Firestore Rules ต้องเพิ่ม:**
+```js
+match /settings/{docId} {
+  allow read: if true;
+  allow write: if request.auth != null && request.auth.token.email == 'komanepapato@gmail.com';
+}
+```
+(ไม่เพิ่ม → visitors อ่าน settings/public ไม่ได้ → fallback เป็น default hardcoded — ระบบยังใช้ได้แต่ admin แก้ไม่มีผล)
+
+**UX:**
+- Admin Panel → Members tab → เห็นการ์ดข้างบน แสดง current summary (เช่น "✅ Demo · ✅ Virtual Lab · 🔒 คู่มือ Lab")
+- กด preset → save + update card ทันที + toast แจ้ง
+- กด "⚙️ กำหนดเอง" → เปิด modal แบบเดียวกับแก้ user (ไม่มี watermark section)
+- Save ใน modal anonymous mode → write `settings/public` แทน `users/{uid}`
+
+### ค้างไว้ที่ไหน
+- ⚠️ User ต้องเพิ่ม Firestore rules สำหรับ `settings/{docId}` ก่อน features นี้จะใช้งานได้จริง
+- ยังไม่ได้ commit/push

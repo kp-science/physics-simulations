@@ -210,6 +210,27 @@ td{padding:.8rem 1rem;vertical-align:middle}
 
   <!-- TAB: Members -->
   <div class="tab-pane" id="pane-members">
+
+    <!-- 🌐 Anonymous Access Card -->
+    <div class="section" style="padding-top:1.5rem">
+      <div style="background:linear-gradient(135deg,rgba(56,189,248,0.08),rgba(168,85,247,0.08));border:1px solid rgba(56,189,248,0.25);border-radius:12px;padding:1.1rem 1.25rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.6rem">
+          <div>
+            <div style="font-size:.98rem;font-weight:700;color:var(--accent)">🌐 สิทธิ์ผู้เข้าชมทั่วไป (ยังไม่ login)</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">กำหนดว่า visitor เข้าดูอะไรได้โดยไม่ต้องสมัคร</div>
+          </div>
+          <button onclick="openAnonymousSettings()" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;padding:.5rem .9rem;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">⚙️ กำหนดเอง</button>
+        </div>
+        <div id="anon-current-summary" style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">กำลังโหลด...</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+          <button type="button" onclick="applyAnonymousPreset('all')"   style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.4);color:#86efac;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🔓 เปิดหมด</button>
+          <button type="button" onclick="applyAnonymousPreset('demo')"  style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🎬 แค่ Demo</button>
+          <button type="button" onclick="applyAnonymousPreset('vpl01')" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#d8b4fe;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🎬⚡ Demo + VPL01</button>
+          <button type="button" onclick="applyAnonymousPreset('none')"  style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;padding:.35rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">🚫 ปิด (login ก่อน)</button>
+        </div>
+      </div>
+    </div>
+
     <div class="section" style="padding-top:1.5rem">
       <div class="section-head">
         <div class="section-title">รายชื่อสมาชิก</div>
@@ -345,7 +366,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'flex';
     document.getElementById('adm-logged-email').textContent = user.email;
-    await Promise.all([loadMembers(), loadDownloadLogs()]);
+    await Promise.all([loadMembers(), loadDownloadLogs(), loadAnonymousSettings()]);
   } else if (user) {
     await auth.signOut();
     document.getElementById('login-err').textContent = 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้';
@@ -732,15 +753,125 @@ function accessHas(list, required) {
 
 // Current edit state
 let currentAccess = []; // เก็บ array ของ access string
+let editMode = 'user';  // 'user' | 'anonymous'
+
+// ═════════════════════════════════════════════════════════
+// ── Anonymous settings (settings/public) ─────────────────
+// ═════════════════════════════════════════════════════════
+let anonymousAccessCache = null;
+
+async function loadAnonymousSettings() {
+  try {
+    const snap = await db.collection('settings').doc('public').get();
+    anonymousAccessCache = snap.exists && Array.isArray(snap.data().anonymous_access)
+      ? snap.data().anonymous_access.slice()
+      : ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'];
+  } catch(e) {
+    anonymousAccessCache = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'];
+    console.warn('loadAnonymousSettings error:', e);
+  }
+  renderAnonymousSummary();
+}
+
+function renderAnonymousSummary() {
+  const el = document.getElementById('anon-current-summary');
+  if (!el) return;
+  const access = anonymousAccessCache || [];
+  if (!access.length) {
+    el.innerHTML = '<span style="color:#fca5a5">🔒 ปิดทั้งหมด — visitor ต้อง login ก่อน</span>';
+    return;
+  }
+  if (access.includes('*')) {
+    el.innerHTML = '<span style="color:#86efac">🌟 เข้าได้ทุกอย่าง</span>';
+    return;
+  }
+  // สรุปแต่ละ category
+  const summary = [];
+  ACCESS_SCHEMA.forEach(cat => {
+    if (cat.comingSoon) return;
+    if (access.includes(cat.id + ':*')) {
+      summary.push('<span style="color:#86efac">✅ ' + cat.label + '</span>');
+    } else if (cat.kind === 'subjects') {
+      const count = cat.items.filter(i => access.includes(cat.id + ':' + i.id)).length;
+      if (count > 0) summary.push(`<span style="color:#7dd3fc">${cat.label} (${count}/${cat.items.length})</span>`);
+    } else if (cat.kind === 'series') {
+      const seriesOk = cat.items.filter(s => access.includes(cat.id + ':' + s.id + ':*')).length;
+      if (seriesOk > 0) summary.push(`<span style="color:#7dd3fc">${cat.label} (${seriesOk}/${cat.items.length})</span>`);
+    }
+  });
+  // รายการที่ล็อก (ไม่อยู่ใน summary)
+  const lockedCats = ACCESS_SCHEMA
+    .filter(c => !c.comingSoon)
+    .filter(c => !access.includes(c.id + ':*') && !(c.kind === 'subjects' ? c.items.some(i => access.includes(c.id + ':' + i.id)) : c.items.some(s => access.includes(c.id + ':' + s.id + ':*'))))
+    .map(c => '<span style="color:#fca5a5">🔒 ' + c.label + '</span>');
+
+  el.innerHTML = summary.concat(lockedCats).join(' · ') || '<span style="color:var(--muted)">ไม่มีสิทธิ์ใดๆ</span>';
+}
+
+async function saveAnonymousAccess(access) {
+  try {
+    await db.collection('settings').doc('public').set({
+      anonymous_access: access,
+      updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_by: auth.currentUser ? auth.currentUser.email : 'unknown'
+    }, { merge: true });
+    anonymousAccessCache = access.slice();
+    renderAnonymousSummary();
+    return true;
+  } catch(e) {
+    showToast('เกิดข้อผิดพลาด: ' + e.message);
+    return false;
+  }
+}
+
+const ANON_PRESETS = {
+  all:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'],
+  demo:  ['demo:*'],
+  vpl01: ['demo:*', 'vlab:vpl01:*'],
+  none:  []
+};
+
+async function applyAnonymousPreset(preset) {
+  const access = (ANON_PRESETS[preset] || []).slice();
+  const ok = await saveAnonymousAccess(access);
+  if (ok) {
+    const labels = { all:'🔓 เปิดหมด', demo:'🎬 แค่ Demo', vpl01:'🎬⚡ Demo+VPL01', none:'🚫 ปิด' };
+    showToast(`อัปเดตสิทธิ์ผู้เข้าชมเป็น: ${labels[preset]}`);
+  }
+}
+
+function openAnonymousSettings() {
+  editMode = 'anonymous';
+  topicsEditUid = null;
+  currentAccess = (anonymousAccessCache || ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*']).slice();
+
+  document.getElementById('topics-user-label').innerHTML =
+    '🌐 <strong>สิทธิ์ผู้เข้าชมทั่วไป</strong> — เลือกสิ่งที่ visitor (ยังไม่ login) เข้าถึงได้';
+  renderAccessSections();
+
+  // ซ่อน watermark section (ไม่เกี่ยวกับ anonymous)
+  const wmSection = document.querySelector('#tier-select');
+  if (wmSection) wmSection.closest('div[style*="margin-bottom:1.5rem"]').style.display = 'none';
+
+  document.getElementById('topics-modal').style.display = 'flex';
+}
 
 function openTopics(uid) {
   const m = allMembers.find(x => x.id === uid);
   if (!m) return;
+  editMode = 'user';
   topicsEditUid = uid;
   document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}  ·  Role: ${m.role || 'member'}`;
 
   currentAccess = migrateLegacyAccess(m);
   renderAccessSections();
+
+  // แสดง watermark section กลับ (เผื่อโดนซ่อนจาก anonymous mode)
+  const wmSectionInput = document.querySelector('#tier-select');
+  if (wmSectionInput) {
+    const wmSection = wmSectionInput.closest('div[style*="margin-bottom:1.5rem"]');
+    if (wmSection) wmSection.style.display = '';
+  }
 
   // Watermark tier
   const curTier = m.access_tier || '';
@@ -881,9 +1012,19 @@ function checkAllLabs(state) {
   document.querySelectorAll('#labs-checkboxes input').forEach(el => el.checked = state);
 }
 
-function closeTopics() { document.getElementById('topics-modal').style.display='none'; topicsEditUid=null; }
+function closeTopics() { document.getElementById('topics-modal').style.display='none'; topicsEditUid=null; editMode='user'; }
 
 async function saveTopics() {
+  // Anonymous mode → บันทึกไป settings/public
+  if (editMode === 'anonymous') {
+    const ok = await saveAnonymousAccess(currentAccess.slice());
+    if (ok) {
+      closeTopics();
+      showToast(`บันทึกสิทธิ์ผู้เข้าชมแล้ว (${currentAccess.length} entries)`);
+    }
+    return;
+  }
+
   if (!topicsEditUid) return;
 
   const access = currentAccess.slice();

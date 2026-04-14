@@ -140,7 +140,34 @@ python3 _admin/protect_new_file.py --scan --fix
 - `ultimate` → `['*']`
 - `admin` → `['*']`
 
-**Anonymous default** — ใน `kp-auth.js` มี `ANONYMOUS_ACCESS` const สำหรับ visitor ที่ยังไม่ login — ถูก apply ใน `auth.onAuthStateChanged` เมื่อ `user === null`
+**Anonymous default** — ดึงจาก Firestore `settings/public.anonymous_access` (admin แก้ได้ใน admin panel)
+- ถ้าโหลดไม่ได้/ไม่มี → fallback เป็น `ANONYMOUS_ACCESS_FALLBACK` ใน `kp-auth.js` (= `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*']`)
+- Admin UI: หน้าแรกของ admin.html มีการ์ด "🌐 สิทธิ์ผู้เข้าชมทั่วไป" — มี 4 presets + ปุ่ม "⚙️ กำหนดเอง" เปิด modal เดียวกับ user
+
+### 🗂️ Firestore Schema
+
+```js
+// สิทธิ์สมาชิก (user per doc)
+users/{uid}: {
+  email, role, access: [...], access_tier, createdAt, ...
+}
+
+// สิทธิ์ anonymous (doc เดียว global)
+settings/public: {
+  anonymous_access: ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'],
+  updated_at: timestamp,
+  updated_by: 'admin@email'
+}
+```
+
+### 🔐 Firestore Rules ที่ต้องมี
+
+```js
+match /settings/{docId} {
+  allow read: if true;  // ทุกคนอ่านได้ (รวม visitor)
+  allow write: if request.auth != null && request.auth.token.email == 'komanepapato@gmail.com';
+}
+```
 
 ### 🗄️ Firestore User Document
 

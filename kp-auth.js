@@ -87,8 +87,38 @@ const ROLE_ACCESS_PRESETS = {
   admin:    ['*']
 };
 
-// 👁️ Anonymous (ยังไม่ login) — ดู Demo + Virtual Lab ได้ฟรี ยกเว้น คู่มือ Lab / ข้อสอบ / คอส
-const ANONYMOUS_ACCESS = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'];
+// 👁️ Anonymous (ยังไม่ login) — fallback default ถ้า Firestore ยังไม่มี settings/public
+// admin เปลี่ยนค่านี้ได้ใน admin panel → เขียนไปที่ settings/public.anonymous_access
+const ANONYMOUS_ACCESS_FALLBACK = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'];
+
+// state: ดึงมาจาก Firestore (null = ยังไม่โหลด/ไม่มี → ใช้ fallback)
+let publicSettings = null;
+
+function getAnonymousAccess() {
+  if (publicSettings && Array.isArray(publicSettings.anonymous_access)) {
+    return publicSettings.anonymous_access;
+  }
+  return ANONYMOUS_ACCESS_FALLBACK;
+}
+
+// โหลด settings/public จาก Firestore (ทุกคนอ่านได้ — ต้องตั้ง rules)
+async function loadPublicSettings() {
+  try {
+    const snap = await db.collection('settings').doc('public').get();
+    publicSettings = snap.exists ? snap.data() : null;
+  } catch(e) {
+    console.warn('loadPublicSettings: cannot read settings/public (check Firestore rules)', e);
+    publicSettings = null;
+  }
+  // ถ้า user ยัง anonymous อยู่ + มี element บนหน้า → re-apply
+  if (!currentUser) {
+    currentUserData = { role: 'anonymous', access: getAnonymousAccess().slice() };
+    applyAccessControl();
+  }
+}
+
+// เรียกทันที (parallel กับ auth state)
+loadPublicSettings();
 
 // Legacy topic mapping (v1 + v2 → v4)
 // v1: mechanics/waves/... → demo:mechanics/demo:waves + vlab:vpl01:* (for old data-topic)
@@ -128,8 +158,8 @@ auth.onAuthStateChanged(async user => {
     updateTopbar(user);
     applyAccessControl();
   } else {
-    // Anonymous visitor — ให้สิทธิ์ฟรีตาม ANONYMOUS_ACCESS
-    currentUserData = { role: 'anonymous', access: ANONYMOUS_ACCESS.slice() };
+    // Anonymous visitor — ดึงสิทธิ์จาก settings/public (admin เปลี่ยนได้) หรือ fallback
+    currentUserData = { role: 'anonymous', access: getAnonymousAccess().slice() };
     // ── ลบ tier เมื่อ logout → ลายน้ำกลับมา ──
     try { localStorage.removeItem('kp_access_tier'); } catch(e){}
     if (typeof KPWatermark !== 'undefined') KPWatermark.show();
