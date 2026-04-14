@@ -1806,3 +1806,33 @@ ultimate/admin: ['*']
 ### บทเรียน
 - Protect script ควรเช็คด้วยว่ามี `</html>` ซ้ำหรือ script หลัง `</html>` ไหม
 - legacy "KP Download Lock" tail block อาจยังอยู่ในไฟล์อื่นๆ ที่ยังไม่ได้เปิด → scan หาทีหลัง
+
+**10. UX Bug Fix — Admin "ปลด bundle แล้วได้ per-item ครบ" (ตรงข้ามกับที่ตั้งใจ)**
+
+**อาการ:**
+- Admin ติ๊ก bundle `Virtual Lab 01` → per-item 23 ตัวถูก disabled+checked (ดู visual ว่ามีสิทธิ์)
+- Admin uncheck bundle
+- คาดหวัง: สิทธิ์ VPL01 ถูกปลดทั้งหมด
+- ของจริง: Save → Firestore ได้ 23 per-item IDs แทน empty → user ยังมีสิทธิ์ทั้ง VPL01!
+
+**Profile ของ user ยืนยัน:** แสดง "23/23 รายการ ✅" ซึ่งตรงกับข้อมูลใน Firestore — ไม่ใช่บั๊กของ profile UI แต่เป็นข้อมูลที่เขียนผิด
+
+**ต้นเหตุ:**
+- ใน `renderSeriesSection()` ผม render per-item ด้วย `${bundleChecked?'checked':''}` + `${bundleChecked?'disabled':''}`
+- `onAccessChange()` ใช้ `querySelectorAll('input:checked')` → รวม disabled+checked ด้วย
+- เมื่อ uncheck bundle → checkbox ที่เคย disabled ยังคง checked ใน DOM → ถูกนับเป็น per-item ที่เลือก → บันทึก 23 IDs
+
+**แก้ (3 จุด):**
+
+1. **`onAccessChange` ใช้ `:checked:not(:disabled)`** — ไม่นับ disabled checkbox
+2. **Auto-consolidate ใน `onAccessChange`** — ถ้าผู้ใช้ติ๊ก per-item ครบทั้ง series → แปลงเป็น bundle อัตโนมัติ (เก็บ data clean)
+3. **Auto-consolidate ใน `migrateLegacyAccess` (admin) + `migrateAccess` (kp-auth.js)** — user ที่มีข้อมูลผิดพลาดอยู่แล้ว (23 IDs แทน bundle) จะถูก cleanup อัตโนมัติตอนเปิด modal/login ครั้งต่อไป
+
+### ไฟล์ที่แก้
+- `_admin/admin.html` — `onAccessChange()` + `migrateLegacyAccess()`
+- `kp-auth.js` — `migrateAccess()`
+
+### ผลหลังแก้
+- ติ๊ก bundle ON → all per-item = disabled+checked (visual), data = `['vlab:vpl01:*']`
+- Uncheck bundle → all per-item = unchecked, data = `[]` (VPL01 ถูกปลด)
+- ติ๊ก per-item ทีละตัวจนครบ → auto-consolidate เป็น bundle อัตโนมัติ (data = `['vlab:vpl01:*']`)

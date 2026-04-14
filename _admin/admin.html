@@ -696,6 +696,24 @@ function migrateLegacyAccess(m) {
     }
   });
   if (!access.length) access.push('demo:*');
+
+  // 🔁 Auto-consolidate: per-item ครบ series → bundle
+  ACCESS_SCHEMA.forEach(cat => {
+    if (cat.kind !== 'series' || !cat.items) return;
+    cat.items.forEach(series => {
+      const bundleKey = cat.id + ':' + series.id + ':*';
+      if (access.includes(bundleKey)) return;
+      const allItemKeys = (series.labs || []).map(l => cat.id + ':' + series.id + ':' + l);
+      if (allItemKeys.length > 0 && allItemKeys.every(k => access.includes(k))) {
+        // ครบ → remove per-item + add bundle
+        for (let i = access.length - 1; i >= 0; i--) {
+          if (allItemKeys.includes(access[i])) access.splice(i, 1);
+        }
+        access.push(bundleKey);
+      }
+    });
+  });
+
   return access;
 }
 
@@ -814,10 +832,13 @@ function toggleDrill(id) {
 
 // ── เมื่อมีการ check/uncheck checkbox ใดๆ → sync currentAccess ──
 function onAccessChange() {
-  const checked = [...document.querySelectorAll('#access-sections input[type="checkbox"]:checked')]
+  // ⚠️ ใช้ :not(:disabled) — ไม่นับ checkbox ที่ถูก disable โดย bundle
+  // ป้องกันบั๊ก: ถ้าเปิด bundle แล้วปลด → 23 lab ย่อยไม่ควรถูกเลือกอัตโนมัติ
+  const checked = [...document.querySelectorAll('#access-sections input[type="checkbox"]:checked:not(:disabled)')]
     .map(el => el.getAttribute('data-access'));
+
   // ถ้ามี bundle (:*) checked → ลบ per-item ใน series นั้นออก (clean data)
-  const clean = [];
+  let clean = [];
   checked.forEach(k => {
     if (k.endsWith(':*')) { clean.push(k); return; }
     const parts = k.split(':');
@@ -828,6 +849,22 @@ function onAccessChange() {
     }
     if (!hasBundle) clean.push(k);
   });
+
+  // 🔁 Auto-consolidate: ถ้า per-item ของ series ถูกติ๊กครบทุกตัว → แปลงเป็น bundle
+  ACCESS_SCHEMA.forEach(cat => {
+    if (cat.kind !== 'series' || !cat.items) return;
+    cat.items.forEach(series => {
+      const bundleKey = cat.id + ':' + series.id + ':*';
+      if (clean.includes(bundleKey)) return;  // มี bundle อยู่แล้ว
+      const allItemKeys = (series.labs || []).map(l => cat.id + ':' + series.id + ':' + l);
+      if (allItemKeys.length > 0 && allItemKeys.every(k => clean.includes(k))) {
+        // ครบทุก item → remove ทุก per-item + add bundle
+        clean = clean.filter(k => !allItemKeys.includes(k));
+        clean.push(bundleKey);
+      }
+    });
+  });
+
   currentAccess = clean;
   renderAccessSections();  // rerender เพื่อ disable children ของ bundle ที่เปิดใหม่
 }

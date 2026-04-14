@@ -212,6 +212,22 @@ function migrateAccess(userData) {
   // ถ้ายังไม่มีอะไรเลย → default member
   if (!access.length) access.push('demo:*');
 
+  // 🔁 Auto-consolidate: per-item ครบ series → bundle (cleanup สำหรับ user ที่มีข้อมูลผิดพลาดจากบั๊กเก่า)
+  ACCESS_SCHEMA.forEach(cat => {
+    if (cat.kind !== 'series' || !cat.items) return;
+    cat.items.forEach(series => {
+      const bundleKey = cat.id + ':' + series.id + ':*';
+      if (access.includes(bundleKey)) return;
+      const allItemKeys = (series.labs || []).map(l => cat.id + ':' + series.id + ':' + l);
+      if (allItemKeys.length > 0 && allItemKeys.every(k => access.includes(k))) {
+        for (let i = access.length - 1; i >= 0; i--) {
+          if (allItemKeys.includes(access[i])) access.splice(i, 1);
+        }
+        access.push(bundleKey);
+      }
+    });
+  });
+
   return { ...userData, access };
 }
 
