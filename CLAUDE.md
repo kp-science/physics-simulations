@@ -133,11 +133,14 @@ python3 _admin/protect_new_file.py --scan --fix
 
 `ROLE_ACCESS_PRESETS` (sync ระหว่าง admin + kp-auth.js):
 - `blocked` → `[]`
-- `member` → `['demo:*']`
-- `pro` → `['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*']`
+- `anonymous` (ไม่ login) → `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*']` — ดูฟรี ยกเว้นคู่มือ
+- `member` (สมัครฟรี) → เท่า anonymous
+- `pro` → `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*']` — + คู่มือ VPL01
 - `premium` → `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*']`
 - `ultimate` → `['*']`
 - `admin` → `['*']`
+
+**Anonymous default** — ใน `kp-auth.js` มี `ANONYMOUS_ACCESS` const สำหรับ visitor ที่ยังไม่ login — ถูก apply ใน `auth.onAuthStateChanged` เมื่อ `user === null`
 
 ### 🗄️ Firestore User Document
 

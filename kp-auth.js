@@ -80,12 +80,15 @@ const ACCESS_SCHEMA = [
 // Role defaults (preset)
 const ROLE_ACCESS_PRESETS = {
   blocked:  [],
-  member:   ['demo:*'],
-  pro:      ['demo:*', 'vlab:vpl01:*', 'manual:vpl01:*'],
+  member:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'],                    // free member = anon + ฟรี
+  pro:      ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*'],  // + คู่มือ VPL01
   premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
   ultimate: ['*'],
   admin:    ['*']
 };
+
+// 👁️ Anonymous (ยังไม่ login) — ดู Demo + Virtual Lab ได้ฟรี ยกเว้น คู่มือ Lab / ข้อสอบ / คอส
+const ANONYMOUS_ACCESS = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*'];
 
 // Legacy topic mapping (v1 + v2 → v4)
 // v1: mechanics/waves/... → demo:mechanics/demo:waves + vlab:vpl01:* (for old data-topic)
@@ -125,12 +128,13 @@ auth.onAuthStateChanged(async user => {
     updateTopbar(user);
     applyAccessControl();
   } else {
-    currentUserData = null;
+    // Anonymous visitor — ให้สิทธิ์ฟรีตาม ANONYMOUS_ACCESS
+    currentUserData = { role: 'anonymous', access: ANONYMOUS_ACCESS.slice() };
     // ── ลบ tier เมื่อ logout → ลายน้ำกลับมา ──
     try { localStorage.removeItem('kp_access_tier'); } catch(e){}
     if (typeof KPWatermark !== 'undefined') KPWatermark.show();
     updateTopbar(null);
-    lockAll();
+    applyAccessControl();  // apply anonymous access (ล็อกเฉพาะที่ไม่อยู่ใน access list)
   }
 });
 
@@ -429,8 +433,8 @@ async function kpRegister() {
     await db.collection('users').doc(cred.user.uid).set({
       email:              email,
       role:               'member',
-      access:             ROLE_ACCESS_PRESETS.member,   // v4: ['demo:*']
-      topics:             ['sim_demo'],                  // legacy back-compat
+      access:             ROLE_ACCESS_PRESETS.member,   // v4: ['demo:*','vlab:vpl01:*','vlab:vpl02:*']
+      topics:             ['sim_demo','sim_vpl01','sim_vpl02'], // legacy back-compat
       createdAt:          firebase.firestore.FieldValue.serverTimestamp(),
       downloadsThisMonth: 0,
       downloadMonth:      new Date().getMonth(),

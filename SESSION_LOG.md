@@ -1836,3 +1836,32 @@ ultimate/admin: ['*']
 - ติ๊ก bundle ON → all per-item = disabled+checked (visual), data = `['vlab:vpl01:*']`
 - Uncheck bundle → all per-item = unchecked, data = `[]` (VPL01 ถูกปลด)
 - ติ๊ก per-item ทีละตัวจนครบ → auto-consolidate เป็น bundle อัตโนมัติ (data = `['vlab:vpl01:*']`)
+
+**11. Default สำหรับ Anonymous (ยังไม่ login) — ดู Demo + VLab ได้ฟรี ยกเว้นคู่มือ**
+
+**เปลี่ยน strategy:**
+- เดิม: ไม่ login → `lockAll()` → ล็อกทุกอย่าง
+- ใหม่: ไม่ login → `currentUserData = {role:'anonymous', access:['demo:*','vlab:vpl01:*','vlab:vpl02:*']}` → เข้าได้ Demo+VLab ฟรี
+
+**ไฟล์ที่แก้:**
+- `kp-auth.js`:
+  - เพิ่ม `ANONYMOUS_ACCESS = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*']`
+  - `auth.onAuthStateChanged` branch `user=null` → set `currentUserData` เป็น anonymous object + `applyAccessControl()` แทน `lockAll()`
+  - `ROLE_ACCESS_PRESETS.member` อัปเดตเป็น `['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*']` (เท่า anonymous)
+  - `kpRegister()` + Google sign-in เซฟ topics legacy = `['sim_demo','sim_vpl01','sim_vpl02']`
+- `_admin/admin.html`:
+  - `ROLE_ACCESS_PRESETS.member` sync เหมือน kp-auth.js
+- `CLAUDE.md`:
+  - เอกสาร role presets + anonymous default
+
+**UX หลังเปลี่ยน:**
+- ⭐ Visitor (ยังไม่ login) เข้า listing VPL01/VPL02 → ไม่มี 🔒 บน lab cards → คลิกเข้าได้เลย
+- ⭐ Page-level guard ก็ปล่อยผ่าน (เพราะ anonymous มี `vlab:vpl01:*`)
+- 🔒 คู่มือ Lab (manual:*) ยังล็อก → ต้องสมัคร Pro+ ถึงจะดูได้
+- 🔜 Phase 2 (exam) + Phase 3 (course) ยังล็อก (ไม่อยู่ใน anonymous list)
+
+**Marketing rationale:** เปิดเนื้อหา sim ให้ลองฟรีทั้งหมด → ดึงดูด user → upgrade เพื่อเข้าถึงคู่มือ + ข้อสอบ
+
+### ค้างไว้ที่ไหน
+- ยังไม่ได้ commit/push
+- สมาชิกที่สมัครไว้ก่อนอาจมี `access: ['demo:*']` เก่า → ยังต้อง admin เข้าไปอัพเกรด หรือ auto-upgrade script
