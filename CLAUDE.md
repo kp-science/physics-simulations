@@ -104,8 +104,14 @@ python3 _admin/protect_new_file.py --scan --fix
 
 ใน `_admin/admin.html` มี list ที่ admin ใช้เซ็ตสิทธิ์สมาชิก:
 - **`LAB_LIST`** (ประมาณบรรทัด ~618) — รายชื่อ lab ทั้งหมดที่ admin ติ๊กอนุญาต/ปฏิเสธให้สมาชิกแต่ละคนได้
-- **`TOPIC_LIST`** — หัวข้อ (mechanics, waves, astronomy, electricity, thermodynamics)
-- **`CONTENT_TYPES`** — ประเภทเนื้อหา (simulation, lab_manual, exam)
+- **`ACCESS_GROUPS`** (v3, 2026-04-14) — โครงสร้างสิทธิ์เข้าถึงแบบใหม่ (แทน `TOPIC_LIST` เดิม)
+  - **Simulation**: `sim_demo` (Demo), `sim_vpl01` (VPL01), `sim_vpl02` (VPL02)
+  - **เอกสาร**: `doc_vpl01` (VPL01), `doc_vpl02` (VPL02)
+- **`CONTENT_TYPES`** — ประเภทเนื้อหา (simulation, lab_manual, exam) — legacy, คงไว้ backward compat
+
+**ซิงก์กับ `kp-auth.js`:** ถ้าเพิ่ม access id ใหม่ใน `ACCESS_GROUPS` ของ admin → ต้องเพิ่มใน `ACCESS_CATEGORIES` ของ `kp-auth.js` ด้วย (IDs ต้องตรงกัน)
+
+**Legacy topic mapping (ใน kp-auth.js):** ไฟล์เก่าที่มี `data-topic="mechanics"` ฯลฯ จะถูก map ไป `sim_vpl01`/`sim_vpl02` อัตโนมัติผ่าน `LEGACY_TOPIC_MAP` (อย่าเพิ่งลบออกถ้าไม่ได้ migrate ทุกไฟล์)
 
 ### ✅ Checklist เมื่อเพิ่ม lab ใหม่
 

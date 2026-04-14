@@ -20,11 +20,46 @@ const db   = firebase.firestore();
 // ── Config ────────────────────────────────────────────────
 const DOWNLOAD_QUOTA = 3; // ดาวน์โหลดสูงสุดต่อเดือน
 
-// Topics ทั้งหมดในระบบ
-const ALL_TOPICS = ['mechanics', 'waves', 'astronomy', 'electricity', 'thermodynamics'];
+// ── Access Categories (โครงสร้างใหม่ v3) ─────────────────
+// แทนที่ระบบ topics แบบหัวข้อฟิสิกส์ (mechanics/waves/...) เดิม
+// แบ่งตามประเภทเนื้อหา × แหล่งที่มา
+const ACCESS_CATEGORIES = [
+  {
+    id: 'simulation',
+    label: 'Simulation',
+    icon: '🎬',
+    items: [
+      { id: 'sim_demo',  label: 'Demo (ทุกหัวข้อ)', icon: '✨' },
+      { id: 'sim_vpl01', label: 'Virtual Lab 01',   icon: '🧪' },
+      { id: 'sim_vpl02', label: 'Virtual Lab 02',   icon: '🔬' }
+    ]
+  },
+  {
+    id: 'document',
+    label: 'เอกสาร',
+    icon: '📄',
+    items: [
+      { id: 'doc_vpl01', label: 'Virtual Lab 01', icon: '📘' },
+      { id: 'doc_vpl02', label: 'Virtual Lab 02', icon: '📗' }
+    ]
+  }
+];
 
-// Topics ที่ได้รับเมื่อสมัครใหม่ (Free member)
-const DEFAULT_TOPICS = ['mechanics'];
+// Flat list ของ access id ทั้งหมด (สำหรับ admin/premium ที่เข้าได้ทุกอย่าง)
+const ALL_TOPICS = ACCESS_CATEGORIES.reduce((a, c) => a.concat(c.items.map(i => i.id)), []);
+
+// สิทธิ์เริ่มต้นเมื่อสมัครใหม่ (Free member) — เห็น Demo เฉยๆ
+const DEFAULT_TOPICS = ['sim_demo'];
+
+// Legacy topic mapping — map หัวข้อเดิม (mechanics/waves/...) ให้ทำงานต่อได้
+// ใช้ใน applyTopicAccess() เพื่อให้ element ที่มี data-topic="mechanics" ยังล็อก/ปลดล็อกได้
+const LEGACY_TOPIC_MAP = {
+  mechanics:      'sim_vpl01',
+  waves:          'sim_vpl02',
+  astronomy:      'sim_vpl02',
+  electricity:    'sim_vpl02',
+  thermodynamics: 'sim_vpl02'
+};
 
 // ── State ─────────────────────────────────────────────────
 let currentUser     = null;
@@ -109,7 +144,9 @@ function applyTopicAccess() {
   const allowedTopics = getUserTopics();
 
   document.querySelectorAll('[data-locked="true"]').forEach(el => {
-    const topic = el.getAttribute('data-topic') || 'mechanics';
+    let topic = el.getAttribute('data-topic') || 'sim_demo';
+    // Map legacy topic ids (mechanics/waves/...) → new ids (sim_vpl01/sim_vpl02/...)
+    if (LEGACY_TOPIC_MAP[topic]) topic = LEGACY_TOPIC_MAP[topic];
     if (allowedTopics.includes(topic)) {
       unlock(el);
     } else {
@@ -149,17 +186,17 @@ function onLockedClick(e) {
 }
 
 function showTopicAlert(el) {
-  const topic = el.getAttribute('data-topic') || 'mechanics';
-  const topicNames = {
-    mechanics:      'กลศาสตร์',
-    waves:          'คลื่นและเสียง',
-    astronomy:      'ดาราศาสตร์',
-    electricity:    'ไฟฟ้า',
-    thermodynamics: 'อุณหพลศาสตร์'
-  };
+  let topic = el.getAttribute('data-topic') || 'sim_demo';
+  if (LEGACY_TOPIC_MAP[topic]) topic = LEGACY_TOPIC_MAP[topic];
+  // หาชื่อจาก ACCESS_CATEGORIES
+  let topicName = topic;
+  for (const cat of ACCESS_CATEGORIES) {
+    const hit = cat.items.find(i => i.id === topic);
+    if (hit) { topicName = cat.label + ': ' + hit.label; break; }
+  }
   const t = document.getElementById('kp-quota-alert');
   if (t) {
-    t.textContent = `🔒 สิทธิ์ "${topicNames[topic] || topic}" สำหรับ Premium เท่านั้น`;
+    t.textContent = `🔒 สิทธิ์ "${topicName}" สำหรับสมาชิกที่ได้รับอนุญาตเท่านั้น`;
     t.style.display = 'flex';
     setTimeout(() => t.style.display = 'none', 3500);
   }
@@ -289,13 +326,7 @@ const ROLE_LABELS = {
   blocked: { text: 'ถูกระงับ',    cls: 'kp-role-blocked', icon: '🚫' }
 };
 
-const TOPIC_LABELS = {
-  mechanics:      { name: 'กลศาสตร์',       icon: '⚙️' },
-  waves:          { name: 'คลื่นและเสียง',   icon: '🌊' },
-  astronomy:      { name: 'ดาราศาสตร์',      icon: '🌌' },
-  electricity:    { name: 'ไฟฟ้า',          icon: '⚡' },
-  thermodynamics: { name: 'อุณหพลศาสตร์',   icon: '🔥' }
-};
+// TOPIC_LABELS: อ้างอิงจาก ACCESS_CATEGORIES (ดูด้านบน) — ไม่ต้อง duplicate
 
 async function showProfile() {
   if (!currentUser) { showModal('login'); return; }
@@ -353,17 +384,20 @@ function renderProfile() {
     roleEl.textContent = role.icon + ' ' + role.text;
   }
 
-  // Topics
+  // Topics (render แบบ grouped ตาม ACCESS_CATEGORIES)
   const allowed = getUserTopics();
   const topicsEl = document.getElementById('kp-profile-topics');
   if (topicsEl) {
-    topicsEl.innerHTML = ALL_TOPICS.map(t => {
-      const info = TOPIC_LABELS[t] || { name: t, icon: '📘' };
-      const ok = allowed.includes(t);
-      return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
-             '<span><span class="kp-topic-ico">' + info.icon + '</span> ' + info.name + '</span>' +
-             '<span>' + (ok ? '✅' : '🔒') + '</span>' +
-             '</div>';
+    topicsEl.innerHTML = ACCESS_CATEGORIES.map(cat => {
+      const header = '<div class="kp-topic-group-head">' + cat.icon + ' ' + cat.label + '</div>';
+      const rows = cat.items.map(item => {
+        const ok = allowed.includes(item.id);
+        return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
+               '<span><span class="kp-topic-ico">' + item.icon + '</span> ' + item.label + '</span>' +
+               '<span>' + (ok ? '✅' : '🔒') + '</span>' +
+               '</div>';
+      }).join('');
+      return '<div class="kp-topic-group">' + header + rows + '</div>';
     }).join('');
   }
 

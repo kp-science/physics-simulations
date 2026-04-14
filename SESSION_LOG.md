@@ -1588,3 +1588,46 @@ blocked   → admin ปิดได้จาก dashboard
 
 ### ไฟล์ที่แก้ (เพิ่มเติม)
 - `CLAUDE.md` — เพิ่มกติกา "ซิงก์ admin panel ทุกครั้งที่เพิ่ม lab ใหม่"
+
+**5. ปรับโครงสร้างระบบสิทธิ์ (v3) — แทน topics แบบหัวข้อฟิสิกส์ด้วยระบบ Simulation × Source / เอกสาร × Source**
+
+**เหตุผล:** โครงสร้างเดิม (mechanics/waves/astronomy/electricity/thermodynamics) ไม่สะท้อนว่าเนื้อหามาจาก Demo/VPL01/VPL02 จริงๆ และไม่แยกระหว่าง simulation กับ เอกสาร
+
+**โครงสร้างใหม่:**
+```
+1. 🎬 Simulation
+   ├─ sim_demo  (Demo ทุกหัวข้อ)
+   ├─ sim_vpl01 (Virtual Lab 01)
+   └─ sim_vpl02 (Virtual Lab 02)
+2. 📄 เอกสาร
+   ├─ doc_vpl01 (Virtual Lab 01)
+   └─ doc_vpl02 (Virtual Lab 02)
+```
+
+**ไฟล์ที่แก้:**
+- `kp-auth.js`:
+  - เพิ่ม `ACCESS_CATEGORIES` (โครงสร้าง grouped)
+  - `ALL_TOPICS` คำนวณจาก ACCESS_CATEGORIES
+  - `DEFAULT_TOPICS` = `['sim_demo']` (เดิม `['mechanics']`)
+  - เพิ่ม `LEGACY_TOPIC_MAP` (mechanics→sim_vpl01, waves/astronomy/electricity/thermodynamics→sim_vpl02) เพื่อให้ `data-topic` เก่ายังทำงาน
+  - แก้ `applyTopicAccess()` + `showTopicAlert()` ใช้ mapping ใหม่
+  - ลบ `TOPIC_LABELS` เดิม (ใช้ ACCESS_CATEGORIES แทน)
+  - `renderProfile()` render แบบ grouped (มี group header)
+- `index.html`:
+  - เพิ่ม CSS `.kp-topic-group`, `.kp-topic-group-head`, tree line ของ `.kp-topic-row`
+- `_admin/admin.html`:
+  - เพิ่ม `ACCESS_GROUPS` (โครงสร้างใหม่)
+  - `TOPIC_LIST` = flat list จาก ACCESS_GROUPS (backward compat)
+  - `openTopics()`: default `curTopics` = `['sim_demo']` (เดิม `['mechanics']`)
+  - `topics-checkboxes` render แบบ grouped มี group header + สีตาม accent ของกลุ่ม
+- `CLAUDE.md`:
+  - อัปเดต section "ซิงก์ admin panel" ให้สะท้อน ACCESS_GROUPS แทน TOPIC_LIST เดิม
+  - เน้นว่า IDs ใน `ACCESS_GROUPS` (admin) ต้องตรงกับ `ACCESS_CATEGORIES` (kp-auth.js)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **Migration ข้อมูลสมาชิกเดิมใน Firestore:** user เก่าที่มี topics = ['mechanics'] ฯลฯ จะเข้าไม่ได้ตามระบบใหม่ (นอกจาก admin/premium) → admin ต้องเข้า admin panel แล้ว update สิทธิ์ใหม่ทีละคน
+- **Data-topic ในไฟล์เก่า:** ยังใช้ชื่อ mechanics/waves/... อยู่ — ทำงานได้ผ่าน LEGACY_TOPIC_MAP แต่ควร migrate เป็น sim_vpl01/sim_vpl02 โดยตรงทีหลัง
+- ยังไม่ได้ commit/push
+
+### หมายเหตุ
+- ถ้าต้องการเพิ่มหมวดใหม่ในอนาคต (เช่น `exam_vpl01`, `video_youtube`) เพิ่มใน `ACCESS_GROUPS` ของ admin.html + `ACCESS_CATEGORIES` ของ kp-auth.js พร้อมกันเสมอ (IDs ต้องตรงกัน)

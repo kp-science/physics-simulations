@@ -600,16 +600,32 @@ async function toggleUnlimited(uid, setUnlimited) {
 }
 
 // ── Topics Modal ─────────────────────────────────────────
-// ── Access Control Config ────────────────────────────────
-const TOPIC_LIST = [
-  { id:'mechanics', label:'กลศาสตร์' },
-  { id:'waves', label:'คลื่นและเสียง' },
-  { id:'optics', label:'แสง' },
-  { id:'magnetism', label:'แม่เหล็กไฟฟ้า' },
-  { id:'astronomy', label:'ดาราศาสตร์' },
-  { id:'electricity', label:'ไฟฟ้า' },
-  { id:'thermodynamics', label:'อุณหพลศาสตร์' },
+// ── Access Control Config (v3 — ปรับโครงสร้าง 2026-04-14) ────
+// แบ่งเป็น 2 หมวดใหญ่: Simulation × (Demo / VPL01 / VPL02) + เอกสาร × (VPL01 / VPL02)
+const ACCESS_GROUPS = [
+  {
+    id:'simulation',
+    label:'🎬 Simulation',
+    accent:'var(--accent)',   // cyan
+    items:[
+      { id:'sim_demo',  label:'Demo (ทุกหัวข้อ)' },
+      { id:'sim_vpl01', label:'Virtual Lab 01' },
+      { id:'sim_vpl02', label:'Virtual Lab 02' }
+    ]
+  },
+  {
+    id:'document',
+    label:'📄 เอกสาร',
+    accent:'var(--accent4)',  // orange
+    items:[
+      { id:'doc_vpl01', label:'Virtual Lab 01' },
+      { id:'doc_vpl02', label:'Virtual Lab 02' }
+    ]
+  }
 ];
+// Flat list (ไว้ default ให้ทุกคนถ้าไม่มีการเซ็ต)
+const TOPIC_LIST = ACCESS_GROUPS.reduce((a,g)=>a.concat(g.items),[]);
+// Legacy — คงไว้ backward compat (อาจมี user doc เก่าที่มี contentTypes field)
 const CONTENT_TYPES = [
   { id:'simulation', label:'Simulation' },
   { id:'lab_manual', label:'คู่มือ Lab' },
@@ -643,7 +659,7 @@ function openTopics(uid) {
   topicsEditUid = uid;
   document.getElementById('topics-user-label').textContent = `สมาชิก: ${m.email}  ·  Role: ${m.role || 'member'}`;
 
-  const curTopics = m.topics || ['mechanics'];
+  const curTopics = m.topics || ['sim_demo'];
   const curContent = m.contentTypes || ['simulation','lab_manual','exam'];
   const curLabs = m.labs || LAB_LIST.map(l=>l.id); // default: all labs
 
@@ -651,11 +667,19 @@ function openTopics(uid) {
     _chk('ctype', t.id, curContent.includes(t.id), 'var(--accent4)')
   ).join('').replace(/>simulation</g, `>${CONTENT_TYPES[0].label}<`).replace(/>lab_manual</g, `>${CONTENT_TYPES[1].label}<`).replace(/>exam</g, `>${CONTENT_TYPES[2].label}<`);
 
-  document.getElementById('topics-checkboxes').innerHTML = TOPIC_LIST.map(t =>
-    `<label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .65rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
-      <input type="checkbox" name="topic" value="${t.id}" ${curTopics.includes(t.id)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px"> ${t.label}
-    </label>`
-  ).join('');
+  // Topics — render แบบ grouped (Simulation × Demo/VPL01/VPL02 + เอกสาร × VPL01/VPL02)
+  document.getElementById('topics-checkboxes').innerHTML = ACCESS_GROUPS.map(g => `
+    <div style="margin-bottom:.75rem">
+      <div style="font-size:.8rem;font-weight:700;color:${g.accent};margin-bottom:.4rem;letter-spacing:.02em">${g.label}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-left:.5rem">
+        ${g.items.map(item => `
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;padding:.45rem .7rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border);transition:.15s">
+            <input type="checkbox" name="topic" value="${item.id}" ${curTopics.includes(item.id)?'checked':''} style="accent-color:${g.accent};width:15px;height:15px"> ${item.label}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
 
   document.getElementById('labs-checkboxes').innerHTML = LAB_LIST.map(l =>
     `<label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.78rem;padding:.35rem .5rem;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">
