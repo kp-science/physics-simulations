@@ -525,48 +525,90 @@ const ROLE_LABELS = {
 };
 
 // Render section ในโปรไฟล์ของแต่ละ category ใน ACCESS_SCHEMA
-function renderProfileCategory(cat) {
-  const header = '<div class="kp-topic-group-head">' + cat.icon + ' ' + cat.label +
-                 (cat.comingSoon ? ' <span class="kp-coming-soon">🔜 เร็วๆ นี้</span>' : '') +
-                 '</div>';
+// Toggle collapse/expand ของ category ใน profile
+function toggleProfileGroup(btn) {
+  const group = btn.closest('.kp-topic-group');
+  if (!group) return;
+  group.classList.toggle('expanded');
+}
 
-  // Coming Soon → แสดงแค่ header + hint
+function renderProfileCategory(cat) {
+  // ── Coming Soon → single collapsible group (รวม Phase 2+3) ──
   if (cat.comingSoon) {
-    return '<div class="kp-topic-group kp-group-coming">' + header +
-           '<div class="kp-coming-hint">อยู่ระหว่างพัฒนา</div></div>';
+    // อันนี้จะถูกจัดการแยกใน renderComingSoonGroup() — return '' เพื่อข้าม
+    return '';
   }
 
+  // นับสิทธิ์ + สร้าง summary + rows
   let rows = '';
+  let summaryText = '';
+  let allOk = false;
+
   if (cat.kind === 'subjects') {
-    // Demo — แสดง subjects
+    const total = cat.items.length;
+    const ok = cat.items.filter(i => hasAccess(cat.id + ':' + i.id)).length;
+    allOk = ok === total;
+    summaryText = ok === 0 ? 'ล็อกทั้งหมด' : (ok === total ? 'ครบทุกวิชา' : ok + '/' + total + ' วิชา');
+
     rows = cat.items.map(item => {
-      const ok = hasAccess(cat.id + ':' + item.id);
-      return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
+      const got = hasAccess(cat.id + ':' + item.id);
+      return '<div class="kp-topic-row ' + (got ? 'allowed' : 'locked') + '">' +
              '<span><span class="kp-topic-ico">' + item.icon + '</span> ' + item.label + '</span>' +
-             '<span>' + (ok ? '✅' : '🔒') + '</span></div>';
+             '<span>' + (got ? '✅' : '🔒') + '</span></div>';
     }).join('');
   } else if (cat.kind === 'series') {
-    // VLab / Manual — แสดง series + นับ lab ที่เข้าถึงได้
+    const total = cat.items.length;
+    const seriesOk = cat.items.filter(s => {
+      if (hasAccess(cat.id + ':' + s.id + ':*')) return true;
+      return (s.labs || []).some(l => hasAccess(cat.id + ':' + s.id + ':' + l));
+    }).length;
+    allOk = seriesOk === total;
+    summaryText = seriesOk === 0 ? 'ล็อกทั้งหมด' : (seriesOk === total ? 'ครบทุก series' : seriesOk + '/' + total + ' series');
+
     rows = cat.items.map(item => {
       const bundle = hasAccess(cat.id + ':' + item.id + ':*');
-      const total  = (item.labs || []).length;
-      let unlockedCount;
-      if (bundle) {
-        unlockedCount = total;
-      } else {
-        unlockedCount = (item.labs || []).filter(l => hasAccess(cat.id + ':' + item.id + ':' + l)).length;
-      }
-      const ok = unlockedCount > 0;
-      const detail = bundle ? 'ทั้งหมด (' + total + ' รายการ)'
-                            : (unlockedCount > 0 ? unlockedCount + '/' + total + ' รายการ'
-                                                 : 'ยังไม่มีสิทธิ์');
+      const tot = (item.labs || []).length;
+      const got = bundle ? tot : (item.labs || []).filter(l => hasAccess(cat.id + ':' + item.id + ':' + l)).length;
+      const ok  = got > 0;
+      const detail = bundle ? 'ทั้งหมด (' + tot + ')'
+                            : (got > 0 ? got + '/' + tot : 'ล็อก');
       return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
              '<span>' + item.label + '</span>' +
              '<span class="kp-topic-detail">' + detail + ' ' + (ok ? '✅' : '🔒') + '</span></div>';
     }).join('');
   }
 
-  return '<div class="kp-topic-group">' + header + rows + '</div>';
+  const statusIcon = allOk ? '✅' : (summaryText === 'ล็อกทั้งหมด' ? '🔒' : '◐');
+  const header = '<button type="button" class="kp-topic-group-head" onclick="toggleProfileGroup(this)">' +
+                 '<span class="kp-group-icon">' + cat.icon + '</span>' +
+                 '<span class="kp-group-label">' + cat.label + '</span>' +
+                 '<span class="kp-group-summary">' + summaryText + ' ' + statusIcon + '</span>' +
+                 '<span class="kp-group-chevron">▾</span>' +
+                 '</button>';
+
+  return '<div class="kp-topic-group">' + header +
+         '<div class="kp-group-body">' + rows + '</div>' +
+         '</div>';
+}
+
+// Coming Soon group — รวม Phase 2+3 เป็น single collapsible
+function renderComingSoonGroup() {
+  const items = ACCESS_SCHEMA.filter(c => c.comingSoon);
+  if (!items.length) return '';
+  const rows = items.map(c =>
+    '<div class="kp-topic-row locked">' +
+    '<span>' + c.icon + ' ' + c.label + '</span>' +
+    '<span class="kp-topic-detail">Phase ' + (c.phase || '?') + ' 🔜</span></div>'
+  ).join('');
+  const header = '<button type="button" class="kp-topic-group-head" onclick="toggleProfileGroup(this)">' +
+                 '<span class="kp-group-icon">🔜</span>' +
+                 '<span class="kp-group-label">เร็วๆ นี้</span>' +
+                 '<span class="kp-group-summary">' + items.length + ' features</span>' +
+                 '<span class="kp-group-chevron">▾</span>' +
+                 '</button>';
+  return '<div class="kp-topic-group kp-group-coming">' + header +
+         '<div class="kp-group-body">' + rows + '</div>' +
+         '</div>';
 }
 
 
@@ -630,7 +672,7 @@ function renderProfile() {
   // Access (render แบบ grouped ตาม ACCESS_SCHEMA v4)
   const topicsEl = document.getElementById('kp-profile-topics');
   if (topicsEl) {
-    topicsEl.innerHTML = ACCESS_SCHEMA.map(cat => renderProfileCategory(cat)).join('');
+    topicsEl.innerHTML = ACCESS_SCHEMA.map(cat => renderProfileCategory(cat)).join('') + renderComingSoonGroup();
   }
 
   // Watermark status
