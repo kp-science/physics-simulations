@@ -1763,3 +1763,46 @@ ultimate/admin: ['*']
 - ตอนนี้ listing pages ทั้ง 4 (index, library, vpl01, vpl02) มี CSS `.kp-locked` ครบ
 - Overlay จะแสดง "🔒 สมาชิกเท่านั้น" บนการ์ด lab ที่ user ไม่มีสิทธิ์
 - คลิก overlay → เด้ง `showModal('login')` (ตาม `onLockedClick` ใน kp-auth.js ซึ่งเรียก showModal ถ้ายังไม่ login)
+
+**9. Critical Bug Fix — Firebase + kp-auth.js โหลดซ้ำ 2 ครั้ง**
+
+**อาการ:** ระบบ access control (Phase 1 + Option C) ไม่ทำงานเลย — การ์ดไม่แสดง overlay 🔒, user เข้าถึงได้ทุกอย่างแม้ admin remove access
+
+**ต้นเหตุ:** ใน `virtual-physics-lab-01.html` + `library.html` มี "tail block" ที่อยู่**หลัง `</html>`** ซึ่งโหลด firebase + kp-auth.js อีกครั้ง:
+```
+</body>
+</html>
+
+<!-- Firebase + KP Auth -->
+<script src=".../firebase-app-compat.js"></script>  ← โหลดซ้ำ!
+<script src=".../firebase-auth-compat.js"></script>
+<script src=".../firebase-firestore-compat.js"></script>
+<script src="kp-auth.js"></script>
+<script>/* KP Download Lock */ ... </script>
+</body>
+</html>
+```
+
+**ผลที่เกิด:**
+- `firebase.initializeApp()` ถูกเรียก 2 ครั้ง → throw "Firebase App '[DEFAULT]' already exists"
+- `kp-auth.js` รันซ้ำ → `const` declarations 2 ครั้ง → SyntaxError "Identifier already declared"
+- `onAuthStateChanged` listener ตัวแรก**ไม่ fire** → `applyAccessControl()` + `lockAll()` ไม่เคยถูกเรียก
+- การ์ดที่มี `data-locked="true"` ไม่ได้รับ class `.kp-locked` → overlay ไม่แสดง
+- Page-level guard ใน lab file ยังทำงาน (ใช้ kp-auth.js รอบเดียว) แต่ UX หลักพัง
+
+**แก้:**
+- ลบ "tail block" หลัง `</html>` แรกทั้งหมด
+- เก็บ `KP Download Lock` script ไว้ — move มาแทรกก่อน `</body>` ตัวจริง (หลัง kp-auth.js)
+- ตอนนี้ Firebase + kp-auth.js โหลด**ครั้งเดียว** + Download Lock script ใช้ firebase auth จาก rounds แรกได้ปกติ
+
+### ไฟล์ที่แก้
+- `virtual-physics-lab-01.html` — ลบ duplicate block, merge Download Lock กลับเข้า body
+- `library.html` — เหมือน VPL01
+
+### ไฟล์ที่ไม่ได้รับผลกระทบ
+- `virtual-physics-lab-02.html` — มี firebase+kp-auth ครั้งเดียว (ผมเพิ่งเพิ่มเข้าไป ไม่มี tail block เดิม)
+- `index.html` — มี firebase+kp-auth ครั้งเดียว (ไม่มี tail block)
+
+### บทเรียน
+- Protect script ควรเช็คด้วยว่ามี `</html>` ซ้ำหรือ script หลัง `</html>` ไหม
+- legacy "KP Download Lock" tail block อาจยังอยู่ในไฟล์อื่นๆ ที่ยังไม่ได้เปิด → scan หาทีหลัง
