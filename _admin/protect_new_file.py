@@ -24,6 +24,31 @@ import os, re, sys, glob
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# ─── Lab ID extraction ───────────────────────────────────
+# VPL01: "16. trajectories_simulation.html" → lab-16
+# VPL01: "6.1 pendulum_timer.html" → lab-6.1
+# VPL02: "32B. light-reflection.html" → lab-32b
+LAB_ID_RE = re.compile(r'^(\d+(?:\.\d+)?[A-Za-z]?)')
+
+def extract_lab_id(filename):
+    """ดึง lab-id จากชื่อไฟล์ e.g. '32B. light-reflection.html' → 'lab-32b'"""
+    m = LAB_ID_RE.match(filename)
+    if not m:
+        return None
+    return 'lab-' + m.group(1).lower()
+
+def get_access_string(filepath):
+    """Return access string for a lab file, e.g. 'vlab:vpl01:lab-16'"""
+    fname = os.path.basename(filepath)
+    lab_id = extract_lab_id(fname)
+    if not lab_id:
+        return None
+    if '/Virtual Physics Lab 01/' in filepath:
+        return f'vlab:vpl01:{lab_id}'
+    if '/Virtual Physics Lab 02/' in filepath:
+        return f'vlab:vpl02:{lab_id}'
+    return None
+
 # ─── Templates ───────────────────────────────────────────
 
 GA_CODE = '''<!-- Google tag (gtag.js) -->
@@ -157,6 +182,16 @@ def check_file(filepath):
     if is_sim and 'watermark.js' not in content and fname != 'index.html':
         issues.append('WATERMARK')
 
+    # 8. Access Guard (VPL01/VPL02 files — ต้องมี firebase + kp-auth.js + kpPageAccess)
+    is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath
+    if is_vlab and fname != 'index.html':
+        if 'firebase-app-compat' not in content:
+            issues.append('FIREBASE_CDN')
+        if 'kp-auth.js' not in content:
+            issues.append('KP_AUTH')
+        if 'kpPageAccess(' not in content:
+            issues.append('ACCESS_GUARD')
+
     return issues
 
 
@@ -230,6 +265,68 @@ def fix_file(filepath, issues=None):
             content = content[:body_end] + wm_tag + content[body_end:]
             changed = True
 
+    # Add Firebase CDN + kp-auth.js + access guard (VPL01/VPL02 files)
+    if 'FIREBASE_CDN' in issues and 'firebase-app-compat' not in content:
+        auth_root = get_root_path(filepath)
+        fb_tag = (
+            f'\n<!-- KP Auth (Firebase) -->\n'
+            f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>\n'
+            f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>\n'
+            f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>\n'
+            f'<script src="{auth_root}kp-auth.js"></script>\n'
+        )
+        body_end = content.rfind('</body>')
+        if body_end != -1:
+            content = content[:body_end] + fb_tag + content[body_end:]
+            changed = True
+    elif 'KP_AUTH' in issues and 'kp-auth.js' not in content:
+        # มี firebase แล้วแต่ยังไม่มี kp-auth.js
+        auth_root = get_root_path(filepath)
+        auth_tag = f'\n<script src="{auth_root}kp-auth.js"></script>\n'
+        # ใส่หลัง firebase-firestore
+        idx = content.find('firebase-firestore-compat')
+        if idx != -1:
+            end_tag = content.find('</script>', idx)
+            if end_tag != -1:
+                content = content[:end_tag+9] + auth_tag + content[end_tag+9:]
+                changed = True
+        else:
+            body_end = content.rfind('</body>')
+            if body_end != -1:
+                content = content[:body_end] + auth_tag + content[body_end:]
+                changed = True
+
+    # Add page-level access guard
+    if 'ACCESS_GUARD' in issues and 'kpPageAccess(' not in content:
+        access = get_access_string(filepath)
+        if access:
+            # redirect กลับไปหน้า listing
+            if '/Virtual Physics Lab 01/' in filepath:
+                listing = get_root_path(filepath) + 'virtual-physics-lab-01.html'
+            elif '/Virtual Physics Lab 02/' in filepath:
+                listing = get_root_path(filepath) + 'virtual-physics-lab-02.html'
+            else:
+                listing = get_root_path(filepath) + 'index.html'
+            guard_tag = (
+                f'\n<!-- KP Page Access Guard -->\n'
+                f'<script>\n'
+                f'  // รอให้ kp-auth.js โหลดเสร็จก่อน\n'
+                f'  (function(){{\n'
+                f'    var w = setInterval(function(){{\n'
+                f'      if (typeof kpPageAccess === "function") {{\n'
+                f'        clearInterval(w);\n'
+                f'        kpPageAccess("{access}", "{listing}");\n'
+                f'      }}\n'
+                f'    }}, 50);\n'
+                f'    setTimeout(function(){{clearInterval(w)}}, 5000);\n'
+                f'  }})();\n'
+                f'</script>\n'
+            )
+            body_end = content.rfind('</body>')
+            if body_end != -1:
+                content = content[:body_end] + guard_tag + content[body_end:]
+                changed = True
+
     if changed:
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -272,6 +369,9 @@ def scan_all():
                     'COMMENT': 'มี <\\!-- (escaped comment)',
                     'MOBILE': 'ขาด mobile order fix',
                     'WATERMARK': 'ขาด Watermark overlay',
+                    'FIREBASE_CDN': 'ขาด Firebase CDN',
+                    'KP_AUTH': 'ขาด kp-auth.js',
+                    'ACCESS_GUARD': 'ขาด Page Access Guard',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1

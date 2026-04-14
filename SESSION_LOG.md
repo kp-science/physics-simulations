@@ -1691,3 +1691,50 @@ ultimate/admin: ['*']
 - Wildcard `*` รองรับทุกระดับ — `*`, `demo:*`, `vlab:vpl01:*`
 - Admin UI มี drill-down button ("▾ เลือกเฉพาะ lab") ซ่อนไว้ default เพื่อ keep UI สะอาด
 - เมื่อติ๊ก bundle (`:*`) per-item ใต้มันจะ disable อัตโนมัติ (ป้องกันข้อมูลซ้ำ)
+
+**7. Option C Complete — Page Access Lock (2-layer: UI + Security)**
+
+เพื่อให้สิทธิ์ที่ admin ตั้งไว้ "มีผลจริง" บนหน้าเว็บ — inject 2 ชั้นล็อก:
+
+**ชั้นที่ 1: Link locks (UX)** ใน listing pages
+- เพิ่ม `data-locked="true" data-access="vlab:vpl0X:lab-Y"` บนทุกลิงก์ที่ชี้ไปไฟล์ VPL
+- `applyAccessControl()` ใน `kp-auth.js` เติม class `.kp-locked` ให้ลิงก์ที่ไม่มีสิทธิ์ → overlay 🔒
+- ครอบคลุม: `virtual-physics-lab-01.html` (22), `virtual-physics-lab-02.html` (11), `library.html` (34), `index.html` (10) → รวม 77 ลิงก์
+
+**ชั้นที่ 2: Page-level guard (Security)** ในไฟล์ lab แต่ละตัว
+- เพิ่ม `kpPageAccess(required, redirectTo)` ใน `kp-auth.js` — รอ auth state → ถ้า `!hasAccess(required)` → redirect กลับ listing พร้อม `?locked=<access>`
+- `_admin/protect_new_file.py` inject ให้อัตโนมัติ
+- ครอบคลุม: VPL01 (23 files) + VPL02 (10 files) = 33 ไฟล์
+
+**อัปเดต `protect_new_file.py`:**
+- เพิ่ม `LAB_ID_RE` + `extract_lab_id()` + `get_access_string()` → ดึง `lab-X` จากชื่อไฟล์
+- เพิ่ม 3 check: `FIREBASE_CDN`, `KP_AUTH`, `ACCESS_GUARD` (เฉพาะไฟล์ VPL01/VPL02)
+- เพิ่ม 3 fix: inject Firebase CDN + kp-auth.js + kpPageAccess() script tag
+- รองรับไฟล์ VPL02 ที่เดิมไม่มี firebase เลย (ก่อนหน้านี้ topbar login ใช้ไม่ได้)
+
+**ไฟล์ที่แก้:**
+- `kp-auth.js` — เพิ่ม `kpPageAccess()` helper
+- `_admin/protect_new_file.py` — เพิ่ม 3 check + 3 fix สำหรับ access guard
+- `virtual-physics-lab-01.html` — inject 22 link locks
+- `virtual-physics-lab-02.html` — inject 11 link locks + เพิ่ม firebase+kp-auth ตอนท้ายหน้า (เดิมไม่มี)
+- `library.html` — inject 34 link locks
+- `index.html` — inject 10 link locks
+- **VPL01 × 23 files** — inject access guard (บางไฟล์เดิมยังขาด firebase+kp-auth ด้วย)
+- **VPL02 × 10 files** — inject firebase CDN + kp-auth.js + access guard (เดิมไม่มีเลย)
+
+**Lab-ID extraction:**
+- `16. trajectories_simulation.html` → `lab-16` → `vlab:vpl01:lab-16`
+- `6.1 pendulum_timer.html` → `lab-6.1` → `vlab:vpl01:lab-6.1`
+- `32B. light-reflection.html` → `lab-32b` → `vlab:vpl02:lab-32b`
+
+### ทดสอบ
+1. Logout → ไป listing → ลิงก์ VPL ควรมี overlay 🔒
+2. Paste URL ตรงเข้า VPL lab → redirect ออกมาพร้อม `?locked=vlab:vpl01:lab-16`
+3. Admin ตั้งสิทธิ์ `vlab:vpl01:*` → login → ทุก lab VPL01 ปลดล็อก, VPL02 ยังล็อก
+4. Admin ติ๊ก `vlab:vpl01:*` ออก → login ใหม่ → VPL01 ล็อกทันที
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- `Demo/` folder ยังไม่มีระบบล็อก (Phase 1 เลือก Demo = free สำหรับทุกคน — ยังไม่ critical)
+- ไฟล์ `.html` ทั่วไปที่เป็นหน้า `demo-mechanics.html`, `demo-waves.html` ฯลฯ ยังไม่มี access control — หน้าพวกนี้ควรเปิดฟรีตาม Phase 1 design
+- Mobile order fix pre-existing issue — ยังมีใน 46 ไฟล์ (ไม่เกี่ยวกับงานนี้)
+- ยังไม่ได้ commit/push

@@ -262,6 +262,36 @@ function lockAll() {
   document.querySelectorAll('[data-locked="true"], [data-access]').forEach(el => lock(el));
 }
 
+// ── Page-level access guard ──────────────────────────────
+// ใช้ในไฟล์ simulation ทุกไฟล์เพื่อเช็คสิทธิ์ตอนโหลด
+// ถ้าไม่มีสิทธิ์ → redirect กลับหน้า listing พร้อม ?locked=<required>
+// Usage (ใน HTML):
+//   <script>kpPageAccess('vlab:vpl01:lab-16', '../../virtual-physics-lab-01.html')</script>
+function kpPageAccess(required, redirectTo) {
+  redirectTo = redirectTo || '/index.html';
+  let resolved = false;
+  const guard = async () => {
+    if (resolved) return;
+    resolved = true;
+    // รอจนกว่า currentUserData จะพร้อม (onAuthStateChanged ตัวหลักจะ populate ก่อน)
+    let tries = 0;
+    while (currentUser && !currentUserData && tries < 25) {
+      await new Promise(r => setTimeout(r, 100));
+      tries++;
+    }
+    if (!hasAccess(required)) {
+      const sep = redirectTo.indexOf('?') === -1 ? '?' : '&';
+      location.replace(redirectTo + sep + 'locked=' + encodeURIComponent(required));
+    }
+  };
+  auth.onAuthStateChanged(user => {
+    // resolve หลัง auth state ถูก determine แล้ว
+    setTimeout(guard, 50);
+  });
+  // Safety: ถ้า auth ไม่ fire ภายใน 3 วินาที → assume logged out + guard
+  setTimeout(guard, 3000);
+}
+
 function lock(el) {
   if (el.classList.contains('kp-locked')) return;
   el.classList.add('kp-locked');
