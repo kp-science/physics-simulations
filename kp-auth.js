@@ -169,6 +169,15 @@ function showTopicAlert(el) {
 function showModal(tab = 'login') {
   const modal = document.getElementById('kp-auth-modal');
   if (modal) {
+    // ถ้าเปิดแท็บ login/register ปกติ → แสดง login+register tabs, ซ่อน profile
+    if (tab !== 'profile') {
+      const tabLogin   = document.getElementById('tab-login');
+      const tabReg     = document.getElementById('tab-register');
+      const tabProfile = document.getElementById('tab-profile');
+      if (tabLogin)   tabLogin.style.display   = 'block';
+      if (tabReg)     tabReg.style.display     = 'block';
+      if (tabProfile) tabProfile.style.display = 'none';
+    }
     modal.classList.add('open');
     switchTab(tab);
     clearErrors();
@@ -270,6 +279,136 @@ async function kpLoginGoogle() {
 // ── Logout ────────────────────────────────────────────────
 async function kpLogout() {
   await auth.signOut();
+}
+
+// ── Profile ───────────────────────────────────────────────
+const ROLE_LABELS = {
+  member:  { text: 'สมาชิก',      cls: 'kp-role-member',  icon: '🆓' },
+  premium: { text: 'พรีเมียม',    cls: 'kp-role-premium', icon: '💎' },
+  admin:   { text: 'ผู้ดูแล',     cls: 'kp-role-admin',   icon: '👑' },
+  blocked: { text: 'ถูกระงับ',    cls: 'kp-role-blocked', icon: '🚫' }
+};
+
+const TOPIC_LABELS = {
+  mechanics:      { name: 'กลศาสตร์',       icon: '⚙️' },
+  waves:          { name: 'คลื่นและเสียง',   icon: '🌊' },
+  astronomy:      { name: 'ดาราศาสตร์',      icon: '🌌' },
+  electricity:    { name: 'ไฟฟ้า',          icon: '⚡' },
+  thermodynamics: { name: 'อุณหพลศาสตร์',   icon: '🔥' }
+};
+
+async function showProfile() {
+  if (!currentUser) { showModal('login'); return; }
+
+  // ถ้าข้อมูลยังไม่โหลด → โหลดใหม่
+  if (!currentUserData) {
+    try {
+      const snap = await db.collection('users').doc(currentUser.uid).get();
+      currentUserData = snap.exists ? snap.data() : null;
+    } catch(e) { currentUserData = null; }
+  }
+
+  renderProfile();
+
+  // เปิด modal + สลับไปแท็บ profile
+  const tabProfile = document.getElementById('tab-profile');
+  if (tabProfile) tabProfile.style.display = 'block';
+  const tabLogin = document.getElementById('tab-login');
+  const tabReg   = document.getElementById('tab-register');
+  if (tabLogin) tabLogin.style.display = 'none';
+  if (tabReg)   tabReg.style.display   = 'none';
+
+  showModal('profile');
+}
+
+function renderProfile() {
+  if (!currentUser) return;
+  const d = currentUserData || {};
+
+  // Avatar
+  const avatarEl = document.getElementById('kp-profile-avatar');
+  if (avatarEl) {
+    const photo = currentUser.photoURL;
+    if (photo) {
+      avatarEl.innerHTML = '<img src="' + photo + '" alt="avatar" onerror="this.parentNode.textContent=this.parentNode.getAttribute(\'data-initial\')||\'?\'">';
+    } else {
+      const initial = (currentUser.displayName || currentUser.email || '?').trim().charAt(0).toUpperCase();
+      avatarEl.setAttribute('data-initial', initial);
+      avatarEl.textContent = initial;
+    }
+  }
+
+  // Name + Email
+  const nameEl  = document.getElementById('kp-profile-name');
+  const emailEl = document.getElementById('kp-profile-email');
+  if (nameEl)  nameEl.textContent  = currentUser.displayName || (currentUser.email || '').split('@')[0] || 'สมาชิก';
+  if (emailEl) emailEl.textContent = currentUser.email || '—';
+
+  // Role badge
+  const roleKey = d.role || 'member';
+  const role    = ROLE_LABELS[roleKey] || ROLE_LABELS.member;
+  const roleEl  = document.getElementById('kp-profile-role');
+  if (roleEl) {
+    roleEl.className = 'kp-role-badge ' + role.cls;
+    roleEl.textContent = role.icon + ' ' + role.text;
+  }
+
+  // Topics
+  const allowed = getUserTopics();
+  const topicsEl = document.getElementById('kp-profile-topics');
+  if (topicsEl) {
+    topicsEl.innerHTML = ALL_TOPICS.map(t => {
+      const info = TOPIC_LABELS[t] || { name: t, icon: '📘' };
+      const ok = allowed.includes(t);
+      return '<div class="kp-topic-row ' + (ok ? 'allowed' : 'locked') + '">' +
+             '<span><span class="kp-topic-ico">' + info.icon + '</span> ' + info.name + '</span>' +
+             '<span>' + (ok ? '✅' : '🔒') + '</span>' +
+             '</div>';
+    }).join('');
+  }
+
+  // Watermark status
+  const wmEl = document.getElementById('kp-profile-watermark');
+  if (wmEl) {
+    const unlockTiers = ['pro', 'premium', 'admin'];
+    const unlocked = unlockTiers.includes(d.access_tier) || unlockTiers.includes(roleKey);
+    wmEl.textContent = unlocked ? 'ซ่อนอยู่' : 'แสดงอยู่';
+    wmEl.className = 'kp-stat-value ' + (unlocked ? 'ok' : 'warn');
+  }
+
+  // Downloads
+  const dlEl = document.getElementById('kp-profile-downloads');
+  if (dlEl) {
+    const nowMonth = new Date().getMonth();
+    const nowYear  = new Date().getFullYear();
+    const sameMonth = d.downloadMonth === nowMonth && d.downloadYear === nowYear;
+    const used = sameMonth ? (d.downloadsThisMonth || 0) : 0;
+    const quota = d.downloadQuota != null ? d.downloadQuota : DOWNLOAD_QUOTA;
+    const isUnlimited = quota < 0;
+    if (isUnlimited) {
+      dlEl.textContent = used + ' / ไม่จำกัด';
+      dlEl.className = 'kp-stat-value ok';
+    } else {
+      dlEl.textContent = used + ' / ' + quota + ' ครั้ง';
+      dlEl.className = 'kp-stat-value ' + (used >= quota ? 'warn' : '');
+    }
+  }
+
+  // Joined date
+  const jEl = document.getElementById('kp-profile-joined');
+  if (jEl) {
+    let dateStr = '—';
+    try {
+      if (d.createdAt && d.createdAt.toDate) {
+        const dt = d.createdAt.toDate();
+        dateStr = dt.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+      } else if (currentUser.metadata && currentUser.metadata.creationTime) {
+        const dt = new Date(currentUser.metadata.creationTime);
+        dateStr = dt.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+      }
+    } catch(e) {}
+    jEl.textContent = dateStr;
+  }
 }
 
 // ── Download with quota ───────────────────────────────────

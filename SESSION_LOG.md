@@ -1528,3 +1528,47 @@ blocked   → admin ปิดได้จาก dashboard
 ### หมายเหตุ
 - mobile order fix ยังขาดเหมือนไฟล์ VPL02 อื่นๆ ทั้งหมด (ปัญหาเดิมของ protect script)
 - f default = 10 cm ตรงกับข้อมูลทดลองจากเอกสาร (ค่าเฉลี่ย ~10.20 cm)
+
+---
+
+## [2026-04-14 — เครื่องที่บ้าน (session 3)]
+
+### ทำอะไรไปบ้าง
+
+**1. สร้างหน้าโปรไฟล์สมาชิก (Profile Modal)**
+- เพิ่ม tab "โปรไฟล์" ใน `kp-auth-modal` (เป็น tab ที่ 3, ซ่อนไว้ default — แสดงเฉพาะตอนกด profile icon)
+- เพิ่มปุ่มไอคอน 👤 ใน topbar (อยู่ใน `#kp-user-menu` ข้างชื่อ user) — คลิกแล้วเปิด profile modal
+- สร้างฟังก์ชัน `showProfile()` + `renderProfile()` ใน `kp-auth.js`
+
+**ข้อมูลที่แสดงในโปรไฟล์ (step ก พื้นฐาน):**
+- Avatar (จาก `photoURL` ของ Google, ไม่งั้นใช้อักษรแรก)
+- ชื่อ + email
+- Role badge: สมาชิก / พรีเมียม / ผู้ดูแล / ถูกระงับ (มีสีและ glow ต่างกัน)
+- หัวข้อที่เข้าถึงได้ 5 หมวด (กลศาสตร์, คลื่น, ดาราศาสตร์, ไฟฟ้า, อุณหพลศาสตร์) — ✅ ถ้าเข้าได้ / 🔒 ถ้าล็อก
+- สถานะลายน้ำ (ซ่อน/แสดง)
+- ดาวน์โหลดเดือนนี้ (X / 3 ครั้ง หรือ ไม่จำกัด)
+- วันสมัครสมาชิก (จาก `createdAt` Firestore, fallback `auth.metadata.creationTime`)
+- ปุ่มออกจากระบบ
+
+**2. แก้ `showModal()` ให้จัดการ tab visibility**
+- เปิด login/register → แสดง 2 tab นี้, ซ่อน profile
+- เปิด profile → แสดงเฉพาะ profile tab (ซ่อน login/register)
+
+### ไฟล์ที่แก้
+- `index.html` — เพิ่มปุ่ม `#kp-profile-btn` ใน topbar, เพิ่ม CSS profile pane, เพิ่ม `<div id="pane-profile">` + `<button id="tab-profile">` ใน modal
+- `kp-auth.js` — เพิ่ม `ROLE_LABELS`, `TOPIC_LABELS`, `showProfile()`, `renderProfile()`, แก้ `showModal()`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **ยังใช้งานได้เฉพาะใน `index.html`** — ไฟล์อื่น (library.html, mechanics.html, VPL01/02 ไฟล์ต่างๆ) ยังไม่มีปุ่ม profile
+  - ถ้าอยากให้ใช้ได้ทุกหน้า → แก้ `protect_new_file.py` เพิ่ม profile button + pane อัตโนมัติ
+- ยังไม่ได้ commit/push
+- ฟีเจอร์เสริมที่ค้างไว้ทำทีหลัง (ตามที่ user เลือกข้อ ก):
+  - Stats (เวลาใช้งาน, simulations ที่ดู)
+  - Favorites/Bookmarks
+  - Admin panel (user list, แก้ tier)
+  - ปุ่มอัปเกรดเป็น Premium
+
+### หมายเหตุ
+- ตัดสินใจไม่ทำระบบคอมเมนต์ (user ถามถึง Giscus/Disqus/Firebase แต่ตัดสินใจไม่ทำ)
+- Firebase + Auth + Firestore มีครบอยู่แล้ว (kp-auth.js) — แค่ต่อยอดแสดงผลเฉยๆ
+- Profile icon ใช้ SVG inline (stroke-based) — ไม่พึ่ง emoji, render consistent ทุก OS
