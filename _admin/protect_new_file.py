@@ -27,8 +27,10 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ─── Lab ID extraction ───────────────────────────────────
 # VPL01: "16. trajectories_simulation.html" → lab-16
 # VPL01: "6.1 pendulum_timer.html" → lab-6.1
+# VPL01: "6.2water-clock-simulation.html" → lab-6.2 (decimal ไม่ติด letter)
 # VPL02: "32B. light-reflection.html" → lab-32b
-LAB_ID_RE = re.compile(r'^(\d+(?:\.\d+)?[A-Za-z]?)')
+# Regex เรียง: decimal ก่อน (กัน match ต่อ letter), fallback integer+letter
+LAB_ID_RE = re.compile(r'^(\d+\.\d+|\d+[A-Za-z]?)')
 
 def extract_lab_id(filename):
     """ดึง lab-id จากชื่อไฟล์ e.g. '32B. light-reflection.html' → 'lab-32b'"""

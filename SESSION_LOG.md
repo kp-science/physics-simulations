@@ -1738,3 +1738,28 @@ ultimate/admin: ['*']
 - ไฟล์ `.html` ทั่วไปที่เป็นหน้า `demo-mechanics.html`, `demo-waves.html` ฯลฯ ยังไม่มี access control — หน้าพวกนี้ควรเปิดฟรีตาม Phase 1 design
 - Mobile order fix pre-existing issue — ยังมีใน 46 ไฟล์ (ไม่เกี่ยวกับงานนี้)
 - ยังไม่ได้ commit/push
+
+**8. Fix bugs หลัง Option C deploy**
+
+**Bug #1: Lab-id regex จับผิด**
+- เดิม `^(\d+(?:\.\d+)?[A-Za-z]?)` → "6.2water" จับเป็น `lab-6.2w` (ติด w)
+- แก้เป็น `^(\d+\.\d+|\d+[A-Za-z]?)` → ลอง decimal ก่อน ถ้าไม่ใช่ค่อยจับ integer+letter
+- Fix ใน `_admin/protect_new_file.py` LAB_ID_RE
+- Fix data-access ผิดใน 3 ไฟล์: `Virtual Physics Lab 01/Mechacnics/6.2water-clock-simulation.html`, `library.html`, `virtual-physics-lab-01.html`
+
+**Bug #2: CSS `.kp-locked` ขาดใน listing pages**
+- `index.html` มี CSS overlay `[data-locked="true"].kp-locked::after` แต่ `virtual-physics-lab-01.html`, `virtual-physics-lab-02.html`, `library.html` ไม่มี → `applyAccessControl()` เติม class ได้แต่ไม่แสดง overlay 🔒
+- อาการ: user เห็นการ์ดปกติ + badge "FREE" คลิกเข้าได้ (แม้ redirect ออกภายหลังผ่าน page guard)
+- แก้: inject CSS เดียวกับ index.html เข้าไปใน 3 ไฟล์ (ก่อน `</style>` ตัวแรก)
+
+### ไฟล์ที่แก้
+- `_admin/protect_new_file.py` — LAB_ID_RE regex
+- `Virtual Physics Lab 01/Mechacnics/6.2water-clock-simulation.html` — fix access string
+- `virtual-physics-lab-01.html` — fix access string + inject CSS
+- `virtual-physics-lab-02.html` — inject CSS
+- `library.html` — fix access string + inject CSS
+
+### หมายเหตุ
+- ตอนนี้ listing pages ทั้ง 4 (index, library, vpl01, vpl02) มี CSS `.kp-locked` ครบ
+- Overlay จะแสดง "🔒 สมาชิกเท่านั้น" บนการ์ด lab ที่ user ไม่มีสิทธิ์
+- คลิก overlay → เด้ง `showModal('login')` (ตาม `onLockedClick` ใน kp-auth.js ซึ่งเรียก showModal ถ้ายังไม่ login)
