@@ -1572,3 +1572,19 @@ blocked   → admin ปิดได้จาก dashboard
 - ตัดสินใจไม่ทำระบบคอมเมนต์ (user ถามถึง Giscus/Disqus/Firebase แต่ตัดสินใจไม่ทำ)
 - Firebase + Auth + Firestore มีครบอยู่แล้ว (kp-auth.js) — แค่ต่อยอดแสดงผลเฉยๆ
 - Profile icon ใช้ SVG inline (stroke-based) — ไม่พึ่ง emoji, render consistent ทุก OS
+
+**3. อัปเดต `_admin/admin.html` — เพิ่ม Lab 33B + Lab 35 ใน LAB_LIST**
+- LAB_LIST เดิมขาด lab ใหม่ที่เพิ่งเพิ่มใน session ก่อน → admin ตั้งสิทธิ์ไม่ได้
+- เพิ่ม: `lab-33b` (Lab 33B หักเหแสง) หลัง lab-33, `lab-35` (Lab 35 เลนส์นูน) ก่อน lab-37
+- ตอนนี้ admin จัดการสิทธิ์เข้าถึง 2 lab ใหม่ใน checkbox ของ modal "แก้ไขสิทธิ์" ได้แล้ว
+
+### ไฟล์ที่แก้ (เพิ่มเติม)
+- `_admin/admin.html` — เพิ่ม lab-33b + lab-35 ใน `LAB_LIST` (บรรทัด ~629-630)
+
+**4. เพิ่มกติกาใน `CLAUDE.md` — ซิงก์ไฟล์ใหม่เข้ากับ Admin Panel**
+- เพิ่ม section "⚠️ กติกาสำคัญ: ซิงก์ไฟล์ใหม่เข้ากับ Admin Panel" ระหว่าง section "เมื่อเพิ่มไฟล์ HTML ใหม่" กับ "Watermark System"
+- ระบุ checklist เมื่อเพิ่ม lab ใหม่: (1) สร้างไฟล์ (2) รัน protect script (3) เพิ่มใน LAB_LIST ของ admin.html (4) ทดสอบ (5) บันทึก log
+- ระบุปัญหาที่จะเกิดถ้าลืม: admin ติ๊กสิทธิ์ไม่ได้ + default behavior ที่อาจไม่ตรงเจตนา
+
+### ไฟล์ที่แก้ (เพิ่มเติม)
+- `CLAUDE.md` — เพิ่มกติกา "ซิงก์ admin panel ทุกครั้งที่เพิ่ม lab ใหม่"
