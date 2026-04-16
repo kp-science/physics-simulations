@@ -217,3 +217,39 @@ match /settings/{docId} {
 - Physics: D(X) = D₀·(|f|+X)/|f| → linear, slope=D₀/|f|, x-intercept=−|f|
 - Galileo telescope: M=−F₁/F₂ (+, erect), L=F₁+F₂ (shorter than Keplerian)
 - ใช้ Lab 35 เป็น template หลัก (colors flipped: accent=purple สำหรับเลนส์เว้า, accent2=cyan สำหรับเลนส์นูน)
+
+---
+
+## [2026-04-16] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 38 — Wave Speed on a String (ความเร็วคลื่นในเส้นเชือก)**
+  - 3 tabs: การทดลอง / วิธีการทดลอง / ทฤษฎี
+  - **4 การทดลองย่อย** (sub-nav ภายใน tab simulation):
+    1. **วัด v จากระยะทาง (v = Δx/Δt):** พัลส์/คลื่นต่อเนื่อง, timer + marker บน ruler, กรอก Δx
+    2. **วัด v จาก λ (v = fλ):** ปรับ f, freeze คลื่น, วัด λ จาก ruler
+    3. **วัดคาบ:** สุ่ม f,v ให้, วางจุดวัดบนเชือก (SHM), จับเวลา + นับรอบ
+    4. **วัดความถี่:** เส้นอ้างอิง, ตั้งเวลาจับ, เฟสซ้ำกระพริบ, นับรอบ → f = n/t
+  - **Manual mode (default):** ฝึกทักษะการวัด — กรอกค่าเอง
+  - **Auto mode:** โปรแกรมบันทึกอัตโนมัติ
+  - ตัวแปร: T (แรงดึง), μ (ความหนาแน่นเชิงเส้น), A (แอมพลิจูด), f (ความถี่), damping, ปลายตรึง/อิสระ/ไม่สะท้อน
+  - ทุก experiment มี: ตารางบันทึก, %Error เทียบค่าจริง, Export CSV
+  - Tab ทฤษฎี: 3 theory canvases (v vs T/μ graph, f-λ comparison, reflection types)
+  - Tab วิธีการทดลอง: 4 method cards พร้อม tips + warnings
+- Run protect script ✅ (TOPBAR, WATERMARK, FIREBASE_CDN, KP_AUTH, ACCESS_GUARD)
+- Sync lab-38 เข้า `kp-auth.js` (VLAB_SERIES.vpl02) และ `_admin/admin.html` (VLAB_SERIES + LAB_LIST)
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/38. wave-speed-on-string.html` — ไฟล์ใหม่ (~1400+ บรรทัด)
+- `kp-auth.js` — เพิ่ม `'lab-38'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-38'` ใน vpl02.labs + entry `{id:'lab-38',label:'Lab 38 (ความเร็วคลื่นในเชือก)'}` ใน LAB_LIST
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม canvas preview ใน `virtual-physics-lab-02.html` สำหรับ Lab 38
+- ยังไม่ได้ push ขึ้น git
+- อาจเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ภายหลัง
+
+### หมายเหตุ
+- Physics: v = √(T/μ), v = fλ, T_period = 1/f
+- อ้างอิง: Halliday, Resnick & Krane Ch.16 + หลักสูตรแกนกลาง 2551
+- ใช้ accent=purple (คลื่น) ตาม VPL02 theme
