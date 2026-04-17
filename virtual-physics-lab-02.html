@@ -1327,6 +1327,105 @@ footer a{color:var(--accent);text-decoration:none}
       ctx.fillStyle='rgba(244,114,182,0.4)';ctx.fillText('A',cx+14,10+0.5*(h-22)/n);
     },
 
+    // ── VPL2: Wave Speed on String — caliper + moving pulse + ruler ──
+    'vpl2-wavespeed'(ctx,w,h,t){
+      const cy=h/2;
+      // string base line
+      ctx.strokeStyle='rgba(129,140,248,0.25)';ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.moveTo(6,cy);ctx.lineTo(w-6,cy);ctx.stroke();
+      // ruler ticks (bottom)
+      ctx.strokeStyle='rgba(148,163,184,0.45)';ctx.lineWidth=0.6;
+      for(let i=0;i<=10;i++){
+        const xx=6+(w-12)*i/10, len=(i%5===0?5:(i%2===0?3:2));
+        ctx.beginPath();ctx.moveTo(xx,h-6);ctx.lineTo(xx,h-6-len);ctx.stroke();
+      }
+      ctx.fillStyle='rgba(148,163,184,0.5)';ctx.font='4px monospace';
+      ctx.fillText('0',6,h-1);ctx.fillText('L',w-8,h-1);
+      // traveling pulse
+      const period=2800;
+      const p=(t%period)/period;
+      const xp=6+(w-12)*p;
+      const amp=7;
+      ctx.strokeStyle='#818cf8';ctx.lineWidth=1.6;ctx.beginPath();
+      for(let x=6;x<=w-6;x+=1){
+        const y=cy - amp*Math.exp(-Math.pow((x-xp)/6,2));
+        if(x===6) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      // caliper: two vertical marks at p=0.25 and moving peak
+      const x1=6+(w-12)*0.20, x2=xp;
+      ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([2,2]);
+      ctx.beginPath();ctx.moveTo(x1,cy-14);ctx.lineTo(x1,cy+6);ctx.stroke();
+      ctx.strokeStyle='#34d399';
+      ctx.beginPath();ctx.moveTo(x2,cy-14);ctx.lineTo(x2,cy+6);ctx.stroke();
+      ctx.setLineDash([]);
+      // caliper jaws
+      ctx.fillStyle='#fbbf24';ctx.fillRect(x1-2,cy-16,4,3);
+      ctx.fillStyle='#34d399';ctx.fillRect(x2-2,cy-16,4,3);
+      // d label
+      ctx.strokeStyle='rgba(251,191,36,0.6)';ctx.lineWidth=0.6;
+      ctx.beginPath();ctx.moveTo(x1,cy-18);ctx.lineTo(x2,cy-18);ctx.stroke();
+      ctx.fillStyle='#fde68a';ctx.font='bold 5px monospace';
+      ctx.fillText('d',(x1+x2)/2-2,cy-20);
+      // clock (top-right)
+      ctx.fillStyle='rgba(148,163,184,0.6)';ctx.font='5px monospace';
+      ctx.fillText('t='+(p*1.2).toFixed(2)+'s',w-24,8);
+    },
+
+    // ── VPL2: Phase · Phasor Circle + Sine ──
+    'vpl2-phase'(ctx,w,h,t){
+      // Phasor on left
+      const cx=w*0.22, cy=h/2, rad=Math.min(w*0.15,h*0.32);
+      ctx.strokeStyle='rgba(148,163,184,0.35)';ctx.lineWidth=0.6;ctx.setLineDash([2,2]);
+      ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+      // axes
+      ctx.strokeStyle='rgba(148,163,184,0.25)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(cx-rad-3,cy);ctx.lineTo(cx+rad+3,cy);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx,cy-rad-3);ctx.lineTo(cx,cy+rad+3);ctx.stroke();
+
+      const phi=t*0.0022;
+      const Rx=cx+rad*Math.cos(phi), Ry=cy-rad*Math.sin(phi);
+      // radius vector
+      ctx.strokeStyle='#ef4444';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(Rx,Ry);ctx.stroke();
+      // R ball
+      ctx.fillStyle='#ef4444';
+      ctx.beginPath();ctx.arc(Rx,Ry,4,0,Math.PI*2);ctx.fill();
+
+      // Fixed dots at 90, 180, 270 on circle (yellow/blue/purple)
+      const fixed=[{a:Math.PI/2,c:'#fbbf24'},{a:Math.PI,c:'#60a5fa'},{a:3*Math.PI/2,c:'#a78bfa'}];
+      fixed.forEach(d=>{
+        ctx.fillStyle=d.c;
+        ctx.beginPath();ctx.arc(cx+rad*Math.cos(d.a),cy-rad*Math.sin(d.a),2.8,0,Math.PI*2);ctx.fill();
+      });
+
+      // Sine graph on right
+      const gx0=cx+rad+8, gy=cy, gw=w-gx0-6, yh=rad*0.85;
+      ctx.strokeStyle='rgba(148,163,184,0.25)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(gx0,gy);ctx.lineTo(gx0+gw,gy);ctx.stroke();
+      // sine curve
+      ctx.strokeStyle='#ef4444';ctx.lineWidth=1.4;ctx.beginPath();
+      const cycles=2.3;
+      for(let i=0;i<=80;i++){
+        const xx=gx0+gw*i/80;
+        const ph=phi + cycles*Math.PI*2*(i/80);
+        const yy=gy - yh*Math.sin(ph);
+        if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+      }
+      ctx.stroke();
+      // moving dot at start of graph matching R's current y
+      ctx.fillStyle='#ef4444';
+      ctx.beginPath();ctx.arc(gx0,gy - yh*Math.sin(phi),4,0,Math.PI*2);ctx.fill();
+      // projection dashed line from circle to graph
+      ctx.strokeStyle='rgba(248,113,113,0.35)';ctx.setLineDash([2,2]);ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(Rx,Ry);ctx.lineTo(gx0,gy-yh*Math.sin(phi));ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Δφ label
+      ctx.fillStyle='rgba(148,163,184,0.55)';ctx.font='5px monospace';
+      ctx.fillText('φ='+((phi*180/Math.PI)%360).toFixed(0)+'°',cx-rad+2,cy+rad+8);
+    },
+
     // 8) Reaction Time — ไม้บรรทัดไม้จริง + จุดจับ + มือ
     'reaction'(ctx,w,h,t){
       const period=2400;
