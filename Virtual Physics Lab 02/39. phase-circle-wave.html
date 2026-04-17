@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Lab 39 — เฟสกับวงกลมอ้างอิงและคลื่น (Phase · Circle · y-t · y-x)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#818cf8;   /* phase/wave theme = violet */
+  --accent2:#38bdf8;  /* cyan */
+  --accent3:#34d399;  /* green */
+  --accent4:#fb923c;  /* orange */
+  --accent5:#f472b6;  /* pink */
+  --red:#ef4444; --blue:#60a5fa;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+/* Header */
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#2d1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+
+/* Nav */
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.86rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Control Bar */
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;transition:.15s;font-size:.85rem}
+.btn-play{background:#1b5e20;color:#fff}
+.btn-play:hover{background:#2e7d32}
+.btn-play.playing{background:#b71c1c}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-act{background:var(--accent);color:#0a0e1a}
+.btn-act:hover{opacity:.85}
+
+.seg{display:inline-flex;gap:2px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--border)}
+.seg button{background:transparent;border:none;color:var(--muted);padding:5px 11px;border-radius:5px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.8rem;font-weight:600}
+.seg button.active{background:var(--accent);color:#0a0e1a}
+
+/* Main layout */
+.stage{display:grid;grid-template-columns:1fr 320px;gap:14px;padding:14px 20px}
+@media(max-width:980px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px}
+.panel h3{font-size:.9rem;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+#cvWrap{position:relative;width:100%;aspect-ratio:16/10;background:#050910;border-radius:10px;border:1px solid var(--border);overflow:hidden}
+@media(max-width:980px){#cvWrap{aspect-ratio:4/3}}
+#simCanvas{width:100%;height:100%;display:block;cursor:crosshair}
+
+/* Sliders */
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sl-label{font-size:.8rem;color:var(--muted);flex-shrink:0;min-width:16px}
+.sl-label.name{min-width:82px;color:var(--text)}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:28px}
+.val-input{width:58px;padding:3px 6px;background:var(--panel2);border:1.5px solid var(--accent);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.82rem;text-align:center;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent2);color:var(--text)}
+
+/* Readout */
+.ro{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.ro div{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.78rem;color:var(--muted)}
+.ro div b{color:var(--accent3);font-family:'Share Tech Mono',monospace}
+
+/* Table */
+table.rec{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:6px}
+table.rec th{background:var(--panel2);color:var(--accent);padding:6px 7px;text-align:center;border:1px solid var(--border);font-weight:700}
+table.rec td{padding:4px 6px;border:1px solid var(--border);text-align:center;color:var(--text)}
+table.rec td input{width:100%;background:transparent;border:none;color:var(--accent3);text-align:center;font-family:'Share Tech Mono',monospace;font-size:.78rem}
+table.rec td input:focus{outline:1px solid var(--accent)}
+table.rec td.auto{background:#0b1e12;color:var(--accent3);font-family:'Share Tech Mono',monospace}
+
+.chip{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:10px;border:1px solid currentColor;margin-right:4px}
+.chip.p{color:var(--accent2)}
+.chip.o{color:var(--accent4)}
+.chip.e{color:var(--accent3)}
+
+.hint{background:#1a2235;border-left:3px solid var(--accent4);padding:8px 12px;border-radius:6px;font-size:.82rem;color:var(--muted);margin:8px 0;line-height:1.55}
+.hint b{color:var(--accent4)}
+
+.content{max-width:980px;margin:0 auto;padding:20px}
+.content h2{color:var(--accent);margin:16px 0 10px;font-size:1.1rem;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content h3{color:var(--accent2);margin:12px 0 6px;font-size:.95rem}
+.content p{color:var(--text);line-height:1.7;margin-bottom:8px;font-size:.92rem}
+.content ul,.content ol{margin-left:22px;color:var(--text);line-height:1.7;font-size:.92rem}
+.content li{margin:3px 0}
+.formula{background:var(--panel2);border:1px solid var(--border);border-left:4px solid var(--accent);padding:10px 14px;border-radius:8px;margin:10px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem;text-align:center}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.twocol{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card h4{color:var(--accent2);margin-bottom:6px;font-size:.92rem}
+.visual-cv{width:100%;aspect-ratio:16/9;background:#050910;border:1px solid var(--border);border-radius:8px;margin:8px 0}
+
+.warn{background:#2a1015;border:1px solid var(--red);border-left:4px solid var(--red);color:#fca5a5;padding:10px 14px;border-radius:8px;font-size:.88rem;margin:10px 0}
+.warn b{color:#f87171}
+.ok{background:#0e2a17;border:1px solid var(--accent3);border-left:4px solid var(--accent3);color:#a7f3d0;padding:10px 14px;border-radius:8px;font-size:.88rem;margin:10px 0}
+
+.step{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.step .num{display:inline-block;width:24px;height:24px;background:var(--accent);color:#0a0e1a;border-radius:50%;text-align:center;font-weight:800;line-height:24px;font-size:.82rem;margin-right:8px}
+.step b{color:var(--accent2)}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="vlab:vpl02:lab-39">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <div class="icon">🌀</div>
+  <div>
+    <h1>Lab 39 — เฟสกับวงกลมอ้างอิงและคลื่น</h1>
+    <p>Phase · Circular Motion · y–t · y–x | Pulse vs Continuous | Δφ = 2π (Δx/λ)</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลองและบันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและคำอธิบาย</button>
+</nav>
+
+<!-- ================== TAB 1: SIMULATION ================== -->
+<div id="tab-sim" class="tab-section active">
+
+  <div class="cbar">
+    <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ Reset</button>
+
+    <span style="color:var(--muted);font-size:.8rem;margin-left:4px">ฐานทดลอง:</span>
+    <div class="seg" id="segExp">
+      <button class="active" data-exp="A">A · Pulse vs Continuous</button>
+      <button data-exp="B">B · เฟสริบบิ้น</button>
+      <button data-exp="C">C · Δφ + ซ้อนคลื่น</button>
+    </div>
+
+    <span style="color:var(--muted);font-size:.8rem;margin-left:10px">โหมด:</span>
+    <div class="seg" id="segMode">
+      <button class="active" data-mode="manual">✍ บันทึกเอง</button>
+      <button data-mode="auto">🤖 อัตโนมัติ</button>
+    </div>
+
+    <span style="margin-left:auto;color:var(--muted);font-size:.78rem" id="tClock" class="mono">t = 0.00 s</span>
+  </div>
+
+  <div class="stage">
+    <!-- LEFT: Canvas + readouts -->
+    <div>
+      <div id="cvWrap"><canvas id="simCanvas"></canvas></div>
+
+      <div class="panel" style="margin-top:12px">
+        <h3>📊 ค่าที่อ่านได้ (Readout)</h3>
+        <div class="ro">
+          <div id="ro-lam-wrap">λ (ความยาวคลื่น) = <b id="ro-lam">1.00 m</b></div>
+          <div>f (ความถี่) = <b id="ro-f">1.00 Hz</b></div>
+          <div id="ro-v-wrap">v = fλ = <b id="ro-v">1.00 m/s</b></div>
+          <div>T = 1/f = <b id="ro-T">1.00 s</b></div>
+          <div>ω = 2πf = <b id="ro-w">6.28 rad/s</b></div>
+          <div>k = 2π/λ = <b id="ro-k">6.28 rad/m</b></div>
+          <div>μ (source phase) = <b id="ro-phi">0.00°</b></div>
+          <div>Δφ ที่ cursor = <b id="ro-dphi">—</b></div>
+        </div>
+        <div class="hint" id="hintBox"><b>💡 คำแนะนำ:</b> เลือกฐาน A/B/C ด้านบน · คลิกบน canvas เพื่อวางมาร์คเกอร์ (ฐาน B/C)</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls + recording -->
+    <div>
+      <div class="panel">
+        <h3>🎛 ตัวแปรที่ปรับได้</h3>
+
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--accent)">λ</span>
+          <span class="sl-label name">ความยาวคลื่น</span>
+          <input class="sl-range" type="range" id="sl-lam" min="0.4" max="2.5" step="0.05" value="1.0">
+          <input class="val-input" type="number" id="vi-lam" min="0.4" max="2.5" step="0.05" value="1.0">
+          <span class="sl-unit">m</span>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--accent2)">f</span>
+          <span class="sl-label name">ความถี่</span>
+          <input class="sl-range" type="range" id="sl-f" min="0.2" max="3.0" step="0.1" value="1.0">
+          <input class="val-input" type="number" id="vi-f" min="0.2" max="3.0" step="0.1" value="1.0">
+          <span class="sl-unit">Hz</span>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--accent3)">A</span>
+          <span class="sl-label name">แอมพลิจูด</span>
+          <input class="sl-range" type="range" id="sl-A" min="0.2" max="1.5" step="0.05" value="1.0">
+          <input class="val-input" type="number" id="vi-A" min="0.2" max="1.5" step="0.05" value="1.0">
+          <span class="sl-unit">m</span>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label" style="color:var(--accent4)">s</span>
+          <span class="sl-label name">สปีดอนิเมชัน</span>
+          <input class="sl-range" type="range" id="sl-sp" min="0.1" max="2.5" step="0.1" value="1.0">
+          <input class="val-input" type="number" id="vi-sp" min="0.1" max="2.5" step="0.1" value="1.0">
+          <span class="sl-unit">×</span>
+        </div>
+
+        <div class="sl-row" id="row-dphi">
+          <span class="sl-label" style="color:var(--accent5)">Δφ</span>
+          <span class="sl-label name">เฟสคลื่น 2</span>
+          <input class="sl-range" type="range" id="sl-dphi" min="0" max="360" step="5" value="180">
+          <input class="val-input" type="number" id="vi-dphi" min="0" max="360" step="5" value="180">
+          <span class="sl-unit">°</span>
+        </div>
+
+        <div id="expCtrl" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h3>📝 ตารางบันทึกผล <span id="expTitle" style="margin-left:auto;font-size:.75rem;color:var(--muted);font-weight:400"></span></h3>
+        <div id="tableWrap"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-act" id="btnSnap">📸 บันทึกแถวนี้</button>
+          <button class="btn btn-ghost" onclick="clearTable()">🗑 ล้างตาราง</button>
+          <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================== TAB 2: PROCEDURE ================== -->
+<div id="tab-proc" class="tab-section">
+<div class="content">
+
+  <h2>📋 วิธีการทดลองและวิธีบันทึกผล</h2>
+  <p>การทดลองเสมือนนี้คู่กับใบบันทึก <b>POE-03 (แผน 3)</b> มี 3 ฐานทดลองตามต้นฉบับ (Slinky / Strobe / Sim) และ 2 โหมดการทำงาน:</p>
+
+  <div class="twocol">
+    <div class="card">
+      <h4>✍ โหมดบันทึกเอง (ดีฟอลต์)</h4>
+      <p>ผู้เรียน <b>ต้องอ่านค่าเอง</b> จาก canvas แล้วกรอกลงตารางเพื่อฝึกทักษะการวัด ระบบจะซ่อนคำตอบไว้ ถ้าอ่านถูกต้องจะเห็น ✓ สีเขียวเมื่อกด "📸 บันทึกแถวนี้"</p>
+    </div>
+    <div class="card">
+      <h4>🤖 โหมดอัตโนมัติ</h4>
+      <p>ระบบคำนวณค่าให้ทันที ใช้สำหรับยืนยันคำตอบหลังจากบันทึกเอง หรือใช้เป็นตัวอย่างตอนครูสอนหน้าชั้น</p>
+    </div>
+  </div>
+
+  <h2>🌀 ฐาน A · Pulse vs Continuous (เปรียบเทียบความเร็ว)</h2>
+  <p class="chip p">ตรวจสอบ misconception M3.2 (ดล ≠ ต่อเนื่อง ผิด!)</p>
+  <div class="step"><span class="num">1</span><b>เลือกฐาน A</b> บนแถบเลือกด้านบน · ตั้งค่า λ, f ที่ต้องการ</div>
+  <div class="step"><span class="num">2</span><b>กด ▶ เริ่ม</b> · สังเกตการเคลื่อนที่ของ <span style="color:var(--red)"><b>Pulse แดง</b></span> (สะบัด 1 ครั้ง) เทียบกับ <span style="color:var(--blue)"><b>Continuous น้ำเงิน</b></span> (สั่นต่อเนื่อง) ในเชือกเดียวกัน</div>
+  <div class="step"><span class="num">3</span><b>วัดระยะและเวลา</b> ที่หน้าคลื่นเคลื่อนที่ไปถึงเส้นประ (สเกลแสดงบน canvas) · ใช้เวลานาฬิกา <span class="mono">t = … s</span> ที่มุมบนขวา</div>
+  <div class="step"><span class="num">4</span><b>กรอกตาราง</b> ระยะ (m), เวลา (s), คำนวณ v = ระยะ/เวลา ของทั้ง 2 แบบ · กด "📸 บันทึกแถวนี้"</div>
+  <div class="step"><span class="num">5</span><b>สรุป:</b> v ดล <u>เท่ากับ</u> v ต่อเนื่อง เพราะความเร็วคลื่นในตัวกลางเดียวกันขึ้นกับ<b>สมบัติของตัวกลาง</b> (แรงตึง T และความหนาแน่นเชิงเส้น μ) ไม่ได้ขึ้นกับว่าเป็นดลหรือต่อเนื่อง</div>
+
+  <h2>💡 ฐาน B · เฟสริบบิ้น (Ribbon Phase)</h2>
+  <p class="chip p">ตรวจสอบ misconception M3.3 (เฟสไม่มีความหมาย ผิด!) · M3.4 (180° ไม่เกี่ยวข้อง ผิด!)</p>
+  <div class="step"><span class="num">1</span><b>เลือกฐาน B</b> · จะเห็นริบบิ้น 4 เส้นที่ Δx = λ/4, λ/2, 3λ/4, λ พร้อมวงกลมอ้างอิง (phasor) ทางซ้ายบน</div>
+  <div class="step"><span class="num">2</span><b>กด ▶ เริ่ม</b> · สังเกตลูกบอลบนวงกลมหมุนไปเรื่อย ๆ เส้นประแนวนอนจะลาก "ภาพฉาย y" ไปที่กราฟ y–t ทางขวา</div>
+  <div class="step"><span class="num">3</span><b>สังเกตริบบิ้นแต่ละเส้น</b> ว่าสั่น <u>พร้อม</u> หรือ <u>สวน</u> กับริบบิ้นแดง (R ที่ต้น):
+    <ul style="margin-top:6px">
+      <li>Δx = λ/4 → ช้าไป 90° (quadrature)</li>
+      <li>Δx = λ/2 → สวนทาง 180° (anti-phase)</li>
+      <li>Δx = 3λ/4 → ช้าไป 270°</li>
+      <li>Δx = λ → พร้อมกัน 360° = 0° (in-phase)</li>
+    </ul>
+  </div>
+  <div class="step"><span class="num">4</span><b>กรอกตาราง</b> ว่าแต่ละริบบิ้น "พร้อม" หรือ "สวน" หรือ "ช้า/เร็ว กี่องศา" เทียบกับ R</div>
+
+  <h2>💻 ฐาน C · Δφ Calculator + Superposition</h2>
+  <p class="chip p">ฝึกใช้สูตร Δφ = 2π (Δx / λ) และดูผลการซ้อนคลื่นเมื่อเฟสต่างกัน</p>
+  <div class="step"><span class="num">1</span><b>เลือกฐาน C</b> · <b>คลิกบน canvas</b> (ในพื้นที่คลื่น y–x) เพื่อวางตำแหน่ง cursor · ระบบจะแสดง Δx และ Δφ ในช่อง readout</div>
+  <div class="step"><span class="num">2</span><b>เลื่อน cursor</b> ไปที่ λ/4, λ/2, 3λ/4, λ · อ่าน Δφ (องศา/เรเดียน) · กรอกลงตาราง</div>
+  <div class="step"><span class="num">3</span><b>ปรับ slider "Δφ เฟสคลื่น 2"</b> · ดูคลื่น 2 (เส้นประสีชมพู) เลื่อนไปตาม Δφ · คลื่นผลรวมสีเหลืองคือ <b>superposition</b></div>
+  <div class="step"><span class="num">4</span><b>ตั้ง Δφ = 180°</b> · สังเกตว่าแอมพลิจูดผลรวม = 0 (destructive interference) · บันทึกผลเมื่อ Δφ = 0°, 90°, 180°, 270°</div>
+
+  <div class="ok"><b>✅ เทคนิคการอ่านเวลาและระยะ:</b> ใช้เส้นสเกล (grid) บน canvas · นาฬิกา t มุมบนขวาของ controls · ถ้าต้องการความแม่นยำ กด Pause ⏸ ก่อนอ่านค่า</div>
+
+  <h2>📝 การบันทึกผลแบบ POE</h2>
+  <p>สื่อนี้ออกแบบให้จับคู่กับใบบันทึก POE-03 (กระดาษ):</p>
+  <ul>
+    <li><span class="chip p">P</span> <b>ก่อนกด ▶</b> — ให้ผู้เรียนทำนายก่อนว่าความเร็วดล/ต่อเนื่อง เท่ากันหรือไม่ และ R/B ที่ Δx=λ/2 จะสั่นพร้อมหรือสวน</li>
+    <li><span class="chip o">O</span> <b>ระหว่างทดลอง</b> — กรอกตารางในแต่ละฐาน (กด "📸 บันทึกแถวนี้") · ส่งออก CSV เพื่อพิมพ์แนบใบงาน</li>
+    <li><span class="chip e">E</span> <b>หลังทดลอง</b> — เปรียบเทียบ P กับ O · ใช้สูตร Δφ = 2π(Δx/λ) อธิบายว่าทำไม λ/2 จึงสวนทาง (180°)</li>
+  </ul>
+
+</div>
+</div>
+
+<!-- ================== TAB 3: THEORY ================== -->
+<div id="tab-theory" class="tab-section">
+<div class="content">
+
+  <h2>📐 ทฤษฎีและคำอธิบาย</h2>
+
+  <h3>1) การเคลื่อนที่วงกลมสม่ำเสมอ ↔ SHM ↔ คลื่น</h3>
+  <p>จุดที่หมุนรอบวงกลมรัศมี A ด้วยอัตราเร็วเชิงมุม ω คงที่ <b>ภาพฉายในแนวดิ่ง</b> y = A sin(ωt) คือ <u>การเคลื่อนที่แบบฮาร์มอนิกอย่างง่าย</u> (SHM) · ถ้าเอา SHM นี้มาเลื่อนไปตามแกน x ด้วยความเร็วคลื่น v = fλ จะได้<b>คลื่นต่อเนื่อง</b>:</p>
+  <div class="formula">y(x, t) = A sin(ωt − kx + φ₀)</div>
+  <canvas id="vizCircle" class="visual-cv"></canvas>
+  <p style="font-size:.85rem;color:var(--muted);text-align:center">ภาพ: วงกลมอ้างอิง → ภาพฉาย y → กราฟ y–t (ดูแอนิเมชันหมุนต่อเนื่อง)</p>
+
+  <h3>2) เฟส φ คืออะไร</h3>
+  <p><b>เฟส</b> คือ "ตำแหน่งบนวงกลม" ของจุดสั่น ณ เวลา t หนึ่ง ๆ — เป็นมุมหมุน หน่วย rad หรือ ° บอกว่าตอนนี้วัตถุสั่นอยู่ช่วงไหนของรอบ (ขึ้น/ลง/สูงสุด/ต่ำสุด)</p>
+  <ul>
+    <li>φ = 0° → y = 0 กำลังขึ้น</li>
+    <li>φ = 90° → y = +A (สูงสุด)</li>
+    <li>φ = 180° → y = 0 กำลังลง</li>
+    <li>φ = 270° → y = −A (ต่ำสุด)</li>
+    <li>φ = 360° → กลับมา y = 0 ครบ 1 รอบ</li>
+  </ul>
+
+  <h3>3) กราฟ y–t vs y–x (อย่าสับสน!)</h3>
+  <div class="twocol">
+    <div class="card">
+      <h4>กราฟ y–t (ที่ตำแหน่งเดียว)</h4>
+      <p>จับตาที่จุด <b>จุดเดียว</b> (เช่น R) แล้วดูว่า y ของมันเปลี่ยนตามเวลาอย่างไร · คาบที่เห็น = <b>T</b> (คาบเวลา)</p>
+      <div class="formula">y(t) = A sin(ωt)</div>
+    </div>
+    <div class="card">
+      <h4>กราฟ y–x (เวลาเดียว)</h4>
+      <p>ถ่ายภาพเชือก <b>ชั่วขณะเดียว</b> (snapshot) แล้วดูรูปร่าง y ตามตำแหน่ง x · คาบที่เห็น = <b>λ</b> (ความยาวคลื่น)</p>
+      <div class="formula">y(x) = A sin(−kx)</div>
+    </div>
+  </div>
+
+  <h3>4) ความสัมพันธ์ Δφ ↔ Δx (หัวใจของแผนนี้)</h3>
+  <p>ถ้า 2 จุดอยู่ห่างกัน Δx บนคลื่นต่อเนื่อง ความแตกต่างของเฟสคือ</p>
+  <div class="formula">Δφ = 2π · (Δx / λ) = 360° · (Δx / λ)</div>
+  <canvas id="vizPhase" class="visual-cv"></canvas>
+  <p style="text-align:center;color:var(--muted);font-size:.85rem">ภาพ: ริบบิ้น 4 เส้นที่ Δx = λ/4, λ/2, 3λ/4, λ พร้อมวงกลมอ้างอิงแสดงมุมเฟส</p>
+
+  <table class="rec" style="margin-top:10px">
+    <tr><th>Δx</th><th>Δφ (rad)</th><th>Δφ (องศา)</th><th>สั่นสัมพันธ์กับ R</th></tr>
+    <tr><td>λ/4</td><td>π/2</td><td>90°</td><td>ช้าไป 1/4 รอบ (quadrature)</td></tr>
+    <tr><td>λ/2</td><td>π</td><td>180°</td><td><b style="color:var(--red)">สวนทาง</b> (anti-phase)</td></tr>
+    <tr><td>3λ/4</td><td>3π/2</td><td>270°</td><td>ช้าไป 3/4 รอบ</td></tr>
+    <tr><td>λ</td><td>2π</td><td>360° = 0°</td><td><b style="color:var(--accent3)">พร้อมกัน</b> (in-phase)</td></tr>
+  </table>
+
+  <h3>5) Pulse vs Continuous — ความเร็วเท่ากันหรือไม่?</h3>
+  <div class="ok"><b>คำตอบ: เท่ากัน</b> ในตัวกลางเดียวกัน · ความเร็วคลื่นตามขวางในเชือกคือ</div>
+  <div class="formula">v = √(T / μ)</div>
+  <p>โดย T = แรงตึงเชือก, μ = มวลต่อความยาว · v ขึ้นกับ<b>สมบัติตัวกลาง</b>เท่านั้น · ไม่ขึ้นกับว่าเป็นดล (1 ลูก) หรือ ต่อเนื่อง (สั่นซ้ำ) · ทั้งคู่วิ่งเร็วเท่ากัน · นี่เป็น misconception M3.2 ที่นักเรียนมักเข้าใจผิด</p>
+
+  <h3>6) การซ้อนคลื่น (Superposition) และ Δφ = 180°</h3>
+  <p>เมื่อคลื่น 2 ลูกมีความถี่และแอมพลิจูดเท่ากัน แต่ต่างเฟสกัน Δφ ผลรวมคือ</p>
+  <div class="formula">y₁ + y₂ = 2A cos(Δφ/2) · sin(ωt − kx + Δφ/2)</div>
+  <p>ดังนั้น แอมพลิจูดผลรวม = <b>2A cos(Δφ/2)</b>:</p>
+  <ul>
+    <li>Δφ = 0° → 2A · cos(0) = <b>2A</b> (เสริมสูงสุด — constructive)</li>
+    <li>Δφ = 90° → 2A · cos(45°) ≈ <b>1.41A</b></li>
+    <li>Δφ = 180° → 2A · cos(90°) = <b>0</b> (หักล้างหมด — destructive)</li>
+    <li>Δφ = 360° → 2A · cos(180°) = <b>−2A</b> (= +2A แอมป์สูงสุด in-phase อีกรอบ)</li>
+  </ul>
+  <canvas id="vizSup" class="visual-cv"></canvas>
+
+  <h3>7) Misconceptions ที่ตรวจสอบ</h3>
+  <div class="warn"><b>M3.1</b> "ดล = ต่อเนื่อง" — ผิด · ดลคือสะบัด 1 ลูก ส่วนต่อเนื่องคือสั่นซ้ำ ๆ ได้สเปกตรัมคลื่นต่อเนื่องหลายลูก</div>
+  <div class="warn"><b>M3.2</b> "v ดล ≠ v ต่อเนื่อง" — ผิด · v ขึ้นกับตัวกลาง ไม่ได้ขึ้นกับชนิด source</div>
+  <div class="warn"><b>M3.3</b> "เฟสไม่มีความหมายกายภาพ" — ผิด · เฟสบอกตำแหน่งบนวงกลมอ้างอิง = สถานะการสั่น ณ ขณะนั้น</div>
+  <div class="warn"><b>M3.4</b> "180° ไม่เกี่ยวข้อง" — ผิด · 180° คือจุดที่การซ้อนคลื่นหักล้างพอดี เป็นหัวใจของ noise-canceling, interference</div>
+
+</div>
+</div>
+
+<!-- inline external watermark injected by protect_new_file.py -->
+
+<script>
+/* ======================================================================
+   STATE
+====================================================================== */
+const state = {
+  exp: 'A',          // A, B, C
+  mode: 'manual',    // manual, auto
+  playing: false,
+  t: 0,
+  lastTs: null,
+  speed: 1.0,
+  lam: 1.0,          // m
+  f: 1.0,            // Hz
+  A: 1.0,            // m (amplitude in physics units)
+  phi0: 0,           // source phase (rad)
+  dphi2: Math.PI,    // second wave phase shift (rad) — for exp C
+  cursorX: null,     // in physics m, relative to source
+  // Exp A: pulse launched at time stamps (sec)
+  pulseT0: null,
+  pulseState: 'idle',   // 'idle' | 'timing' | 'stopped'
+  pulseStartX: null, pulseStartT: null,
+  pulseStopX:  null, pulseStopT:  null,
+  contFreezeT: null,   // null = running, else frozen at this time
+  calX1: null, calX2: null,
+  draggingCal: null,
+  pulseRows: [], contRows: [],
+  // Exp B
+  selB: {q1:false, q2:false, q3:false, q4:false, free:false},
+  freeDxRatio: 0.35,
+  draggingPhasor: false,
+  draggingYT: false,
+  dragTarget: null,
+  // Records
+  rows: []
+};
+
+function omega(){ return 2*Math.PI*state.f; }
+function kwave(){ return 2*Math.PI/state.lam; }
+function vwave(){ return state.f * state.lam; }
+
+/* ======================================================================
+   TAB SWITCH
+====================================================================== */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory'){ drawTheoryVisuals(); }
+}
+
+/* ======================================================================
+   ANIM LOOP
+====================================================================== */
+let animId=null;
+function loop(ts){
+  if(!state.lastTs) state.lastTs=ts;
+  const dt=Math.min((ts-state.lastTs)/1000,0.05)*state.speed;
+  state.lastTs=ts;
+  state.t+=dt;
+  draw();
+  updateReadout();
+  animId=requestAnimationFrame(loop);
+}
+function togglePlay(){
+  state.playing=!state.playing;
+  const b=document.getElementById('playBtn');
+  if(state.playing){
+    state.lastTs=null;
+    animId=requestAnimationFrame(loop);
+    b.textContent='⏸ หยุด'; b.classList.add('playing');
+  }else{
+    cancelAnimationFrame(animId);
+    b.textContent='▶ เริ่ม'; b.classList.remove('playing');
+  }
+}
+function resetSim(){
+  cancelAnimationFrame(animId);
+  state.playing=false; state.t=0; state.lastTs=null; state.pulseT0=null;
+  state.pulseState='idle';
+  state.pulseStartX=null; state.pulseStartT=null;
+  state.pulseStopX=null;  state.pulseStopT=null;
+  state.contFreezeT=null;
+  state.calX1=null; state.calX2=null;
+  const b=document.getElementById('playBtn');
+  b.textContent='▶ เริ่ม'; b.classList.remove('playing');
+  const tBtn=document.getElementById('aTimerBtn');
+  if(tBtn){ tBtn.textContent='⏱ เริ่มจับเวลา'; tBtn.style.background=''; }
+  draw(); updateReadout();
+}
+
+/* ======================================================================
+   CANVAS LAYOUT HELPERS
+   Layout:
+     Top-left quarter (width 0.32): phasor circle
+     Top-right: y-t graph
+     Bottom: y-x wave (main strip)
+====================================================================== */
+const cv = () => document.getElementById('simCanvas');
+const ctx= () => cv().getContext('2d');
+
+function resizeCanvas(){
+  const c=cv(), p=c.parentElement;
+  c.width =p.clientWidth  || 800;
+  c.height=p.clientHeight || 500;
+  draw();
+}
+
+function layout(){
+  const W=cv().width, H=cv().height;
+  const splitY = H*0.55;
+  const splitX = W*0.30;
+  return {
+    W,H,
+    circ:{ x:10, y:10, w:splitX-20, h:splitY-20 },
+    yt:  { x:splitX+10, y:10, w:W-splitX-20, h:splitY-20 },
+    yx:  { x:10, y:splitY+5, w:W-20, h:H-splitY-15 }
+  };
+}
+
+/* ======================================================================
+   DRAW
+====================================================================== */
+function draw(){
+  const g=ctx(); if(!g) return;
+  const W=cv().width, H=cv().height;
+  g.fillStyle='#050910'; g.fillRect(0,0,W,H);
+  if(state.exp==='A'){ drawExpA(g,W,H); return; }
+  if(state.exp==='B'){ drawExpB(g,W,H); return; }
+  const L=layout();
+  drawPhasor(g, L.circ);
+  drawYT(g, L.yt);
+  drawYX(g, L.yx);
+}
+
+/* ======================================================================
+   EXP B — 4-panel layout
+   Row 1: Phasor (left) + Static y-x reference (right)
+   Row 2: Moving y-x (wave travels right→left)
+   Row 3: y-t (selected points oscillating)
+====================================================================== */
+let expBRegions = {};
+function drawExpB(g, W, H){
+  const gap=5;
+  const pw = Math.max(220, W*0.32);
+  const r1h = Math.max(200, H*0.45);
+  const r2h = H - r1h - gap*2;
+  const regP = {x:gap, y:gap, w:pw-gap*2, h:r1h-gap};
+  const regS = {x:pw, y:gap, w:W-pw-gap, h:r1h-gap};
+  const regO = {x:gap, y:r1h+gap, w:W-gap*2, h:r2h};
+  expBRegions = {P:regP, S:regS, O:regO};
+  drawB_Phasor(g, regP);
+  drawB_StaticYX(g, regS);
+  drawB_OscillatingYX(g, regO);
+}
+
+/* -- B1: Phasor circle (R draggable, free draggable if selected) -- */
+function drawB_Phasor(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('🌀 วงกลมอ้างอิง', R.x+6, R.y+16);
+
+  const cx=R.x+R.w/2, cy=R.y+R.h/2+10, rad=Math.min(R.w-40, R.h-50)*0.42;
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx-rad-8,cy); g.lineTo(cx+rad+8,cy); g.stroke();
+  g.beginPath(); g.moveTo(cx,cy-rad-8); g.lineTo(cx,cy+rad+8); g.stroke();
+  g.strokeStyle='#334155'; g.setLineDash([4,4]);
+  g.beginPath(); g.arc(cx,cy,rad,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+
+  const phiR = state.phi0;
+  // selected dots: FIXED at absolute phase angles θ_k = 2π·(Δx/λ)
+  getSelectedB().forEach(s=>{
+    const ang = 2*Math.PI*s.dxR;
+    const bx=cx+rad*Math.cos(ang), by=cy-rad*Math.sin(ang);
+    g.strokeStyle=s.col+'55'; g.setLineDash([2,3]); g.lineWidth=1;
+    g.beginPath(); g.moveTo(cx,cy); g.lineTo(bx,by); g.stroke(); g.setLineDash([]);
+    g.fillStyle=s.col;
+    g.beginPath(); g.arc(bx,by,7,0,Math.PI*2); g.fill();
+    if(s.k==='free'){
+      g.strokeStyle='rgba(251,146,60,.5)';
+      g.beginPath(); g.arc(bx,by,13,0,Math.PI*2); g.stroke();
+      g.fillStyle='#0a0e1a'; g.font='bold 9px Sarabun'; g.textAlign='center';
+      g.fillText('f', bx, by+3); g.textAlign='left';
+    }
+  });
+
+  // R
+  const Rx=cx+rad*Math.cos(phiR), Ry=cy-rad*Math.sin(phiR);
+  g.strokeStyle='#ef4444'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(Rx,Ry); g.stroke();
+  g.fillStyle='#ef4444';
+  g.beginPath(); g.arc(Rx,Ry,8,0,Math.PI*2); g.fill();
+  g.fillStyle='#fff'; g.font='bold 10px Sarabun'; g.textAlign='center';
+  g.fillText('R', Rx, Ry+3);
+  g.strokeStyle='rgba(239,68,68,.4)';
+  g.beginPath(); g.arc(Rx,Ry,14,0,Math.PI*2); g.stroke();
+  g.textAlign='left';
+
+  g.fillStyle='#fbbf24'; g.font='11px Share Tech Mono';
+  const deg=((phiR*180/Math.PI)%360+360)%360;
+  g.fillText('φ_R = '+deg.toFixed(0)+'°', R.x+6, R.y+R.h-6);
+  g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='right';
+  g.fillText('ลาก R ↻', R.x+R.w-6, R.y+R.h-6);
+  g.textAlign='left';
+}
+
+/* -- B2: Static y-x reference (wave fixed, R slides) -- */
+function drawB_StaticYX(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('📊 y–x อ้างอิง (คงที่) — ลาก R เพื่อเทียบเฟส', R.x+6, R.y+16);
+
+  const span = 2*state.lam;
+  const cx0=R.x+30, cy0=R.y+R.h/2+8, xw=R.w-45, yh=(R.h-40)/2;
+  const xs=(xm)=>cx0+xw*(xm/span);
+  const ys=(yy)=>cy0-yh*(yy/state.A);
+
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-24, cy0-yh+4);
+  g.fillText('−A', cx0-24, cy0+yh+4);
+  g.fillText('x', cx0+xw-6, cy0-4);
+
+  // ticks every λ/4
+  for(let i=0;i*state.lam/4<=span+1e-6;i++){
+    const xm=i*state.lam/4;
+    const xx=xs(xm);
+    const major=(i%4===0);
+    g.strokeStyle=major?'#334155':'#1a2942';
+    g.beginPath(); g.moveTo(xx,cy0-(major?5:2)); g.lineTo(xx,cy0+(major?5:2)); g.stroke();
+    if(major){ g.fillStyle='#64748b'; g.fillText(xm.toFixed(2), xx-10, cy0+yh+12); }
+  }
+
+  // Static wave: y(x) = A sin(kx) — truly fixed (same convention as moving y-x)
+  g.strokeStyle='rgba(96,165,250,.55)'; g.lineWidth=2;
+  g.beginPath();
+  for(let i=0;i<=200;i++){
+    const xm=span*i/200;
+    const y=state.A*Math.sin(kwave()*xm);
+    const xx=xs(xm), yy=ys(y);
+    if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+  }
+  g.stroke();
+
+  // R slides along wave at x_R = phi_R/k (wrapped into [0, λ))
+  const k=kwave();
+  let xR = (state.phi0/k) % state.lam;
+  if(xR<0) xR+=state.lam;
+  const yR=state.A*Math.sin(k*xR);
+  g.fillStyle='#ef4444';
+  g.beginPath(); g.arc(xs(xR), ys(yR), 8, 0, Math.PI*2); g.fill();
+  g.fillStyle='#fff'; g.font='bold 10px Sarabun'; g.textAlign='center';
+  g.fillText('R', xs(xR), ys(yR)+3);
+  g.strokeStyle='rgba(239,68,68,.4)';
+  g.beginPath(); g.arc(xs(xR), ys(yR), 14, 0, Math.PI*2); g.stroke();
+  g.textAlign='left';
+
+  // Selected Δx dots: FIXED at x = Δx, Δx+λ, Δx+2λ ... (repeat every λ)
+  getSelectedB().forEach(s=>{
+    for(let n=0;n<6;n++){
+      const xm = s.dxR*state.lam + n*state.lam;
+      if(xm > span+0.01) break;
+      const y = state.A*Math.sin(k*xm);
+      g.fillStyle=s.col;
+      g.beginPath(); g.arc(xs(xm), ys(y), 7, 0, Math.PI*2); g.fill();
+      g.strokeStyle=s.col+'55'; g.setLineDash([2,3]); g.lineWidth=1;
+      g.beginPath(); g.moveTo(xs(xm),cy0+yh); g.lineTo(xs(xm),cy0-yh); g.stroke();
+      g.setLineDash([]);
+      if(n===0){
+        g.fillStyle=s.col; g.font='bold 9px Share Tech Mono'; g.textAlign='center';
+        g.fillText(s.label, xs(xm), R.y+R.h-5);
+      }
+    }
+  });
+  g.textAlign='left';
+}
+
+/* -- B3.5: Oscillating objects on wave (fixed x, y bobs in place) -- */
+function drawB_OscillatingYX(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('🟢 y–x · วัตถุยึดที่ x คงที่ · สั่นอยู่กับที่เมื่อคลื่นผ่าน', R.x+6, R.y+16);
+
+  const span=3*state.lam;
+  const cx0=R.x+30, cy0=R.y+R.h/2+8, xw=R.w-45, yh=(R.h-40)/2;
+  const xs=(xm)=>cx0+xw*(xm/span);
+  const ys=(yy)=>cy0-yh*(yy/state.A);
+
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-24, cy0-yh+4);
+  g.fillText('−A', cx0-24, cy0+yh+4);
+  g.fillText('x', cx0+xw-6, cy0-4);
+  for(let i=0;i*state.lam/2<=span+1e-6;i++){
+    const xm=i*state.lam/2;
+    const xx=xs(xm);
+    g.strokeStyle='#334155';
+    g.beginPath(); g.moveTo(xx,cy0-4); g.lineTo(xx,cy0+4); g.stroke();
+    g.fillStyle='#64748b'; g.fillText(xm.toFixed(2), xx-10, cy0+yh+12);
+  }
+
+  const xS=0; // source on LEFT — wave travels left→right
+  const phR = state.phi0 + omega()*state.t;
+  const k = kwave();
+
+  // Wave y(x,t) = A sin(phR − k·x) → moves in +x direction
+  g.strokeStyle='rgba(96,165,250,.4)'; g.lineWidth=1.5;
+  g.beginPath();
+  for(let i=0;i<=300;i++){
+    const xm=span*i/300;
+    const y=state.A*Math.sin(phR - k*xm);
+    const xx=xs(xm), yy=ys(y);
+    if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+  }
+  g.stroke();
+
+  // Fixed-x objects: at x = Δx + n·λ, repeat inside span
+  getSelectedB().forEach(s=>{
+    const dxPhys = s.dxR*state.lam;
+    for(let n=0;n<8;n++){
+      const xFixed = dxPhys + n*state.lam;
+      if(xFixed > span) break;
+      if(xFixed < 0) continue;
+      const y = state.A*Math.sin(phR - k*xFixed);
+      g.strokeStyle=s.col+'33'; g.setLineDash([2,3]); g.lineWidth=1;
+      g.beginPath(); g.moveTo(xs(xFixed), cy0-yh); g.lineTo(xs(xFixed), cy0+yh); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle=s.col;
+      g.beginPath(); g.arc(xs(xFixed), ys(y), 8, 0, Math.PI*2); g.fill();
+      g.strokeStyle='#0a0e1a'; g.lineWidth=1.5;
+      g.beginPath(); g.arc(xs(xFixed), ys(y), 8, 0, Math.PI*2); g.stroke();
+    }
+  });
+
+  // Source R on LEFT
+  {
+    const yR=state.A*Math.sin(phR);
+    g.strokeStyle='#ef4444'; g.setLineDash([3,3]); g.lineWidth=1;
+    g.beginPath(); g.moveTo(xs(xS), cy0-yh); g.lineTo(xs(xS), cy0+yh); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle='#ef4444';
+    g.beginPath(); g.arc(xs(xS), ys(yR), 7, 0, Math.PI*2); g.fill();
+    g.fillStyle='#fff'; g.font='bold 9px Sarabun'; g.textAlign='center';
+    g.fillText('R', xs(xS), ys(yR)+3); g.textAlign='left';
+  }
+
+  // Direction arrow (left → right)
+  g.strokeStyle='#94a3b8'; g.lineWidth=1.5;
+  const ay=R.y+24;
+  g.beginPath(); g.moveTo(xs(span*0.25),ay); g.lineTo(xs(span*0.55),ay); g.stroke();
+  g.beginPath(); g.moveTo(xs(span*0.55),ay); g.lineTo(xs(span*0.55)-6,ay-4); g.lineTo(xs(span*0.55)-6,ay+4); g.closePath(); g.fillStyle='#94a3b8'; g.fill();
+  g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='left';
+  g.fillText('ทิศคลื่น', xs(span*0.58), ay+3);
+}
+
+/* -- B3: Moving y-x (wave right→left, phase-locked sliding dots) -- */
+function drawB_MovingYX(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('🌊 y–x เคลื่อนที่ (ขวา→ซ้าย) · จุดเฟสเลื่อนตามคลื่น (ซ้ำทุก λ)', R.x+6, R.y+16);
+
+  const span=3*state.lam;
+  const cx0=R.x+30, cy0=R.y+R.h/2+8, xw=R.w-45, yh=(R.h-40)/2;
+  const xs=(xm)=>cx0+xw*(xm/span);
+  const ys=(yy)=>cy0-yh*(yy/state.A);
+
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-24, cy0-yh+4);
+  g.fillText('−A', cx0-24, cy0+yh+4);
+  g.fillText('x', cx0+xw-6, cy0-4);
+  for(let i=0;i*state.lam/2<=span+1e-6;i++){
+    const xm=i*state.lam/2;
+    const xx=xs(xm);
+    g.strokeStyle='#334155';
+    g.beginPath(); g.moveTo(xx,cy0-4); g.lineTo(xx,cy0+4); g.stroke();
+    g.fillStyle='#64748b'; g.fillText(xm.toFixed(2), xx-10, cy0+yh+12);
+  }
+
+  const xS=span; // source on right
+  const phR = state.phi0 + omega()*state.t;  // time-advanced phase at source
+  const k=kwave();
+
+  g.strokeStyle='#60a5fa'; g.lineWidth=2;
+  g.beginPath();
+  for(let i=0;i<=300;i++){
+    const xm=span*i/300;
+    const y=state.A*Math.sin(phR + k*(xm - xS));
+    const xx=xs(xm), yy=ys(y);
+    if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+  }
+  g.stroke();
+
+  // Source R on right edge
+  {
+    const yR=state.A*Math.sin(phR);
+    g.strokeStyle='#ef4444'; g.setLineDash([3,3]); g.lineWidth=1;
+    g.beginPath(); g.moveTo(xs(xS),cy0-yh); g.lineTo(xs(xS),cy0+yh); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#ef4444';
+    g.beginPath(); g.arc(xs(xS), ys(yR), 7, 0, Math.PI*2); g.fill();
+    g.fillStyle='#fff'; g.font='bold 9px Sarabun'; g.textAlign='center';
+    g.fillText('R', xs(xS), ys(yR)+3);
+    g.textAlign='left';
+  }
+
+  // Phase-locked dots (repeat every λ): fixed phase θ, sliding with wave
+  getSelectedB().forEach(s=>{
+    const theta = 2*Math.PI*s.dxR;
+    const yk = state.A*Math.sin(theta);
+    const base = xS + (theta - phR)/k;
+    for(let n=-4;n<=4;n++){
+      const xc = base + n*state.lam;
+      if(xc>=0 && xc<=span){
+        g.fillStyle=s.col;
+        g.beginPath(); g.arc(xs(xc), ys(yk), 6, 0, Math.PI*2); g.fill();
+      }
+    }
+  });
+
+  // Arrow right→left
+  g.strokeStyle='#94a3b8'; g.lineWidth=1.5;
+  const ay=R.y+24;
+  g.beginPath(); g.moveTo(xs(span*0.75),ay); g.lineTo(xs(span*0.45),ay); g.stroke();
+  g.beginPath(); g.moveTo(xs(span*0.45),ay); g.lineTo(xs(span*0.45)+6,ay-4); g.lineTo(xs(span*0.45)+6,ay+4); g.closePath(); g.fillStyle='#94a3b8'; g.fill();
+}
+
+/* -- B4: y-t showing selected points oscillating in place -- */
+function drawB_YT(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('📈 y–t · จุดที่เลือก "สั่นอยู่กับที่" (y เปลี่ยนตามเวลา)', R.x+6, R.y+16);
+
+  const T=1/state.f, tWin=3*T;
+  const cx0=R.x+30, cy0=R.y+R.h/2+8, xw=R.w-45, yh=(R.h-40)/2;
+  const xs=(tt)=>cx0+xw*(tt/tWin);
+  const ys=(yy)=>cy0-yh*(yy/state.A);
+
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-24, cy0-yh+4);
+  g.fillText('−A', cx0-24, cy0+yh+4);
+  g.fillText('t', cx0+xw-6, cy0-4);
+  for(let i=0;i<=3;i++){
+    const xx=xs(i*T);
+    g.strokeStyle='#1a2942';
+    g.beginPath(); g.moveTo(xx,cy0-3); g.lineTo(xx,cy0+3); g.stroke();
+    g.fillStyle='#64748b'; g.fillText((i*T).toFixed(2)+'s', xx-14, cy0+yh+12);
+  }
+
+  // R's sine (reference — faint)
+  g.strokeStyle='rgba(239,68,68,.35)'; g.lineWidth=1.3; g.setLineDash([3,3]);
+  g.beginPath();
+  for(let i=0;i<=200;i++){
+    const tt=tWin*i/200;
+    const y=state.A*Math.sin(omega()*tt + state.phi0);
+    const xx=xs(tt), yy=ys(y);
+    if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+  }
+  g.stroke(); g.setLineDash([]);
+
+  // current time marker (vertical line)
+  const tMod=((state.t%tWin)+tWin)%tWin;
+  g.strokeStyle='rgba(255,255,255,.15)'; g.setLineDash([4,4]);
+  g.beginPath(); g.moveTo(xs(tMod),cy0-yh); g.lineTo(xs(tMod),cy0+yh); g.stroke();
+  g.setLineDash([]);
+
+  // R dot at current time (oscillates at fixed x=t_now_mod position)
+  const yR=state.A*Math.sin(omega()*state.t + state.phi0);
+  g.fillStyle='#ef4444';
+  g.beginPath(); g.arc(xs(tMod), ys(yR), 7, 0, Math.PI*2); g.fill();
+  g.fillStyle='#fff'; g.font='bold 9px Sarabun'; g.textAlign='center';
+  g.fillText('R', xs(tMod), ys(yR)+3); g.textAlign='left';
+
+  // Each selected dot: own faint sine + dot at current time
+  getSelectedB().forEach(s=>{
+    const dphi=2*Math.PI*s.dxR;
+    g.strokeStyle=s.col+'33'; g.lineWidth=1;
+    g.beginPath();
+    for(let i=0;i<=200;i++){
+      const tt=tWin*i/200;
+      const y=state.A*Math.sin(omega()*tt + state.phi0 - dphi);
+      const xx=xs(tt), yy=ys(y);
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke();
+    const yD=state.A*Math.sin(omega()*state.t + state.phi0 - dphi);
+    g.fillStyle=s.col;
+    g.beginPath(); g.arc(xs(tMod), ys(yD), 6, 0, Math.PI*2); g.fill();
+  });
+}
+
+/* ---- Exp A: 2-panel layout (pulse top, continuous bottom) ---- */
+function drawExpA(g,W,H){
+  const topR={x:10,y:10,w:W-20,h:H/2-15};
+  const botR={x:10,y:H/2+5,w:W-20,h:H/2-15};
+  drawPulsePanel(g,topR);
+  drawContinuousPanel(g,botR);
+}
+
+function waveXScale(R){
+  const span=3*state.lam;
+  const cx0=R.x+30, xw=R.w-45;
+  return {span, cx0, xw,
+    xs:(xm)=>cx0+xw*(xm/span),
+    xInv:(px)=>((px-cx0)/xw)*span };
+}
+
+function drawPulsePanel(g,R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('🔴 จอบน · คลื่นดล (Pulse) — เคลื่อนที่ออกจาก x=0', R.x+6, R.y+16);
+
+  const cy0=R.y+R.h/2+8, yh=(R.h-34)/2;
+  const S=waveXScale(R);
+  // axes
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(S.cx0,cy0-yh); g.lineTo(S.cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(S.cx0,cy0); g.lineTo(S.cx0+S.xw,cy0); g.stroke();
+
+  // scale ticks every 0.1m
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono'; g.textAlign='center';
+  const maxX=S.span;
+  for(let xm=0; xm<=maxX+1e-6; xm+=0.1){
+    const xx=S.xs(xm);
+    const major=(Math.round(xm*10)%5===0);
+    g.strokeStyle=major?'#334155':'#1a2942';
+    g.beginPath(); g.moveTo(xx,cy0-(major?6:3)); g.lineTo(xx,cy0+(major?6:3)); g.stroke();
+    if(major) g.fillText(xm.toFixed(1), xx, cy0+yh+12);
+  }
+  g.textAlign='left';
+
+  // current pulse (always live, timer doesn't freeze it)
+  const v=vwave();
+  let xp=null;
+  if(state.pulseT0!==null){
+    xp=v*(state.t - state.pulseT0);
+  }
+  if(xp!==null && xp>=0 && xp<=S.span){
+    const w=state.lam*0.35;
+    g.strokeStyle='#ef4444'; g.lineWidth=2.5;
+    g.beginPath();
+    for(let i=0;i<=200;i++){
+      const xm=S.span*i/200;
+      const y=state.A*0.9*Math.exp(-Math.pow((xm-xp)/w,2));
+      const xx=S.xs(xm), yy=cy0 - yh*(y/state.A);
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke();
+    // pulse peak marker
+    g.fillStyle='#ef4444';
+    g.beginPath(); g.arc(S.xs(xp), cy0-yh*0.9, 4,0,Math.PI*2); g.fill();
+  }
+
+  // start/stop vertical caliper lines
+  function drawCaliper(xm, col, labTop, labBot){
+    if(xm===null) return;
+    const xx=S.xs(xm);
+    g.strokeStyle=col; g.lineWidth=2; g.setLineDash([5,4]);
+    g.beginPath(); g.moveTo(xx,R.y+20); g.lineTo(xx,R.y+R.h-6); g.stroke();
+    g.setLineDash([]);
+    // little cap
+    g.fillStyle=col;
+    g.fillRect(xx-5,R.y+20,10,4);
+    g.fillRect(xx-5,R.y+R.h-10,10,4);
+    g.font='bold 11px Share Tech Mono';
+    g.fillText(labTop, xx+6, R.y+32);
+    g.fillText(labBot, xx+6, R.y+R.h-14);
+  }
+  if(state.pulseStartX!==null)
+    drawCaliper(state.pulseStartX, '#fbbf24',
+      '▶ เริ่ม x='+state.pulseStartX.toFixed(2)+'m',
+      't='+state.pulseStartT.toFixed(2)+'s');
+  if(state.pulseStopX!==null)
+    drawCaliper(state.pulseStopX, '#34d399',
+      '■ หยุด x='+state.pulseStopX.toFixed(2)+'m',
+      't='+state.pulseStopT.toFixed(2)+'s');
+
+  // distance + time readout (auto mode only shows d explicitly; manual only shows both lines)
+  if(state.pulseStartX!==null && state.pulseStopX!==null){
+    const d=Math.abs(state.pulseStopX-state.pulseStartX);
+    const dt=Math.abs(state.pulseStopT-state.pulseStartT);
+    g.fillStyle='#fbbf24'; g.font='bold 13px Share Tech Mono';
+    g.fillText('Δt = '+dt.toFixed(3)+' s', R.x+10, R.y+R.h-8);
+    if(state.mode==='auto'){
+      g.fillStyle='#34d399';
+      g.fillText('Δd = '+d.toFixed(3)+' m  →  v = '+(d/dt).toFixed(3)+' m/s',
+        R.x+150, R.y+R.h-8);
+    }else{
+      g.fillStyle='#94a3b8';
+      g.fillText('อ่าน Δd จากสเกลเอง →', R.x+150, R.y+R.h-8);
+    }
+  }
+
+  // status
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='right';
+  const stText={idle:'ยังไม่ปล่อย',timing:'กำลังจับเวลา…',stopped:'บันทึกช่วง Δd, Δt แล้ว'}[state.pulseState];
+  g.fillText(stText, R.x+R.w-8, R.y+16);
+  g.textAlign='left';
+}
+
+function drawContinuousPanel(g,R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.textAlign='left';
+  g.fillText('🔵 จอล่าง · คลื่นต่อเนื่อง — ลากคาลิปเปอร์วัด λ (กดหยุดก่อน)', R.x+6, R.y+16);
+
+  const cy0=R.y+R.h/2+8, yh=(R.h-34)/2;
+  const S=waveXScale(R);
+  // axes
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(S.cx0,cy0-yh); g.lineTo(S.cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(S.cx0,cy0); g.lineTo(S.cx0+S.xw,cy0); g.stroke();
+
+  // scale 0.05 m
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono'; g.textAlign='center';
+  for(let xm=0; xm<=S.span+1e-6; xm+=0.05){
+    const xx=S.xs(xm);
+    const major=(Math.round(xm*100)%25===0);
+    const mid=(Math.round(xm*100)%10===0);
+    g.strokeStyle=major?'#334155':(mid?'#243555':'#1a2942');
+    g.beginPath(); g.moveTo(xx,cy0-(major?7:(mid?4:2))); g.lineTo(xx,cy0+(major?7:(mid?4:2))); g.stroke();
+    if(major) g.fillText(xm.toFixed(2), xx, cy0+yh+12);
+  }
+  g.textAlign='left';
+
+  // continuous wave — always running from t=0 (independent of pulse)
+  {
+    const tEff = (state.contFreezeT!==null) ? state.contFreezeT : state.t;
+    g.strokeStyle='#60a5fa'; g.lineWidth=2;
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const xm=S.span*i/300;
+      if(xm <= vwave()*tEff){
+        const y=state.A*Math.sin(omega()*tEff - kwave()*xm + state.phi0);
+        const xx=S.xs(xm), yy=cy0 - yh*(y/state.A);
+        if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+      }
+    }
+    g.stroke();
+    if(state.contFreezeT!==null){
+      g.fillStyle='#fb923c'; g.font='bold 11px Share Tech Mono'; g.textAlign='right';
+      g.fillText('⏸ FROZEN  t='+state.contFreezeT.toFixed(2)+'s', R.x+R.w-8, R.y+32);
+      g.textAlign='left';
+    }
+  }
+
+  // calipers (draggable)
+  function drawCal(xm, col, idx){
+    if(xm===null) return;
+    const xx=S.xs(xm);
+    g.strokeStyle=col; g.lineWidth=2; g.setLineDash([5,4]);
+    g.beginPath(); g.moveTo(xx,R.y+20); g.lineTo(xx,R.y+R.h-6); g.stroke();
+    g.setLineDash([]);
+    // handle circle (draggable)
+    g.fillStyle=col;
+    g.beginPath(); g.arc(xx, cy0, 7, 0, Math.PI*2); g.fill();
+    g.fillStyle='#0a0e1a'; g.font='bold 10px Share Tech Mono'; g.textAlign='center';
+    g.fillText(String(idx), xx, cy0+3);
+    g.textAlign='left';
+    g.fillStyle=col; g.font='11px Share Tech Mono';
+    g.fillText('x='+xm.toFixed(2)+'m', xx+8, R.y+30);
+  }
+  drawCal(state.calX1, '#fbbf24', 1);
+  drawCal(state.calX2, '#a78bfa', 2);
+
+  // λ measurement
+  if(state.calX1!==null && state.calX2!==null){
+    const lamMeas=Math.abs(state.calX2-state.calX1);
+    const xA=S.xs(Math.min(state.calX1,state.calX2));
+    const xB=S.xs(Math.max(state.calX1,state.calX2));
+    const yBar=R.y+R.h-26;
+    g.strokeStyle='#fb923c'; g.lineWidth=2;
+    g.beginPath(); g.moveTo(xA,yBar); g.lineTo(xB,yBar); g.stroke();
+    // end caps
+    g.beginPath(); g.moveTo(xA,yBar-5); g.lineTo(xA,yBar+5); g.stroke();
+    g.beginPath(); g.moveTo(xB,yBar-5); g.lineTo(xB,yBar+5); g.stroke();
+    g.fillStyle='#fb923c'; g.font='bold 12px Share Tech Mono'; g.textAlign='center';
+    if(state.mode==='auto'){
+      g.fillText('λ = '+lamMeas.toFixed(3)+' m', (xA+xB)/2, yBar-6);
+    }else{
+      g.fillText('λ = ? (อ่านจากสเกล)', (xA+xB)/2, yBar-6);
+    }
+    g.textAlign='left';
+  }
+
+  // hint
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='right';
+  const ht = (state.contFreezeT!==null)
+    ? '💡 ลากปุ่ม ① และ ② ไปยังสันคลื่น 2 สันติดกัน'
+    : 'กด ⏸ หยุดคลื่นต่อเนื่อง (ด้านขวา) ก่อนจึงวัดได้';
+  g.fillText(ht, R.x+R.w-8, R.y+16);
+  g.textAlign='left';
+}
+
+/* -------- Exp B helpers -------- */
+function getSelectedB(){
+  const defs=[
+    {k:'q1', label:'λ/4',  dxR:0.25, col:'#fbbf24'},
+    {k:'q2', label:'λ/2',  dxR:0.50, col:'#60a5fa'},
+    {k:'q3', label:'3λ/4', dxR:0.75, col:'#a78bfa'},
+    {k:'q4', label:'λ',    dxR:1.00, col:'#34d399'},
+  ];
+  const arr=[];
+  defs.forEach(d=>{ if(state.selB[d.k]) arr.push(d); });
+  if(state.selB.free){
+    const r=state.freeDxRatio;
+    arr.push({k:'free', label:'Δx='+(r*state.lam).toFixed(2)+'m ('+(r).toFixed(2)+'λ)', dxR:r, col:'#fb923c'});
+  }
+  return arr;
+}
+function phiR(){ return omega()*state.t + state.phi0; }
+
+/* -------- Phasor circle -------- */
+function drawPhasor(g, R){
+  const cx=R.x+R.w/2, cy=R.y+R.h/2+4;
+  const rad=Math.min(R.w-30,R.h-40)*0.40;
+  // frame
+  g.strokeStyle='#1e3a5f'; g.lineWidth=1;
+  g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left';
+  g.fillText('🌀 วงกลมอ้างอิง (Phasor)', R.x+6, R.y+14);
+
+  // axes
+  g.strokeStyle='#1a2942'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(cx-rad-10,cy); g.lineTo(cx+rad+10,cy); g.stroke();
+  g.beginPath(); g.moveTo(cx,cy-rad-10); g.lineTo(cx,cy+rad+10); g.stroke();
+
+  // circle
+  g.strokeStyle='#334155'; g.setLineDash([4,4]);
+  g.beginPath(); g.arc(cx,cy,rad,0,Math.PI*2); g.stroke();
+  g.setLineDash([]);
+
+  // phase angle (source phase)
+  const phiSrc = omega()*state.t + state.phi0;
+  const px=cx+rad*Math.cos(phiSrc), py=cy-rad*Math.sin(phiSrc);
+
+  // radius vector
+  g.strokeStyle='#ef4444'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(px,py); g.stroke();
+  // ball R (source)
+  g.fillStyle='#ef4444';
+  g.beginPath(); g.arc(px,py,7,0,Math.PI*2); g.fill();
+  g.fillStyle='#fff'; g.font='bold 10px Sarabun'; g.textAlign='center';
+  g.fillText('R', px, py+3);
+
+  // projection line to y axis
+  g.strokeStyle='#f87171'; g.setLineDash([2,3]); g.lineWidth=1;
+  g.beginPath(); g.moveTo(px,py); g.lineTo(cx,py); g.stroke();
+  g.setLineDash([]);
+  // projection dot
+  g.fillStyle='#f87171'; g.beginPath(); g.arc(cx,py,4,0,Math.PI*2); g.fill();
+
+  // Exp B: show selected dots (string-particle interpretation — lag R by kΔx)
+  if(state.exp==='B'){
+    getSelectedB().forEach(s=>{
+      const ang = phiSrc - 2*Math.PI*s.dxR;
+      const bx=cx+rad*Math.cos(ang), by=cy-rad*Math.sin(ang);
+      g.fillStyle=s.col;
+      g.beginPath(); g.arc(bx,by,6,0,Math.PI*2); g.fill();
+      g.strokeStyle=s.col; g.lineWidth=1; g.setLineDash([2,2]);
+      g.beginPath(); g.moveTo(cx,cy); g.lineTo(bx,by); g.stroke(); g.setLineDash([]);
+    });
+    // "drag" hint on R
+    g.fillStyle='rgba(239,68,68,.35)'; g.lineWidth=1;
+    g.beginPath(); g.arc(px,py,13,0,Math.PI*2); g.stroke();
+  }
+  // Exp C: B reflects Δφ slider (sync with superposition)
+  if(state.exp==='C'){
+    const phiB = phiSrc - state.dphi2;
+    const bx=cx+rad*Math.cos(phiB), by=cy-rad*Math.sin(phiB);
+    g.strokeStyle='#60a5fa'; g.setLineDash([2,2]); g.lineWidth=1;
+    g.beginPath(); g.moveTo(cx,cy); g.lineTo(bx,by); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#60a5fa';
+    g.beginPath(); g.arc(bx,by,7,0,Math.PI*2); g.fill();
+    g.fillStyle='#fff'; g.fillText('B', bx, by+3);
+  }
+
+  // label angle
+  g.fillStyle='#fbbf24'; g.font='11px Share Tech Mono'; g.textAlign='left';
+  const deg=((phiSrc*180/Math.PI)%360+360)%360;
+  g.fillText('φ_R = '+deg.toFixed(0)+'°', R.x+6, R.y+R.h-8);
+  if(state.exp==='B'){
+    g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='right';
+    g.fillText('ลาก R ↻', R.x+R.w-6, R.y+R.h-8);
+    g.textAlign='left';
+  }
+}
+
+/* -------- y-t graph (at source position) -------- */
+function drawYT(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left';
+  g.fillText('📈 กราฟ y–t  ที่จุด R (source)', R.x+6, R.y+14);
+
+  const cx0=R.x+30, cy0=R.y+R.h/2;
+  const xw=R.w-45, yh=(R.h-30)/2;
+
+  // axes
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+
+  // y grid (amplitude)
+  g.strokeStyle='#1a2942'; g.setLineDash([2,3]);
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0+xw,cy0-yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0+yh); g.lineTo(cx0+xw,cy0+yh); g.stroke();
+  g.setLineDash([]);
+
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-26, cy0-yh+4);
+  g.fillText('0',  cx0-10, cy0+3);
+  g.fillText('−A', cx0-26, cy0+yh+4);
+  g.fillText('t', cx0+xw-8, cy0-4);
+
+  // time scale: 3 periods visible
+  const T=1/state.f;
+  const tWin=3*T;
+  const xs=(tt)=>cx0 + xw*(tt/tWin);
+  const ys=(yy)=>cy0 - yh*(yy/state.A);
+
+  // period ticks
+  for(let i=0;i<=3;i++){
+    const xx=xs(i*T);
+    g.strokeStyle='#1a2942';
+    g.beginPath(); g.moveTo(xx,cy0-2); g.lineTo(xx,cy0+2); g.stroke();
+    g.fillStyle='#64748b';
+    g.fillText((i*T).toFixed(2)+'s', xx-12, cy0+yh+12);
+  }
+
+  // For Exp B: static window [0, 3T], red dot at (state.t mod 3T)
+  if(state.exp==='B'){
+    // Draw static sine y = A sin(ω·t_graph + phi0)
+    g.strokeStyle='#ef4444'; g.lineWidth=2;
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const tt = tWin*i/300;
+      const y = state.A*Math.sin(omega()*tt + state.phi0);
+      const xx = xs(tt);
+      if(i===0) g.moveTo(xx, ys(y)); else g.lineTo(xx, ys(y));
+    }
+    g.stroke();
+
+    // R dot at t_now wrapped
+    const tMod = ((state.t % tWin) + tWin) % tWin;
+    const yR = state.A*Math.sin(omega()*tMod + state.phi0);
+    g.fillStyle='#ef4444';
+    g.beginPath(); g.arc(xs(tMod), ys(yR), 7, 0, Math.PI*2); g.fill();
+    g.fillStyle='#fff'; g.font='bold 9px Sarabun'; g.textAlign='center';
+    g.fillText('R', xs(tMod), ys(yR)+3);
+    // drag hint halo
+    g.strokeStyle='rgba(239,68,68,.35)';
+    g.beginPath(); g.arc(xs(tMod), ys(yR), 12, 0, Math.PI*2); g.stroke();
+    g.textAlign='left';
+
+    // Selected dots at t_Δx = state.t - Δx/v
+    getSelectedB().forEach(s=>{
+      const dt = s.dxR*state.lam / vwave();   // Δx/v = dxR * T
+      const tk = ((state.t - dt) % tWin + tWin) % tWin;
+      const yk = state.A*Math.sin(omega()*tk + state.phi0);
+      g.fillStyle=s.col;
+      g.beginPath(); g.arc(xs(tk), ys(yk), 6, 0, Math.PI*2); g.fill();
+    });
+
+    g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='right';
+    g.fillText('ลาก R ↔', cx0+xw-6, cy0-yh-2);
+    g.textAlign='left';
+    return;
+  }
+
+  // Exp A/C: sliding window as before
+  const tNow=state.t;
+  g.strokeStyle='#ef4444'; g.lineWidth=2;
+  g.beginPath();
+  for(let i=0;i<=200;i++){
+    const tt = (tNow - tWin) + (tWin*i/200);
+    const y = state.A*Math.sin(omega()*tt + state.phi0);
+    const xx = xs(tt - (tNow-tWin));
+    if(i===0) g.moveTo(xx, ys(y)); else g.lineTo(xx, ys(y));
+  }
+  g.stroke();
+  const yNow=state.A*Math.sin(omega()*tNow+state.phi0);
+  g.fillStyle='#ef4444';
+  g.beginPath(); g.arc(xs(tWin), ys(yNow), 5, 0, Math.PI*2); g.fill();
+
+  if(state.exp==='C'){
+    g.strokeStyle='#60a5fa'; g.lineWidth=1.5; g.setLineDash([5,3]);
+    g.beginPath();
+    for(let i=0;i<=200;i++){
+      const tt = (tNow - tWin) + (tWin*i/200);
+      const y = state.A*Math.sin(omega()*tt + state.phi0 - state.dphi2);
+      const xx = xs(tt - (tNow-tWin));
+      if(i===0) g.moveTo(xx, ys(y)); else g.lineTo(xx, ys(y));
+    }
+    g.stroke();
+    g.setLineDash([]);
+    // dot for B at current time
+    const yB = state.A*Math.sin(omega()*tNow + state.phi0 - state.dphi2);
+    g.fillStyle='#60a5fa';
+    g.beginPath(); g.arc(xs(tWin), ys(yB), 5, 0, Math.PI*2); g.fill();
+  }
+}
+
+/* -------- y-x wave view (main strip) -------- */
+function drawYX(g, R){
+  g.strokeStyle='#1e3a5f'; g.strokeRect(R.x,R.y,R.w,R.h);
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left';
+  const titleMap={A:'🧵 เชือก (y–x) · Pulse แดง vs Continuous น้ำเงิน', B:'🧵 เชือก (y–x) · ริบบิ้นที่ Δx = λ/4, λ/2, 3λ/4, λ', C:'🧵 เชือก (y–x) · คลิกเพื่อวาง cursor + ซ้อนคลื่น'};
+  g.fillText(titleMap[state.exp], R.x+6, R.y+14);
+
+  // world span (m): 3 wavelengths
+  const span=3*state.lam;
+  const cx0=R.x+30, cy0=R.y+R.h/2;
+  const xw=R.w-45, yh=(R.h-34)/2;
+  const xs=(xm)=>cx0 + xw*(xm/span);
+  const ys=(yy)=>cy0 - yh*(yy/state.A);
+
+  // axes
+  g.strokeStyle='#1a2942';
+  g.beginPath(); g.moveTo(cx0,cy0-yh); g.lineTo(cx0,cy0+yh); g.stroke();
+  g.beginPath(); g.moveTo(cx0,cy0); g.lineTo(cx0+xw,cy0); g.stroke();
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono';
+  g.fillText('+A', cx0-26, cy0-yh+4);
+  g.fillText('−A', cx0-26, cy0+yh+4);
+  g.fillText('x(m)', cx0+xw-24, cy0+yh+14);
+
+  // x ticks every λ/4
+  for(let i=0;i<=12;i++){
+    const xm=i*(state.lam/4);
+    if(xm>span) break;
+    const xx=xs(xm);
+    g.strokeStyle='#1a2942';
+    g.beginPath(); g.moveTo(xx,cy0-3); g.lineTo(xx,cy0+3); g.stroke();
+    if(i%2===0){
+      g.fillStyle='#64748b';
+      g.fillText(xm.toFixed(2), xx-10, cy0+yh+12);
+    }
+  }
+
+  // ---- Exp A: pulse + continuous wave traveling
+  if(state.exp==='A'){
+    // Continuous wave
+    g.strokeStyle='#60a5fa'; g.lineWidth=2;
+    g.beginPath();
+    const tNow=state.t;
+    for(let i=0;i<=300;i++){
+      const xm=span*i/300;
+      // y(x,t) = A sin(ω t − k x), emits from x=0 when t>0
+      // Only visible where wave has reached: x <= v*t
+      if(xm <= vwave()*tNow){
+        const y=state.A*Math.sin(omega()*tNow - kwave()*xm + state.phi0);
+        const xx=xs(xm), yy=ys(y);
+        if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+      }
+    }
+    g.stroke();
+
+    // Pulse (Gaussian) launched at pulseT0
+    if(state.pulseT0!==null){
+      const tau=state.t - state.pulseT0; // time since launch
+      const xp=vwave()*tau;  // peak position
+      const w=state.lam*0.35;
+      g.strokeStyle='#ef4444'; g.lineWidth=2;
+      g.beginPath();
+      for(let i=0;i<=200;i++){
+        const xm=span*i/200;
+        const y=state.A*0.9*Math.exp(-Math.pow((xm-xp)/w, 2));
+        const xx=xs(xm), yy=ys(-y); // pulse upward = negative because y positive is up but canvas y goes down — use +
+        if(i===0) g.moveTo(xx, ys(y)); else g.lineTo(xx, ys(y));
+      }
+      g.stroke();
+
+      // leading-edge marker
+      g.strokeStyle='#ef4444'; g.setLineDash([3,3]);
+      g.beginPath(); g.moveTo(xs(xp),cy0-yh); g.lineTo(xs(xp),cy0+yh); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle='#ef4444'; g.font='bold 10px Share Tech Mono';
+      g.fillText('pulse x='+xp.toFixed(2)+'m', xs(xp)+4, cy0-yh+10);
+    }
+
+    // Continuous leading edge
+    const xc=Math.min(vwave()*state.t, span);
+    g.strokeStyle='#60a5fa'; g.setLineDash([3,3]);
+    g.beginPath(); g.moveTo(xs(xc),cy0-yh); g.lineTo(xs(xc),cy0+yh); g.stroke();
+    g.setLineDash([]);
+    g.fillStyle='#60a5fa'; g.font='bold 10px Share Tech Mono';
+    g.fillText('cont x='+xc.toFixed(2)+'m', xs(xc)+4, cy0+yh-2);
+
+    // Legend
+    g.fillStyle='#ef4444'; g.fillRect(R.x+R.w-170,R.y+24,12,12);
+    g.fillStyle='#e2e8f0'; g.font='11px Sarabun'; g.fillText('Pulse (สะบัด 1 ครั้ง)', R.x+R.w-154, R.y+34);
+    g.fillStyle='#60a5fa'; g.fillRect(R.x+R.w-170,R.y+42,12,12);
+    g.fillStyle='#e2e8f0'; g.fillText('Continuous', R.x+R.w-154, R.y+52);
+  }
+
+  // ---- Exp B: wave moves right→left, source on RIGHT (x=span). Phase-locked dots slide.
+  if(state.exp==='B'){
+    const xS=span; // source canvas-x (far right)
+    const phR = phiR();
+    // y(x_can,t) = A sin(φ_R + k·(x_can − x_s))
+    g.strokeStyle='#60a5fa'; g.lineWidth=2;
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const xm=span*i/300;
+      const y=state.A*Math.sin(phR + kwave()*(xm - xS));
+      const xx=xs(xm), yy=ys(y);
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke();
+
+    // Source marker R at right edge
+    {
+      const yR = state.A*Math.sin(phR);
+      g.strokeStyle='#ef4444'; g.setLineDash([3,3]); g.lineWidth=1;
+      g.beginPath(); g.moveTo(xs(xS),cy0-yh); g.lineTo(xs(xS),cy0+yh); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle='#ef4444';
+      g.beginPath(); g.arc(xs(xS), ys(yR), 7, 0, Math.PI*2); g.fill();
+      g.fillStyle='#fff'; g.font='bold 9px Sarabun'; g.textAlign='center';
+      g.fillText('R', xs(xS), ys(yR)+3);
+      g.fillStyle='#ef4444'; g.font='bold 10px Share Tech Mono';
+      g.fillText('(แหล่งกำเนิด)', xs(xS), R.y+R.h-4);
+      g.textAlign='left';
+    }
+
+    // Phase-locked dots: at fixed phase θ_k = 2π·(Δx/λ), y = A sin(θ_k), sliding
+    getSelectedB().forEach(s=>{
+      const theta = 2*Math.PI*s.dxR;
+      const yk = state.A*Math.sin(theta);
+      // x_can satisfying: phR + k(x_can − xS) ≡ θ (mod 2π)
+      //   → x_can = xS + (θ − phR + 2π·n)/k
+      const k = kwave();
+      const base = xS + (theta - phR)/k;
+      // Find all x_can in [0, span]
+      const positions=[];
+      for(let n=-4;n<=4;n++){
+        const xc = base + n*state.lam;
+        if(xc>=0 && xc<=span) positions.push(xc);
+      }
+      positions.forEach(xc=>{
+        g.fillStyle=s.col;
+        g.beginPath(); g.arc(xs(xc), ys(yk), 7, 0, Math.PI*2); g.fill();
+      });
+      // Legend: show first position's x
+      if(positions.length){
+        const xc0=positions[0];
+        g.fillStyle=s.col; g.font='bold 9px Share Tech Mono'; g.textAlign='center';
+        g.fillText(s.label, xs(xc0), R.y+R.h-4);
+      }
+    });
+    g.textAlign='left';
+
+    // Direction arrow (right → left)
+    g.strokeStyle='#94a3b8'; g.lineWidth=1.5;
+    const ay=R.y+22;
+    g.beginPath(); g.moveTo(xs(span*0.75),ay); g.lineTo(xs(span*0.45),ay); g.stroke();
+    g.beginPath(); g.moveTo(xs(span*0.45),ay); g.lineTo(xs(span*0.45)+6,ay-4); g.lineTo(xs(span*0.45)+6,ay+4); g.closePath(); g.fillStyle='#94a3b8'; g.fill();
+    g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='left';
+    g.fillText('ทิศคลื่น', xs(span*0.78), ay+3);
+  }
+
+  // ---- Exp C: cursor + superposition
+  if(state.exp==='C'){
+    // wave 1
+    g.strokeStyle='#60a5fa'; g.lineWidth=2;
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const xm=span*i/300;
+      const y=state.A*Math.sin(omega()*state.t - kwave()*xm + state.phi0);
+      const xx=xs(xm), yy=ys(y);
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke();
+
+    // wave 2 (phase-shifted)
+    g.strokeStyle='#f472b6'; g.lineWidth=1.8; g.setLineDash([6,3]);
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const xm=span*i/300;
+      const y=state.A*Math.sin(omega()*state.t - kwave()*xm + state.phi0 + state.dphi2);
+      const xx=xs(xm), yy=ys(y);
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke(); g.setLineDash([]);
+
+    // superposition
+    g.strokeStyle='#fbbf24'; g.lineWidth=2.5;
+    g.beginPath();
+    for(let i=0;i<=300;i++){
+      const xm=span*i/300;
+      const y1=state.A*Math.sin(omega()*state.t - kwave()*xm + state.phi0);
+      const y2=state.A*Math.sin(omega()*state.t - kwave()*xm + state.phi0 + state.dphi2);
+      const y=y1+y2;
+      const xx=xs(xm), yy=cy0 - (yh/2)*(y/state.A); // scaled /2 so 2A fits
+      if(i===0) g.moveTo(xx,yy); else g.lineTo(xx,yy);
+    }
+    g.stroke();
+
+    // cursor
+    if(state.cursorX!==null && state.cursorX>=0 && state.cursorX<=span){
+      const xm=state.cursorX;
+      const y=state.A*Math.sin(omega()*state.t - kwave()*xm + state.phi0);
+      g.strokeStyle='#fff'; g.setLineDash([2,3]);
+      g.beginPath(); g.moveTo(xs(xm),cy0-yh); g.lineTo(xs(xm),cy0+yh); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle='#fff'; g.beginPath(); g.arc(xs(xm),ys(y),6,0,Math.PI*2); g.fill();
+      g.fillStyle='#fbbf24'; g.font='bold 11px Share Tech Mono';
+      g.fillText('cursor Δx='+xm.toFixed(2)+'m', xs(xm)+6, cy0-yh+12);
+    }
+
+    // Legend
+    g.fillStyle='#60a5fa'; g.fillRect(R.x+R.w-170,R.y+24,12,12);
+    g.fillStyle='#e2e8f0'; g.font='11px Sarabun'; g.fillText('คลื่น 1', R.x+R.w-154, R.y+34);
+    g.fillStyle='#f472b6'; g.fillRect(R.x+R.w-170,R.y+42,12,12);
+    g.fillStyle='#e2e8f0'; g.fillText('คลื่น 2 (เลื่อน Δφ)', R.x+R.w-154, R.y+52);
+    g.fillStyle='#fbbf24'; g.fillRect(R.x+R.w-170,R.y+60,12,12);
+    g.fillStyle='#e2e8f0'; g.fillText('ผลรวม y₁+y₂', R.x+R.w-154, R.y+70);
+  }
+
+  // axis label (span info)
+  g.fillStyle='#64748b'; g.font='10px Share Tech Mono'; g.textAlign='right';
+  g.fillText('span = 3λ = '+(3*state.lam).toFixed(2)+' m', R.x+R.w-8, R.y+R.h-18);
+  g.textAlign='left';
+}
+
+/* ======================================================================
+   READOUTS
+====================================================================== */
+function updateReadout(){
+  document.getElementById('ro-lam').textContent=state.lam.toFixed(2)+' m';
+  document.getElementById('ro-f').textContent=state.f.toFixed(2)+' Hz';
+  document.getElementById('ro-v').textContent=vwave().toFixed(2)+' m/s';
+  document.getElementById('ro-T').textContent=(1/state.f).toFixed(2)+' s';
+  document.getElementById('ro-w').textContent=omega().toFixed(2)+' rad/s';
+  document.getElementById('ro-k').textContent=kwave().toFixed(2)+' rad/m';
+  const phi=((omega()*state.t+state.phi0)*180/Math.PI)%360;
+  document.getElementById('ro-phi').textContent=(((phi%360)+360)%360).toFixed(0)+'°';
+  document.getElementById('tClock').textContent='t = '+state.t.toFixed(2)+' s';
+
+  let dphiTxt='—';
+  if(state.exp==='C' && state.cursorX!==null){
+    const dphi=kwave()*state.cursorX;
+    const deg=((dphi*180/Math.PI)%360+360)%360;
+    dphiTxt = deg.toFixed(0)+'° ('+(dphi).toFixed(2)+' rad)';
+  }else if(state.exp==='B'){
+    dphiTxt='ดูค่าใต้ริบบิ้น';
+  }
+  document.getElementById('ro-dphi').textContent=dphiTxt;
+}
+
+/* ======================================================================
+   TABLES
+====================================================================== */
+const tableWrap=()=>document.getElementById('tableWrap');
+const TABLES={
+  A:{
+    title:'ฐาน A · Pulse vs Continuous',
+    headers:['แบบ','ระยะ (m)','เวลา (s)','v = d/t (m/s)','ถูก?'],
+    template:[
+      {name:'ดล (Pulse)'},
+      {name:'ต่อเนื่อง'}
+    ]
+  },
+  B:{
+    title:'ฐาน B · ริบบิ้น (สั่นสัมพันธ์กับ R)',
+    headers:['Δx','Δφ (°)','ความสัมพันธ์','ถูก?'],
+    template:[
+      {name:'λ/4'},{name:'λ/2'},{name:'3λ/4'},{name:'λ'}
+    ]
+  },
+  C:{
+    title:'ฐาน C · Δφ Calculator + Superposition',
+    headers:['Δx','Δφ (°)','Δφ (rad)','A_total / A','ถูก?'],
+    template:[
+      {name:'λ/4'},{name:'λ/2'},{name:'3λ/4'},{name:'λ'}
+    ]
+  }
+};
+
+function renderTable(){
+  if(state.exp==='A'){ renderTableA(); return; }
+  if(state.exp==='B'){ renderTableB(); return; }
+  const t=TABLES[state.exp];
+  document.getElementById('expTitle').textContent=t.title;
+  let html='<table class="rec"><tr>';
+  t.headers.forEach(h=>html+='<th>'+h+'</th>');
+  html+='</tr>';
+  t.template.forEach((r,i)=>{
+    html+='<tr data-row="'+i+'"><td><b>'+r.name+'</b></td>';
+    // cells depending on mode
+    if(state.exp==='A'){
+      if(state.mode==='manual'){
+        html+='<td><input type="number" step="0.01" data-col="d"></td>';
+        html+='<td><input type="number" step="0.01" data-col="t"></td>';
+        html+='<td><input type="number" step="0.01" data-col="v"></td>';
+      }else{
+        html+='<td class="auto" data-col="d">—</td>';
+        html+='<td class="auto" data-col="t">—</td>';
+        html+='<td class="auto" data-col="v">—</td>';
+      }
+      html+='<td data-col="chk">—</td>';
+    }else if(state.exp==='B'){
+      if(state.mode==='manual'){
+        html+='<td><input type="number" step="1" data-col="dphi"></td>';
+        html+='<td><input type="text" data-col="rel" placeholder="พร้อม/สวน/ช้า ..."></td>';
+      }else{
+        html+='<td class="auto" data-col="dphi">—</td>';
+        html+='<td class="auto" data-col="rel">—</td>';
+      }
+      html+='<td data-col="chk">—</td>';
+    }else if(state.exp==='C'){
+      if(state.mode==='manual'){
+        html+='<td><input type="number" step="1" data-col="dphi"></td>';
+        html+='<td><input type="number" step="0.01" data-col="dphir"></td>';
+        html+='<td><input type="number" step="0.01" data-col="Atot"></td>';
+      }else{
+        html+='<td class="auto" data-col="dphi">—</td>';
+        html+='<td class="auto" data-col="dphir">—</td>';
+        html+='<td class="auto" data-col="Atot">—</td>';
+      }
+      html+='<td data-col="chk">—</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</table>';
+  tableWrap().innerHTML=html;
+  if(state.mode==='auto') fillAutoTable();
+}
+
+/* ---- Exp A dual-table renderer ---- */
+function renderTableA(){
+  document.getElementById('expTitle').textContent='ฐาน A · Pulse vs Continuous';
+  const p=state.pulseRows, c=state.contRows;
+  const theoryV=vwave();
+  function avg(arr,key){
+    const xs=arr.map(r=>parseFloat(r[key])).filter(x=>!isNaN(x));
+    if(!xs.length) return null;
+    return xs.reduce((a,b)=>a+b,0)/xs.length;
+  }
+  const vP=avg(p,'v'), vC=avg(c,'v');
+  let diffHtml='—';
+  if(vP!==null && vC!==null){
+    const diff=Math.abs(vP-vC);
+    const pct=100*diff/((vP+vC)/2);
+    const col = pct<10 ? 'var(--accent3)' : (pct<25 ? 'var(--accent4)' : '#ef4444');
+    diffHtml='<b style="color:'+col+'">|v_ดล − v_ต่อเนื่อง| = '+diff.toFixed(3)+' m/s ('+pct.toFixed(1)+'%)</b>';
+  }
+  const thV='';
+
+  let html = '<div style="font-size:.78rem;color:var(--accent4);margin:4px 0 4px">🔴 ตารางคลื่นดล (Pulse)</div>';
+  html+='<table class="rec"><tr><th>#</th><th>d (m)</th><th>Δt (s)</th><th>v = d/Δt</th><th></th></tr>';
+  if(p.length===0) html+='<tr><td colspan="5" style="color:var(--muted);font-style:italic;padding:8px">— ยังไม่มีข้อมูล · กด 💾 บันทึกคลื่นดล —</td></tr>';
+  p.forEach((r,i)=>{
+    html+='<tr><td>'+(i+1)+'</td>';
+    if(state.mode==='manual'){
+      html+='<td><input type="number" step="0.001" value="'+(r.d||'')+'" data-pr="'+i+'" data-col="d"></td>';
+    }else{
+      html+='<td class="auto">'+(r.d!==null?parseFloat(r.d).toFixed(3):'—')+'</td>';
+    }
+    html+='<td class="auto">'+(r.t!==null?parseFloat(r.t).toFixed(3):'—')+'</td>';
+    html+='<td class="auto">'+(r.v!==null?parseFloat(r.v).toFixed(3):'—')+'</td>';
+    html+='<td><button class="btn btn-ghost" style="padding:2px 6px;font-size:.72rem" onclick="delPulseRow('+i+')">✕</button></td></tr>';
+  });
+  html+='</table>';
+
+  html+='<div style="font-size:.78rem;color:var(--accent2);margin:10px 0 4px">🔵 ตารางคลื่นต่อเนื่อง (Continuous)</div>';
+  html+='<table class="rec"><tr><th>#</th><th>λ (m)</th><th>f (Hz)</th><th>v = fλ</th><th></th></tr>';
+  if(c.length===0) html+='<tr><td colspan="5" style="color:var(--muted);font-style:italic;padding:8px">— ยังไม่มีข้อมูล · กด 💾 บันทึกต่อเนื่อง —</td></tr>';
+  c.forEach((r,i)=>{
+    html+='<tr><td>'+(i+1)+'</td>';
+    if(state.mode==='manual'){
+      html+='<td><input type="number" step="0.001" value="'+(r.lam||'')+'" data-cr="'+i+'" data-col="lam"></td>';
+    }else{
+      html+='<td class="auto">'+(r.lam!==null?parseFloat(r.lam).toFixed(3):'—')+'</td>';
+    }
+    html+='<td class="auto">'+(r.f!==null?parseFloat(r.f).toFixed(3):'—')+'</td>';
+    html+='<td class="auto">'+(r.v!==null?parseFloat(r.v).toFixed(3):'—')+'</td>';
+    html+='<td><button class="btn btn-ghost" style="padding:2px 6px;font-size:.72rem" onclick="delContRow('+i+')">✕</button></td></tr>';
+  });
+  html+='</table>';
+
+  html+='<div style="margin-top:10px;padding:8px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;font-size:.82rem">';
+  html+='<div style="color:var(--muted);margin-bottom:3px">📐 เปรียบเทียบความเร็ว:</div>';
+  html+='<div>'+diffHtml+'</div>';
+  html+='<div style="margin-top:3px">'+thV+'</div>';
+  html+='</div>';
+
+  tableWrap().innerHTML=html;
+
+  // Wire manual d/lam inputs → recompute v on blur
+  tableWrap().querySelectorAll('input[data-pr]').forEach(inp=>{
+    inp.addEventListener('blur', ()=>{
+      const i=+inp.dataset.pr;
+      const row=state.pulseRows[i]; if(!row) return;
+      row.d=parseFloat(inp.value)||null;
+      row.v = (row.d!==null && row.t) ? (row.d/row.t) : null;
+      renderTableA();
+    });
+  });
+  tableWrap().querySelectorAll('input[data-cr]').forEach(inp=>{
+    inp.addEventListener('blur', ()=>{
+      const i=+inp.dataset.cr;
+      const row=state.contRows[i]; if(!row) return;
+      row.lam=parseFloat(inp.value)||null;
+      row.v = (row.lam!==null && row.f) ? (row.lam*row.f) : null;
+      renderTableA();
+    });
+  });
+}
+
+function delPulseRow(i){ state.pulseRows.splice(i,1); renderTableA(); }
+function delContRow(i){ state.contRows.splice(i,1); renderTableA(); }
+
+/* ---- Exp B table: checkboxes + custom Δx row ---- */
+function renderTableB(){
+  document.getElementById('expTitle').textContent='ฐาน B · เฟสริบบิ้น (เลือกจุดที่จะแสดง)';
+  const defs=[
+    {k:'q1', label:'λ/4',  dxR:0.25, col:'#fbbf24', dphi:90,  rel:'ช้า 90° (quadrature)'},
+    {k:'q2', label:'λ/2',  dxR:0.50, col:'#60a5fa', dphi:180, rel:'สวนทาง 180°'},
+    {k:'q3', label:'3λ/4', dxR:0.75, col:'#a78bfa', dphi:270, rel:'ช้า 270°'},
+    {k:'q4', label:'λ',    dxR:1.00, col:'#34d399', dphi:360, rel:'พร้อมกัน (360°=0°)'},
+  ];
+  let html='<table class="rec"><tr><th>✓</th><th>Δx</th><th>Δφ (°)</th><th>ความสัมพันธ์กับ R</th></tr>';
+  defs.forEach(d=>{
+    const checked=state.selB[d.k]?'checked':'';
+    const dphiCell = state.mode==='auto'
+      ? '<td class="auto">'+d.dphi+'°</td>'
+      : '<td><input type="number" step="1" data-b-dphi="'+d.k+'" placeholder="?"></td>';
+    const relCell = state.mode==='auto'
+      ? '<td class="auto" style="font-size:.75rem">'+d.rel+'</td>'
+      : '<td><input type="text" data-b-rel="'+d.k+'" placeholder="พร้อม / สวน / ช้า..."></td>';
+    html+='<tr><td><input type="checkbox" data-bsel="'+d.k+'" '+checked
+         +' style="accent-color:'+d.col+';transform:scale(1.2)"></td>'
+         +'<td style="color:'+d.col+';font-weight:700">'+d.label+'</td>'
+         +dphiCell+relCell+'</tr>';
+  });
+
+  // Custom row
+  const fCh = state.selB.free?'checked':'';
+  const fR = state.freeDxRatio;
+  const fDphi = Math.round((fR*360)%360);
+  html+='<tr style="border-top:2px solid var(--accent)">'
+     +'<td><input type="checkbox" data-bsel="free" '+fCh+' style="accent-color:#fb923c;transform:scale(1.2)"></td>'
+     +'<td style="color:#fb923c;font-weight:700">อิสระ</td>'
+     +'<td colspan="2" style="padding:4px">'
+       +'<div style="display:flex;align-items:center;gap:6px">'
+         +'<input type="range" id="bFreeRange" min="0" max="2" step="0.01" value="'+fR+'" style="flex:1;accent-color:#fb923c">'
+         +'<span class="mono" style="color:#fb923c;font-size:.75rem;min-width:70px">'+fR.toFixed(2)+'λ</span>'
+       +'</div>'
+       +'<div style="color:var(--muted);font-size:.72rem;margin-top:2px">Δx = '+(fR*state.lam).toFixed(2)+' m · Δφ = '+fDphi+'°</div>'
+     +'</td></tr>';
+
+  html+='</table>';
+  html+='<div style="margin-top:8px;padding:6px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;font-size:.78rem;color:var(--muted)">';
+  html+='💡 ติ๊ก ✓ เพื่อแสดงจุดบนทั้ง 3 จอ (วงกลม + y-t + y-x) · ลาก R บนวงกลมหรือจุดบน y-t เพื่อเปลี่ยนเฟสได้';
+  html+='</div>';
+  tableWrap().innerHTML=html;
+
+  tableWrap().querySelectorAll('input[data-bsel]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      state.selB[inp.dataset.bsel] = inp.checked;
+      draw();
+    });
+  });
+  const slider=document.getElementById('bFreeRange');
+  if(slider){
+    slider.addEventListener('input', ()=>{
+      state.freeDxRatio=parseFloat(slider.value);
+      renderTableB(); draw();
+    });
+  }
+}
+
+/* ---- Exp A actions ---- */
+function releasePulse(){
+  if(!state.playing) togglePlay();
+  state.pulseT0 = state.t;
+  state.pulseState='idle';
+  state.pulseStartX=null; state.pulseStartT=null;
+  state.pulseStopX=null;  state.pulseStopT=null;
+  const btn=document.getElementById('aTimerBtn');
+  if(btn){ btn.textContent='⏱ เริ่มจับเวลา'; btn.style.background=''; }
+  draw();
+}
+function toggleTimerA(){
+  const btn=document.getElementById('aTimerBtn');
+  if(state.pulseT0===null){ alert('กด 🚀 ปล่อยคลื่น ก่อน'); return; }
+  if(!state.playing){ alert('กด ▶ เริ่ม ก่อน (เพื่อให้ pulse เคลื่อนที่)'); return; }
+  if(state.pulseState==='idle'){
+    const v=vwave();
+    const xp=v*(state.t - state.pulseT0);
+    state.pulseStartX=xp;
+    state.pulseStartT=state.t - state.pulseT0;
+    state.pulseState='timing';
+    if(btn){ btn.textContent='⏱ หยุด'; btn.style.background='#b71c1c'; }
+  }else if(state.pulseState==='timing'){
+    const v=vwave();
+    const xp=v*(state.t - state.pulseT0);
+    state.pulseStopX=xp;
+    state.pulseStopT=state.t - state.pulseT0;
+    state.pulseState='stopped';
+    if(btn){ btn.textContent='⏱ เริ่ม (ใหม่)'; btn.style.background=''; }
+  }else if(state.pulseState==='stopped'){
+    state.pulseStartX=null; state.pulseStartT=null;
+    state.pulseStopX=null;  state.pulseStopT=null;
+    state.pulseState='idle';
+    if(btn){ btn.textContent='⏱ เริ่มจับเวลา'; btn.style.background=''; }
+  }
+  draw();
+}
+function toggleContFreeze(){
+  const btn=document.getElementById('aContFreezeBtn');
+  if(!state.playing && state.contFreezeT===null){
+    alert('กด ▶ เริ่ม ก่อน (เพื่อให้คลื่นต่อเนื่องสั่น)'); return;
+  }
+  if(state.contFreezeT===null){
+    state.contFreezeT = state.t;
+    autoPlaceCalipers();
+    if(btn){ btn.textContent='▶ ปล่อยคลื่น'; btn.style.background='#1b5e20'; }
+  }else{
+    state.contFreezeT = null;
+    if(btn){ btn.textContent='⏸ หยุดคลื่น'; btn.style.background=''; }
+  }
+  draw();
+}
+function autoPlaceCalipers(){
+  // Place at first two crests in the visible span
+  // wave y(x) = A sin(ω tFreeze − k x) peak when ω tFreeze − k x = π/2 + 2πn
+  // → x = (ω tFreeze − π/2 − 2πn) / k
+  const tF=(state.contFreezeT!==null)?state.contFreezeT:state.t, om=omega(), k=kwave(), span=3*state.lam;
+  const xs=[];
+  for(let n=-5;n<10;n++){
+    const x=(om*tF - Math.PI/2 - 2*Math.PI*n)/k;
+    if(x>0.05 && x<span-0.05) xs.push(x);
+  }
+  xs.sort((a,b)=>a-b);
+  if(xs.length>=2){
+    state.calX1=xs[0]; state.calX2=xs[1];
+  }else{
+    state.calX1=state.lam*0.25; state.calX2=state.lam*1.25;
+  }
+}
+function savePulseRecord(){
+  if(state.pulseStartX===null || state.pulseStopX===null){
+    alert('⚠️ ยังไม่มีข้อมูล · กด ⏱ เริ่ม และ ⏱ หยุด ก่อน'); return;
+  }
+  const d = Math.abs(state.pulseStopX - state.pulseStartX);
+  const dt= Math.abs(state.pulseStopT - state.pulseStartT);
+  const rec = {
+    t: dt,
+    d: (state.mode==='auto') ? d : null,   // manual: student must type d
+    v: (state.mode==='auto') ? d/dt : null
+  };
+  state.pulseRows.push(rec);
+  renderTableA();
+  if(state.mode==='manual') alert('บันทึกเวลา Δt = '+dt.toFixed(3)+' s แล้ว · กรอก d จากสเกลในตาราง');
+}
+function saveContinuousRecord(){
+  if(state.contFreezeT===null){
+    alert('⚠️ กด ⏸ หยุดคลื่น (จอล่าง) ก่อน'); return;
+  }
+  if(state.calX1===null || state.calX2===null){
+    alert('⚠️ วางคาลิปเปอร์ให้ครบ 2 ตัวก่อน'); return;
+  }
+  const lamMeas = Math.abs(state.calX2 - state.calX1);
+  const rec = {
+    f: state.f,
+    lam: (state.mode==='auto') ? lamMeas : null,
+    v: (state.mode==='auto') ? lamMeas*state.f : null
+  };
+  state.contRows.push(rec);
+  renderTableA();
+  if(state.mode==='manual') alert('บันทึก f = '+state.f.toFixed(2)+' Hz · กรอก λ จากสเกล (ช่องว่างสีเขียวในตาราง)');
+}
+function resetExpA(){
+  state.pulseT0=null;
+  state.pulseState='idle';
+  state.pulseStartX=null; state.pulseStartT=null;
+  state.pulseStopX=null;  state.pulseStopT=null;
+  state.contFreezeT=null;
+  state.calX1=null; state.calX2=null;
+  if(state.playing) togglePlay();
+  state.t=0;
+  const b1=document.getElementById('aTimerBtn');
+  if(b1){ b1.textContent='⏱ เริ่มจับเวลา'; b1.style.background=''; }
+  const b2=document.getElementById('aContFreezeBtn');
+  if(b2){ b2.textContent='⏸ หยุดคลื่น'; b2.style.background=''; }
+  draw(); updateReadout();
+}
+
+function expectedAnswer(exp,rowIdx){
+  if(exp==='A'){
+    // expected: v = f*lam for both
+    const T=1/state.f;
+    const span=3*state.lam;
+    // Say d=span, t=span/v
+    const v=vwave();
+    const d=span;
+    const t=d/v;
+    return {d:d.toFixed(2), t:t.toFixed(2), v:v.toFixed(2)};
+  }
+  if(exp==='B'){
+    const fr=[0.25,0.5,0.75,1.0][rowIdx];
+    const deg=((fr*360)%360); // Δφ (lag) — for λ = 360 = 0
+    const rel={0:'ช้า 90° (quadrature)',1:'สวนทาง 180°',2:'ช้า 270°',3:'พร้อมกัน (0°)'}[rowIdx];
+    return {dphi:(fr===1.0?'0':(fr*360).toFixed(0)), rel:rel};
+  }
+  if(exp==='C'){
+    const fr=[0.25,0.5,0.75,1.0][rowIdx];
+    const dphi=fr*360; const dphir=fr*2*Math.PI;
+    // A_total when both waves with phase difference dphir: 2A cos(dphir/2), normalized /A
+    const Aratio=Math.abs(2*Math.cos(dphir/2));
+    return {dphi:(fr===1.0?'0':dphi.toFixed(0)), dphir:(fr===1.0?'0':dphir.toFixed(2)), Atot:Aratio.toFixed(2)};
+  }
+}
+
+function fillAutoTable(){
+  const rows=tableWrap().querySelectorAll('tr[data-row]');
+  rows.forEach((tr,i)=>{
+    const ans=expectedAnswer(state.exp,i);
+    Object.entries(ans).forEach(([k,v])=>{
+      const cell=tr.querySelector('[data-col="'+k+'"]');
+      if(cell) cell.textContent=v;
+    });
+  });
+}
+
+function snapRow(){
+  // Manual mode: check current row user is on? We'll snap based on experiment.
+  // Simpler: check ALL rows vs expected, mark ✓/✗
+  const rows=tableWrap().querySelectorAll('tr[data-row]');
+  let n=0, ok=0;
+  rows.forEach((tr,i)=>{
+    const ans=expectedAnswer(state.exp,i);
+    let allOk=true, hasAny=false;
+    Object.entries(ans).forEach(([k,v])=>{
+      const cell=tr.querySelector('[data-col="'+k+'"]');
+      if(!cell) return;
+      if(state.mode==='auto'){ hasAny=true; return; }
+      const inp=cell.querySelector('input'); if(!inp) return;
+      if(inp.value.trim()==='') { allOk=false; return; }
+      hasAny=true;
+      const uv=inp.value.trim().toLowerCase();
+      const ev=String(v).toLowerCase();
+      if(k==='rel'){
+        // fuzzy match: check keyword
+        const key=ev.includes('สวน')?'สวน':(ev.includes('พร้อม')?'พร้อม':(ev.includes('ช้า 90')?'90':(ev.includes('ช้า 270')?'270':'')));
+        if(!uv.includes(key)) allOk=false;
+      }else{
+        const n1=parseFloat(uv), n2=parseFloat(ev);
+        if(isNaN(n1)||isNaN(n2)) allOk=false;
+        else if(Math.abs(n1-n2) > Math.max(0.05*Math.abs(n2), 0.05)) allOk=false;
+      }
+    });
+    const chk=tr.querySelector('[data-col="chk"]');
+    if(state.mode==='auto'){
+      chk.innerHTML='<span style="color:var(--accent3)">🤖</span>';
+    }else if(hasAny){
+      n++;
+      if(allOk){ ok++; chk.innerHTML='<span style="color:var(--accent3)">✓</span>'; }
+      else chk.innerHTML='<span style="color:#ef4444">✗</span>';
+    }else{
+      chk.innerHTML='—';
+    }
+  });
+  // save snapshot
+  const snap={exp:state.exp, lam:state.lam, f:state.f, A:state.A, t:state.t, rows:[]};
+  rows.forEach((tr,i)=>{
+    const obj={name:tr.querySelector('td b').textContent};
+    tr.querySelectorAll('[data-col]').forEach(td=>{
+      const col=td.dataset.col;
+      const inp=td.querySelector('input');
+      obj[col]= inp ? inp.value : td.textContent;
+    });
+    snap.rows.push(obj);
+  });
+  state.rows.push(snap);
+  if(state.mode==='manual') alert('✅ บันทึก: ถูก '+ok+' / '+n+' แถว');
+}
+
+function clearTable(){
+  renderTable();
+  state.rows=[];
+}
+
+function exportCSV(){
+  const rows=tableWrap().querySelectorAll('tr[data-row]');
+  const headers=TABLES[state.exp].headers;
+  let csv='\ufeff'+headers.join(',')+'\n';
+  rows.forEach(tr=>{
+    const tds=tr.querySelectorAll('td');
+    const vals=[];
+    tds.forEach(td=>{
+      const inp=td.querySelector('input');
+      vals.push('"'+((inp?inp.value:td.textContent)||'').replace(/"/g,'""')+'"');
+    });
+    csv+=vals.join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Lab39_'+state.exp+'_'+Date.now()+'.csv';
+  a.click();
+}
+
+/* ======================================================================
+   EXP CONTROL PANEL
+====================================================================== */
+function renderExpCtrl(){
+  const el=document.getElementById('expCtrl');
+  const row=document.getElementById('row-dphi');
+  const hint=document.getElementById('hintBox');
+  row.style.display = (state.exp==='C') ? 'flex' : 'none';
+  // Hide λ and v readouts in Exp A (don't leak answer)
+  const hideRO = (state.exp==='A') ? 'none' : '';
+  const rl=document.getElementById('ro-lam-wrap'); if(rl) rl.style.display=hideRO;
+  const rv=document.getElementById('ro-v-wrap');   if(rv) rv.style.display=hideRO;
+  if(state.exp==='A'){
+    el.innerHTML=`
+      <div style="font-size:.82rem;color:var(--muted);line-height:1.55;margin-bottom:8px">
+        <b style="color:var(--accent4)">ฐาน A:</b> ตั้งค่า λ, f → ปล่อยคลื่น → กด <b>⏱ เริ่ม</b> / <b>⏱ หยุด</b> ขณะ pulse เคลื่อนที่ → ลากคาลิปเปอร์ที่จอล่างวัด λ
+      </div>
+      <div style="font-size:.74rem;color:#ef4444;margin:2px 0 4px">🔴 จอบน · คลื่นดล</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn btn-play" id="aReleaseBtn" onclick="releasePulse()" style="padding:6px">🚀 ปล่อยคลื่น</button>
+        <button class="btn btn-reset" id="aTimerBtn" onclick="toggleTimerA()" style="padding:6px">⏱ เริ่มจับเวลา</button>
+      </div>
+      <div style="margin-top:4px">
+        <button class="btn btn-act" onclick="savePulseRecord()" style="padding:6px;width:100%">💾 บันทึกคลื่นดล</button>
+      </div>
+      <div style="font-size:.74rem;color:#60a5fa;margin:10px 0 4px">🔵 จอล่าง · คลื่นต่อเนื่อง</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn btn-reset" id="aContFreezeBtn" onclick="toggleContFreeze()" style="padding:6px">⏸ หยุดคลื่น</button>
+        <button class="btn btn-act" onclick="saveContinuousRecord()" style="padding:6px">💾 บันทึกต่อเนื่อง</button>
+      </div>
+      <div style="margin-top:8px">
+        <button class="btn btn-ghost" onclick="resetExpA()" style="padding:5px 10px;width:100%">↺ รีเซ็ตฐาน A (เริ่มใหม่)</button>
+      </div>`;
+    hint.innerHTML='<b>💡 ฐาน A:</b> ▶ เริ่ม → คลื่นต่อเนื่องจะสั่นทันที · 🚀 ปล่อยดล → ⏱ เริ่ม/หยุด (ในกรอบคลื่นดล) · ⏸ หยุดคลื่นต่อเนื่อง → ลากปุ่ม ① ② ที่จอล่างวัด λ · 💾 บันทึก';
+  }else if(state.exp==='B'){
+    el.innerHTML='<div style="font-size:.82rem;color:var(--muted);line-height:1.55"><b style="color:var(--accent4)">ฐาน B:</b> ติ๊ก ✓ จุดในตารางเพื่อแสดงบน 3 จอ · ลาก <span style="color:#ef4444">R</span> บนวงกลม/กราฟ y-t เพื่อเปลี่ยนเฟส · y-x: คลื่นเคลื่อนขวา→ซ้าย จุดเฟสสไลด์ตามคลื่น</div>';
+    hint.innerHTML='<b>💡 ฐาน B:</b> วงกลม: R หมุนตามเวลา (ลากได้) · y-t: จุดสั่นของแต่ละ Δx · y-x: จุดยึดเฟสคงที่ เคลื่อนที่พร้อมคลื่น · แถวอิสระ: ปรับ slider Δx ใดๆ';
+  }else{
+    el.innerHTML='<div style="font-size:.82rem;color:var(--muted);line-height:1.55"><b style="color:var(--accent4)">ฐาน C:</b> <b>คลิกบน canvas ในแถบ y-x</b> เพื่อวาง cursor · อ่าน Δx และ Δφ · ลอง slider "Δφ เฟสคลื่น 2" ที่ 0°/90°/180°/360° ดูการซ้อนคลื่น</div>';
+    hint.innerHTML='<b>💡 ฐาน C:</b> ตั้ง Δφ = 180° → คลื่นผลรวม (เหลือง) เป็นเส้นตรงที่ y=0 · destructive interference · นี่คือหลักการ noise-canceling!';
+  }
+  renderTable();
+}
+
+/* ======================================================================
+   CANVAS INTERACTION
+====================================================================== */
+function getCanvasPoint(e){
+  const c=cv();
+  const rect=c.getBoundingClientRect();
+  const scaleX=c.width/rect.width, scaleY=c.height/rect.height;
+  const cx=(e.clientX ?? (e.touches&&e.touches[0].clientX));
+  const cy=(e.clientY ?? (e.touches&&e.touches[0].clientY));
+  return { px:(cx-rect.left)*scaleX, py:(cy-rect.top)*scaleY };
+}
+function onCanvasClick(e){
+  if(state.exp!=='C') return;
+  const {px,py}=getCanvasPoint(e);
+  const L=layout();
+  if(py < L.yx.y) return;
+  const span=3*state.lam;
+  const cx0=L.yx.x+30, xw=L.yx.w-45;
+  const xm = (px-cx0)/xw * span;
+  if(xm<0 || xm>span) return;
+  state.cursorX = xm;
+  updateReadout();
+  draw();
+}
+
+/* ---- Exp A caliper dragging (on continuous panel) ---- */
+function expA_panelInfo(){
+  const W=cv().width, H=cv().height;
+  const botR={x:10,y:H/2+5,w:W-20,h:H/2-15};
+  return {botR, S:waveXScale(botR)};
+}
+function onCanvasMouseDown(e){
+  if(state.exp==='B'){ onMouseDownB(e); return; }
+  if(state.exp!=='A') return;
+  if(state.contFreezeT===null) return;
+  const {px,py}=getCanvasPoint(e);
+  const {botR,S}=expA_panelInfo();
+  if(py < botR.y || py > botR.y+botR.h) return;
+  // hit-test which caliper
+  const hit = (xm)=> xm!==null && Math.abs(S.xs(xm)-px) < 14;
+  if(hit(state.calX1)) state.draggingCal=1;
+  else if(hit(state.calX2)) state.draggingCal=2;
+  else{
+    // place caliper closest to click
+    const xm=(px-S.cx0)/S.xw * S.span;
+    if(xm<0 || xm>S.span) return;
+    if(state.calX1===null) state.calX1=xm;
+    else if(state.calX2===null) state.calX2=xm;
+    else{
+      // move nearest
+      const d1=Math.abs(state.calX1-xm), d2=Math.abs(state.calX2-xm);
+      if(d1<d2){ state.calX1=xm; state.draggingCal=1; }
+      else{ state.calX2=xm; state.draggingCal=2; }
+    }
+    draw();
+  }
+}
+function onCanvasMouseMove(e){
+  if(state.exp==='B'){ onMouseMoveB(e); return; }
+  if(state.exp!=='A' || !state.draggingCal) return;
+  const {px,py}=getCanvasPoint(e);
+  const {botR,S}=expA_panelInfo();
+  let xm=(px-S.cx0)/S.xw * S.span;
+  xm=Math.max(0, Math.min(S.span, xm));
+  if(state.draggingCal===1) state.calX1=xm;
+  else state.calX2=xm;
+  draw();
+  e.preventDefault();
+}
+function onCanvasMouseUp(){
+  state.draggingCal=null;
+  state.draggingPhasor=false;
+  state.draggingYT=false;
+  state.dragTarget=null;
+}
+
+/* ---- Exp B: drag R on phasor, free on phasor, R on static y-x ---- */
+function onMouseDownB(e){
+  const {px,py}=getCanvasPoint(e);
+  const P=expBRegions.P, S=expBRegions.S;
+  if(!P || !S) return;
+
+  // Phasor hit-test
+  const cx=P.x+P.w/2, cy=P.y+P.h/2+10, rad=Math.min(P.w-40, P.h-50)*0.42;
+  if(px>P.x && px<P.x+P.w && py>P.y && py<P.y+P.h){
+    // Free ball hit-test (if selected) — fixed at angle 2π·freeDxRatio
+    if(state.selB.free){
+      const angF = 2*Math.PI*state.freeDxRatio;
+      const fx=cx+rad*Math.cos(angF), fy=cy-rad*Math.sin(angF);
+      if(Math.hypot(px-fx,py-fy) < 18){ state.dragTarget='freeCircle'; return; }
+    }
+    // R on circle
+    const Rx=cx+rad*Math.cos(state.phi0), Ry=cy-rad*Math.sin(state.phi0);
+    if(Math.hypot(px-Rx,py-Ry) < 22 || (Math.hypot(px-cx,py-cy) < rad+10)){
+      state.dragTarget='Rcircle';
+      const ang=Math.atan2(cy-py, px-cx);
+      setPhi0(ang);
+      draw(); updateReadout(); renderTableB();
+      return;
+    }
+  }
+
+  // Static y-x hit-test
+  const cx0=S.x+30, cy0=S.y+S.h/2+8, xw=S.w-45, yh=(S.h-40)/2;
+  const span=2*state.lam;
+  if(px>S.x && px<S.x+S.w && py>S.y && py<S.y+S.h && px>cx0){
+    const xm = Math.max(0, Math.min(span, (px-cx0)/xw*span));
+    const xRnew = xm % state.lam;
+    setPhi0(kwave()*xRnew);
+    state.dragTarget='Rstatic';
+    draw(); updateReadout(); renderTableB();
+    return;
+  }
+}
+function onMouseMoveB(e){
+  if(!state.dragTarget) return;
+  const {px,py}=getCanvasPoint(e);
+  const P=expBRegions.P, S=expBRegions.S;
+  if(state.dragTarget==='Rcircle'){
+    const cx=P.x+P.w/2, cy=P.y+P.h/2+10;
+    const ang=Math.atan2(cy-py, px-cx);
+    setPhi0(ang);
+    draw(); updateReadout(); renderTableB();
+    e.preventDefault();
+  }else if(state.dragTarget==='freeCircle'){
+    const cx=P.x+P.w/2, cy=P.y+P.h/2+10;
+    const angFree=Math.atan2(cy-py, px-cx);
+    // Free dot fixed at angle 2π·freeDxRatio → freeDxRatio = angFree/(2π)
+    let r = angFree / (2*Math.PI);
+    r = ((r%1)+1)%1; // wrap to [0,1)
+    state.freeDxRatio = r;
+    draw(); updateReadout(); renderTableB();
+    e.preventDefault();
+  }else if(state.dragTarget==='Rstatic'){
+    const cx0=S.x+30, xw=S.w-45, span=2*state.lam;
+    const xm = Math.max(0, Math.min(span, (px-cx0)/xw*span));
+    const xRnew = xm % state.lam;
+    setPhi0(kwave()*xRnew);
+    draw(); updateReadout(); renderTableB();
+    e.preventDefault();
+  }
+}
+function setPhi0(target){
+  let delta = target - state.phi0;
+  delta = ((delta + Math.PI) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) - Math.PI;
+  state.phi0 += delta;
+}
+
+/* ======================================================================
+   THEORY VISUALS
+====================================================================== */
+let theoryAnimRunning=false;
+function drawTheoryVisuals(){
+  if(theoryAnimRunning) return;
+  theoryAnimRunning=true;
+  let tt=0, last=null;
+  function step(ts){
+    if(!last) last=ts;
+    const dt=Math.min((ts-last)/1000,0.05); last=ts;
+    tt+=dt;
+    drawVizCircle(tt);
+    drawVizPhase(tt);
+    drawVizSup(tt);
+    if(document.getElementById('tab-theory').classList.contains('active')){
+      requestAnimationFrame(step);
+    }else{
+      theoryAnimRunning=false;
+    }
+  }
+  requestAnimationFrame(step);
+}
+function fitCanvas(id){
+  const c=document.getElementById(id); if(!c) return null;
+  const r=c.getBoundingClientRect();
+  c.width=r.width; c.height=r.height;
+  return c.getContext('2d');
+}
+function drawVizCircle(t){
+  const g=fitCanvas('vizCircle'); if(!g) return;
+  const W=g.canvas.width,H=g.canvas.height;
+  g.fillStyle='#050910'; g.fillRect(0,0,W,H);
+  // Circle left
+  const cx=W*0.15, cy=H/2, rad=Math.min(W*0.12,H*0.4);
+  g.strokeStyle='#334155'; g.setLineDash([4,4]);
+  g.beginPath(); g.arc(cx,cy,rad,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+  g.strokeStyle='#1e3a5f'; g.beginPath(); g.moveTo(cx-rad-5,cy); g.lineTo(cx+rad+5,cy); g.stroke();
+  g.beginPath(); g.moveTo(cx,cy-rad-5); g.lineTo(cx,cy+rad+5); g.stroke();
+  const om=1.5;
+  const px=cx+rad*Math.cos(om*t), py=cy-rad*Math.sin(om*t);
+  g.strokeStyle='#818cf8'; g.lineWidth=2;
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(px,py); g.stroke();
+  g.fillStyle='#818cf8'; g.beginPath(); g.arc(px,py,6,0,Math.PI*2); g.fill();
+  // projection
+  g.strokeStyle='#f472b6'; g.setLineDash([2,3]);
+  g.beginPath(); g.moveTo(px,py); g.lineTo(W*0.32,py); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#f472b6'; g.beginPath(); g.arc(W*0.32,py,5,0,Math.PI*2); g.fill();
+  // graph
+  const gx0=W*0.32, gy0=cy, gw=W-gx0-20;
+  g.strokeStyle='#1e3a5f'; g.beginPath(); g.moveTo(gx0,gy0-rad-5); g.lineTo(gx0,gy0+rad+5); g.stroke();
+  g.beginPath(); g.moveTo(gx0,gy0); g.lineTo(gx0+gw,gy0); g.stroke();
+  g.strokeStyle='#34d399'; g.lineWidth=2; g.beginPath();
+  const tWin=4*Math.PI/om;
+  for(let i=0;i<=200;i++){
+    const tt2=(t-tWin)+tWin*i/200;
+    const yy=rad*Math.sin(om*tt2);
+    const xx=gx0+gw*i/200;
+    if(i===0) g.moveTo(xx,gy0-yy); else g.lineTo(xx,gy0-yy);
+  }
+  g.stroke();
+  g.fillStyle='#34d399'; g.beginPath(); g.arc(gx0+gw,gy0-rad*Math.sin(om*t),5,0,Math.PI*2); g.fill();
+  g.fillStyle='#94a3b8'; g.font='12px Sarabun';
+  g.fillText('วงกลมหมุน', cx-30, cy+rad+25);
+  g.fillText('ภาพฉายในแนว y', cx+rad+20, cy-rad-5);
+  g.fillText('กราฟ y–t', gx0+10, gy0-rad-10);
+}
+function drawVizPhase(t){
+  const g=fitCanvas('vizPhase'); if(!g) return;
+  const W=g.canvas.width,H=g.canvas.height;
+  g.fillStyle='#050910'; g.fillRect(0,0,W,H);
+  // small phasor on left
+  const cx=W*0.1, cy=H/2, rad=Math.min(W*0.07,H*0.3);
+  g.strokeStyle='#334155'; g.setLineDash([3,3]);
+  g.beginPath(); g.arc(cx,cy,rad,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+  // wave on right
+  const ax=W*0.22, aw=W-ax-15, ay=cy, yh=H*0.35;
+  g.strokeStyle='#1e3a5f';
+  g.beginPath(); g.moveTo(ax,ay); g.lineTo(ax+aw,ay); g.stroke();
+  const k=2*Math.PI/(aw*0.3), om=1.5;
+  g.strokeStyle='#60a5fa'; g.lineWidth=2;
+  g.beginPath();
+  for(let i=0;i<=300;i++){
+    const xm=aw*i/300;
+    const y=yh*0.7*Math.sin(om*t - k*xm);
+    if(i===0) g.moveTo(ax+xm,ay-y); else g.lineTo(ax+xm,ay-y);
+  }
+  g.stroke();
+  // ribbons
+  const fracs=[0.25,0.5,0.75,1.0];
+  const cols=['#fbbf24','#60a5fa','#a78bfa','#34d399'];
+  const labs=['λ/4 · 90°','λ/2 · 180°','3λ/4 · 270°','λ · 360°=0°'];
+  fracs.forEach((f,i)=>{
+    const xm=aw*0.3*f; // λ = aw*0.3
+    const y=yh*0.7*Math.sin(om*t - k*xm);
+    g.fillStyle=cols[i];
+    g.beginPath(); g.arc(ax+xm, ay-y, 6,0,Math.PI*2); g.fill();
+    g.fillStyle=cols[i]; g.font='11px Share Tech Mono'; g.textAlign='center';
+    g.fillText(labs[i], ax+xm, ay+yh+5);
+    // phasor representation
+    const ang=-k*xm;
+    const bx=cx+rad*Math.cos(ang+om*t), by=cy-rad*Math.sin(ang+om*t);
+    g.fillStyle=cols[i];
+    g.beginPath(); g.arc(bx,by,4,0,Math.PI*2); g.fill();
+  });
+  // R ball
+  g.fillStyle='#ef4444';
+  const yR=yh*0.7*Math.sin(om*t);
+  g.beginPath(); g.arc(ax, ay-yR, 7,0,Math.PI*2); g.fill();
+  g.fillStyle='#ef4444'; g.textAlign='center'; g.fillText('R', ax, ay+yh+5);
+  g.textAlign='left';
+}
+function drawVizSup(t){
+  const g=fitCanvas('vizSup'); if(!g) return;
+  const W=g.canvas.width,H=g.canvas.height;
+  g.fillStyle='#050910'; g.fillRect(0,0,W,H);
+  const ax=20, ay=H/2, aw=W-40, yh=H*0.35;
+  g.strokeStyle='#1e3a5f'; g.beginPath(); g.moveTo(ax,ay); g.lineTo(ax+aw,ay); g.stroke();
+  const k=2*Math.PI/(aw*0.35), om=1.2;
+  // Cycle Δφ through 0,90,180,270 deg
+  const cyc=(t*0.4)%4;
+  const dphi=[0, Math.PI/2, Math.PI, 3*Math.PI/2][Math.floor(cyc)];
+  const label=['Δφ=0°','Δφ=90°','Δφ=180°','Δφ=270°'][Math.floor(cyc)];
+  const Atot=(2*Math.abs(Math.cos(dphi/2))).toFixed(2);
+
+  g.strokeStyle='#60a5fa'; g.lineWidth=1.5; g.beginPath();
+  for(let i=0;i<=300;i++){const xm=aw*i/300; const y=yh*0.5*Math.sin(om*t-k*xm); if(i===0) g.moveTo(ax+xm,ay-y); else g.lineTo(ax+xm,ay-y);} g.stroke();
+  g.strokeStyle='#f472b6'; g.setLineDash([6,3]); g.beginPath();
+  for(let i=0;i<=300;i++){const xm=aw*i/300; const y=yh*0.5*Math.sin(om*t-k*xm+dphi); if(i===0) g.moveTo(ax+xm,ay-y); else g.lineTo(ax+xm,ay-y);} g.stroke();
+  g.setLineDash([]);
+  g.strokeStyle='#fbbf24'; g.lineWidth=2.5; g.beginPath();
+  for(let i=0;i<=300;i++){const xm=aw*i/300; const y1=yh*0.5*Math.sin(om*t-k*xm); const y2=yh*0.5*Math.sin(om*t-k*xm+dphi); if(i===0) g.moveTo(ax+xm,ay-(y1+y2)/2); else g.lineTo(ax+xm,ay-(y1+y2)/2);} g.stroke();
+
+  g.fillStyle='#fbbf24'; g.font='bold 14px Share Tech Mono'; g.textAlign='left';
+  g.fillText(label+'   A_total = '+Atot+'A', 20, 22);
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun';
+  g.fillText('สูตร: A_total = 2A |cos(Δφ/2)|', 20, H-10);
+}
+
+/* ======================================================================
+   INIT
+====================================================================== */
+window.addEventListener('DOMContentLoaded', ()=>{
+
+  // Experiment selector
+  document.querySelectorAll('#segExp button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#segExp button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      state.exp=b.dataset.exp;
+      state.cursorX=null;
+      document.getElementById('btnSnap').style.display = (state.exp==='A') ? 'none' : '';
+      document.getElementById('cvWrap').style.aspectRatio = (state.exp==='B') ? '16/11' : '16/10';
+      renderExpCtrl();
+      resizeCanvas();
+      draw(); updateReadout();
+    });
+  });
+  // Mode
+  document.querySelectorAll('#segMode button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.querySelectorAll('#segMode button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      state.mode=b.dataset.mode;
+      renderTable();
+    });
+  });
+
+  // Slider sync
+  const v2s={'vi-lam':'sl-lam','vi-f':'sl-f','vi-A':'sl-A','vi-sp':'sl-sp','vi-dphi':'sl-dphi'};
+  function applySlider(id, v){
+    if(id==='sl-lam') state.lam=v;
+    else if(id==='sl-f') state.f=v;
+    else if(id==='sl-A') state.A=v;
+    else if(id==='sl-sp') state.speed=v;
+    else if(id==='sl-dphi') state.dphi2=v*Math.PI/180;
+    draw(); updateReadout();
+  }
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=document.getElementById(si);
+    const inp=document.getElementById(vi);
+    if(!sl||!inp) return;
+    sl.addEventListener('input', ()=>{ inp.value=parseFloat(sl.value); applySlider(si, parseFloat(sl.value)); });
+    inp.addEventListener('blur', ()=>{
+      let v=Math.max(+sl.min,Math.min(+sl.max, parseFloat(inp.value)||0));
+      inp.value=v; sl.value=v; applySlider(si,v);
+    });
+  });
+
+  // Canvas click
+  cv().addEventListener('click', onCanvasClick);
+
+  // Snap
+  document.getElementById('btnSnap').addEventListener('click', snapRow);
+
+  // Caliper drag (Exp A)
+  cv().addEventListener('mousedown', onCanvasMouseDown);
+  window.addEventListener('mousemove', onCanvasMouseMove);
+  window.addEventListener('mouseup', onCanvasMouseUp);
+  cv().addEventListener('touchstart', onCanvasMouseDown, {passive:false});
+  window.addEventListener('touchmove', onCanvasMouseMove, {passive:false});
+  window.addEventListener('touchend', onCanvasMouseUp);
+
+  // Resize
+  window.addEventListener('resize', resizeCanvas);
+
+  document.getElementById('btnSnap').style.display = (state.exp==='A') ? 'none' : '';
+  renderExpCtrl();
+  // Taller canvas for Exp B (5 panels)
+  document.getElementById('cvWrap').style.aspectRatio = (state.exp==='B') ? '16/11' : '16/10';
+  resizeCanvas();
+  updateReadout();
+});
+</script>
+
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-39", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
