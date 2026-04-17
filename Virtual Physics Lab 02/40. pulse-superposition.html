@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 40 · Pulse Superposition — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#818cf8;   /* waves theme — purple */
+  --accent2:#fb923c;  /* pulse 1 — orange */
+  --accent3:#38bdf8;  /* pulse 2 — cyan */
+  --accent4:#facc15;  /* sum highlight */
+  --accent5:#34d399;  /* correct */
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.78rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ========== SIMULATION TAB ========== */
+.sim-wrap{display:grid;grid-template-columns:300px 1fr;gap:0;min-height:calc(100vh - 110px)}
+.controls{background:var(--panel);border-right:1px solid var(--border);padding:14px;overflow-y:auto;max-height:calc(100vh - 110px)}
+.stage{display:flex;flex-direction:column;gap:8px;padding:10px;min-width:0}
+
+.ctrl-group{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px}
+.ctrl-group h4{font-size:0.82rem;color:var(--accent);margin-bottom:8px;letter-spacing:.3px;text-transform:uppercase}
+.ctrl-group h4 .pulse-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sl-label{font-size:0.78rem;color:var(--muted);flex-shrink:0;min-width:32px}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:0}
+.sl-unit{font-size:0.72rem;color:var(--muted);min-width:24px;flex-shrink:0}
+.val-input{width:48px;padding:2px 4px;background:var(--panel);border:1.5px solid var(--accent);border-radius:5px;color:var(--accent5);font-weight:700;font-size:0.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;font-family:'Share Tech Mono',monospace}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent4);color:var(--text)}
+
+select.shape-sel{width:100%;padding:5px 8px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:0.85rem;cursor:pointer}
+select.shape-sel:focus{outline:none;border-color:var(--accent)}
+
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:0.82rem;transition:.15s}
+.btn-play{background:#1b5e20;color:#fff}
+.btn-play:hover{background:#2e7d32}
+.btn-play.playing{background:#b71c1c}
+.btn-reset{background:#0d47a1;color:#fff}
+.btn-reset:hover{background:#1565c0}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-accent{background:var(--accent);color:#0a0e1a}
+.btn-accent:hover{opacity:.85}
+.btn-warn{background:var(--accent2);color:#0a0e1a}
+.btn-warn:hover{opacity:.85}
+
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.btn-row .btn{flex:1;min-width:0}
+
+.preset-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.preset-row .btn{font-size:0.75rem;padding:6px 4px}
+
+.mode-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:6px}
+.mode-toggle button{flex:1;background:transparent;border:none;color:var(--muted);padding:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.78rem;font-weight:700;transition:.15s}
+.mode-toggle button.active{background:var(--accent);color:#0a0e1a}
+
+.canvas-wrap{position:relative;background:#06090f;border:1px solid var(--border);border-radius:10px;overflow:hidden;flex:1;min-height:420px}
+#simCanvas{display:block;width:100%;height:100%;cursor:crosshair}
+#simCanvas.drag-mode{cursor:grab}
+#simCanvas.dragging{cursor:grabbing}
+
+.canvas-overlay{position:absolute;top:8px;left:10px;background:rgba(15,23,42,.85);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.75rem;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.canvas-overlay strong{color:var(--accent4)}
+
+.scrubber-row{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.scrubber-row .sl-range{accent-color:var(--accent4)}
+.scrubber-row .quick-btns{display:flex;gap:4px}
+.scrubber-row .quick-btns button{padding:4px 8px;font-size:0.72rem;background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer;transition:.15s}
+.scrubber-row .quick-btns button:hover{border-color:var(--accent4);color:var(--accent4)}
+
+.readout-bar{display:flex;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex-wrap:wrap;font-size:0.8rem}
+.readout-bar .item{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.readout-bar .item .v{font-family:'Share Tech Mono',monospace;color:var(--accent4);font-weight:700}
+.readout-bar .item.p1 .v{color:var(--accent2)}
+.readout-bar .item.p2 .v{color:var(--accent3)}
+.readout-bar .item.sum .v{color:var(--text);background:var(--accent4);padding:1px 6px;border-radius:3px;color:#0a0e1a}
+
+/* Data table */
+.data-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px}
+.data-panel h4{font-size:0.85rem;color:var(--accent);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.data-panel table{width:100%;border-collapse:collapse;font-size:0.78rem}
+.data-panel th,.data-panel td{padding:5px 6px;text-align:center;border-bottom:1px solid var(--border)}
+.data-panel th{color:var(--muted);font-weight:600;background:var(--panel2)}
+.data-panel td.mono{font-family:'Share Tech Mono',monospace;color:var(--text)}
+.data-panel input.cell{width:60px;padding:2px 4px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;color:var(--accent5);font-family:'Share Tech Mono',monospace;font-size:0.78rem;text-align:center}
+.data-panel input.cell:focus{outline:none;border-color:var(--accent)}
+.data-panel .ok{color:var(--accent5);font-weight:700}
+.data-panel .bad{color:#f87171;font-weight:700}
+.data-panel .row-actions{display:flex;gap:4px;justify-content:center}
+.data-panel .row-actions button{background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:0.95rem;padding:0 3px;line-height:1}
+.data-panel .row-actions button:hover{color:#f87171}
+
+/* ========== METHOD TAB ========== */
+.method-wrap{max-width:900px;margin:0 auto;padding:20px}
+.method-wrap h2{color:var(--accent);font-size:1.1rem;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.method-card{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.method-card h3{color:var(--accent4);font-size:0.95rem;margin-bottom:8px}
+.method-card ol,.method-card ul{margin-left:20px;color:var(--text);line-height:1.7;font-size:0.88rem}
+.method-card .tip{background:#1a3320;border-left:3px solid var(--accent5);padding:8px 10px;margin-top:8px;border-radius:4px;font-size:0.82rem;color:var(--accent5)}
+.method-card .warn{background:#3a2a10;border-left:3px solid var(--accent2);padding:8px 10px;margin-top:8px;border-radius:4px;font-size:0.82rem;color:var(--accent2)}
+
+.method-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.85rem}
+.method-table th,.method-table td{padding:6px 10px;border:1px solid var(--border);text-align:center}
+.method-table th{background:var(--panel2);color:var(--accent)}
+
+/* ========== THEORY TAB ========== */
+.theory-wrap{max-width:980px;margin:0 auto;padding:20px;display:grid;gap:16px}
+.theory-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}
+.theory-card h2{color:var(--accent);font-size:1.05rem;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:5px}
+.theory-card p{color:var(--text);line-height:1.7;font-size:0.9rem;margin-bottom:8px}
+.theory-card .formula{background:#0f172a;border:1px solid var(--accent);border-radius:6px;padding:10px 14px;font-family:'Share Tech Mono',monospace;color:var(--accent4);text-align:center;font-size:1rem;margin:8px 0}
+.theory-card canvas{width:100%;height:260px;background:#06090f;border:1px solid var(--border);border-radius:8px;margin-top:8px}
+.theory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:8px}
+.theory-mini{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:0.85rem;color:var(--muted);line-height:1.6}
+.theory-mini strong{color:var(--accent4)}
+.misc-box{background:#3a1a1a;border-left:3px solid #f87171;border-radius:4px;padding:10px 12px;margin-top:8px;font-size:0.85rem;color:#fca5a5}
+.misc-box strong{color:#f87171}
+
+/* Responsive */
+@media (max-width:860px){
+  .sim-wrap{grid-template-columns:1fr}
+  .controls{max-height:none;border-right:none;border-bottom:1px solid var(--border)}
+  .canvas-wrap{min-height:340px}
+}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body>
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <span class="icon">🌊</span>
+  <div>
+    <h1>Lab 40 · การซ้อนทับของคลื่นดล (Pulse Superposition)</h1>
+    <p>คลื่นดล 2 ลูกสวนทาง · บวกเชิงพีชคณิต · ฝึกลากคลื่น + วัดผลรวม</p>
+  </div>
+  <span class="badge">KP Science · VPL02</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('method',this)">📋 วิธีการทดลอง</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<!-- ============ TAB 1: SIMULATION ============ -->
+<div id="tab-sim" class="tab-section active">
+<div class="sim-wrap">
+
+  <!-- LEFT: Controls -->
+  <aside class="controls">
+
+    <div class="ctrl-group">
+      <h4>โหมดทำงาน</h4>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="active" data-mode="manual">บันทึกเอง</button>
+        <button data-mode="auto">บันทึกอัตโนมัติ</button>
+      </div>
+      <div class="mode-toggle" id="motionToggle" style="margin-top:6px">
+        <button class="active" data-motion="play">▶ ปล่อยอัตโนมัติ</button>
+        <button data-motion="drag">✋ ลากเอง</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <h4><span class="pulse-dot" style="background:var(--accent2)"></span>คลื่นดล 1 (สีส้ม)</h4>
+      <div class="sl-row">
+        <span class="sl-label">รูปร่าง</span>
+        <select id="shape1" class="shape-sel">
+          <option value="triangle">สามเหลี่ยม</option>
+          <option value="square">สี่เหลี่ยม</option>
+          <option value="gauss" selected>Gaussian (โค้ง)</option>
+          <option value="semi">ครึ่งวงกลม</option>
+          <option value="saw">ฟันเลื่อย</option>
+          <option value="bipolar">บวก-ลบ (S)</option>
+        </select>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">A₁</span>
+        <input class="sl-range" type="range" id="sl-a1" min="-5" max="5" step="0.5" value="3">
+        <input class="val-input" type="number" id="vi-a1" min="-5" max="5" step="0.5" value="3">
+        <span class="sl-unit">cm</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">W₁</span>
+        <input class="sl-range" type="range" id="sl-w1" min="1" max="4" step="0.1" value="2">
+        <input class="val-input" type="number" id="vi-w1" min="1" max="4" step="0.1" value="2">
+        <span class="sl-unit">m</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">x₁</span>
+        <input class="sl-range" type="range" id="sl-x1" min="2" max="6" step="0.1" value="4">
+        <input class="val-input" type="number" id="vi-x1" min="2" max="6" step="0.1" value="4">
+        <span class="sl-unit">m</span>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <h4><span class="pulse-dot" style="background:var(--accent3)"></span>คลื่นดล 2 (สีฟ้า)</h4>
+      <div class="sl-row">
+        <span class="sl-label">รูปร่าง</span>
+        <select id="shape2" class="shape-sel">
+          <option value="triangle">สามเหลี่ยม</option>
+          <option value="square">สี่เหลี่ยม</option>
+          <option value="gauss" selected>Gaussian (โค้ง)</option>
+          <option value="semi">ครึ่งวงกลม</option>
+          <option value="saw">ฟันเลื่อย</option>
+          <option value="bipolar">บวก-ลบ (S)</option>
+        </select>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">A₂</span>
+        <input class="sl-range" type="range" id="sl-a2" min="-5" max="5" step="0.5" value="3">
+        <input class="val-input" type="number" id="vi-a2" min="-5" max="5" step="0.5" value="3">
+        <span class="sl-unit">cm</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">W₂</span>
+        <input class="sl-range" type="range" id="sl-w2" min="1" max="4" step="0.1" value="2">
+        <input class="val-input" type="number" id="vi-w2" min="1" max="4" step="0.1" value="2">
+        <span class="sl-unit">m</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">x₂</span>
+        <input class="sl-range" type="range" id="sl-x2" min="14" max="18" step="0.1" value="16">
+        <input class="val-input" type="number" id="vi-x2" min="14" max="18" step="0.1" value="16">
+        <span class="sl-unit">m</span>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <h4>การควบคุม</h4>
+      <div class="btn-row">
+        <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่ม</button>
+        <button class="btn btn-reset" onclick="resetSim()">⏮ Reset</button>
+      </div>
+      <div class="sl-row" style="margin-top:8px">
+        <span class="sl-label">ความเร็ว</span>
+        <input class="sl-range" type="range" id="sl-speed" min="0.25" max="2" step="0.05" value="1">
+        <span class="mono" id="speedTxt" style="color:var(--accent4);font-size:0.78rem;min-width:36px;text-align:right">1.00×</span>
+      </div>
+      <div class="sl-row" style="margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="onlySum"> แสดงเฉพาะคลื่นรวม
+        </label>
+      </div>
+      <div class="sl-row">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="showProbe" checked> เปิดหมุดวัด (Probe)
+        </label>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <h4>Preset สถานการณ์</h4>
+      <div class="preset-row">
+        <button class="btn btn-warn" onclick="loadPreset('crest-crest')">🟠 ยอด+ยอด</button>
+        <button class="btn btn-accent" onclick="loadPreset('crest-trough')">🔴 ยอด+ท้อง</button>
+        <button class="btn btn-ghost" onclick="loadPreset('different-A')">🟡 A ต่าง</button>
+        <button class="btn btn-ghost" onclick="loadPreset('mixed-shape')">🟣 รูปต่างกัน</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <h4>เครื่องมือ</h4>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="captureScreen()">📸 Screenshot</button>
+        <button class="btn btn-ghost" onclick="exportCSV()">📥 CSV</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT: Stage -->
+  <main class="stage">
+
+    <div class="canvas-wrap">
+      <canvas id="simCanvas"></canvas>
+      <div class="canvas-overlay" id="hint">
+        💡 <strong>โหมดปล่อยอัตโนมัติ:</strong> กด ▶ เริ่ม · v₁=+2 m/s, v₂=−2 m/s
+      </div>
+    </div>
+
+    <div class="scrubber-row">
+      <span style="color:var(--muted);font-size:0.8rem">⏱ t =</span>
+      <span class="mono" id="tTxt" style="color:var(--accent4);min-width:48px">0.00 s</span>
+      <input class="sl-range" type="range" id="sl-time" min="0" max="6" step="0.05" value="0">
+      <div class="quick-btns">
+        <button onclick="seekTime(0.5)">ก่อนพบ</button>
+        <button onclick="seekToMeet()">ขณะพบ</button>
+        <button onclick="seekTime(meetTime+1)">หลังพ้น</button>
+      </div>
+    </div>
+
+    <div class="readout-bar">
+      <div class="item p1">y₁ = <span class="v" id="y1Txt">—</span> cm</div>
+      <div class="item p2">y₂ = <span class="v" id="y2Txt">—</span> cm</div>
+      <div class="item sum">y₁+y₂ = <span class="v" id="ySumTxt">—</span> cm</div>
+      <div class="item">หมุด x = <span class="v" id="probeTxt">—</span> m</div>
+    </div>
+
+    <div class="data-panel">
+      <h4>
+        <span>📊 ตารางบันทึกผล <span id="modeBadge" style="color:var(--accent4);font-size:0.78rem">(โหมดบันทึกเอง)</span></span>
+        <span>
+          <button class="btn btn-accent" style="font-size:0.75rem;padding:4px 10px" onclick="recordRow()">💾 บันทึกแถวปัจจุบัน</button>
+          <button class="btn btn-ghost" style="font-size:0.75rem;padding:4px 10px" onclick="clearTable()">🗑 ล้าง</button>
+        </span>
+      </h4>
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>#</th><th>t (s)</th><th>x (m)</th>
+            <th style="color:var(--accent2)">y₁ (cm)</th>
+            <th style="color:var(--accent3)">y₂ (cm)</th>
+            <th style="color:var(--accent4)">y รวม (วัด)</th>
+            <th>%ผิด</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="dataBody"><tr><td colspan="8" style="color:var(--muted);padding:14px">— ยังไม่มีข้อมูล กดบันทึกแถวเพื่อเริ่ม —</td></tr></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<!-- ============ TAB 2: METHOD ============ -->
+<div id="tab-method" class="tab-section">
+<div class="method-wrap">
+  <h2>📋 วิธีการทดลอง · บันทึกผล</h2>
+
+  <div class="method-card">
+    <h3>🎯 จุดประสงค์</h3>
+    <ul>
+      <li>ยืนยันหลัก <strong>การซ้อนทับเชิงพีชคณิต</strong>: y(x,t) = y₁(x,t) + y₂(x,t)</li>
+      <li>สังเกตว่า <strong>หลังพ้นกัน คลื่นแต่ละลูกคืนรูปเดิม</strong> (ไม่ "กิน" กัน)</li>
+      <li>ฝึกใช้หมุดวัด (probe) อ่านค่า y ณ ตำแหน่ง/เวลาที่กำหนด</li>
+    </ul>
+  </div>
+
+  <div class="method-card">
+    <h3>🛠 อุปกรณ์ (เสมือน)</h3>
+    <ul>
+      <li>เส้นเชือกยาว 20 m · มาตราส่วน 1 m × 1 cm บนแกน x และ y</li>
+      <li>คลื่นดล 2 ลูก เลือกรูปร่างได้ 6 แบบ (สามเหลี่ยม / สี่เหลี่ยม / Gaussian / ครึ่งวงกลม / ฟันเลื่อย / S)</li>
+      <li>หมุดวัด (probe) คลิกบนเชือกเพื่อปัก</li>
+      <li>แถบเวลา (timeline) เลื่อนกลับ-ไปหน้าได้ 0–6 s</li>
+    </ul>
+  </div>
+
+  <div class="method-card">
+    <h3>1️⃣ การทดลองที่ 1 — ยอด + ยอด (เสริมเต็มที่)</h3>
+    <ol>
+      <li>กดปุ่ม preset <strong>🟠 ยอด+ยอด</strong> (A₁ = A₂ = +3 cm รูปร่าง Gaussian)</li>
+      <li>เลือกโหมด <strong>▶ ปล่อยอัตโนมัติ</strong> · กด ▶ เริ่ม</li>
+      <li>กด <strong>"ขณะพบ"</strong> ที่แถบเวลา · คลิกกลางเชือก (x≈10 m) เพื่อปักหมุด</li>
+      <li>อ่านค่า y₁, y₂, y รวม จากแถบล่าง · กรอกใน <strong>ตารางบันทึก</strong> (โหมดบันทึกเอง)</li>
+      <li>เลื่อนเวลาไป "หลังพ้น" — สังเกตว่าคลื่นกลับเป็นรูปเดิม</li>
+    </ol>
+    <div class="tip">💡 <strong>คาด:</strong> y₁+y₂ = +6 cm (ยอดสูงเป็น 2 เท่า ขณะพบ)</div>
+  </div>
+
+  <div class="method-card">
+    <h3>2️⃣ การทดลองที่ 2 — ยอด + ท้อง (หักล้างชั่วขณะ)</h3>
+    <ol>
+      <li>กด preset <strong>🔴 ยอด+ท้อง</strong> (A₁ = +3, A₂ = −3 cm)</li>
+      <li>เปิดเช็ค <strong>"แสดงเฉพาะคลื่นรวม"</strong> · ปล่อยให้สวนกัน</li>
+      <li>กด "ขณะพบ" · ปักหมุด x ≈ 10 m · บันทึกผลรวม</li>
+      <li>ปิดเช็ค → ดูคลื่นย่อย ทั้ง 2 ลูกยังอยู่ครบ</li>
+    </ol>
+    <div class="warn">⚠️ <strong>ระวัง:</strong> ขณะพบกัน เส้นรวมแบนเป็น 0 — ห้ามคิดว่าคลื่นหายไป! แต่ละลูกยังเดินทางต่อ (เห็นได้เมื่อปิด "แสดงเฉพาะคลื่นรวม")</div>
+  </div>
+
+  <div class="method-card">
+    <h3>3️⃣ การทดลองที่ 3 — A ต่างกัน</h3>
+    <ol>
+      <li>กด preset <strong>🟡 A ต่าง</strong> (A₁ = +5, A₂ = +2 cm)</li>
+      <li>กด "ขณะพบ" · ปักหมุด · บันทึกค่า</li>
+      <li>เปรียบเทียบกับ y₁+y₂ ทาง ทษ. = 5+2 = 7 cm</li>
+    </ol>
+    <div class="tip">💡 ลูกใหญ่ไม่ "กิน" ลูกเล็ก — ทั้งสองยังคงทรงตัวหลังพ้นกัน</div>
+  </div>
+
+  <div class="method-card">
+    <h3>4️⃣ การทดลองที่ 4 — รูปร่างต่างกัน + ลากเอง (โหมด ✋)</h3>
+    <ol>
+      <li>กด preset <strong>🟣 รูปต่างกัน</strong> (เช่น สามเหลี่ยม + สี่เหลี่ยม)</li>
+      <li>เปลี่ยนเป็นโหมด <strong>✋ ลากเอง</strong></li>
+      <li>เอาเมาส์จับคลื่นลูก 1 (สีส้ม) ลากไปทางขวา · จับลูก 2 ลากไปทางซ้าย</li>
+      <li>เมื่อ 2 ลูกเริ่มแตะกัน — สังเกตเส้นรวม (สีดำหนา) เกิดการบวก/หักล้างทันที</li>
+      <li>ลากให้ซ้อนกันสนิท แล้วลากแยกออก — รูปคลื่นแต่ละลูกยังอยู่ครบ</li>
+    </ol>
+    <div class="tip">💡 โหมดลากใช้ฝึกความเข้าใจว่า การซ้อนทับเป็น <strong>"การบวกค่า y ณ x เดียวกัน"</strong> ไม่ใช่ปฏิกิริยาแบบชนกัน</div>
+  </div>
+
+  <div class="method-card">
+    <h3>📝 รูปแบบการบันทึกผล</h3>
+    <p style="font-size:0.88rem;color:var(--text);line-height:1.6;margin-bottom:8px">
+      <strong>โหมดบันทึกเอง (default):</strong> นักเรียนอ่านค่าจากเส้นกราฟด้วยสายตาแล้วกรอกในช่อง "y รวม (วัด)" เอง · ระบบจะคำนวณ "y₁+y₂ ทาง ทษ." และ %ผิด ให้เปรียบเทียบ
+    </p>
+    <p style="font-size:0.88rem;color:var(--text);line-height:1.6;margin-bottom:8px">
+      <strong>โหมดบันทึกอัตโนมัติ:</strong> ระบบเติมค่าทั้งหมดให้อัตโนมัติ (ใช้สำหรับเก็บข้อมูลเร็ว/หลายจุด)
+    </p>
+    <table class="method-table">
+      <thead><tr><th>การทดลอง</th><th>คาดหวัง y รวม (cm)</th><th>Misconception ที่ชน</th></tr></thead>
+      <tbody>
+        <tr><td>1. ยอด+ยอด</td><td>+6.0</td><td>M4.1 (รูปคืน)</td></tr>
+        <tr><td>2. ยอด+ท้อง</td><td>0.0</td><td>M4.2 (หักล้างถาวร)</td></tr>
+        <tr><td>3. A ต่าง</td><td>+7.0</td><td>M4.3 (ลูกใหญ่กินลูกเล็ก)</td></tr>
+        <tr><td>4. รูปต่าง</td><td>= y₁(x)+y₂(x)</td><td>M4.4 (รูปต่างบวกไม่ได้)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="method-card">
+    <h3>✅ คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>เมื่อยอด 2 ลูกพบกัน เส้นรวมสูงเป็นกี่เท่าของ A เดิม? เพราะอะไร?</li>
+      <li>ขณะที่ยอด+ท้องหักล้างเป็น 0 พลังงานคลื่นหายไปไหน? (ตอบ: ยังเก็บอยู่ในความเร็วของอนุภาค)</li>
+      <li>ถ้า A₁ ≠ A₂ ขณะพบกัน ผลรวมจะเป็นเท่าไร? เปรียบเทียบกับ y₁+y₂ ทาง ทษ.</li>
+      <li>หลังพ้นกัน รูปคลื่นแต่ละลูก "เปลี่ยน" จากเดิมหรือไม่? พิสูจน์อย่างไร?</li>
+    </ol>
+  </div>
+</div>
+</div>
+
+<!-- ============ TAB 3: THEORY ============ -->
+<div id="tab-theory" class="tab-section">
+<div class="theory-wrap">
+
+  <div class="theory-card">
+    <h2>1. หลักการซ้อนทับ (Superposition Principle)</h2>
+    <p>เมื่อคลื่นสองขบวน (หรือมากกว่า) ผ่านบริเวณเดียวกันในเวลาเดียวกัน <strong>การกระจัด (y) ของอนุภาคในตัวกลาง ณ จุดและเวลาใด ๆ มีค่าเท่ากับผลบวกเชิงพีชคณิต</strong> ของการกระจัดที่เกิดจากคลื่นแต่ละขบวนอยู่อย่างอิสระ</p>
+    <div class="formula">y(x, t) = y₁(x, t) + y₂(x, t)</div>
+    <canvas id="th1"></canvas>
+    <p style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:6px">ภาพจำลอง: คลื่นรวม (สีเหลือง) = ค่า y ของส้ม + ค่า y ของฟ้า ณ x เดียวกัน</p>
+  </div>
+
+  <div class="theory-card">
+    <h2>2. กรณีที่พบบ่อย</h2>
+    <div class="theory-grid">
+      <div class="theory-mini">
+        <strong>🟠 เสริมเต็มที่ (Constructive)</strong><br>
+        ยอด + ยอด หรือ ท้อง + ท้อง · A_รวม = A₁ + A₂ (ขนาด)<br>
+        เช่น A = +3 cm พบ +3 cm → +6 cm
+      </div>
+      <div class="theory-mini">
+        <strong>🔴 หักล้าง (Destructive)</strong><br>
+        ยอด + ท้อง · ถ้า A₁ = |A₂| → A_รวม = 0 ชั่วขณะ<br>
+        คลื่นไม่หาย — ผ่านกันแล้วคืนรูปเดิม
+      </div>
+      <div class="theory-mini">
+        <strong>🟡 ขนาดต่างกัน</strong><br>
+        |A₁| ≠ |A₂| · ผลรวม = ผลบวกพีชคณิตเสมอ<br>
+        เช่น +5 + 2 = +7 cm; +5 + (−2) = +3 cm
+      </div>
+    </div>
+  </div>
+
+  <div class="theory-card">
+    <h2>3. คุณสมบัติสำคัญ — คลื่นไม่ "ชน" กัน</h2>
+    <p>หลังจากคลื่นดล 2 ลูกผ่านพ้นกัน <strong>แต่ละลูกยังคงรูปร่าง · ขนาด · ความเร็ว · ทิศทางเดิม</strong> ไม่มีการสูญเสียพลังงานหรือเปลี่ยนรูปจากการพบกัน นี่ต่างจากการชนกันของวัตถุ (อนุภาค)</p>
+    <canvas id="th2"></canvas>
+    <p style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:6px">ก่อนพบ → ขณะพบ (ซ้อนทับ) → หลังพ้น (รูปเดิม)</p>
+  </div>
+
+  <div class="theory-card">
+    <h2>4. ความสัมพันธ์กับเฟส · y-t · y-x (เชื่อม Lab 39)</h2>
+    <p>คลื่นดล (pulse) เป็นการรบกวนสั้น ๆ ที่<strong>ไม่ซ้ำเป็นคาบ</strong> จึงไม่ได้กำหนดเฟสแบบมุมในวงกลม แต่หลักการซ้อนทับยังใช้ได้เหมือนกันกับ <strong>คลื่นต่อเนื่องที่มีเฟส</strong></p>
+    <div class="theory-grid">
+      <div class="theory-mini">
+        <strong>คลื่นดล (Lab 40 นี้)</strong><br>
+        y(x,t) = f(x − vt) + g(x + vt)<br>
+        ไม่มีคาบ, ไม่มีเฟส — บวกตามรูปร่างโดยตรง
+      </div>
+      <div class="theory-mini">
+        <strong>คลื่นต่อเนื่อง (Lab 39)</strong><br>
+        y₁ = A sin(ωt − kx), y₂ = A sin(ωt − kx + Δφ)<br>
+        A_รวม = 2A · |cos(Δφ/2)|<br>
+        Δφ=0 → เสริม · Δφ=π → หักล้าง
+      </div>
+    </div>
+    <canvas id="th3"></canvas>
+    <p style="font-size:0.82rem;color:var(--muted);text-align:center;margin-top:6px">วงกลมเฟสและการฉายเป็นกราฟ y-t · ใช้กับคลื่นต่อเนื่องเท่านั้น (สำหรับคลื่นดล ใช้รูปร่างโดยตรง)</p>
+  </div>
+
+  <div class="theory-card">
+    <h2>5. ความเข้าใจคลาดเคลื่อน (Misconceptions)</h2>
+    <div class="misc-box">
+      <strong>M4.1</strong> "หลังคลื่นพบกัน รูปจะเปลี่ยนถาวร / ผสมกัน" → ไม่จริง คลื่นแต่ละลูกคืนรูปเดิม 100%
+    </div>
+    <div class="misc-box">
+      <strong>M4.2</strong> "ยอด+ท้อง = คลื่นหายไปจริง" → ไม่จริง · เป็นการหักล้าง <strong>ชั่วขณะ</strong> เท่านั้น พลังงานยังเก็บในความเร็วของอนุภาค
+    </div>
+    <div class="misc-box">
+      <strong>M4.3</strong> "คลื่นใหญ่จะกลืนคลื่นเล็ก" → ไม่จริง · ทั้งสองผ่านกันได้โดยไม่รบกวน
+    </div>
+    <div class="misc-box">
+      <strong>M4.4</strong> "คลื่นรูปต่างกันบวกกันไม่ได้" → ไม่จริง · บวกที่จุด x เดียวกันแบบพีชคณิตเสมอ
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ===================== STATE ===================== */
+const STATE = {
+  // pulse 1
+  s1:'gauss', a1:3, w1:2, x1:4, v1:2,
+  // pulse 2
+  s2:'gauss', a2:3, w2:2, x2:16, v2:-2,
+  // motion
+  isPlaying:false, t:0, animId:null, lastTs:null, speed:1,
+  motionMode:'play',     // 'play' | 'drag'
+  recordMode:'manual',   // 'manual' | 'auto'
+  // drag positions (override x1,x2 in drag mode)
+  dragX1:null, dragX2:null,
+  draggingPulse:null,    // 1 | 2 | null
+  dragOffset:0,
+  // probe
+  probeX:10, probeOn:true,
+  // canvas mapping
+  X_MIN:0, X_MAX:20, Y_MIN:-10, Y_MAX:10,
+  meetTime:3
+};
+
+const cv = document.getElementById('simCanvas');
+const ctx = cv.getContext('2d');
+
+/* ===================== PULSE SHAPES =====================
+   Each shape returns y (cm) for given (x − x_center) within ±W/2
+   x_offset: distance from pulse center, in meters
+   w: full width of pulse (m)
+   a: amplitude (cm)
+*/
+function shapeFn(name, x_off, w, a){
+  const r = x_off / (w/2);   // normalized −1..+1
+  if (Math.abs(r) > 1) return 0;
+  switch(name){
+    case 'triangle': return a * (1 - Math.abs(r));
+    case 'square':   return a;
+    case 'gauss':    return a * Math.exp(-(r*r)*4) - a*Math.exp(-4)*0;  // bell ≈ 1 at center
+    case 'semi':     return a * Math.sqrt(Math.max(0, 1 - r*r));
+    case 'saw':      return a * (0.5 - 0.5*r);   // peak at left edge, 0 at right
+    case 'bipolar':  return a * Math.sin(Math.PI * r);  // S-shape: + then −
+    default: return 0;
+  }
+}
+
+function y1At(x, t){
+  // pulse 1 moves +v1
+  const cx = (STATE.motionMode==='drag' && STATE.dragX1!=null) ? STATE.dragX1 : (STATE.x1 + STATE.v1 * t);
+  return shapeFn(STATE.s1, x - cx, STATE.w1, STATE.a1);
+}
+function y2At(x, t){
+  const cx = (STATE.motionMode==='drag' && STATE.dragX2!=null) ? STATE.dragX2 : (STATE.x2 + STATE.v2 * t);
+  return shapeFn(STATE.s2, x - cx, STATE.w2, STATE.a2);
+}
+function ySumAt(x, t){ return y1At(x,t) + y2At(x,t); }
+
+function pulse1Center(){
+  return (STATE.motionMode==='drag' && STATE.dragX1!=null) ? STATE.dragX1 : (STATE.x1 + STATE.v1 * STATE.t);
+}
+function pulse2Center(){
+  return (STATE.motionMode==='drag' && STATE.dragX2!=null) ? STATE.dragX2 : (STATE.x2 + STATE.v2 * STATE.t);
+}
+
+/* ===================== CANVAS ===================== */
+function resizeCanvas(){
+  const wrap = cv.parentElement;
+  cv.width = wrap.clientWidth || 800;
+  cv.height = wrap.clientHeight || 450;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function xToPx(x){
+  const W = cv.width;
+  const pad = 40;
+  return pad + (x - STATE.X_MIN)/(STATE.X_MAX - STATE.X_MIN) * (W - 2*pad);
+}
+function yToPx(y){
+  const H = cv.height;
+  const pad = 30;
+  const cy = H/2;
+  const scale = (H/2 - pad) / 10;  // ±10 cm
+  return cy - y * scale;
+}
+function pxToX(px){
+  const W = cv.width, pad = 40;
+  return STATE.X_MIN + (px - pad) / (W - 2*pad) * (STATE.X_MAX - STATE.X_MIN);
+}
+
+function drawGrid(){
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle = '#06090f';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid 1 m × 1 cm
+  ctx.strokeStyle = '#1a2235';
+  ctx.lineWidth = 1;
+  for (let x=0; x<=20; x++){
+    ctx.beginPath();
+    ctx.moveTo(xToPx(x), yToPx(10));
+    ctx.lineTo(xToPx(x), yToPx(-10));
+    ctx.stroke();
+  }
+  for (let y=-10; y<=10; y++){
+    ctx.beginPath();
+    ctx.moveTo(xToPx(0), yToPx(y));
+    ctx.lineTo(xToPx(20), yToPx(y));
+    ctx.stroke();
+  }
+
+  // baseline (dashed center)
+  ctx.strokeStyle = '#3a4a6a';
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(xToPx(0), yToPx(0));
+  ctx.lineTo(xToPx(20), yToPx(0));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // axis labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px "Share Tech Mono", monospace';
+  for (let x=0; x<=20; x+=5){
+    ctx.fillText(x+'m', xToPx(x)-8, H-8);
+  }
+  for (let y=-10; y<=10; y+=5){
+    if (y!==0) ctx.fillText(y+'cm', 4, yToPx(y)+3);
+  }
+  // axes title
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 12px Sarabun, sans-serif';
+  ctx.fillText('y (cm)', 6, 18);
+  ctx.fillText('x (m)', cv.width - 50, H - 26);
+}
+
+function drawCurve(fn, color, lw, dashed){
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  if (dashed) ctx.setLineDash([4, 3]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  const N = 400;
+  for (let i=0; i<=N; i++){
+    const x = STATE.X_MIN + (STATE.X_MAX - STATE.X_MIN) * i/N;
+    const y = fn(x, STATE.t);
+    const px = xToPx(x), py = yToPx(y);
+    if (i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawProbe(){
+  if (!STATE.probeOn) return;
+  const px = xToPx(STATE.probeX);
+  const ySum = ySumAt(STATE.probeX, STATE.t);
+  const py = yToPx(ySum);
+  // vertical guide
+  ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
+  ctx.setLineDash([3, 3]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(px, yToPx(10));
+  ctx.lineTo(px, yToPx(-10));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // pin
+  ctx.fillStyle = '#facc15';
+  ctx.strokeStyle = '#facc15';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI*2); ctx.stroke();
+  // label
+  ctx.fillStyle = '#0a0e1a';
+  ctx.fillRect(px+10, py-22, 90, 18);
+  ctx.strokeStyle = '#facc15'; ctx.strokeRect(px+10, py-22, 90, 18);
+  ctx.fillStyle = '#facc15';
+  ctx.font = 'bold 11px "Share Tech Mono", monospace';
+  ctx.fillText(`y=${ySum.toFixed(2)}cm`, px+14, py-9);
+}
+
+function drawDragHandles(){
+  if (STATE.motionMode !== 'drag') return;
+  // show pulse centers as draggable handles
+  [{c:pulse1Center(), col:'#fb923c', label:'1'},
+   {c:pulse2Center(), col:'#38bdf8', label:'2'}].forEach(p=>{
+    const px = xToPx(p.c), py = yToPx(0);
+    ctx.fillStyle = p.col;
+    ctx.beginPath();
+    ctx.arc(px, py, 8, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px Sarabun, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.label, px, py+4);
+    ctx.textAlign = 'left';
+  });
+}
+
+function draw(){
+  drawGrid();
+  const onlySum = document.getElementById('onlySum')?.checked;
+  if (!onlySum){
+    drawCurve(y1At, '#fb923c', 2, false);
+    drawCurve(y2At, '#38bdf8', 2, false);
+  }
+  drawCurve(ySumAt, '#facc15', 3.2, false);
+  drawDragHandles();
+  drawProbe();
+  updateReadout();
+}
+
+/* ===================== ANIMATION ===================== */
+function loop(ts){
+  if (!STATE.lastTs) STATE.lastTs = ts;
+  const dt = Math.min((ts - STATE.lastTs)/1000, 0.05) * STATE.speed;
+  STATE.lastTs = ts;
+  if (STATE.motionMode === 'play'){
+    STATE.t += dt;
+    if (STATE.t > 6) STATE.t = 6;
+    document.getElementById('sl-time').value = STATE.t;
+  }
+  draw();
+  STATE.animId = requestAnimationFrame(loop);
+}
+function togglePlay(){
+  if (STATE.motionMode !== 'play'){
+    setMotionMode('play');
+  }
+  STATE.isPlaying = !STATE.isPlaying;
+  const btn = document.getElementById('playBtn');
+  if (STATE.isPlaying){
+    STATE.lastTs = null;
+    STATE.animId = requestAnimationFrame(loop);
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+  } else {
+    cancelAnimationFrame(STATE.animId);
+    btn.textContent = '▶ เริ่ม';
+    btn.classList.remove('playing');
+  }
+}
+function resetSim(){
+  cancelAnimationFrame(STATE.animId);
+  STATE.isPlaying = false;
+  STATE.t = 0;
+  STATE.lastTs = null;
+  STATE.dragX1 = null;
+  STATE.dragX2 = null;
+  document.getElementById('playBtn').textContent = '▶ เริ่ม';
+  document.getElementById('playBtn').classList.remove('playing');
+  document.getElementById('sl-time').value = 0;
+  computeMeetTime();
+  draw();
+}
+
+/* ===================== READOUT ===================== */
+function updateReadout(){
+  document.getElementById('tTxt').textContent = STATE.t.toFixed(2)+' s';
+  document.getElementById('speedTxt').textContent = STATE.speed.toFixed(2)+'×';
+  const y1 = y1At(STATE.probeX, STATE.t);
+  const y2 = y2At(STATE.probeX, STATE.t);
+  const ys = y1+y2;
+  document.getElementById('y1Txt').textContent = y1.toFixed(2);
+  document.getElementById('y2Txt').textContent = y2.toFixed(2);
+  document.getElementById('ySumTxt').textContent = ys.toFixed(2);
+  document.getElementById('probeTxt').textContent = STATE.probeX.toFixed(1);
+}
+
+/* ===================== MEET TIME ===================== */
+function computeMeetTime(){
+  // pulse centers meet when x1 + v1*t = x2 + v2*t
+  // → t = (x2 - x1) / (v1 - v2)
+  const dt = (STATE.x2 - STATE.x1) / (STATE.v1 - STATE.v2);
+  STATE.meetTime = Math.max(0, Math.min(6, dt));
+}
+
+function seekTime(t){
+  STATE.t = Math.max(0, Math.min(6, t));
+  document.getElementById('sl-time').value = STATE.t;
+  if (!STATE.isPlaying) draw();
+}
+function seekToMeet(){
+  computeMeetTime();
+  seekTime(STATE.meetTime);
+}
+
+/* ===================== INPUT BINDINGS ===================== */
+const _v2s = {
+  'vi-a1':'sl-a1','vi-w1':'sl-w1','vi-x1':'sl-x1',
+  'vi-a2':'sl-a2','vi-w2':'sl-w2','vi-x2':'sl-x2'
+};
+
+function bindSlider(id, key){
+  const sl = document.getElementById('sl-'+id);
+  const inp = document.getElementById('vi-'+id);
+  sl.addEventListener('input', ()=>{
+    STATE[key] = parseFloat(sl.value);
+    if (inp) inp.value = sl.value;
+    if (key==='x1' || key==='x2') computeMeetTime();
+    if (!STATE.isPlaying) draw();
+  });
+  if (inp){
+    inp.addEventListener('blur', ()=>{
+      let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value)||0));
+      inp.value = v; sl.value = v;
+      sl.dispatchEvent(new Event('input'));
+    });
+    inp.addEventListener('keydown', e=>{ if (e.key==='Enter') inp.blur(); });
+  }
+}
+
+function bindShape(id, key){
+  document.getElementById(id).addEventListener('change', e=>{
+    STATE[key] = e.target.value;
+    if (!STATE.isPlaying) draw();
+  });
+}
+
+/* ===================== MOTION MODE ===================== */
+function setMotionMode(m){
+  STATE.motionMode = m;
+  document.querySelectorAll('#motionToggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.motion === m);
+  });
+  if (m === 'drag'){
+    // pause auto-play, freeze drag positions at current centers
+    if (STATE.isPlaying){
+      cancelAnimationFrame(STATE.animId);
+      STATE.isPlaying = false;
+      const btn = document.getElementById('playBtn');
+      btn.textContent = '▶ เริ่ม';
+      btn.classList.remove('playing');
+    }
+    STATE.dragX1 = pulse1Center();
+    STATE.dragX2 = pulse2Center();
+    cv.classList.add('drag-mode');
+    document.getElementById('hint').innerHTML = '✋ <strong>โหมดลากเอง:</strong> จับวงกลมสีส้ม/ฟ้าบนเส้นเชือก ลากเข้าหากัน · เห็นการรวมกันสด ๆ';
+    // need continuous draw for handles even without anim
+    requestAnimationFrame(loop);
+    STATE.lastTs = null;
+  } else {
+    STATE.dragX1 = null;
+    STATE.dragX2 = null;
+    cv.classList.remove('drag-mode');
+    document.getElementById('hint').innerHTML = '💡 <strong>โหมดปล่อยอัตโนมัติ:</strong> กด ▶ เริ่ม · v₁=+2 m/s, v₂=−2 m/s';
+    cancelAnimationFrame(STATE.animId);
+  }
+  draw();
+}
+
+function setRecordMode(m){
+  STATE.recordMode = m;
+  document.querySelectorAll('#modeToggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === m);
+  });
+  document.getElementById('modeBadge').textContent = m==='manual' ? '(โหมดบันทึกเอง)' : '(โหมดบันทึกอัตโนมัติ)';
+}
+
+/* ===================== CANVAS INTERACTION ===================== */
+function getMouseXY(ev){
+  const r = cv.getBoundingClientRect();
+  const cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+  const cy = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+  return { px:cx * (cv.width/r.width), py:cy * (cv.height/r.height) };
+}
+
+cv.addEventListener('mousedown', startDrag);
+cv.addEventListener('touchstart', startDrag, {passive:false});
+
+function startDrag(ev){
+  ev.preventDefault();
+  const {px} = getMouseXY(ev);
+  const x = pxToX(px);
+  if (STATE.motionMode === 'drag'){
+    // check which pulse handle is closest
+    const d1 = Math.abs(x - pulse1Center());
+    const d2 = Math.abs(x - pulse2Center());
+    if (Math.min(d1, d2) < 1.2){
+      STATE.draggingPulse = (d1 < d2) ? 1 : 2;
+      STATE.dragOffset = x - (STATE.draggingPulse===1 ? pulse1Center() : pulse2Center());
+      cv.classList.add('dragging');
+      return;
+    }
+  }
+  // otherwise: place probe
+  STATE.probeX = Math.max(0, Math.min(20, x));
+  STATE.probeOn = true;
+  document.getElementById('showProbe').checked = true;
+  draw();
+}
+
+function moveDrag(ev){
+  if (STATE.draggingPulse == null) return;
+  ev.preventDefault();
+  const {px} = getMouseXY(ev);
+  const x = Math.max(0, Math.min(20, pxToX(px) - STATE.dragOffset));
+  if (STATE.draggingPulse === 1) STATE.dragX1 = x;
+  else STATE.dragX2 = x;
+  draw();
+}
+cv.addEventListener('mousemove', moveDrag);
+cv.addEventListener('touchmove', moveDrag, {passive:false});
+
+function endDrag(){
+  STATE.draggingPulse = null;
+  cv.classList.remove('dragging');
+}
+cv.addEventListener('mouseup', endDrag);
+cv.addEventListener('mouseleave', endDrag);
+cv.addEventListener('touchend', endDrag);
+
+/* ===================== PRESETS ===================== */
+function setSlider(id, val){
+  const sl = document.getElementById('sl-'+id);
+  const inp = document.getElementById('vi-'+id);
+  sl.value = val;
+  if (inp) inp.value = val;
+  sl.dispatchEvent(new Event('input'));
+}
+function setShape(id, val){
+  document.getElementById(id).value = val;
+  document.getElementById(id).dispatchEvent(new Event('change'));
+}
+
+function loadPreset(name){
+  resetSim();
+  setMotionMode('play');
+  switch(name){
+    case 'crest-crest':
+      setShape('shape1','gauss'); setShape('shape2','gauss');
+      setSlider('a1', 3); setSlider('a2', 3);
+      setSlider('w1', 2); setSlider('w2', 2);
+      setSlider('x1', 4); setSlider('x2', 16);
+      break;
+    case 'crest-trough':
+      setShape('shape1','gauss'); setShape('shape2','gauss');
+      setSlider('a1', 3); setSlider('a2', -3);
+      setSlider('w1', 2); setSlider('w2', 2);
+      setSlider('x1', 4); setSlider('x2', 16);
+      break;
+    case 'different-A':
+      setShape('shape1','triangle'); setShape('shape2','triangle');
+      setSlider('a1', 5); setSlider('a2', 2);
+      setSlider('w1', 2); setSlider('w2', 2);
+      setSlider('x1', 4); setSlider('x2', 16);
+      break;
+    case 'mixed-shape':
+      setShape('shape1','triangle'); setShape('shape2','square');
+      setSlider('a1', 4); setSlider('a2', 3);
+      setSlider('w1', 2.5); setSlider('w2', 2);
+      setSlider('x1', 4); setSlider('x2', 16);
+      break;
+  }
+  computeMeetTime();
+  draw();
+}
+
+/* ===================== DATA TABLE ===================== */
+const records = [];
+
+function recordRow(){
+  const t = STATE.t.toFixed(2);
+  const x = STATE.probeX.toFixed(1);
+  const y1 = y1At(STATE.probeX, STATE.t);
+  const y2 = y2At(STATE.probeX, STATE.t);
+  const sumTh = (y1+y2);
+  const measured = STATE.recordMode==='auto' ? sumTh : null;  // manual: empty
+  records.push({ t, x, y1:y1.toFixed(2), y2:y2.toFixed(2), measured, sumTh:sumTh.toFixed(2) });
+  renderTable();
+}
+
+function renderTable(){
+  const tbody = document.getElementById('dataBody');
+  if (records.length===0){
+    tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);padding:14px">— ยังไม่มีข้อมูล กดบันทึกแถวเพื่อเริ่ม —</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map((r,i)=>{
+    const measVal = r.measured===null ? '' : r.measured;
+    let errCell = '<td class="mono">—</td>';
+    if (r.measured !== null && r.measured !== ''){
+      const m = parseFloat(r.measured), th = parseFloat(r.sumTh);
+      if (Math.abs(th) < 0.01){
+        const cls = Math.abs(m) < 0.1 ? 'ok' : 'bad';
+        errCell = `<td class="mono ${cls}">${Math.abs(m).toFixed(2)}cm</td>`;
+      } else {
+        const e = Math.abs((m-th)/th)*100;
+        const cls = e < 5 ? 'ok' : (e < 15 ? '' : 'bad');
+        errCell = `<td class="mono ${cls}">${e.toFixed(1)}%</td>`;
+      }
+    }
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td class="mono">${r.t}</td>
+      <td class="mono">${r.x}</td>
+      <td class="mono" style="color:var(--accent2)">${r.y1}</td>
+      <td class="mono" style="color:var(--accent3)">${r.y2}</td>
+      <td><input class="cell" type="number" step="0.01" value="${measVal}" oninput="updateMeasured(${i}, this.value)"></td>
+      ${errCell}
+      <td class="row-actions"><button onclick="deleteRow(${i})" title="ลบ">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function updateMeasured(i, v){
+  records[i].measured = v;
+  renderTable();
+}
+function deleteRow(i){
+  records.splice(i,1);
+  renderTable();
+}
+function clearTable(){
+  records.length = 0;
+  renderTable();
+}
+function exportCSV(){
+  if (records.length===0){ alert('ยังไม่มีข้อมูลในตาราง'); return; }
+  let csv = 't(s),x(m),y1(cm),y2(cm),y_sum_measured(cm),y1+y2_theory(cm)\n';
+  records.forEach(r=>{
+    csv += `${r.t},${r.x},${r.y1},${r.y2},${r.measured ?? ''},${r.sumTh}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pulse_superposition_data.csv';
+  a.click();
+}
+function captureScreen(){
+  // composite full canvas with header
+  const tmp = document.createElement('canvas');
+  tmp.width = cv.width;
+  tmp.height = cv.height + 40;
+  const tx = tmp.getContext('2d');
+  tx.fillStyle = '#0a0e1a';
+  tx.fillRect(0,0,tmp.width, tmp.height);
+  tx.drawImage(cv, 0, 40);
+  tx.fillStyle = '#818cf8';
+  tx.font = 'bold 14px Sarabun, sans-serif';
+  tx.fillText(`KP Science · Pulse Superposition · t = ${STATE.t.toFixed(2)} s`, 12, 24);
+  const a = document.createElement('a');
+  a.href = tmp.toDataURL('image/png');
+  a.download = `pulse_superposition_t${STATE.t.toFixed(2)}.png`;
+  a.click();
+}
+
+/* ===================== TABS ===================== */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='theory') drawTheory();
+  if (name==='sim') setTimeout(()=>{ resizeCanvas(); }, 50);
+}
+
+/* ===================== THEORY CANVASES ===================== */
+function drawTheory(){
+  drawTh1();
+  drawTh2();
+  drawTh3();
+}
+function drawTh1(){
+  const c = document.getElementById('th1');
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = '#06090f'; x.fillRect(0,0,w,h);
+  // baseline
+  x.strokeStyle = '#3a4a6a'; x.setLineDash([4,3]);
+  x.beginPath(); x.moveTo(0, h/2); x.lineTo(w, h/2); x.stroke(); x.setLineDash([]);
+  // 2 gauss pulses overlapping
+  const N = 200;
+  function gauss(px, cx, a){
+    const r = (px - cx) / 60;
+    return a * Math.exp(-r*r);
+  }
+  const cx1 = w*0.4, cx2 = w*0.6;
+  const A = h*0.18;
+  // p1
+  x.strokeStyle = '#fb923c'; x.lineWidth = 2;
+  x.beginPath();
+  for (let i=0;i<=N;i++){ const px = i/N*w; const py = h/2 - gauss(px, cx1, A); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+  x.stroke();
+  // p2
+  x.strokeStyle = '#38bdf8';
+  x.beginPath();
+  for (let i=0;i<=N;i++){ const px = i/N*w; const py = h/2 - gauss(px, cx2, A*0.8); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+  x.stroke();
+  // sum
+  x.strokeStyle = '#facc15'; x.lineWidth = 3;
+  x.beginPath();
+  for (let i=0;i<=N;i++){ const px = i/N*w; const py = h/2 - (gauss(px, cx1, A) + gauss(px, cx2, A*0.8)); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+  x.stroke();
+  // label
+  x.fillStyle = '#fb923c'; x.font='bold 12px Sarabun'; x.fillText('y₁', cx1-30, h*0.25);
+  x.fillStyle = '#38bdf8'; x.fillText('y₂', cx2+15, h*0.30);
+  x.fillStyle = '#facc15'; x.fillText('y₁+y₂', w*0.5-25, h*0.15);
+}
+function drawTh2(){
+  const c = document.getElementById('th2');
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = '#06090f'; x.fillRect(0,0,w,h);
+  // 3 panels: before, during, after
+  const labels = ['ก่อนพบ', 'ขณะพบ (ซ้อน)', 'หลังพ้น'];
+  const offsets = [
+    {a: w*0.12, b: w*0.27},
+    {a: w*0.5,  b: w*0.5},
+    {a: w*0.88, b: w*0.73}
+  ];
+  function tri(cx, a){
+    const W = 30;
+    return px=>{
+      const r = (px - cx)/W;
+      if (Math.abs(r)>1) return 0;
+      return a*(1-Math.abs(r));
+    };
+  }
+  const A = h*0.16;
+  for (let p=0; p<3; p++){
+    const x0 = p*w/3 + 6, x1 = (p+1)*w/3 - 6;
+    // panel border
+    x.strokeStyle = '#1e3a5f'; x.lineWidth=1;
+    x.strokeRect(x0, h*0.15, x1-x0, h*0.7);
+    // baseline
+    x.strokeStyle = '#3a4a6a'; x.setLineDash([3,3]);
+    x.beginPath(); x.moveTo(x0, h*0.5); x.lineTo(x1, h*0.5); x.stroke(); x.setLineDash([]);
+    // pulses
+    const f1 = tri(offsets[p].a, A);
+    const f2 = tri(offsets[p].b, A);
+    x.strokeStyle = '#fb923c'; x.lineWidth=2;
+    x.beginPath();
+    for (let i=0;i<=80;i++){ const px = x0 + (x1-x0)*i/80; const py = h*0.5 - f1(px); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+    x.stroke();
+    x.strokeStyle = '#38bdf8';
+    x.beginPath();
+    for (let i=0;i<=80;i++){ const px = x0 + (x1-x0)*i/80; const py = h*0.5 - f2(px); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+    x.stroke();
+    if (p===1){
+      x.strokeStyle = '#facc15'; x.lineWidth=3;
+      x.beginPath();
+      for (let i=0;i<=80;i++){ const px = x0 + (x1-x0)*i/80; const py = h*0.5 - (f1(px)+f2(px)); if(i===0) x.moveTo(px,py); else x.lineTo(px,py); }
+      x.stroke();
+    }
+    x.fillStyle = '#94a3b8';
+    x.font = 'bold 12px Sarabun';
+    x.fillText(labels[p], x0+8, h*0.13);
+  }
+}
+function drawTh3(){
+  const c = document.getElementById('th3');
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.fillStyle = '#06090f'; x.fillRect(0,0,w,h);
+  // LEFT: phase circle | RIGHT: y-t graph
+  const cx = h*0.5, cy = h*0.5, R = h*0.35;
+  // circle
+  x.strokeStyle = '#3a4a6a'; x.lineWidth=1.5;
+  x.beginPath(); x.arc(cx, cy, R, 0, Math.PI*2); x.stroke();
+  // axes
+  x.strokeStyle = '#1e3a5f';
+  x.beginPath(); x.moveTo(cx-R-10, cy); x.lineTo(cx+R+10, cy); x.stroke();
+  x.beginPath(); x.moveTo(cx, cy-R-10); x.lineTo(cx, cy+R+10); x.stroke();
+  // phasor at angle 60°
+  const ang = -Math.PI/3;
+  const pxA = cx + R*Math.cos(ang), pyA = cy + R*Math.sin(ang);
+  x.strokeStyle = '#818cf8'; x.lineWidth=2.5;
+  x.beginPath(); x.moveTo(cx,cy); x.lineTo(pxA, pyA); x.stroke();
+  x.fillStyle = '#818cf8'; x.beginPath(); x.arc(pxA,pyA,5,0,Math.PI*2); x.fill();
+  // projection
+  x.strokeStyle='#facc15'; x.setLineDash([4,3]);
+  x.beginPath(); x.moveTo(pxA,pyA); x.lineTo(pxA,cy); x.stroke(); x.setLineDash([]);
+  x.fillStyle = '#facc15';
+  x.beginPath(); x.arc(pxA, cy, 4, 0, Math.PI*2); x.fill();
+  // label
+  x.fillStyle = '#94a3b8'; x.font='12px Sarabun';
+  x.fillText('วงกลมเฟส', 10, 16);
+  x.fillStyle = '#818cf8'; x.fillText('φ', cx+12, cy-6);
+
+  // y-t plot on right side
+  const gx0 = h+20, gx1 = w-20;
+  const gw = gx1 - gx0;
+  const gy0 = h*0.15, gy1 = h*0.85, gh = gy1-gy0;
+  const gcy = (gy0+gy1)/2;
+  x.strokeStyle = '#3a4a6a'; x.setLineDash([3,3]);
+  x.beginPath(); x.moveTo(gx0, gcy); x.lineTo(gx1, gcy); x.stroke(); x.setLineDash([]);
+  x.strokeStyle='#1e3a5f';
+  x.beginPath(); x.moveTo(gx0, gy0); x.lineTo(gx0, gy1); x.stroke();
+  // sine wave
+  x.strokeStyle = '#818cf8'; x.lineWidth=2.5;
+  x.beginPath();
+  for (let i=0;i<=200;i++){
+    const t = i/200 * Math.PI*4;
+    const px = gx0 + i/200*gw;
+    const py = gcy - Math.sin(t)*gh*0.4;
+    if (i===0) x.moveTo(px,py); else x.lineTo(px,py);
+  }
+  x.stroke();
+  // mark current point on y-t
+  const tCur = Math.PI*4 * 0.166;  // matches phase 60°
+  const pxCur = gx0 + 0.166*gw, pyCur = gcy - Math.sin(tCur)*gh*0.4;
+  x.fillStyle='#facc15';
+  x.beginPath(); x.arc(pxCur, pyCur, 5, 0, Math.PI*2); x.fill();
+  x.fillStyle='#94a3b8'; x.font='12px Sarabun';
+  x.fillText('y-t (เฉพาะคลื่นต่อเนื่อง)', gx0+4, gy0-6);
+}
+
+/* ===================== INIT ===================== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  bindSlider('a1','a1'); bindSlider('w1','w1'); bindSlider('x1','x1');
+  bindSlider('a2','a2'); bindSlider('w2','w2'); bindSlider('x2','x2');
+  bindShape('shape1','s1'); bindShape('shape2','s2');
+
+  document.getElementById('sl-speed').addEventListener('input', e=>{
+    STATE.speed = parseFloat(e.target.value);
+    document.getElementById('speedTxt').textContent = STATE.speed.toFixed(2)+'×';
+  });
+  document.getElementById('sl-time').addEventListener('input', e=>{
+    if (!STATE.isPlaying){
+      STATE.t = parseFloat(e.target.value);
+      draw();
+    }
+  });
+  document.getElementById('onlySum').addEventListener('change', ()=>draw());
+  document.getElementById('showProbe').addEventListener('change', e=>{
+    STATE.probeOn = e.target.checked;
+    draw();
+  });
+  document.querySelectorAll('#modeToggle button').forEach(b=>{
+    b.addEventListener('click', ()=>setRecordMode(b.dataset.mode));
+  });
+  document.querySelectorAll('#motionToggle button').forEach(b=>{
+    b.addEventListener('click', ()=>setMotionMode(b.dataset.motion));
+  });
+
+  // URL preset
+  const params = new URLSearchParams(location.search);
+  const p = params.get('preset');
+  if (p && ['crest-crest','crest-trough','different-A','mixed-shape'].includes(p)){
+    setTimeout(()=>loadPreset(p), 100);
+  }
+
+  computeMeetTime();
+  resizeCanvas();
+  draw();
+});
+</script>
+
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-40", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

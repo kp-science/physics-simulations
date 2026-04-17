@@ -301,3 +301,61 @@ match /settings/{docId} {
 
 ### Verification
 - Preview test: auto mode · v_pulse = v_cont = 1.000 m/s, diff = 0.0% ✓
+
+## [2026-04-17 — เครื่องที่ทำงาน] Lab 40 · Pulse Superposition
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 40 — การซ้อนทับของคลื่นดล (Pulse Superposition)**
+- 3 tabs: การทดลอง / วิธีการทดลอง / ทฤษฎี
+- คลื่นดล 2 ลูกสวนทาง: เลือกรูปร่างได้ 6 แบบ (สามเหลี่ยม / สี่เหลี่ยม / Gaussian / ครึ่งวงกลม / ฟันเลื่อย / S-bipolar) อิสระต่อกัน
+- **2 โหมดการเคลื่อนที่:**
+  - ▶ ปล่อยอัตโนมัติ: v₁=+2, v₂=−2 m/s
+  - ✋ ลากเอง: จับวงกลมส้ม/ฟ้าบน canvas ลากเข้าหากัน → เห็นการซ้อนทับสด ๆ (รองรับ touch)
+- **2 โหมดบันทึก:**
+  - บันทึกเอง (default): นักเรียนกรอก y รวม → ระบบเทียบ %ผิดกับ y₁+y₂ ทาง ทษ.
+  - บันทึกอัตโนมัติ: เติมค่าครบ
+- Probe (หมุดวัด): คลิกบนเชือกปักจุด แสดง y₁/y₂/y_sum สด
+- Timeline scrubber 0–6 s + ปุ่มลัด ก่อนพบ/ขณะพบ/หลังพ้น (คำนวณ meet time จาก x1,x2,v อัตโนมัติ)
+- 4 Presets: ยอด+ยอด · ยอด+ท้อง · A ต่าง · รูปต่างกัน · URL `?preset=...` รองรับ
+- Toggle "แสดงเฉพาะคลื่นรวม" + Speed slider 0.25–2× + Screenshot (PNG) + Export CSV
+- Tab ทฤษฎี: 3 visual canvases (superposition, before/during/after, phase circle ↔ y-t link to Lab 39)
+- ชน Misconception M4.1–M4.4 (รูปคืน, หักล้างถาวร, ลูกใหญ่กินลูกเล็ก, รูปต่างบวกไม่ได้)
+- Run protect script ✅ (GA + topbar + watermark + firebase + access guard)
+- Sync lab-40 ใน `kp-auth.js` (vpl02.labs) + `_admin/admin.html` (VLAB_SERIES + LAB_LIST)
+
+### Verification (preview)
+- crest+crest → sum=6.00 cm ✓ ที่ meet time t=3.00s
+- crest+trough → sum=0.00 cm ✓
+- mixed (triangle 4 + square 3) → drag overlap sum=7.00 cm ✓
+- ไม่มี console errors
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/40. pulse-superposition.html` — ไฟล์ใหม่ (~750+ บรรทัด)
+- `kp-auth.js` — เพิ่ม `'lab-40'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-40'` ใน vpl02.labs + entry `{id:'lab-40',label:'Lab 40 (การซ้อนทับคลื่นดล)'}` ใน LAB_LIST
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม canvas preview ใน `virtual-physics-lab-02.html` สำหรับ Lab 40
+- ยังไม่ได้ push ขึ้น git
+- ถาม user ว่าต้องการเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ไหม
+
+### หมายเหตุ
+- Reference: `pulse-superposition.html` spec (canvas 0-20m × ±10cm, grid 1m×1cm, baseline dashed)
+- Physics: y(x,t) = y₁(x,t) + y₂(x,t) — algebraic, no dispersion
+- ใช้ accent=purple (#818cf8) สำหรับธีม + accent2=orange (pulse 1), accent3=cyan (pulse 2), accent4=yellow (sum)
+- เชื่อมกับ Lab 39 ในแท็บทฤษฎี: pulse ไม่มีเฟส ↔ continuous wave มีเฟส (วงกลม → y-t projection)
+
+## [2026-04-17 update 2] Lab 40 · เพิ่มลิงก์/การ์ดทุกหน้า
+
+### ทำอะไรไปบ้าง
+- เพิ่มการ์ด Lab 40 ใน 3 หน้า + canvas preview animation (`vpl2-superpose`)
+  - **virtual-physics-lab-02.html** — เพิ่มการ์ดต่อจาก Lab 39 ในหมวด "คลื่นกล" (count 6→7), inject preview drawer
+  - **library.html** — เพิ่ม lib-item ต่อจาก Lab 39 (count 11→12)
+  - **index.html** — เพิ่มการ์ดต่อจาก Lab 36 (CTA link 12→13), inject preview drawer
+- Preview animation: คลื่นดล Gaussian 2 ลูก (สีส้ม + ฟ้า) วิ่งสวนทางเข้าหากัน · เส้นซ้อนทับสีเหลืองหนาแสดงผลรวม
+- Verified ใน preview: card ปรากฏใน parent section "คลื่นกล" ✓ canvas animation render ได้ ✓ ไม่มี console errors
+
+### ไฟล์ที่แก้
+- `virtual-physics-lab-02.html` — เพิ่มการ์ด + preview function + count
+- `library.html` — เพิ่ม lib-item + count
+- `index.html` — เพิ่มการ์ด + preview function + CTA count
