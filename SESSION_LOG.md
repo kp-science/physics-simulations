@@ -359,3 +359,27 @@ match /settings/{docId} {
 - `virtual-physics-lab-02.html` — เพิ่มการ์ด + preview function + count
 - `library.html` — เพิ่ม lib-item + count
 - `index.html` — เพิ่มการ์ด + preview function + CTA count
+
+---
+
+## [2026-04-17 23:15] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Demo: หลักของฮอยเกนส์ (Huygens' Principle)** — `Demo/คลื่น/huygens-principle-demo.html`
+- เป็น Demo (ไม่ใช่ Lab) เน้น 2 ประเด็น: (1) ทุกจุดบนหน้าคลื่นเป็นแหล่งกำเนิด wavelet วงกลม (2) คลื่นทุกชนิด (น้ำ/เสียง/แสง) เป็นไปตามหลักเดียวกัน
+- 2 tabs: 🎬 Demo + 📐 ทฤษฎี (มี SVG อธิบายภาพ + 4 tile เชื่อมไปสู่ diffraction/refraction/reflection/interference)
+- Features: 3 ชนิดหน้าคลื่นเริ่มต้น (ระนาบ/วงกลม/เอียง 30°) · 3 ชนิดคลื่น (เปลี่ยนสี) · slider λ/Δt/N · barrier toggle + d · click-to-add source · auto-place · envelope rendering · animation · 3 preset (กว้าง/แคบ/ไม่มี barrier)
+- Verified preview ใช้ได้: plane mode = envelope ขนานเดิม · narrow slit (d=1m, λ=1m) = envelope วงกลม (เลี้ยวเบน)
+
+### ไฟล์ที่แก้
+- `Demo/คลื่น/huygens-principle-demo.html` — สร้างใหม่
+- `_admin/protect_new_file.py` รัน → inject GA, frame protection, KP topbar, watermark, Firebase, kp-auth, access guard เรียบร้อย
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ลิงก์เข้า `Demo/index.html` หรือ `library.html` หรือหน้า VPL02 (hook section) — ถ้าต้องการให้ขึ้นแคตาล็อกต้องเพิ่ม card
+- ไม่ใช่ Lab ที่ต้องเก็บ access string ใน `_admin/admin.html` (อยู่ใน Demo/ → ใช้ access `demo:waves` อัตโนมัติ)
+
+### หมายเหตุ
+- v = 2 m/s คงที่เพื่อให้สื่อสาร Δt เป็นวินาที + รัศมีเป็นเมตรอ่านง่าย
+- envelope rendering: sample 180 angle/source → keep points ที่ไม่อยู่ใน circle ของ source อื่น → วาดเป็น arc ด้วยการ group contiguous angles
+- ผู้ใช้บอกชัดว่า "เป็นเดโม ไม่ต้องวัด" → ตัด tab "วิธีการทดลอง/บันทึกผล" ออก เหลือแค่ 2 tabs
