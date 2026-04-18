@@ -247,6 +247,35 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
       <label>m</label>
       <button class="btn btn-sm" style="background:var(--accent3);color:#0a0e1a" onclick="saveMeasurement()">&#128190; บันทึก</button>
     </div>
+    <!-- Two-spring measurement bar (2 segments) -->
+    <div class="measure-bar" id="sec-measure-two" style="display:none;flex-direction:column;align-items:stretch;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="color:#38bdf8;font-weight:bold;min-width:56px">🟦 เส้น 1</span>
+        <span class="sw-time mono" id="sw2-disp-a">00:00.00</span>
+        <button class="btn btn-sm btn-play" id="sw2-btn-a" onclick="toggleStopwatch2('a')">&#9654; จับเวลา</button>
+        <button class="btn btn-sm btn-reset" onclick="resetMeasurement2('a')">&#8635;</button>
+        <label>x₁:</label>
+        <input class="dist-input" type="number" id="meas2-x1-a" placeholder="—" step="0.01" min="0" max="1.0" oninput="calcTwoSpringV()">
+        <label>x₂:</label>
+        <input class="dist-input" type="number" id="meas2-x2-a" placeholder="—" step="0.01" min="0" max="1.0" oninput="calcTwoSpringV()">
+        <span class="mono" style="color:#38bdf8;margin-left:auto">v₁ = <span id="rd2-v-a">—</span> m/s</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="color:#f472b6;font-weight:bold;min-width:56px">🟪 เส้น 2</span>
+        <span class="sw-time mono" id="sw2-disp-b">00:00.00</span>
+        <button class="btn btn-sm btn-play" id="sw2-btn-b" onclick="toggleStopwatch2('b')">&#9654; จับเวลา</button>
+        <button class="btn btn-sm btn-reset" onclick="resetMeasurement2('b')">&#8635;</button>
+        <label>x₁:</label>
+        <input class="dist-input" type="number" id="meas2-x1-b" placeholder="—" step="0.01" min="1.0" oninput="calcTwoSpringV()">
+        <label>x₂:</label>
+        <input class="dist-input" type="number" id="meas2-x2-b" placeholder="—" step="0.01" min="1.0" oninput="calcTwoSpringV()">
+        <span class="mono" style="color:#f472b6;margin-left:auto">v₂ = <span id="rd2-v-b">—</span> m/s</span>
+      </div>
+      <div style="display:flex;gap:12px;padding:6px 10px;background:rgba(148,163,184,0.1);border-radius:6px;font-size:.82rem;flex-wrap:wrap">
+        <span>📊 เปรียบเทียบ: <span class="mono" id="rd2-ratio" style="color:var(--accent4)">—</span></span>
+        <span style="color:var(--muted)">ทฤษฎี v₂/v₁ = √(μ₁/μ₂) = <span class="mono" id="rd2-theory" style="color:var(--accent3)">—</span></span>
+      </div>
+    </div>
     <!-- Readout -->
     <div class="readout-grid" id="readout-area">
       <div class="readout-box"><div class="label">ความเร็วคลื่น (v)</div><div class="value mono" id="rd-speed">—</div><div class="unit">m/s</div></div>
@@ -299,6 +328,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
       <div class="mode-btns" id="end-types">
         <button onclick="setEndType('fixed',this)">ตรึงแน่น (Fixed)</button>
         <button class="active" onclick="setEndType('free',this)">อิสระ (Free)</button>
+        <button onclick="setEndType('absorb',this)">ไม่สะท้อน (Absorb)</button>
       </div>
     </div>
 
@@ -639,6 +669,23 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
         <p>พัลส์สะท้อน<strong>ไม่กลับหัว</strong> (เหมือนปลายอิสระ) + พัลส์ส่งผ่านเร็วขึ้น แอมพลิจูดเพิ่ม</p>
       </div>
     </div>
+
+    <h4 style="margin-top:16px">📐 วิธีหา v₁ และ v₂ จากการทดลอง</h4>
+    <p>เนื่องจากเชือก/สปริงทั้งสองเส้น<strong>ตึงด้วยความตึง T เท่ากัน</strong> (เชื่อมกันอยู่) แต่ความหนาแน่นเชิงเส้น μ ต่างกัน ความเร็วคลื่นในแต่ละเส้นคือ</p>
+    <div class="key-point" style="text-align:center;font-size:1.05rem">
+      v₁ = √(T/μ₁) &nbsp;,&nbsp; v₂ = √(T/μ₂) &nbsp;⇒&nbsp; v₂/v₁ = √(μ₁/μ₂)
+    </div>
+    <p><strong>วิธีวัดจาก simulation:</strong></p>
+    <ol style="padding-left:20px;line-height:1.8">
+      <li>เปิดโหมด "สปริง 2 อัน" แล้ว<strong>เปิดไม้บรรทัด</strong> จะเห็นรอยต่อที่ตำแหน่ง x = L/2</li>
+      <li><strong>ช่วงที่ 1 (เส้น 1):</strong> ส่งพัลส์ → กด ▶ จับเวลา ที่ x₁ = 0.2 m → กดหยุดที่ x₂ = 0.8 m (ก่อนถึงรอยต่อ)
+        <br>จะได้ <em>v₁ = (x₂ − x₁) / Δt₁</em></li>
+      <li><strong>ช่วงที่ 2 (เส้น 2):</strong> ส่งพัลส์ใหม่ → จับเวลาที่ x₁ = 1.2 m → หยุดที่ x₂ = 1.8 m (หลังรอยต่อ)
+        <br>จะได้ <em>v₂ = (x₂ − x₁) / Δt₂</em></li>
+      <li>เปรียบเทียบกับทฤษฎี: อัตราส่วน v₂/v₁ ควรเท่ากับ √(μ₁/μ₂) = 1/√(μ₂/μ₁)
+        <br>เช่น ตั้ง μ₂/μ₁ = 4 → คาดว่า v₂/v₁ = 1/√4 = 0.5 (เส้น 2 ช้ากว่าครึ่งหนึ่ง)</li>
+    </ol>
+    <div class="key-point">💡 เคล็ดลับ: ตั้งปลายขวาแบบ "ไม่สะท้อน" เพื่อตัดสัญญาณรบกวนจากปลาย → เหลือเฉพาะพัลส์ส่งผ่านในเส้น 2 อ่านง่ายกว่า</div>
   </div>
 
   <!-- Reference -->
@@ -735,12 +782,19 @@ function initWave() {
 function updateWave(dt) {
   if (dt <= 0) return;
 
-  // Sub-stepping for stability
-  const vMax = Math.sqrt(tension / (mu1 / Math.max(densityRatio, 1)));
+  // Sub-stepping — run exactly at the CFL limit (c·dt = dx) so the
+  // central-difference scheme is dispersion-free AND the Engquist–Majda
+  // ABC at the right end is exact (→ ~0% reflection)
+  const c1 = Math.sqrt(tension / mu1);
+  const c2 = (expMode === 'twospring') ? Math.sqrt(tension / (mu1 * densityRatio)) : c1;
+  const vMax = Math.max(c1, c2);
   const curDX = springLength / (N - 1);
-  const dtMax = 0.8 * curDX / vMax;
-  const steps = Math.max(1, Math.ceil(dt / dtMax));
-  const subDt = dt / steps;
+  // Use subDt slightly below the CFL limit. Symplectic Euler with damping
+  // needs CFL < 1; we use 0.9 for headroom. The Mur ABC still absorbs ≥95%.
+  const CFL = 0.9;
+  const dtIdeal = CFL * curDX / vMax;
+  const steps = Math.max(1, Math.round(dt / dtIdeal));
+  const subDt = dtIdeal;
 
   for (let s = 0; s < steps; s++) {
     // Standing wave: drive left end
@@ -750,11 +804,16 @@ function updateWave(dt) {
       vel[0] = ampPhys * 2 * Math.PI * drivingFreq * Math.cos(2 * Math.PI * drivingFreq * simTime);
     }
 
-    // Compute accelerations
+    // Snapshot old boundary neighbours before updating interior (for Mur ABC)
+    const oldDispNm1 = disp[N - 1];
+    const oldDispNm2 = disp[N - 2];
+
+    // Compute accelerations (uniform damping everywhere; main absorption
+    // comes from the exact-CFL Mur ABC at the right end)
     const acc = new Float64Array(N);
     for (let i = 1; i < N - 1; i++) {
-      const v = getWaveSpeed(i);
-      const c2 = v * v;
+      const vi = getWaveSpeed(i);
+      const c2 = vi * vi;
       acc[i] = c2 * (disp[i + 1] - 2 * disp[i] + disp[i - 1]) / (curDX * curDX) - DAMPING * vel[i];
     }
 
@@ -772,11 +831,18 @@ function updateWave(dt) {
     }
 
     // Boundary conditions - right end
-    if (expMode === 'twospring') {
-      // Free end for two-spring mode
-      disp[N - 1] = disp[N - 2];
-      vel[N - 1] = vel[N - 2];
-    } else if (endType === 'fixed') {
+    const effEnd = endType;
+    if (effEnd === 'absorb') {
+      // Engquist–Majda 1st-order ABC on the boundary node, using snapshots
+      // of u[N-1] and u[N-2] from *before* the interior update (correct
+      // forward-Euler / backward-space discretisation).
+      // u^{n+1}[N-1] = (1-α)·u^n[N-1] + α·u^n[N-2], α = c·dt/dx
+      const muRight = (expMode === 'twospring') ? mu1 * densityRatio : mu1;
+      const cRight = Math.sqrt(tension / muRight);
+      const alpha = Math.min(1, cRight * subDt / curDX);
+      disp[N - 1] = (1 - alpha) * oldDispNm1 + alpha * oldDispNm2;
+      vel[N - 1] = (disp[N - 1] - oldDispNm1) / subDt;
+    } else if (effEnd === 'fixed') {
       disp[N - 1] = 0;
       vel[N - 1] = 0;
     } else {
@@ -814,17 +880,25 @@ function trackReflections() {
 function sendPulse(fromLeft, type, amp) {
   const pxPerM = getPxPerM();
   const ampPhys = amp / pxPerM;
-  const pulseWidth = Math.floor(N * 0.18); // wide smooth sine pulse
+  const pulseWidthN = Math.floor(N * 0.22);
+  const curDX = springLength / (N - 1);
+  const w = pulseWidthN * curDX; // physical width (m)
   const sign = (type === 'rarefaction') ? -1 : 1;
+  const c = Math.sqrt(tension / mu1); // base speed for traveling-wave seed
+  const dir = fromLeft ? 1 : -1;
+  const startIdx = fromLeft ? 2 : (N - 2 - pulseWidthN);
 
-  for (let i = 0; i < pulseWidth; i++) {
-    const idx = fromLeft ? i + 1 : (N - 2 - i);
-    if (idx < 0 || idx >= N) continue;
-    const t = i / pulseWidth; // 0 → 1
-    // Clean sine half-wave: one smooth hump
-    const shape = Math.sin(Math.PI * t);
-    disp[idx] = sign * ampPhys * shape;
-    vel[idx] = 0;
+  // Seed a clean sine half-wave that travels in one direction only
+  // by setting both displacement and velocity: vel = -dir * c * du/dx
+  for (let i = 0; i <= pulseWidthN; i++) {
+    const idx = startIdx + i;
+    if (idx < 1 || idx >= N - 1) continue;
+    const xi = i * curDX;
+    const phase = Math.PI * xi / w;
+    const s = Math.sin(phase);
+    const cs = Math.cos(phase);
+    disp[idx] += sign * ampPhys * s;
+    vel[idx]  += -dir * c * sign * ampPhys * (Math.PI / w) * cs;
   }
 
   pulseActive = true;
@@ -898,7 +972,8 @@ function draw() {
   ctx.font = '11px Sarabun';
   ctx.textAlign = 'center';
   ctx.fillText('ปลายซ้าย (ส่งพัลส์)', startX, H - 10);
-  const rightLabel = endType === 'fixed' ? 'ปลายขวา (ตรึง)' : 'ปลายขวา (อิสระ)';
+  const rightLabel = endType === 'fixed' ? 'ปลายขวา (ตรึง)' :
+                     endType === 'absorb' ? 'ปลายขวา (ไม่สะท้อน)' : 'ปลายขวา (อิสระ)';
   ctx.fillText(rightLabel, endX, H - 10);
 }
 
@@ -945,24 +1020,19 @@ function drawSpring(ctx, startX, endX, centerY, isLong, pxPerM) {
     }
     ctx.lineWidth = 2.5;
   } else {
-    // Draw coils along centerline
+    // Draw coils along centerline — coil oscillation is always vertical for
+    // transverse (normal = global y) so the coils stay neat-looking even
+    // when the spring is deformed by a wave. For longitudinal view the
+    // coil shrinks/expands along x so the normal is the global y axis too.
     for (let s = 0; s <= resolution; s++) {
       const p = pts[s];
-      let tx, ty;
-      if (s === 0) { tx = pts[1].x - pts[0].x; ty = pts[1].y - pts[0].y; }
-      else if (s === resolution) { tx = pts[s].x - pts[s - 1].x; ty = pts[s].y - pts[s - 1].y; }
-      else { tx = pts[s + 1].x - pts[s - 1].x; ty = pts[s + 1].y - pts[s - 1].y; }
-
-      const tLen = Math.sqrt(tx * tx + ty * ty) || 1;
-      const nx = -ty / tLen;
-      const ny = tx / tLen;
 
       const coilPhase = p.t * numCoils * 2 * Math.PI;
       const r = COIL_RADIUS;
       const coilOsc = Math.sin(coilPhase) * r;
 
-      const px = p.x + nx * coilOsc;
-      const py = p.y + ny * coilOsc;
+      const px = p.x;
+      const py = p.y + coilOsc; // always perpendicular to the horizontal axis
 
       if (s === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
@@ -1000,7 +1070,24 @@ function drawSupports(ctx, startX, endX, centerY, H) {
   }
 
   // Right wall/ring
-  if (endType === 'fixed' && expMode !== 'twospring') {
+  const rightStyle = endType;
+  if (rightStyle === 'absorb') {
+    // Dashed damper symbol — wave energy absorbed
+    ctx.save();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(endX, centerY - 22);
+    ctx.lineTo(endX, centerY + 22);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px Sarabun';
+    ctx.textAlign = 'left';
+    ctx.fillText('absorb', endX + 4, centerY - 26);
+    ctx.restore();
+  } else if (rightStyle === 'fixed') {
     ctx.fillStyle = '#374151';
     ctx.fillRect(endX, centerY - 40, 12, 80);
     ctx.strokeStyle = '#4b5563';
@@ -1313,6 +1400,72 @@ function updateStopwatch() {
     swTime = simTime - swStartSimTime;
     document.getElementById('sw-display').textContent = formatTime(swTime);
   }
+  // Two-spring timers
+  ['a', 'b'].forEach(k => {
+    if (sw2[k].running) {
+      sw2[k].t = simTime - sw2[k].start;
+      const el = document.getElementById('sw2-disp-' + k);
+      if (el) el.textContent = formatTime(sw2[k].t);
+    }
+  });
+}
+
+// ---- Two-spring independent stopwatches ----
+const sw2 = { a: {running:false, t:0, start:0}, b: {running:false, t:0, start:0} };
+
+function toggleStopwatch2(key) {
+  const s = sw2[key];
+  s.running = !s.running;
+  const btn = document.getElementById('sw2-btn-' + key);
+  if (s.running) {
+    s.start = simTime;
+    s.t = 0;
+    btn.textContent = '⏸ หยุด';
+    btn.classList.add('playing');
+    showRuler = true;
+    document.getElementById('ruler-toggle').checked = true;
+  } else {
+    s.t = simTime - s.start;
+    btn.textContent = '▶ จับเวลา';
+    btn.classList.remove('playing');
+    document.getElementById('sw2-disp-' + key).textContent = formatTime(s.t);
+    calcTwoSpringV();
+  }
+  if (!isPlaying) draw();
+}
+
+function resetMeasurement2(key) {
+  sw2[key].running = false;
+  sw2[key].t = 0;
+  sw2[key].start = 0;
+  document.getElementById('sw2-disp-' + key).textContent = '00:00.00';
+  const btn = document.getElementById('sw2-btn-' + key);
+  btn.textContent = '▶ จับเวลา';
+  btn.classList.remove('playing');
+  document.getElementById('meas2-x1-' + key).value = '';
+  document.getElementById('meas2-x2-' + key).value = '';
+  calcTwoSpringV();
+}
+
+function calcTwoSpringV() {
+  const getV = (key) => {
+    const x1 = parseFloat(document.getElementById('meas2-x1-' + key).value);
+    const x2 = parseFloat(document.getElementById('meas2-x2-' + key).value);
+    const t = sw2[key].t;
+    if (isNaN(x1) || isNaN(x2) || t <= 0) return null;
+    return Math.abs(x2 - x1) / t;
+  };
+  const va = getV('a'), vb = getV('b');
+  document.getElementById('rd2-v-a').textContent = va !== null ? va.toFixed(3) : '—';
+  document.getElementById('rd2-v-b').textContent = vb !== null ? vb.toFixed(3) : '—';
+  const ratioEl = document.getElementById('rd2-ratio');
+  if (va !== null && vb !== null && va > 0) {
+    ratioEl.textContent = 'v₂/v₁ = ' + (vb / va).toFixed(3);
+  } else {
+    ratioEl.textContent = '—';
+  }
+  const theoryEl = document.getElementById('rd2-theory');
+  if (theoryEl) theoryEl.textContent = (1 / Math.sqrt(densityRatio)).toFixed(3);
 }
 
 // ==========================================
@@ -1400,12 +1553,14 @@ function setExpMode(mode, btn) {
   // Show/hide sections
   const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
   show('sec-pulse-type', mode === 'single' || mode === 'superpos');
-  show('sec-end-type', mode === 'single');
+  show('sec-end-type', true);
   show('sec-freq', mode === 'standing');
   show('sec-density', mode === 'twospring');
   show('sec-data', mode === 'single');
   show('sec-data2', mode === 'standing');
-  show('sec-measure', recMode === 'manual');
+  show('sec-measure', recMode === 'manual' && mode !== 'twospring');
+  show('sec-measure-two', recMode === 'manual' && mode === 'twospring');
+  if (mode === 'twospring') calcTwoSpringV();
 
   // Update pulse button
   const pulseBtn = document.getElementById('pulseBtn');
@@ -1460,7 +1615,8 @@ function setEndType(type, btn) {
 }
 
 function updateEndTypeUI() {
-  document.getElementById('tag-end').textContent = endType === 'fixed' ? 'ปลายตรึง' : 'ปลายอิสระ';
+  const endLabels = { fixed: 'ปลายตรึง', free: 'ปลายอิสระ', absorb: 'ไม่สะท้อน' };
+  document.getElementById('tag-end').textContent = endLabels[endType] || 'ปลายอิสระ';
 }
 
 function toggleRecMode() {
@@ -1471,7 +1627,8 @@ function toggleRecMode() {
   document.getElementById('tag-rec').textContent = recMode === 'manual' ? '📏 วัดค่าเอง' : '🤖 อัตโนมัติ';
 
   const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
-  show('sec-measure', recMode === 'manual');
+  show('sec-measure', recMode === 'manual' && expMode !== 'twospring');
+  show('sec-measure-two', recMode === 'manual' && expMode === 'twospring');
   // Auto-show ruler in manual mode
   showRuler = (recMode === 'manual');
   document.getElementById('ruler-toggle').checked = showRuler;
@@ -1486,7 +1643,7 @@ function toggleRope() { showRope = document.getElementById('rope-toggle').checke
 
 function updateHint() {
   const hints = {
-    'single-manual': 'กดปุ่ม "ส่งพัลส์" → สังเกตการเดินทางและสะท้อน → ใช้นาฬิกาจับเวลาเพื่อวัด → บันทึกลงตาราง ลองเปลี่ยนปลาย Fixed/Free เพื่อเห็นความแตกต่าง',
+    'single-manual': 'กดปุ่ม "ส่งพัลส์" → สังเกตการเดินทางและสะท้อน → ใช้นาฬิกาจับเวลาเพื่อวัด → ลองเปลี่ยนปลาย Fixed (สะท้อนกลับหัว) / Free (สะท้อนไม่กลับหัว) / Absorb (ไม่มีการสะท้อน)',
     'single-auto': 'กดปุ่ม "ส่งพัลส์" → ระบบจะวัดและบันทึกค่าอัตโนมัติ ลองเปรียบเทียบ Transverse กับ Longitudinal → คลื่นตามยาวเร็วกว่า!',
     'standing-manual': 'กด ▶ เริ่ม → สปริงจะสั่นต่อเนื่อง → ปรับ f จนเห็นคลื่นนิ่ง → จุดสีเขียว (N) = node, สีชมพู (A) = antinode → วัดระยะ nodes',
     'standing-auto': 'กด ▶ เริ่ม → ระบบจะระบุ nodes อัตโนมัติ → ค่า v, λ แสดงใน readout → ลองปรับ f เพื่อเปลี่ยนจำนวน nodes',
@@ -2041,6 +2198,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sl-dratio').addEventListener('input', (e) => {
     densityRatio = parseFloat(e.target.value);
     mu2 = mu1 * densityRatio;
+    if (typeof calcTwoSpringV === 'function') calcTwoSpringV();
   });
   document.getElementById('sl-speed').addEventListener('input', (e) => {
     speed = parseFloat(e.target.value);
