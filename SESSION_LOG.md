@@ -383,3 +383,61 @@ match /settings/{docId} {
 - v = 2 m/s คงที่เพื่อให้สื่อสาร Δt เป็นวินาที + รัศมีเป็นเมตรอ่านง่าย
 - envelope rendering: sample 180 angle/source → keep points ที่ไม่อยู่ใน circle ของ source อื่น → วาดเป็น arc ด้วยการ group contiguous angles
 - ผู้ใช้บอกชัดว่า "เป็นเดโม ไม่ต้องวัด" → ตัด tab "วิธีการทดลอง/บันทึกผล" ออก เหลือแค่ 2 tabs
+
+## [2026-04-18] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 41 — การแทรกสอดของคลื่นผิวน้ำ (Two-Source Interference)**
+- 3 tabs: การทดลอง / วิธีการทดลอง+บันทึกผล / ทฤษฎี
+- แหล่งกำเนิด 2 แบบ: (1) ช่องแคบคู่ (in-phase เสมอ) (2) จุดสั่น 2 อัน เลือกเฟสตรงกัน/ตรงข้ามได้
+- ปรับได้: d (2-10 cm), f (4-20 Hz), v (10-40 cm/s) + ปุ่ม 🎲 สุ่ม v ซ่อนค่าจริง
+- Wave rendering: ImageData 280×168 grid, Σ cos(kr−ωt) กับ causality (คลื่นยังไม่ถึงจุดไม่มี amp)
+- **การทดลอง 1 (Path diff):** คลิก P → แสดง S₁P, S₂P, Δr → เลือกชนิด/n → λ = Δr/div
+- **การทดลอง 2 (มุม θ):** ไม้โปรแทกเตอร์วงกลม centered ที่ M → นักเรียนอ่านมุมกรอก → λ = d·sinθ/div
+- Hint toggle: วาด hyperbola (Δr=mλ) เขียว=ปฏิบัพ, ฟ้าประ=บัพ (สลับเมื่อ anti-phase)
+- 2 โหมดบันทึก: บันทึกเอง (default) / อัตโนมัติ (autoFill: A₁,A₂,A₃,N₁,N₂)
+- ตาราง + CSV export + summary (mean, SD, %error เทียบ λ จริง)
+- Tab ทฤษฎี: canvas 3 รูป (superposition, interference pattern, far-field geometry d·sinθ)
+
+### Verification (preview)
+- autoFill1 + autoFill2 ที่ d=5cm, f=10Hz, v=22cm/s → λ_exp = 2.20 cm ทุกจุด = λ_true ✓
+- ไม่มี console errors
+- Pattern แสดงผลถูกต้อง (ช่องแคบคู่ + barrier) · theory canvases render ครบ
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/41. wave-interference-two-source.html` — ไฟล์ใหม่
+- รัน `protect_new_file.py` ✅ (GA + topbar + watermark + firebase + access guard)
+- `kp-auth.js` — เพิ่ม `'lab-41'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-41'` ใน VLAB_SERIES + entry `{id:'lab-41',label:'Lab 41 (การแทรกสอดคลื่นผิวน้ำ)'}` ใน LAB_LIST
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม card + canvas preview ใน `virtual-physics-lab-02.html`, `library.html`, `index.html` สำหรับ Lab 41
+- ยังไม่ได้ push git
+- ถาม user: ต้องการเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ไหม?
+
+### หมายเหตุ
+- Physics: in-phase → Δr=nλ (A), (n-½)λ (N) · anti-phase → สลับ
+- Far-field: d sinθ = nλ (antinode, in-phase)
+- Coord: sources on vertical line x=5cm, y=±d/2 · central axis = +x direction · angle from M relative to +x
+- Wave colormap: blue-cyan-white gradient (0-255 mapping from u∈[-2,2])
+- Hyperbola hint: y=sign·a·cosh(t), x=xM+b·sinh(t), a=|m|λ/2, b=√(c²-a²)
+
+## [2026-04-18 update 2] Lab 41 · เพิ่มโหมดช่องแคบเดียว
+
+### ทำอะไรไปบ้าง
+- เพิ่มโหมดที่ 3: **ช่องแคบเดียว (Single-slit diffraction)** ในปุ่ม source-type toggle
+- สูตรการเลี้ยวเบน: minima (บัพ) a sinθ = nλ · secondary maxima (ปฏิบัพ) a sinθ ≈ (n+½)λ
+- Rendering: sum ของ Huygens wavelets N=12 ตัวข้าม slit width (ใช้ sR·cos(ωt) + sI·sin(ωt) optimization)
+- Barrier เปลี่ยนจาก 2 ช่อง → 1 ช่องกว้าง a · labels เปลี่ยนเป็น "บน/ล่าง" แทน S₁/S₂
+- Slider label เปลี่ยน dynamic: d ↔ a · hint hyperbolae ปรับใหม่ (dark=nλ, bright=n+0.5 λ)
+- `getDiv()` + `mDiffFor()` helpers จัดการสูตรตาม source type อัตโนมัติ
+- Alert n=0 ใน single-slit (central max คำนวณ λ ไม่ได้)
+- Theory tab: เพิ่มหัวข้อ 7 "ช่องแคบเดียว — การเลี้ยวเบน" (Huygens wavelet analysis, เปรียบเทียบกับช่องแคบคู่, ความกว้าง central max)
+- Procedure tab: เพิ่มการทดลองที่ 3 (single-slit) — 6 ขั้นตอน + hints
+
+### Verification
+- autoFill1 + autoFill2 ใน single-slit mode (a=5cm, f=10Hz, v=22cm/s → λ=2.2cm)
+- ทุก λ_exp = 2.200 cm = λ_true ✓ (A1, N1, N2 ใน table 1 · A1, N1, N2 ใน table 2)
+- Angles ถูกต้อง: N1 sinθ=λ/a=0.44 → 26.1° ✓ · N2 sinθ=0.88 → 61.6° ✓ · A1 sinθ=(1+0.5)·0.44=0.66 → 41.3° ✓
+- Pattern render: central max กว้าง + diffraction fringes ข้าง ๆ ดูถูกต้อง
+- ไม่มี console errors
