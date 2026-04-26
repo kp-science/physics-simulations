@@ -38,12 +38,12 @@ const VLAB_SERIES = {
     label: 'Virtual Lab 01',
     labs: ['lab-1','lab-2','lab-3','lab-4','lab-5','lab-6.1','lab-6.2','lab-6.3',
            'lab-7','lab-8','lab-9','lab-10','lab-11','lab-12','lab-13','lab-14',
-           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21']
+           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21','lab-42']
   },
   vpl02: {
     label: 'Virtual Lab 02',
     labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
-           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42']
+           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41']
   }
 };
 
