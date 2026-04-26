@@ -441,3 +441,32 @@ match /settings/{docId} {
 - Angles ถูกต้อง: N1 sinθ=λ/a=0.44 → 26.1° ✓ · N2 sinθ=0.88 → 61.6° ✓ · A1 sinθ=(1+0.5)·0.44=0.66 → 41.3° ✓
 - Pattern render: central max กว้าง + diffraction fringes ข้าง ๆ ดูถูกต้อง
 - ไม่มี console errors
+
+## [2026-04-26] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- ย้ายไฟล์ `SHM01_SHM-Identifier_protected.html` จาก `Virtual Physics Lab 02/` → `Demo/`
+- รัน `python3 _admin/protect_new_file.py Demo/SHM01_SHM-Identifier_protected.html` → injection: GA, DOMAIN, TOPBAR, MOBILE, WATERMARK, FIREBASE_CDN, KP_AUTH, ACCESS_GUARD ครบ
+- Verify: GA `G-2YTJBNHP6D` ✓ · firebase ✓ · kp-topbar ✓ · watermark.js ✓ (ไม่มี duplicate injection)
+
+### ไฟล์ที่แก้
+- `Demo/mechanics/SHM/SHM01_SHM-Identifier_protected.html` — ไฟล์ใหม่ (ย้ายจาก VPL02 → Demo/mechanics/SHM/ + protect)
+- QA graphic + ปรับ CSS ในไฟล์เดิม:
+  - แก้ bug: `#tab-sim` แสดงตลอดเวลา (ID specificity beat `.tab-section{display:none}`) → เปลี่ยนเป็น `#tab-sim.tab-section.active{...}`
+  - เพิ่ม height calc ให้รวม KP topbar (110→178px) + `min-height:560px`
+  - Cap `.canvas-wrap{max-height:520px}` (เดิมยืดถึง ~819px ทำให้ pendulum/canvas ใหญ่เกิน)
+  - เพิ่ม media query 820px (stack canvas + graph-panel แนวตั้ง, slider 50%) + 480px (slider 100%)
+- Verified ใน preview: ทั้ง 6 scenario + 3 tab ทำงาน · graphs F-x/x-t/v-t วาดถูก (linear / sin / cos shifted) · ไม่มี console errors
+- แก้สูตร scale ใน `drawPendulum` (decode base64 JS → patch → re-encode): เปลี่ยนจาก `min(H-80,W*0.4)/A` (ผกผันกับ A → เชือกยาวเกินกรอบเมื่อ A เล็ก) เป็น `pxPerM = min((H-rootY-40)/Lmax, (W*0.45)/A)` ทำให้ L=2.5m (max) พอดีกรอบ 520px ไม่ล้น
+- เขียน `drawConicalPendulum` ใหม่เป็นกรวย 3D: cone outline + orbit ellipse แบ่ง front (solid)/back (dashed) + bob ขนาด/glow ตามความลึก + axis dashed + pivot fixture + centripetal arrow
+- แก้ `calcAmplitude case 1` (`A_pct * lk * 0.5` → `lk * sin(A_pct * π/1.5)`) ให้ A_pct=50% ได้ cone half-angle 60° เห็นวงโคจรชัด
+
+### นำเข้าเว็บไซต์
+- รัน `protect_new_file.py` ✅ (idempotent — DOMAIN/MOBILE re-injected ไม่มี duplicate)
+- เพิ่ม card ใน [demo-mechanics.html](demo-mechanics.html) section "การสั่น · SHM" — accent2 (purple), preview canvas, FREE tag, badges SHM + Identifier · เปลี่ยน count จาก 1 → 2 simulations
+- เพิ่ม link ใน [library.html](library.html) section "🌀 การสั่น · SHM" (lib-item #25) · เลื่อน SHM Simulation เดิม → #26
+- Verified: คลิก card → เปิดไฟล์ปกติ, title = "SHM01 — SHM Identifier | KP Science Simulation", ไม่มี console errors
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม card ใน `index.html` / `library.html` / `demo-*.html` สำหรับ SHM Identifier
+- ยังไม่ได้ push git
