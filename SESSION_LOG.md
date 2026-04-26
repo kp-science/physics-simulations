@@ -499,3 +499,89 @@ match /settings/{docId} {
 ### หมายเหตุ
 - Spring Builder ใช้ toggle (series/parallel/single) + dropdown จำนวนสปริง แทน drag-drop UI จริง — เพราะ drag-drop ใน canvas ซับซ้อนเกินสำหรับขนาดหน้านี้ แต่ผลลัพธ์ทาง physics + visual ครบถ้วน
 - ฐาน C (Dual-view) เป็นไฮไลต์สำหรับแก้ M3.3/M3.4 ชัดเจนมาก
+
+---
+
+## [2026-04-27] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง Lab 44 — SHM06 Damping & Resonance (`44. shm-damping-resonance.html`)
+- 3 Tabs: Simulation / วิธีการทดลอง / ทฤษฎี (พร้อม Misconception Traps M6.1, M6.2, M6.3)
+- 3 ฐาน (focus ทีละฐานผ่าน sub-nav):
+  - **ฐาน A · Damping Sweep** — slider b/k/m/A₀ + preset b={0,0.1,0.5,1.0} · ปุ่ม "🔖 จับคาบ T (ที่ peak)" ตรวจ peak อัตโนมัติแล้วบันทึกตาราง · readout T, ω₀, ω_d, regime (under/critical/over) · canvas มี dashpot แสดง b
+  - **ฐาน B · Resonance Sweep** — slider f_drive/F₀/b/k/m · 2 โหมด: Manual (default, กดปุ่ม "📍 บันทึกจุดนี้") + Auto-Sweep (กวาด 0.1→3 Hz ใน ~30s) · readout f_n, A_steady (ทฤษฎี), Q, FWHM · กราฟแสดง Lorentzian theory + จุดที่บันทึก + marker f_drive (สี pink) + f_natural (สี green)
+  - **ฐาน C · Preset Cases** — 6 preset: Tacoma, Wine Glass, ชิงช้า, MRI, LIGO, Taipei 101 · case-info card + วิดีโอ placeholder (มี TODO comment ขอ Gemini prompt) + PBL radio (use/prevent) + textarea reason
+- Physics integrator: semi-implicit Euler (4 substeps/frame), peak detection จาก zero-crossing ของ velocity
+- Click/drag บนกราฟ A vs f เพื่อตั้ง f_drive ได้
+- ปุ่ม Export ดาวน์โหลด JSON ครบ: `b_values_tried`, `damping_log`, `f_drive_sweep_data`, `resonance_peak_identified`, `preset_cases_explored`, `Q_factor`, `f_natural`, `PBL_design_choice`
+- Tab 2: วิธีทดลองทีละฐาน + ตารางบันทึกเปล่าให้ปริ้น + checklist ก่อนส่งงาน
+- Tab 3: ทฤษฎี damped SHM (พร้อม SVG x(t) + envelope), Lorentzian curve (3 ค่า b ทับกัน), Q-factor, Misconception Traps M6.1-M6.3 พร้อมการทดลองยืนยัน, การประยุกต์ในชีวิตจริง 6 กรณี
+- Verified ใน preview:
+  - f_natural = √(200/1)/(2π) = 2.25 Hz ✓
+  - T_calc = 0.444 s ตรงกับสูตร ✓
+  - Peak detection: T_meas = 0.444 s (ตรงทฤษฎี ที่ b=0.2) ✓
+  - A_resonance ที่ f_drive=f_n: F₀/(b·ω₀) = 1/(0.3×14.14) = 0.2357 m ตรงกับ readout ✓
+  - Regime classification: under-damped ✓
+  - ไม่มี console errors
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 01/Mechacnics/44. shm-damping-resonance.html` — สร้างใหม่
+- `kp-auth.js` — เพิ่ม `'lab-44'` ใน VLAB_SERIES.vpl01.labs
+- `_admin/admin.html` — เพิ่ม `'lab-44'` ใน VLAB_SERIES + LAB_LIST entry "Lab 44 (SHM06 Damping & Resonance)"
+- รัน `python3 _admin/protect_new_file.py` ✅ (FRAME, TOPBAR, MOBILE, WATERMARK, FIREBASE_CDN, KP_AUTH, ACCESS_GUARD ครบ)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม card ใน `index.html` / `library.html` / `virtual-physics-lab-01.html` สำหรับ Lab 44
+- ยังไม่ได้เจนวิดีโอจริงสำหรับ preset cases (ใช้ placeholder + TODO comment สำหรับ Gemini Video prompt)
+- ยังไม่ได้ push git
+- ยังไม่ได้เพิ่ม Part 1 (POE) / Part 3 (แบบฝึกหัด) — รอผู้ใช้ตัดสินใจ
+
+### หมายเหตุ
+- Auto-sweep ใช้เวลา ~30 วิ เพื่อให้แต่ละความถี่มีเวลา settle ก่อน sample (อาจปรับลด/เพิ่มได้)
+- Click-drag บนกราฟทำงานทั้ง mouse + touch — เปลี่ยน f_drive แบบ interactive
+- ในการ์ด Preset Cases มี comment `TODO[Gemini-video]` พร้อม prompt template ที่ละเอียด — เมื่อเจนวิดีโอแล้ว replace `<div class="vid-placeholder">` ด้วย iframe/video tag
+- Q ที่แสดงใน HUD ใช้สูตร √(km)/b — ถ้า b เล็กมาก (เช่น 0.05) Q จะสูงมาก (~283) ตามจริง wine glass
+
+## [2026-04-27 — รอบ 2] — Redesign Lab 44
+
+### ทำอะไรไปบ้าง
+- **ฐาน A** เพิ่มโหมดบันทึกเอง (default) ใช้ caliper:
+  - กราฟ A(t) แสดงเส้นต่อเนื่อง 8s window (TRACE_MAX=600, push 1 ครั้ง/frame)
+  - ปุ่ม ⏸ หยุด → caliper เปิดใช้ snap-to-peak (เมื่อ paused)
+  - ลาก 2 เส้นประส้ม/ชมพูบนกราฟวัด Δt → กดบันทึก T₁ → ลากใหม่กดบันทึก T₂
+  - คำนวณ %error ระหว่าง T₁/T₂ + เทียบกับ T_ทฤษฎี
+  - ตารางบันทึกเปลี่ยน column: # · b · T วัด · T ทฤษฎี · %error
+  - โหมด 👁 เผยเฉลย: ปุ่มจับคาบอัตโนมัติเดิม
+- **ฐาน B** เพิ่มโหมดบันทึกเอง (default) แบบ blind:
+  - ซ่อนเส้นประ f_natural บนกราฟ + ซ่อนค่า readout (มาส์ก [ซ่อน])
+  - นักเรียนลาก slider f_drive หา peak amp เอง
+  - ปุ่ม "📍 บันทึก peak (f นี้คือ resonance)" → เผยค่าจริง + %error (สีตามระดับ error)
+  - โหมด 👁 เผยเฉลย: เห็น f_n + Auto-Sweep
+- **ฐาน C** redesign:
+  - เพิ่ม slider f_drive แยก (sl-fdC) sync กับ Base B physics
+  - 6 case-specific canvas drawers:
+    - 🌉 Tacoma — สะพานแขวน 2 ทาวเวอร์ + cable + deck twist + wind streamlines
+    - 🍷 Wine Glass — แก้วคริสตัล + ขอบสั่นเป็น ellipse + speaker + cracks เมื่อ A สูง
+    - 🎡 ชิงช้า — frame + เด็ก + chain + pusher arrow + ground
+    - 🧲 MRI — magnet bore + 5 proton spins precessing + RF pulse rings
+    - 🌌 LIGO — L-shape interferometer + 4-km arms + suspended mirrors + GW wave
+    - 🏢 Taipei 101 — building cross-section + windows + tuned mass damper (counter-phase)
+  - canvas เปลี่ยนตาม case ที่เลือก (delegate ใน draw())
+  - ปุ่ม "📍 บันทึก resonance ของ case นี้" → เผย f_natural จริง + %error
+  - loadCase ตั้ง f_drive เริ่มต้นที่ 30% ของ f_n เพื่อให้นักเรียนต้องค้นหา
+- **Tab 3** เพิ่มการ์ด "🎬 Gemini Video Prompts" รายละเอียดเต็มทั้ง 6 cases (12-14 sec each, color palette, HUD overlay, style guidelines, สิ่งที่ควรเลี่ยง)
+- **Tab 2** อัปเดตวิธีทดลองทั้ง 3 ฐานให้ตรงกับ workflow ใหม่
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 01/Mechacnics/44. shm-damping-resonance.html` — redesign ครั้งใหญ่ (+~600 บรรทัด)
+
+### Verified ใน preview
+- Base A: trace ต่อเนื่อง 18 รอบ/8s ตรงกับ f=2.25 Hz ✓ · envelope ส้มเทียบ A₀·exp(-bt/2m) ✓ · caliper handles + Δt label render ถูก
+- Base B: เปลี่ยน mode → mask ตัว f_n ทั้ง readout และเส้นประบนกราฟ ✓
+- Base C: tacoma → canvas เป็นสะพานพร้อม wind, twist, towers ✓ · f_drive slider sync ✓ · loadCase set f เริ่มต้น 0.19 Hz (30% ของ 0.64 Hz) ✓
+- ไม่มี console errors
+
+### หมายเหตุ
+- Snap-to-peak ทำงานเมื่อ paused เท่านั้น — ตอน playing นักเรียนลากได้อิสระ
+- TRACE_MAX=600 เก็บ ~10s ที่ 60 fps (เกิน 8s window พอดี)
+- Caliper ในกราฟต้องลากครอบ ≥2 peak เพื่อวัดคาบจริง — ระบบเตือนถ้า Δt < 0.05s
