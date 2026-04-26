@@ -43,7 +43,7 @@ const VLAB_SERIES = {
   vpl02: {
     label: 'Virtual Lab 02',
     labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
-           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41']
+           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42']
   }
 };
 

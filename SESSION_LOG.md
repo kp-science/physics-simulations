@@ -470,3 +470,32 @@ match /settings/{docId} {
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
 - ยังไม่ได้เพิ่ม card ใน `index.html` / `library.html` / `demo-*.html` สำหรับ SHM Identifier
 - ยังไม่ได้ push git
+
+---
+
+## [2026-04-26 14:30] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง Lab 42 — SHM03 Spring Builder (อนุกรม/ขนาน + ดิ่ง/ระดับ)
+- 3 tabs: Simulation / วิธีการทดลอง / ทฤษฎี (มี SVG visual diagrams)
+- 3 ฐาน: A·Builder (single/series/parallel × 1-3 springs), B·F-x Graph (Hooke's slope = -k_eff), C·Dual-view (horizontal vs vertical)
+- 2 โหมดบันทึก: Manual (default, มี virtual stopwatch + lap + บันทึก row) / Auto (sample 0.1s + CSV export)
+- Misconception traps M3.1-M3.4 (interactive radio + ตรวจ + เฉลย)
+- Energy bars (KE/PE_spring/PE_g/E_tot) real-time
+- g dropdown (โลก/จันทร์/อังคาร/พฤหัส/อวกาศ)
+- Verified ในเบราว์เซอร์: k₁=100,k₂=200 series → k_eff=66.67 ✓, T=0.770s ✓, KE+PE=½kA²=0.75J ✓ (energy conserved), x₀=mg/k=14.7cm ✓
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/42. shm-spring-builder.html` — สร้างใหม่
+- `kp-auth.js` — เพิ่ม `'lab-42'` ใน VLAB_SERIES.vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-42'` ใน VLAB_SERIES + LAB_LIST entry
+- รัน `protect_new_file.py` ✅ (GA, Topbar, Watermark, Firebase, Access guard)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่ม card ใน `index.html` / `library.html` / `virtual-physics-lab-02.html` สำหรับ Lab 42
+- ยังไม่ได้ push git
+- ยังไม่ได้เพิ่ม Part 1 (POE) / Part 3 (แบบฝึกหัด) — รอผู้ใช้ตัดสินใจ
+
+### หมายเหตุ
+- Spring Builder ใช้ toggle (series/parallel/single) + dropdown จำนวนสปริง แทน drag-drop UI จริง — เพราะ drag-drop ใน canvas ซับซ้อนเกินสำหรับขนาดหน้านี้ แต่ผลลัพธ์ทาง physics + visual ครบถ้วน
+- ฐาน C (Dual-view) เป็นไฮไลต์สำหรับแก้ M3.3/M3.4 ชัดเจนมาก
