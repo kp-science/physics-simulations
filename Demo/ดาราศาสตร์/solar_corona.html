@@ -1,0 +1,604 @@
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<!-- อ้างอิง: Edlén (1942) discovered FeXIV → 2M K | Parker Solar Probe (NASA 2018) | NASA SDO -->
+<!-- ขอบเขต: จำลองโครงสร้างชั้นดวงอาทิตย์ + กราฟ T(r) | Coronal Heating Paradox ยังไม่มีคำตอบสมบูรณ์ -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar Layers · Coronal Heating Paradox — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03040d; --panel:#0a0e1c; --panel2:#10172a; --border:#1a2a45;
+  --accent:#fb923c; --a2:#818cf8; --a3:#34d399; --a4:#fbbf24; --a5:#f472b6;
+  --text:#e2e8f0; --muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#060914,#0f172a);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1a1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.scope{background:#04060f;border-left:3px solid var(--accent);padding:5px 20px;font-size:11px;color:var(--muted)}
+
+nav.tabs{display:flex;gap:4px;padding:8px 20px;background:#080b18;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.83rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.83rem;transition:opacity .15s}
+.btn-reset{background:#1e3a8a;color:#93c5fd;border:1px solid #1d4ed8}
+.cbar-sep{width:1px;height:22px;background:var(--border)}
+.tog{padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.tog.on{border-color:var(--a3);color:var(--a3);background:#052e1e}
+
+.sim-layout{display:flex;height:calc(100vh - 196px);min-height:480px}
+.cvs-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(circle at center,#1a0e05 0%,#01020a 75%)}
+#simCanvas{display:block;width:100%;height:100%}
+.sim-panel{width:320px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.psec{border-bottom:1px solid var(--border);padding-bottom:10px}
+.ptitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+
+.li{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:var(--panel2);margin-bottom:4px;transition:all .15s}
+.li:hover{border-color:var(--accent)}
+.li.sel{border-color:var(--accent);background:#1a1a3a;box-shadow:0 0 14px rgba(251,146,60,0.2)}
+.li .swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.li .nm{font-size:.83rem;font-weight:700}
+.li .desc{grid-column:2;grid-row:2;font-size:.7rem;color:var(--muted)}
+.li .T{font-family:'Share Tech Mono',monospace;color:var(--a3);font-size:.78rem;font-weight:700}
+
+.tcurve canvas{display:block;width:100%;background:#01020a;border:1px solid var(--border);border-radius:6px}
+
+.dsec{padding:18px;max-width:920px}
+.dsec h2{font-size:1.05rem;color:var(--accent);margin-bottom:12px}
+.dsec p{font-size:.86rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.fbox{background:var(--panel2);border-left:3px solid var(--a3);border-radius:0 7px 7px 0;padding:9px 13px;font-family:'Share Tech Mono',monospace;font-size:.86rem;color:var(--a3);margin:9px 0}
+.law{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.law-n{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px}
+.law h3{font-size:.95rem;color:var(--text);margin-bottom:7px}
+.law p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+.footer{text-align:center;padding:7px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:900px){.sim-layout{flex-direction:column;height:auto}.cvs-wrap{height:60vw;min-height:340px}.sim-panel{width:100%;border-left:none;border-top:1px solid var(--border)}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="demo:astronomy">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../../index.html#demos">Demo</a><a href="../../index.html#collections">Collections</a><a href="../../library.html">Library</a><a href="../../index.html#about">เกี่ยวกับ</a><a href="../../index.html#contact">ติดต่อ</a></div>
+  <a href="../../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🌌</div>
+  <div>
+    <h1>Solar Layers · Coronal Heating Paradox</h1>
+    <p>โครงสร้างชั้นดวงอาทิตย์ · T พุ่งกลับขึ้นที่ corona · ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<div class="scope">⚠️ จำลองชั้นเชิงคุณภาพ (ไม่ใช่ scale จริง) | T(r) ใช้ standard solar model | Coronal Heating ยังเป็น open problem</div>
+
+<nav class="tabs">
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<div class="section active" id="sec-sim">
+  <div class="cbar">
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="cbar-sep"></div>
+    <button class="tog on" id="tFlares" onclick="togFeat('flares')">solar flare</button>
+    <button class="tog on" id="tStreamer" onclick="togFeat('streamer')">coronal streamer</button>
+    <button class="tog on" id="tField" onclick="togFeat('field')">เส้นแม่เหล็ก</button>
+    <button class="tog" id="tLabel" onclick="togFeat('label')">ฉลากชั้น</button>
+    <span style="margin-left:auto;font-size:.78rem;color:var(--muted)">คลิกชั้นด้านขวาเพื่อ zoom</span>
+  </div>
+
+  <div class="sim-layout">
+    <div class="cvs-wrap"><canvas id="simCanvas"></canvas></div>
+
+    <div class="sim-panel">
+      <div class="psec">
+        <div class="ptitle">ชั้นต่าง ๆ ของดวงอาทิตย์</div>
+        <div id="layerList"></div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">กราฟ T(r) — Temperature Profile</div>
+        <div class="tcurve">
+          <canvas id="tChart" width="280" height="220"></canvas>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.5">
+          <span style="color:var(--accent)">●</span> ชั้นที่เลือก · <span style="color:#7f1d1d">━</span> T ลด core→photo · <span style="color:#b980ff">━</span> <b>กระโดดขึ้น</b>ที่ corona!
+        </div>
+      </div>
+
+      <div class="psec" style="border-bottom:none">
+        <div class="ptitle">Coronal Heating Paradox</div>
+        <div style="background:rgba(244,114,182,0.08);padding:10px;border-radius:8px;border:1px solid var(--a5);font-size:.79rem;line-height:1.7">
+          <b style="color:var(--a5)">⚠ ปริศนาที่ยังแก้ไม่ได้:</b><br>
+          T ลดจาก core (15M K) → photosphere (5,778 K) อย่างที่ควร <br>
+          <b>แต่กระโดดกลับขึ้น</b>เป็น 2,000,000 K ใน corona<br>
+          ร้อนกว่า photosphere <b>~340 เท่า</b> · ฝืนกฎอุณหพลศาสตร์?
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec-theory">
+  <div class="dsec">
+    <h2>📐 โครงสร้างดวงอาทิตย์ + Coronal Heating Paradox</h2>
+
+    <div class="law">
+      <div class="law-n">ภายใน — Core → Radiative → Convective</div>
+      <h3>Core (15M K) → Radiative zone (7M→2M K) → Convective zone (2M→5,778 K)</h3>
+      <p>Core: nuclear fusion p–p chain 4H → He · พลังงานออกมาเป็นโฟตอน γ-ray<br>
+      Radiative zone: photon diffusion ~170,000 ปีกว่าจะออก<br>
+      Convective zone: hot plasma ขึ้น cool plasma ลง · เกิด granulation ที่ผิว</p>
+      <div class="fbox">Core T = 15.7 × 10⁶ K, ρ = 150 g/cm³ &nbsp;|&nbsp; ปฏิกิริยา: 4¹H → ⁴He + 2e⁺ + 2νₑ + 26.7 MeV</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">ผิว — Photosphere (5,778 K)</div>
+      <h3>ชั้นที่เราเห็นเป็น "ผิวดวงอาทิตย์" · ปล่อยแสง visible ส่วนใหญ่</h3>
+      <p>หนา ~500 km · เป็นชั้นที่ optical depth = 1 (โปร่งแสงสำหรับโฟตอน) · มี <b>granulation</b> (cell convection ขนาด ~1,000 km) และ <b>sunspot</b> (T ต่ำ ~4,000 K)</p>
+      <div class="fbox">T_eff = 5,778 K (Stefan-Boltzmann fit) &nbsp;|&nbsp; ความหนาแน่น ~10⁻⁷ g/cm³</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">ชั้นบรรยากาศ — Chromosphere → Corona</div>
+      <h3>Chromosphere: T เพิ่มจาก 5,778 K → 25,000 K · Transition region: spike → 1M K · Corona: ~2M K</h3>
+      <p>Chromosphere มองเห็นเป็นแสงสีแดง (Hα) ระหว่าง total solar eclipse · Corona เป็นชั้นนอกสุด — เห็นเป็น "มงกุฎ" รอบดวงอาทิตย์ขณะ eclipse · ขยายไปเป็น <b>solar wind</b> ตลอดทั้งระบบสุริยะ</p>
+    </div>
+
+    <div class="law" style="border-color:var(--a5)">
+      <div class="law-n" style="color:var(--a5)">Coronal Heating Paradox</div>
+      <h3>ทำไม corona ร้อนกว่าผิว ~340 เท่า?</h3>
+      <p><b>ปกติ:</b> heat ไหลจาก hot → cold (กฎข้อ 2 อุณหพลศาสตร์) ดังนั้น corona ที่ห่างจากแหล่งกำเนิด (core) ควร <b>เย็นกว่า</b> photosphere · แต่จริง <b>ร้อนกว่ามาก</b><br>
+      <b>สมมติฐานหลัก 2 ทาง:</b><br>
+      <b>1. Wave heating</b> — Alfvén waves พา energy จากผิวขึ้นไป dissipate ใน corona<br>
+      <b>2. Nanoflares</b> — magnetic reconnection ขนาดเล็กเกิดถี่ ๆ ปล่อยพลังงานทีละนิด<br>
+      Parker Solar Probe (NASA 2018–) เข้าใกล้ corona ตรง ๆ เพื่อหาคำตอบ</p>
+      <div class="fbox">T_photo / T_corona = 5,778 / 2,000,000 ≈ 1/346 &nbsp;|&nbsp; ฝืน 2nd law (เห็นเฉย ๆ) แต่ไม่ฝืนจริงเพราะมี energy injection</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">อ้างอิง: Edlén (1942) | Parker (1958) solar wind | Parker Solar Probe (2018) | NASA SDO &nbsp;|&nbsp; © 2568 KP Science simulation สงวนลิขสิทธิ์</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// LAYER DATA
+// ═══════════════════════════════════════════════
+const LAYERS = [
+  {id:'core',     name:'Core',           T:15700000, rNorm:[0, 0.25],     color:'#fff5cc', desc:'ปฏิกิริยานิวเคลียร์ p–p chain'},
+  {id:'rad',      name:'Radiative Zone', T:5000000,  rNorm:[0.25, 0.7],   color:'#fbbf24', desc:'photon diffusion ~170k ปี'},
+  {id:'conv',     name:'Convective Zone',T:1000000,  rNorm:[0.7, 1.0],    color:'#fb923c', desc:'hot plasma ขึ้น · cool plasma ลง'},
+  {id:'photo',    name:'Photosphere',    T:5778,     rNorm:[1.0, 1.005],  color:'#dc2626', desc:'ผิวที่เราเห็น · granulation'},
+  {id:'chromo',   name:'Chromosphere',   T:25000,    rNorm:[1.005, 1.02], color:'#ec4899', desc:'แสง Hα สีแดง · spicules'},
+  {id:'trans',    name:'Transition Region',T:500000, rNorm:[1.02, 1.025], color:'#a855f7', desc:'เปลี่ยนจาก 25k → 1M K ภายใน 100 km'},
+  {id:'corona',   name:'Corona',         T:2000000,  rNorm:[1.025, 1.5],  color:'#b980ff', desc:'มงกุฎสุริยะ · solar wind origin'},
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let canvas, ctx, CW, CH;
+let tChartCanvas, tChartCtx;
+let selectedLayer = 'photo';
+let showFlares = true, showStreamer = true, showField = true, showLabel = false;
+let phase = 0;
+let lastTs = null;
+
+// ═══════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════
+function fitCanvas(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  CW = r.width; CH = r.height;
+  canvas.width = CW*dpr; canvas.height = CH*dpr;
+  canvas.style.width = CW+'px'; canvas.style.height = CH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function draw(){
+  ctx.fillStyle = '#01020a';
+  ctx.fillRect(0,0,CW,CH);
+
+  const cx = CW/2, cy = CH/2;
+  const Rsun = Math.min(CW, CH) * 0.30;
+
+  // Corona (largest, outermost)
+  const coronaGrad = ctx.createRadialGradient(cx, cy, Rsun*1.0, cx, cy, Rsun*1.85);
+  coronaGrad.addColorStop(0, 'rgba(185,128,255,0.55)');
+  coronaGrad.addColorStop(0.4, 'rgba(168,85,247,0.25)');
+  coronaGrad.addColorStop(1, 'rgba(168,85,247,0)');
+  ctx.fillStyle = coronaGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, Rsun*1.85, 0, Math.PI*2);
+  ctx.fill();
+
+  // Coronal streamers (radial, equatorial bias)
+  if(showStreamer){
+    for(let i=0;i<8;i++){
+      const ang = (i/8)*Math.PI*2 + phase*0.05;
+      const len = Rsun * (0.6 + 0.4*Math.sin(ang*2 + phase));
+      const tx = cx + Math.cos(ang)*Rsun;
+      const ty = cy + Math.sin(ang)*Rsun;
+      const ex = cx + Math.cos(ang)*(Rsun + len);
+      const ey = cy + Math.sin(ang)*(Rsun + len);
+      const grad = ctx.createLinearGradient(tx, ty, ex, ey);
+      grad.addColorStop(0, 'rgba(185,128,255,0.55)');
+      grad.addColorStop(1, 'rgba(185,128,255,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty); ctx.lineTo(ex, ey);
+      ctx.stroke();
+    }
+  }
+
+  // Magnetic field arches
+  if(showField){
+    ctx.strokeStyle = 'rgba(56,189,248,0.45)';
+    ctx.lineWidth = 1.4;
+    for(let i=0;i<6;i++){
+      const ang = (i/6)*Math.PI*2 + phase*0.02;
+      const ax = cx + Math.cos(ang)*Rsun;
+      const ay = cy + Math.sin(ang)*Rsun;
+      const rev = ang + Math.PI*0.3;
+      const bx = cx + Math.cos(rev)*Rsun;
+      const by = cy + Math.sin(rev)*Rsun;
+      // Bezier arc
+      const mx = (ax+bx)/2 + Math.cos((ang+rev)/2)*Rsun*0.5;
+      const my = (ay+by)/2 + Math.sin((ang+rev)/2)*Rsun*0.5;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(mx, my, bx, by);
+      ctx.stroke();
+    }
+  }
+
+  // Sun proper — layered concentric circles
+  // Convective zone (orange)
+  ctx.fillStyle = '#fb923c';
+  ctx.beginPath(); ctx.arc(cx, cy, Rsun, 0, Math.PI*2); ctx.fill();
+
+  // Radiative zone (yellow)
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath(); ctx.arc(cx, cy, Rsun*0.7, 0, Math.PI*2); ctx.fill();
+
+  // Core (white-yellow)
+  const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Rsun*0.25);
+  coreGrad.addColorStop(0, '#ffffff');
+  coreGrad.addColorStop(0.6, '#fff5cc');
+  coreGrad.addColorStop(1, '#fbbf24');
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, Rsun*0.25, 0, Math.PI*2); ctx.fill();
+
+  // Photosphere outline (red ring)
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(cx, cy, Rsun, 0, Math.PI*2); ctx.stroke();
+
+  // Chromosphere (red glow ring)
+  ctx.strokeStyle = 'rgba(236,72,153,0.7)';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx, cy, Rsun*1.015, 0, Math.PI*2); ctx.stroke();
+
+  // Highlight selected layer
+  const sel = LAYERS.find(l=>l.id===selectedLayer);
+  if(sel){
+    const r1 = Rsun * sel.rNorm[0];
+    const r2 = Rsun * sel.rNorm[1];
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.arc(cx, cy, Math.max(2,r1), 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r2, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    // Annotation arrow
+    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 13px Sarabun';
+    ctx.textAlign = 'left';
+    ctx.fillText(`◀ ${sel.name}`, cx + r2 + 8, cy - 4);
+    ctx.fillStyle = 'rgba(251,146,60,0.85)';
+    ctx.font = '11px Share Tech Mono';
+    ctx.fillText(`T = ${(sel.T).toLocaleString()} K`, cx + r2 + 8, cy + 12);
+  }
+
+  // Flares
+  if(showFlares){
+    const flareCount = 3;
+    for(let i=0;i<flareCount;i++){
+      const angBase = i * 2.1 + phase*0.3;
+      const ang = angBase % (Math.PI*2);
+      const flareLen = Rsun * (0.15 + 0.15*Math.sin(phase*2 + i));
+      const x0 = cx + Math.cos(ang)*Rsun;
+      const y0 = cy + Math.sin(ang)*Rsun;
+      // Loop
+      const x1 = cx + Math.cos(ang+0.3)*Rsun;
+      const y1 = cy + Math.sin(ang+0.3)*Rsun;
+      const mx = (x0+x1)/2 + Math.cos(ang+0.15)*flareLen;
+      const my = (y0+y1)/2 + Math.sin(ang+0.15)*flareLen;
+      ctx.strokeStyle = 'rgba(254,215,170,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(mx, my, x1, y1);
+      ctx.stroke();
+    }
+  }
+
+  // Layer labels
+  if(showLabel){
+    LAYERS.forEach((l,i)=>{
+      const r = Rsun * (l.rNorm[0]+l.rNorm[1])/2;
+      const ang = -Math.PI/4 + i*0.1;
+      const lx = cx + Math.cos(ang)*r;
+      const ly = cy + Math.sin(ang)*r;
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = '10px Sarabun';
+      ctx.textAlign = 'center';
+      ctx.fillText(l.name, lx, ly);
+    });
+  }
+
+  // Header
+  ctx.fillStyle = 'rgba(251,146,60,0.12)';
+  ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c';
+  ctx.font = 'bold 12px Sarabun';
+  ctx.textAlign = 'left';
+  ctx.fillText('☀ ดวงอาทิตย์ — 7 ชั้นจาก Core → Corona · T พุ่งกลับขึ้นที่ Corona (Coronal Heating Paradox)', 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// T(r) CHART
+// ═══════════════════════════════════════════════
+function drawTChart(){
+  if(!tChartCtx) return;
+  const c = tChartCanvas, x = tChartCtx;
+  const W = c.width, H = c.height;
+  x.fillStyle = '#01020a';
+  x.fillRect(0,0,W,H);
+
+  const m = {l:36, r:8, t:10, b:30};
+  const pw = W-m.l-m.r, ph = H-m.t-m.b;
+
+  // log T axis
+  const logTMin = 3.5; // 10^3.5 ≈ 3000 K
+  const logTMax = 7.5; // 10^7.5 ≈ 31M K
+
+  function xOfR(r){ return m.l + (r/1.5)*pw; }
+  function yOfT(T){ return (H-m.b) - (Math.log10(T)-logTMin)/(logTMax-logTMin)*ph; }
+
+  // Axes
+  x.strokeStyle = 'rgba(226,232,240,0.4)';
+  x.lineWidth = 1;
+  x.beginPath();
+  x.moveTo(m.l, m.t); x.lineTo(m.l, H-m.b); x.lineTo(W-m.r, H-m.b);
+  x.stroke();
+
+  // Profile
+  const profile = [
+    {r:0, T:15700000, label:'Core'},
+    {r:0.25, T:7000000},
+    {r:0.5, T:3000000},
+    {r:0.7, T:1000000, label:'Conv'},
+    {r:0.9, T:200000},
+    {r:0.99, T:30000},
+    {r:1.0, T:5778, label:'Photo (min)'},
+    {r:1.005, T:5778},
+    {r:1.01, T:6500},
+    {r:1.015, T:8000},
+    {r:1.02, T:25000, label:'Chromo'},
+    {r:1.024, T:200000},
+    {r:1.025, T:600000, label:'Trans'},
+    {r:1.03, T:1500000},
+    {r:1.05, T:2000000, label:'Corona'},
+    {r:1.5, T:1500000},
+  ];
+
+  // Pre-photosphere (declining red)
+  x.strokeStyle = '#dc2626';
+  x.lineWidth = 2.5;
+  x.beginPath();
+  for(let i=0;i<profile.length;i++){
+    const p = profile[i];
+    if(p.r > 1.0) break;
+    const px = xOfR(p.r), py = yOfT(p.T);
+    if(i===0) x.moveTo(px,py); else x.lineTo(px,py);
+  }
+  x.stroke();
+
+  // Post-photosphere (rising purple)
+  x.strokeStyle = '#b980ff';
+  x.lineWidth = 2.5;
+  x.beginPath();
+  let started = false;
+  for(let i=0;i<profile.length;i++){
+    const p = profile[i];
+    if(p.r < 1.0) continue;
+    const px = xOfR(p.r), py = yOfT(p.T);
+    if(!started){ x.moveTo(px,py); started=true; } else x.lineTo(px,py);
+  }
+  x.stroke();
+
+  // Selected layer marker
+  const sel = LAYERS.find(l=>l.id===selectedLayer);
+  if(sel){
+    const r = (sel.rNorm[0]+sel.rNorm[1])/2;
+    const px = xOfR(r), py = yOfT(sel.T);
+    x.fillStyle = '#fb923c';
+    x.shadowColor = '#fb923c'; x.shadowBlur = 10;
+    x.beginPath();
+    x.arc(px, py, 5, 0, Math.PI*2);
+    x.fill();
+    x.shadowBlur = 0;
+  }
+
+  // Photosphere reference
+  x.strokeStyle = 'rgba(226,232,240,0.25)';
+  x.setLineDash([3,3]);
+  x.beginPath();
+  x.moveTo(xOfR(1.0), m.t); x.lineTo(xOfR(1.0), H-m.b);
+  x.stroke();
+  x.setLineDash([]);
+
+  // Labels
+  x.fillStyle = 'rgba(226,232,240,0.85)';
+  x.font = '9px Sarabun';
+  x.textAlign = 'center';
+  x.fillText('R/R☉', m.l+pw/2-5, H-6);
+  x.save(); x.translate(10, m.t+ph/2+10); x.rotate(-Math.PI/2);
+  x.fillText('T (K, log)', 0,0); x.restore();
+
+  x.font = '8px Share Tech Mono';
+  x.textAlign = 'right';
+  [3,4,5,6,7].forEach(lt=>{
+    const py = yOfT(Math.pow(10,lt));
+    x.fillText('10^'+lt, m.l-3, py+3);
+  });
+  x.textAlign = 'center';
+  [0, 0.5, 1.0, 1.5].forEach(r=>{
+    x.fillText(r.toFixed(1), xOfR(r), H-15);
+  });
+
+  // Annotate paradox
+  x.fillStyle = '#b980ff';
+  x.font = 'bold 9px Sarabun';
+  x.textAlign = 'left';
+  x.fillText('▲ T พุ่ง!', xOfR(1.025)+2, yOfT(500000));
+}
+
+// ═══════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════
+function tick(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = (ts-lastTs)/1000;
+  lastTs = ts;
+  phase += dt * 1.5;
+  draw();
+  drawTChart();
+  requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+function resetSim(){
+  selectedLayer = 'photo';
+  buildLayerList();
+}
+function togFeat(f){
+  if(f==='flares') showFlares=!showFlares;
+  if(f==='streamer') showStreamer=!showStreamer;
+  if(f==='field') showField=!showField;
+  if(f==='label') showLabel=!showLabel;
+  document.getElementById('t'+f.charAt(0).toUpperCase()+f.slice(1)).classList.toggle('on');
+}
+function showSec(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function buildLayerList(){
+  const host = document.getElementById('layerList');
+  host.innerHTML = '';
+  LAYERS.forEach(l=>{
+    const el = document.createElement('div');
+    el.className = 'li'+(l.id===selectedLayer?' sel':'');
+    el.innerHTML = `<span class="swatch" style="background:${l.color}"></span>
+      <span class="nm">${l.name}</span>
+      <span class="T">${(l.T).toLocaleString()} K</span>
+      <span class="desc" style="grid-column:1/4;font-size:.7rem;color:var(--muted)">${l.desc}</span>`;
+    el.onclick = ()=>{
+      selectedLayer = l.id;
+      buildLayerList();
+    };
+    host.appendChild(el);
+  });
+}
+
+window.addEventListener('load', ()=>{
+  canvas = document.getElementById('simCanvas');
+  ctx = canvas.getContext('2d');
+  tChartCanvas = document.getElementById('tChart');
+  tChartCtx = tChartCanvas.getContext('2d');
+  fitCanvas();
+  buildLayerList();
+  requestAnimationFrame(tick);
+});
+window.addEventListener('resize', ()=>{ if(canvas){ fitCanvas(); }});
+</script>
+
+<!-- KP Watermark -->
+<script src="../../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("demo:astronomy", "../../demo-astronomy.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<!-- อ้างอิง: Population III stars theory (Bromm 2013) | JWST observations 2023 | Jeans instability -->
+<!-- ขอบเขต: จำลอง gravitational collapse + first star ignition เชิงคุณภาพ | ไม่รวม MHD/feedback -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First Stars · Population III — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03040d; --panel:#0a0e1c; --panel2:#10172a; --border:#1a2a45;
+  --accent:#fb923c; --a2:#818cf8; --a3:#34d399; --a4:#fbbf24; --a5:#f472b6;
+  --text:#e2e8f0; --muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#060914,#0f172a);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1a1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.scope{background:#04060f;border-left:3px solid var(--accent);padding:5px 20px;font-size:11px;color:var(--muted)}
+
+nav.tabs{display:flex;gap:4px;padding:8px 20px;background:#080b18;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.83rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.83rem;transition:opacity .15s}
+.btn-play{background:#14532d;color:#86efac;border:1px solid #166534}
+.btn-play.playing{background:#7f1d1d;color:#fca5a5;border-color:#991b1b}
+.btn-reset{background:#1e3a8a;color:#93c5fd;border:1px solid #1d4ed8}
+.cbar-sep{width:1px;height:22px;background:var(--border)}
+.tog{padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.tog.on{border-color:var(--a3);color:var(--a3);background:#052e1e}
+
+.sim-layout{display:flex;height:calc(100vh - 196px);min-height:480px}
+.cvs-wrap{flex:1;position:relative;overflow:hidden;background:#01020a}
+#simCanvas{display:block;width:100%;height:100%}
+.sim-panel{width:300px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.psec{border-bottom:1px solid var(--border);padding-bottom:10px}
+.ptitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sl-lbl{font-size:.79rem;color:var(--muted);flex-shrink:0;min-width:70px}
+.sl-r{flex:1;accent-color:var(--accent);cursor:pointer;height:4px}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:48px;flex-shrink:0;text-align:right}
+
+.bbox{padding:9px 11px;background:var(--panel2);border-radius:8px;border:1px solid var(--border);text-align:center}
+.bbox .lbl{font-size:.7rem;color:var(--muted)}
+.bbox .val{font-size:1.15rem;font-weight:700;font-family:'Share Tech Mono',monospace;margin-top:2px}
+
+.stage-list{display:flex;flex-direction:column;gap:4px}
+.stg{padding:6px 9px;border-radius:7px;border:1px solid var(--border);background:var(--panel2);font-size:.77rem;display:flex;justify-content:space-between;align-items:center;transition:all .2s}
+.stg.cur{border-color:var(--accent);background:#1a1a3a}
+.stg .nm{font-weight:600}
+.stg .sm{color:var(--muted);font-size:.7rem}
+
+.dsec{padding:18px;max-width:920px}
+.dsec h2{font-size:1.05rem;color:var(--accent);margin-bottom:12px}
+.dsec p{font-size:.86rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.fbox{background:var(--panel2);border-left:3px solid var(--a3);border-radius:0 7px 7px 0;padding:9px 13px;font-family:'Share Tech Mono',monospace;font-size:.86rem;color:var(--a3);margin:9px 0}
+.law{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.law-n{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px}
+.law h3{font-size:.95rem;color:var(--text);margin-bottom:7px}
+.law p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+.footer{text-align:center;padding:7px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:900px){.sim-layout{flex-direction:column;height:auto}.cvs-wrap{height:60vw;min-height:340px}.sim-panel{width:100%;border-left:none;border-top:1px solid var(--border)}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="demo:astronomy">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../../index.html#demos">Demo</a><a href="../../index.html#collections">Collections</a><a href="../../library.html">Library</a><a href="../../index.html#about">เกี่ยวกับ</a><a href="../../index.html#contact">ติดต่อ</a></div>
+  <a href="../../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">⭐</div>
+  <div>
+    <h1>First Stars · Population III</h1>
+    <p>กำเนิดดาวฤกษ์ดวงแรก ~200 ล้านปีหลัง Big Bang · ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<div class="scope">⚠️ จำลอง gravitational collapse เชิงคุณภาพ | Pop III: H+He เท่านั้น (no metals) | M ≈ 100–300 M☉ | อ้างอิง JWST 2023</div>
+
+<nav class="tabs">
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<div class="section active" id="sec-sim">
+  <div class="cbar">
+    <button class="btn btn-play playing" id="playBtn" onclick="togglePlay()">⏸ หยุด</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต gas cloud</button>
+    <div class="cbar-sep"></div>
+    <button class="tog on" id="tGravity" onclick="togFeat('gravity')">แรงโน้มถ่วง</button>
+    <button class="tog on" id="tHalo" onclick="togFeat('halo')">DM halo</button>
+    <button class="tog" id="tIgnite" onclick="togFeat('ignite')">auto-ignite</button>
+  </div>
+
+  <div class="sim-layout">
+    <div class="cvs-wrap"><canvas id="simCanvas"></canvas></div>
+
+    <div class="sim-panel">
+      <div class="psec">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="bbox"><div class="lbl">density</div><div class="val" style="color:var(--a3)" id="bDens">10</div></div>
+          <div class="bbox" style="border-color:var(--accent)"><div class="lbl">core T</div><div class="val" style="color:var(--accent)" id="bT">100 K</div></div>
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">ควบคุม</div>
+        <div class="sl-row">
+          <span class="sl-lbl">density</span>
+          <input class="sl-r" type="range" id="slDens" min="1" max="100" step="1" value="10">
+          <span class="sl-unit"><span id="densDisp">10</span></span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">DM mass</span>
+          <input class="sl-r" type="range" id="slDM" min="0" max="100" step="1" value="40">
+          <span class="sl-unit"><span id="dmDisp">40</span>%</span>
+        </div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.5">
+          เพิ่ม density → gas รวมตัวเร็วขึ้น<br>
+          ถึง <b>density = 100</b> → fusion จุดติด → first star เกิด
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">ลำดับเหตุการณ์</div>
+        <div class="stage-list" id="stageList"></div>
+      </div>
+
+      <div class="psec" style="border-bottom:none">
+        <div class="ptitle">ข้อมูล Pop III</div>
+        <div style="background:var(--panel2);padding:10px;border-radius:8px;border:1px solid var(--border);font-size:.78rem;line-height:1.6">
+          <b>เวลาเกิด:</b> z ≈ 20–30 (~200 Myr)<br>
+          <b>มวล:</b> 100–300 M☉ (เทียบ Sun = 1)<br>
+          <b>อายุ:</b> 2–3 Myr (สั้นมาก)<br>
+          <b>จุดจบ:</b> Pair-instability supernova<br>
+          <b>องค์ประกอบ:</b> H + He เท่านั้น (no metal)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec-theory">
+  <div class="dsec">
+    <h2>📐 First Stars · Population III</h2>
+
+    <div class="law">
+      <div class="law-n">เวลาเกิด</div>
+      <h3>~200 ล้านปีหลัง Big Bang (z ≈ 20–30)</h3>
+      <p>ก่อนหน้านี้ universe เป็น "Dark Ages" (no light source) · DM halo เริ่มก่อตัวก่อน · gas H + He ตกลงในห้อง gravitational well · ค่อย ๆ หล่อย้นจนถึง Jeans instability → collapse → first stars ignite</p>
+      <div class="fbox">z_first ≈ 20–30 &nbsp;|&nbsp; t ≈ 100–250 Myr &nbsp;|&nbsp; T_CMB ที่ตอนนั้น ≈ 60 K</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">Jeans Mass &amp; Collapse</div>
+      <h3>M_J ∝ T^(3/2) / √ρ — ถ้ามวลเกิน Jeans mass → collapse</h3>
+      <p>Pop III gas เย็นได้น้อยมาก (no metals → no efficient cooling lines) · เย็นได้แค่ผ่าน H₂ molecule cooling ลงไปประมาณ 200 K · จึงต้องมวลใหญ่ก่อน collapse → ดาว Pop III มี <b>มวลใหญ่มาก</b> (100–300 M☉)</p>
+      <div class="fbox">M_J ≈ 1000 M☉ ที่ T=200K, ρ=10⁴/cm³ &nbsp;|&nbsp; Pop III stars: 100–300 M☉ ทั่วไป</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">ทำไมไม่มี metal?</div>
+      <h3>ก่อน Pop III · มีแค่ H + He + Li (จาก BBN)</h3>
+      <p>Big Bang Nucleosynthesis สร้างได้แค่ H, He, Li (เล็กน้อย) · ไม่มี C, N, O, Fe, ... · ดาว Pop III เป็น <b>ดาวรุ่นแรก</b> ที่หลอมธาตุหนัก · เมื่อระเบิด supernova → ปล่อย metals ออกมาให้ดาวรุ่นหลัง (Pop II, Pop I)</p>
+      <div class="fbox">BBN: H ~75%, He ~25%, Li ~10⁻⁹ (โดยมวล) &nbsp;|&nbsp; ไม่มี element หนักกว่า Li</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">จุดจบ — Pair-Instability Supernova</div>
+      <h3>ดาวมวล 140–260 M☉ ระเบิดแบบสมบูรณ์ ไม่เหลือ remnant</h3>
+      <p>core ที่ T สูงมากผลิต e⁺e⁻ pairs จาก photon → ลด pressure → core collapse → fusion runaway → ระเบิดทั้งดาว · ปล่อย metals (Z = 6–30) ทั้งหมดออกมา → seed สำหรับ Pop II</p>
+    </div>
+
+    <div class="law" style="border-color:var(--a2)">
+      <div class="law-n" style="color:var(--a2)">หลักฐาน — JWST 2023</div>
+      <h3>JWST เห็นกาแล็กซียุคแรก (z ~13) ที่อาจมี Pop III</h3>
+      <p>ก่อนหน้า JWST · เรายังไม่เคยเห็น Pop III โดยตรง · ปลายปี 2023 · JWST รายงาน candidate Pop III ใน galaxy GN-z11 และอื่น ๆ · ใน metal-poor stars เก่า ๆ ในกาแล็กซีเรา (ดาว HE 1327-2326, [Fe/H] = -5.6) · พบ chemical signature ที่อาจเป็นมาจาก Pop III supernova</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">อ้างอิง: Bromm (2013) | JWST 2023 | Heger-Woosley (2002) Pop III SN | สสวท. &nbsp;|&nbsp; © 2568 KP Science simulation สงวนลิขสิทธิ์</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STAGES
+// ═══════════════════════════════════════════════
+const STAGES = [
+  {id:'cloud',     name:'1. Gas cloud',     min:1,   sm:'H+He กระจัดกระจาย'},
+  {id:'collapse',  name:'2. Collapse',      min:25,  sm:'gravity ดึง gas เข้า'},
+  {id:'core',      name:'3. Protostar core',min:55,  sm:'core ร้อนขึ้น · ยังไม่ติด'},
+  {id:'ignite',    name:'4. Fusion ignite!',min:85,  sm:'T > 10⁷ K · p–p chain เริ่ม'},
+  {id:'star',      name:'5. First star',    min:99,  sm:'Pop III ดาวฤกษ์เกิด!'},
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let canvas, ctx, CW, CH;
+let density = 10;
+let dmFrac = 40;
+let isPlaying = true, animId = null, lastTs = null;
+let phase = 0;
+let showGravity = true, showHalo = true, autoIgnite = false;
+let particles = [];
+let starBorn = false;
+
+// ═══════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════
+function fitCanvas(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  CW = r.width; CH = r.height;
+  canvas.width = CW*dpr; canvas.height = CH*dpr;
+  canvas.style.width = CW+'px'; canvas.style.height = CH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function initParticles(){
+  particles = [];
+  starBorn = false;
+  for(let i=0;i<260;i++){
+    const ang = Math.random()*Math.PI*2;
+    const r = Math.random()*0.85;
+    particles.push({
+      x: 0.5 + Math.cos(ang)*r*0.45,
+      y: 0.5 + Math.sin(ang)*r*0.45,
+      vx: (Math.random()-0.5)*0.001,
+      vy: (Math.random()-0.5)*0.001,
+      type: Math.random()<0.75 ? 'H' : 'He'
+    });
+  }
+}
+
+function getCurrentStage(){
+  let cur = STAGES[0];
+  for(const s of STAGES){ if(density >= s.min) cur = s; }
+  return cur;
+}
+
+function getCoreT(){
+  // Map density to core temperature
+  // density 1 → 100 K, 100 → 10^7 K (ignition)
+  const d = density / 100;
+  return Math.pow(10, 2 + d*5); // 100 → 10^7
+}
+
+function fmtT(T){
+  if(T<1000) return T.toFixed(0)+' K';
+  if(T<1e6) return (T/1000).toFixed(1)+' kK';
+  return (T/1e6).toFixed(1)+' MK';
+}
+
+// ═══════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════
+function draw(dt){
+  ctx.fillStyle = 'rgba(1,2,10,0.4)';
+  ctx.fillRect(0,0,CW,CH);
+
+  const cx = CW/2, cy = CH/2;
+  const W = Math.min(CW, CH);
+
+  // Dark matter halo
+  if(showHalo && dmFrac > 0){
+    const dm = dmFrac/100;
+    const haloGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, W*0.45);
+    haloGrad.addColorStop(0, `rgba(129,140,248,${dm*0.18})`);
+    haloGrad.addColorStop(0.6, `rgba(129,140,248,${dm*0.08})`);
+    haloGrad.addColorStop(1, 'rgba(129,140,248,0)');
+    ctx.fillStyle = haloGrad;
+    ctx.fillRect(0,0,CW,CH);
+    // Halo edge
+    ctx.strokeStyle = `rgba(129,140,248,${dm*0.3})`;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, W*0.43, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Compute "collapse strength" based on density
+  const collapseStrength = density / 100 * 0.0008;
+
+  // Update + draw particles
+  particles.forEach(p=>{
+    if(showGravity){
+      // Gravity toward center
+      const dx = 0.5 - p.x, dy = 0.5 - p.y;
+      const d = Math.sqrt(dx*dx+dy*dy)+0.01;
+      p.vx += dx/d * collapseStrength * dt * 60;
+      p.vy += dy/d * collapseStrength * dt * 60;
+    }
+    // Damping
+    p.vx *= 0.985;
+    p.vy *= 0.985;
+    // Brownian motion
+    p.vx += (Math.random()-0.5)*0.0008;
+    p.vy += (Math.random()-0.5)*0.0008;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Reflect
+    if(p.x<0.05||p.x>0.95) p.vx*=-1;
+    if(p.y<0.05||p.y>0.95) p.vy*=-1;
+    p.x = Math.max(0.05, Math.min(0.95, p.x));
+    p.y = Math.max(0.05, Math.min(0.95, p.y));
+
+    // Color & size
+    let color = p.type==='H' ? '#a5b4fc' : '#fbbf24';
+    let size = p.type==='H' ? 2 : 2.5;
+    if(density > 70){
+      // Heating up → glow
+      color = p.type==='H' ? '#fde68a' : '#fed7aa';
+      size += (density-70)/30;
+    }
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = density > 60 ? 4 : 1;
+    ctx.beginPath();
+    ctx.arc(p.x*CW, p.y*CH, size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // Star ignition
+  if(density >= 99){
+    starBorn = true;
+  }
+  if(starBorn){
+    // Bright star at center
+    const flicker = 0.85 + Math.sin(phase*8)*0.15;
+    const starR = 30 + Math.sin(phase*4)*4;
+    const starGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, starR*3);
+    starGrad.addColorStop(0, `rgba(255,255,255,${flicker})`);
+    starGrad.addColorStop(0.3, `rgba(255,250,200,${flicker*0.7})`);
+    starGrad.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = starGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, starR*3, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 30;
+    ctx.beginPath();
+    ctx.arc(cx, cy, starR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Cross spikes
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx-starR*3, cy); ctx.lineTo(cx+starR*3, cy);
+    ctx.moveTo(cx, cy-starR*3); ctx.lineTo(cx, cy+starR*3);
+    ctx.stroke();
+  }
+
+  // Header
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  const stage = getCurrentStage();
+  ctx.fillText(`⭐ ${stage.name} · density = ${density} · core T = ${fmtT(getCoreT())}${starBorn?' · ✨ FIRST STAR IGNITED!':''}`, 12, 18);
+
+  // Legend
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Sarabun';
+  ctx.textAlign = 'right';
+  ctx.fillText('🔵 H · 🟡 He · 🟣 DM halo (มองไม่เห็น)', CW-10, CH-8);
+}
+
+// ═══════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════
+function tick(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = (ts-lastTs)/1000;
+  lastTs = ts;
+
+  if(isPlaying){
+    phase += dt;
+    if(autoIgnite && density < 100){
+      density = Math.min(100, density + dt * 6);
+      document.getElementById('slDens').value = density;
+      document.getElementById('densDisp').textContent = Math.round(density);
+    }
+    draw(dt);
+  }
+
+  document.getElementById('bDens').textContent = Math.round(density);
+  document.getElementById('bT').textContent = fmtT(getCoreT());
+  // Update stage list
+  const cur = getCurrentStage();
+  document.querySelectorAll('.stg').forEach((el,i)=>{
+    el.classList.toggle('cur', STAGES[i].id === cur.id);
+  });
+
+  animId = requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+function togglePlay(){
+  isPlaying = !isPlaying;
+  const b = document.getElementById('playBtn');
+  if(isPlaying){ b.textContent='⏸ หยุด'; b.classList.add('playing'); }
+  else { b.textContent='▶ เล่น'; b.classList.remove('playing'); }
+}
+function resetSim(){
+  density = 10; dmFrac = 40;
+  document.getElementById('slDens').value = 10;
+  document.getElementById('densDisp').textContent = 10;
+  document.getElementById('slDM').value = 40;
+  document.getElementById('dmDisp').textContent = 40;
+  initParticles();
+  autoIgnite = false;
+  document.getElementById('tIgnite').classList.remove('on');
+}
+function togFeat(f){
+  if(f==='gravity') showGravity=!showGravity;
+  if(f==='halo') showHalo=!showHalo;
+  if(f==='ignite'){
+    autoIgnite=!autoIgnite;
+    if(autoIgnite){ density = 10; document.getElementById('slDens').value = 10; }
+  }
+  document.getElementById('t'+f.charAt(0).toUpperCase()+f.slice(1)).classList.toggle('on');
+}
+function showSec(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function buildStageList(){
+  const host = document.getElementById('stageList');
+  host.innerHTML = '';
+  STAGES.forEach(s=>{
+    const el = document.createElement('div');
+    el.className = 'stg';
+    el.innerHTML = `<div><div class="nm">${s.name}</div><div class="sm">${s.sm}</div></div><div style="font-family:'Share Tech Mono',monospace;color:var(--a4);font-size:.7rem">≥${s.min}</div>`;
+    host.appendChild(el);
+  });
+}
+
+window.addEventListener('load', ()=>{
+  canvas = document.getElementById('simCanvas');
+  ctx = canvas.getContext('2d');
+  fitCanvas();
+  initParticles();
+  buildStageList();
+  document.getElementById('slDens').oninput = e=>{
+    density = +e.target.value;
+    document.getElementById('densDisp').textContent = density;
+    if(density < 99) starBorn = false;
+  };
+  document.getElementById('slDM').oninput = e=>{
+    dmFrac = +e.target.value;
+    document.getElementById('dmDisp').textContent = dmFrac;
+  };
+  animId = requestAnimationFrame(tick);
+});
+window.addEventListener('resize', ()=>{ if(canvas){ fitCanvas(); }});
+</script>
+
+<!-- KP Watermark -->
+<script src="../../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("demo:astronomy", "../../demo-astronomy.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

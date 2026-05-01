@@ -585,3 +585,74 @@ match /settings/{docId} {
 - Snap-to-peak ทำงานเมื่อ paused เท่านั้น — ตอน playing นักเรียนลากได้อิสระ
 - TRACE_MAX=600 เก็บ ~10s ที่ 60 fps (เกิน 8s window พอดี)
 - Caliper ในกราฟต้องลากครอบ ≥2 peak เพื่อวัดคาบจริง — ระบบเตือนถ้า Δt < 0.05s
+
+---
+
+## [2026-05-01] — เครื่อง: ที่ทำงาน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 42 (VPL02) — การวัดด้วยเวอร์เนียร์ &amp; ไมโครมิเตอร์**
+- 3 tab: Simulation / วิธีการทดลอง / ทฤษฎี
+- 2 เครื่องมือ: Vernier (0.05 mm, 20 ขีด/19 mm) + Micrometer (0.01 mm, pitch 0.5, thimble 50)
+- 2 โหมด: Manual (ดีฟอลต์ — ฝึกอ่านสเกลกรอกค่า + ตรวจ + คำใบ้ + เฉลย) / Auto (อ่านอัตโนมัติ + วัด 5 ครั้งทันที)
+- วัตถุ Vernier 7 ตัว, Micrometer 6 ตัว (ลูกแก้ว/ลูกเหล็ก/เหรียญ/ลวด/ฟอยล์/กระจก/PVC ฯลฯ)
+- Canvas วาดเวอร์เนียร์ (สเกลหลัก + เวอร์เนียร์ 20 ขีด + jaws + วัตถุ) และไมโครมิเตอร์ (frame + anvil + spindle + sleeve + thimble + ratchet)
+- Drag เมาส์/touch บน canvas เพื่อเลื่อนตำแหน่ง + Zoom slider 1–4×
+- ตารางบันทึก + คำนวณ x̄, σ, รายงาน x̄ ± σ + Export CSV
+- Theory tab มี canvas อธิบาย principle ของเวอร์เนียร์และไมโครมิเตอร์ทีละขั้น
+- รัน `protect_new_file.py` ✅ (เพิ่ม GA, topbar, mobile, watermark, firebase, kp-auth, access-guard)
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/42. measurement-vernier-micrometer.html` — สร้างใหม่
+- `_admin/admin.html` — เพิ่ม `lab-42` ใน VLAB_SERIES.vpl02 + LAB_LIST (label "เวอร์เนียร์·ไมโครมิเตอร์")
+- `kp-auth.js` — เพิ่ม `lab-42` ใน VLAB_SERIES.vpl02
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 42 ใน `index.html`, `library.html`, `virtual-physics-lab-01.html` (VPL02 catalog page) — ครั้งหน้าควรเพิ่ม
+- ทดสอบจริงในเบราว์เซอร์: ลองอ่าน manual mode + ตรวจคำตอบ + Auto fill 5
+
+### หมายเหตุ
+- ใน VPL01 มี lab-42 อยู่แล้ว (SHM03 Spring Builder) แต่ access string `vlab:vpl02:lab-42` แยกจาก `vlab:vpl01:lab-42` ตาม schema v4 — ไม่ชนกัน
+- Tolerance ตรวจคำตอบ Manual: main exact, sub ±1 ขีด (ตามขีดจำกัดสายตา)
+- Random noise ±0.04 mm (Vernier) / ±0.008 mm (Micrometer) จำลองความคลาดเคลื่อนของผู้วัด
+
+---
+
+## [2026-05-02 03:15] — เครื่อง: ที่ทำงาน
+
+### ทำอะไรไปบ้าง
+- **สร้างชุด Demo ดาราศาสตร์ใหม่ 13 ไฟล์** — ดึงเนื้อหาจาก research lessons (`วิจัย/wave-mechanics-research/lessons/astronomy/ep01–ep08`) มาแปลงใหม่ให้เข้ากับ template KP Science (orbital_simulation.html)
+- ทุกไฟล์: header + scope + tabs (Simulation/Theory) + canvas + side panel + ทฤษฎี + footer
+- Pattern เดิม: ตัด narrative/teacher cue/scoring/Book.* ออกหมด · ทำเป็น standalone demo
+- รัน `protect_new_file.py --scan --fix` ✅ inject GA + KP Topbar + Watermark + Firebase + Auth + Access Guard ครบทุกไฟล์
+
+### ไฟล์ที่สร้างใหม่ (Demo/ดาราศาสตร์/)
+1. `hubble_expansion.html` — ลูกโป่งเอกภพ + กฎฮับเบิล (จาก ep01/p09-balloon)
+2. `cosmic_timeline.html` — 6 ยุคของเอกภพ + particle simulation (จาก ep01/p11-timeline + shared/particles.js)
+3. `galaxy_rotation.html` — Rotation curve + Dark Matter halo (จาก ep02/p11-rotation)
+4. `stellar_parallax.html` — d=1/p + ดาวจริง 10 ดวง (จาก ep03/p05-parallax10)
+5. `apparent_magnitude.html` — Pogson scale + เปรียบเทียบ 2 ดาว (จาก ep03/p08-arrive)
+6. `absolute_magnitude.html` — Distance modulus + m vs M (จาก ep03/p09-absolute)
+7. `sunspot_cycle.html` — Sunspot + Schwabe 11-year cycle + butterfly diagram (จาก ep05/p08b)
+8. `solar_corona.html` — โครงสร้างชั้น Sun + Coronal Heating Paradox + T(r) chart (จาก ep05/p10b)
+9. `solar_phenomena.html` — 5 ปรากฏการณ์ tabs (sunspot/prominence/flare/CME/wind) (จาก ep05/p14)
+10. `cmb_recombination.html` — Recombination + photon decoupling animation (จาก ep08/p03)
+11. `cosmic_inflation.html` — Inflation 10²⁶× ใน 10⁻³² s (จาก ep08/p05)
+12. `first_stars.html` — Pop III star formation + DM halo (จาก ep08/p08)
+13. `galaxy_clustering.html` — Cosmic web · click-to-place DM halos (จาก ep08/p09)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **ยังไม่ได้เพิ่มไฟล์ทั้ง 13 ใน `demo-astronomy.html`** (catalog page) — ครั้งหน้าควรเพิ่มการ์ด preview
+- **ยังไม่ได้เพิ่มใน `index.html` Featured Demos** — ครั้งหน้า
+- **ยังไม่ได้เพิ่มใน `library.html`** — ครั้งหน้า
+- **ยังไม่ได้ทดสอบ rendering ใน browser** ทุกไฟล์ — ทดสอบ live ก่อน publish
+- ยังเหลือ ep04, ep06, ep07 ในโฟลเดอร์วิจัย ที่ไม่มี simulation interactive ส่วนใหญ่ (skipped)
+
+### หมายเหตุ
+- Pattern ที่ใช้ทุกไฟล์: `<body data-access="demo:astronomy">` เพื่อให้ Access Guard ตรวจสิทธิ์
+- mini-bug แก้แล้ว: `cmb_recombination.html` ใช้ `<nav.tabs>` เป็น tag (ผิด) → แก้เป็น `<nav class="tabs">`
+- ขนาดไฟล์โดยเฉลี่ย ~600–900 บรรทัด ก่อน protect, ~1100–1500 หลัง protect (จาก injection)
+- Theme ใช้สี orange accent (#fb923c) ตรงกับ orbital_simulation.html เดิม — ไม่ใช่ cyan ของ VPL01
+- การ์ด simulation ทั้งหมดมี responsive layout (`@media max-width:900px → flex-direction:column`)
+- หน้าทฤษฎีใช้ class `.law` block พร้อม fbox สูตรแบบ monospace ให้น่าจดจำ
+- ทดสอบ live ใน preview panel ทุกไฟล์ระหว่าง dev — ไม่มี console error สังเกตได้

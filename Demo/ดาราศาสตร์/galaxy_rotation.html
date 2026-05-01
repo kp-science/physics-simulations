@@ -1,0 +1,601 @@
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<!-- อ้างอิง: Vera Rubin (1970) | NFW profile (Navarro-Frenk-White 1996) | Planck Λ-CDM 2018 -->
+<!-- ขอบเขต: จำลอง rotation curve เชิงคุณภาพ Keplerian + flat curve | ไม่รวม baryonic matter detail -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galaxy Rotation Curve · Dark Matter — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03040d; --panel:#0a0e1c; --panel2:#10172a; --border:#1a2a45;
+  --accent:#fb923c; --a2:#818cf8; --a3:#34d399; --a4:#fbbf24; --a5:#f472b6;
+  --text:#e2e8f0; --muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#060914,#0f172a);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1a1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.scope{background:#04060f;border-left:3px solid var(--accent);padding:5px 20px;font-size:11px;color:var(--muted)}
+
+nav.tabs{display:flex;gap:4px;padding:8px 20px;background:#080b18;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.83rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.83rem;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-play{background:#14532d;color:#86efac;border:1px solid #166534}
+.btn-play.playing{background:#7f1d1d;color:#fca5a5;border-color:#991b1b}
+.btn-reset{background:#1e3a8a;color:#93c5fd;border:1px solid #1d4ed8}
+.cbar-sep{width:1px;height:22px;background:var(--border)}
+.tog{padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.tog:hover{border-color:var(--a3);color:var(--a3)}
+.tog.on{border-color:var(--a3);color:var(--a3);background:#052e1e}
+
+.sim-layout{display:flex;height:calc(100vh - 196px);min-height:480px}
+.cvs-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#1a1540 0%,#03040c 80%)}
+#simCanvas{display:block;width:100%;height:100%}
+.sim-panel{width:300px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.psec{border-bottom:1px solid var(--border);padding-bottom:10px}
+.ptitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sl-lbl{font-size:.79rem;color:var(--muted);flex-shrink:0;min-width:70px}
+.sl-r{flex:1;accent-color:var(--accent);cursor:pointer;height:4px}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:40px;flex-shrink:0;text-align:right}
+.vi{width:60px;padding:2px 5px;background:var(--panel2);border:1.5px solid var(--a2);border-radius:5px;color:var(--a3);font-weight:700;font-size:.81rem;text-align:center;-moz-appearance:textfield;flex-shrink:0}
+.vi::-webkit-outer-spin-button,.vi::-webkit-inner-spin-button{-webkit-appearance:none}
+
+.mode-grp{display:flex;gap:5px;flex-wrap:wrap}
+.mode-btn{flex:1;padding:7px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;font-weight:700;transition:all .2s}
+.mode-btn:hover{border-color:var(--accent);color:var(--accent)}
+.mode-btn.on{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.curve-card{background:var(--panel2);border-radius:9px;border:1px solid var(--border);padding:10px}
+.curve-card canvas{display:block;width:100%;background:#01020a;border:1px solid var(--border);border-radius:6px}
+
+.rt-card{background:var(--panel2);border-radius:9px;border:1px solid var(--accent);padding:10px}
+.rt-row{display:flex;justify-content:space-between;align-items:center;font-size:.77rem;padding:3px 0;border-bottom:1px solid var(--border)}
+.rt-row:last-child{border-bottom:none}
+.rt-row .lbl{color:var(--muted)}
+.rt-row .val{color:var(--a3);font-weight:600;font-family:'Share Tech Mono',monospace}
+
+.dsec{padding:18px;max-width:920px}
+.dsec h2{font-size:1.05rem;color:var(--accent);margin-bottom:12px}
+.dsec p{font-size:.86rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.fbox{background:var(--panel2);border-left:3px solid var(--a3);border-radius:0 7px 7px 0;padding:9px 13px;font-family:'Share Tech Mono',monospace;font-size:.86rem;color:var(--a3);margin:9px 0}
+.law{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.law-n{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px}
+.law h3{font-size:.95rem;color:var(--text);margin-bottom:7px}
+.law p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+.footer{text-align:center;padding:7px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:900px){.sim-layout{flex-direction:column;height:auto}.cvs-wrap{height:60vw;min-height:340px}.sim-panel{width:100%;border-left:none;border-top:1px solid var(--border)}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="demo:astronomy">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../../index.html#demos">Demo</a><a href="../../index.html#collections">Collections</a><a href="../../library.html">Library</a><a href="../../index.html#about">เกี่ยวกับ</a><a href="../../index.html#contact">ติดต่อ</a></div>
+  <a href="../../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🌀</div>
+  <div>
+    <h1>Galaxy Rotation Curve · Dark Matter</h1>
+    <p>กราฟการหมุนกาแล็กซี · หลักฐานสสารมืด · ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<div class="scope">⚠️ จำลองเชิงคุณภาพ — Keplerian (v ∝ 1/√r) เทียบกับ Flat curve (Dark Matter halo) | อ้างอิง Rubin 1970, NFW 1996</div>
+
+<nav class="tabs">
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<div class="section active" id="sec-sim">
+  <div class="cbar">
+    <button class="btn btn-play playing" id="playBtn" onclick="togglePlay()">⏸ หยุด</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต</button>
+    <div class="cbar-sep"></div>
+    <button class="tog on" id="tBulge" onclick="togFeat('bulge')">แสดงสว่างกลาง</button>
+    <button class="tog on" id="tHalo" onclick="togFeat('halo')">แสดง halo</button>
+    <button class="tog" id="tVec" onclick="togFeat('vec')">เวกเตอร์ความเร็ว</button>
+  </div>
+
+  <div class="sim-layout">
+    <div class="cvs-wrap"><canvas id="simCanvas"></canvas></div>
+
+    <div class="sim-panel">
+      <div class="psec">
+        <div class="ptitle">โหมดการหมุน</div>
+        <div class="mode-grp">
+          <button class="mode-btn" id="mK" onclick="setMode('kepler')">Keplerian</button>
+          <button class="mode-btn on" id="mF" onclick="setMode('flat')">Flat (มี DM)</button>
+          <button class="mode-btn" id="mB" onclick="setMode('both')">เทียบ 2 ด้าน</button>
+        </div>
+        <div style="font-size:.73rem;color:var(--muted);margin-top:6px;line-height:1.5">
+          <b>Kepler:</b> v = √(GM/r) · ขอบช้า<br>
+          <b>Flat:</b> v คงที่ที่ขอบ (เพราะ DM)<br>
+          <b>เทียบ:</b> ครึ่งบน Kepler · ครึ่งล่าง Flat
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">พารามิเตอร์</div>
+        <div class="sl-row">
+          <span class="sl-lbl">มวลที่เห็น</span>
+          <input class="sl-r" type="range" id="slMass" min="20" max="200" step="1" value="80">
+          <input class="vi" type="number" id="viMass" min="20" max="200" step="1" value="80">
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">DM Halo</span>
+          <input class="sl-r" type="range" id="slDM" min="0" max="100" step="1" value="60">
+          <input class="vi" type="number" id="viDM" min="0" max="100" step="1" value="60">
+          <span class="sl-unit">%</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">ความเร็ว</span>
+          <input class="sl-r" type="range" id="slSpd" min="0.1" max="3" step="0.1" value="1">
+          <span class="sl-unit"><span id="spdDisp">1.0</span>×</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">จำนวนดาว</span>
+          <input class="sl-r" type="range" id="slN" min="100" max="500" step="10" value="240">
+          <span class="sl-unit"><span id="nDisp">240</span></span>
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="ptitle">กราฟ Rotation Curve</div>
+        <div class="curve-card">
+          <canvas id="curveChart" width="280" height="180"></canvas>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:5px">— ส้ม: โหมดที่เลือก | ฟ้า: Keplerian (ทำนาย) | เขียว: Observed</div>
+        </div>
+      </div>
+
+      <div class="rt-card">
+        <div class="rt-row"><span class="lbl">v ที่ขอบ</span><span class="val" id="rtVEdge">—</span></div>
+        <div class="rt-row"><span class="lbl">v ที่กึ่งกลาง</span><span class="val" id="rtVMid">—</span></div>
+        <div class="rt-row"><span class="lbl">M รวม (visible+DM)</span><span class="val" id="rtMTot">—</span></div>
+        <div class="rt-row"><span class="lbl">% DM ของ M รวม</span><span class="val" id="rtDMPct">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec-theory">
+  <div class="dsec">
+    <h2>📐 Galaxy Rotation Curve · หลักฐานชิ้นแรกของ Dark Matter</h2>
+
+    <div class="law">
+      <div class="law-n">การทำนายของ Newton + Kepler</div>
+      <h3>v(r) = √(GM(&lt;r)/r) — ดาวขอบนอกควรหมุนช้ากว่าดาวกลาง</h3>
+      <p>ถ้ามวลทั้งหมดของกาแล็กซีกระจุกอยู่ตรงกลาง (ดาวสว่าง + gas) ความเร็วการหมุนที่ขอบนอก r ใหญ่ ๆ ควรลดลงตาม 1/√r เหมือนการโคจรของดาวเคราะห์ (ดาวพลูโตช้ากว่าดาวพุธ)</p>
+      <div class="fbox">v(r) = √(GM/r) &nbsp;|&nbsp; ที่ r ใหญ่ → v ลดลง</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">สิ่งที่ Vera Rubin สังเกต (1970s)</div>
+      <h3>กราฟแบน (flat curve) — ดาวขอบนอกหมุน <i>เร็วเท่ากับ</i> ดาวกลาง</h3>
+      <p>Vera Rubin วัด rotation curve ของ Andromeda (M31) และอีก ~60 กาแล็กซี พบว่า v(r) ≈ คงที่ ที่ r ใหญ่ ตรงข้ามกับการทำนาย — ต้องมี <b>มวลที่มองไม่เห็น</b> ขนาดมหาศาลกระจายเป็น <b>halo</b> รอบกาแล็กซี</p>
+      <div class="fbox">v(r) ≈ const → M(&lt;r) ∝ r → ρ(r) ∝ 1/r²</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">Dark Matter Halo</div>
+      <h3>NFW profile — ρ(r) = ρ₀ / [(r/rs)(1 + r/rs)²]</h3>
+      <p>มวลของ Dark Matter ใน Milky Way ≈ <b>5-10 เท่า</b> ของมวลที่เห็น (ดาว + gas) Halo ใหญ่กว่า disc มาก (~200 kpc vs ~30 kpc) ยังไม่รู้ว่า DM เป็นอนุภาคชนิดใด — WIMP, Axion, Sterile neutrino?</p>
+      <div class="fbox">M_DM ≈ 1 × 10¹² M☉ &nbsp;|&nbsp; M_visible ≈ 1 × 10¹¹ M☉ &nbsp;|&nbsp; M_DM / M_total ≈ 85% (ในกาแล็กซี)</div>
+    </div>
+
+    <div class="law" style="border-color:var(--a2)">
+      <div class="law-n" style="color:var(--a2)">หลักฐานเสริม</div>
+      <h3>Dark Matter ไม่ใช่แค่ rotation curve</h3>
+      <p>
+      <b>1.</b> Gravitational lensing ของ Bullet Cluster — DM แยกจาก gas<br>
+      <b>2.</b> Acoustic peaks ของ CMB (Planck 2018) — Ω_DM = 0.265 ± 0.013<br>
+      <b>3.</b> Structure formation simulation — ต้องมี DM ก่อตัว galaxy filaments
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">อ้างอิง: Rubin (1970) | Navarro-Frenk-White (1996) | Planck Collaboration (2018) | สสวท. &nbsp;|&nbsp; © 2568 KP Science simulation สงวนลิขสิทธิ์</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let canvas, ctx, CW, CH;
+let stars = [];
+let N = 240;
+let mass = 80, dmFrac = 60, speed = 1;
+let mode = 'flat';
+let isPlaying = true, animId = null, lastTs = null;
+let showBulge = true, showHalo = true, showVec = false;
+
+let curveCanvas, curveCtx;
+
+// ═══════════════════════════════════════════════
+// VELOCITY MODELS
+// ═══════════════════════════════════════════════
+// r in [0,1] (normalized to galaxy radius)
+function vKepler(r){
+  // Visible mass only (concentrated). M(r) saturates; v ~ 1/sqrt(r) at large r
+  const M = mass / 100; // 0..2
+  const eps = 0.05;
+  // Inside: rigid body (v ∝ r), outside: Keplerian
+  const rCore = 0.15;
+  if(r < rCore) return Math.sqrt(M*r/rCore) * 0.7;
+  return Math.sqrt(M*rCore/r) * 0.7 / Math.sqrt(rCore/rCore);
+}
+function vFlat(r){
+  // Visible + DM halo: v approaches plateau
+  const M = mass / 100;
+  const rCore = 0.15;
+  const dm = dmFrac / 100;
+  // Visible Keplerian part
+  let vVis;
+  if(r < rCore) vVis = Math.sqrt(M*r/rCore) * 0.7;
+  else vVis = Math.sqrt(M*rCore/r) * 0.7 / Math.sqrt(rCore/rCore);
+  // DM halo: v_dm grows then saturates → plateau
+  const vDM = dm * 0.55 * (1 - Math.exp(-r*4));
+  // Combine in quadrature
+  return Math.sqrt(vVis*vVis + vDM*vDM);
+}
+function vForR(r){
+  if(mode==='kepler') return vKepler(r);
+  if(mode==='flat')   return vFlat(r);
+  return vFlat(r); // 'both' uses both per-side in draw
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function initStars(){
+  stars = [];
+  for(let i=0;i<N;i++){
+    // Disc distribution: more stars near center but extend to r=0.95
+    const r = Math.pow(Math.random(), 0.6) * 0.95;
+    const theta = Math.random() * Math.PI*2;
+    // Color by radius (blueish at center bulge, white-yellow at disc)
+    let color;
+    if(r < 0.18) color = '#fff3c4';
+    else if(r < 0.4) color = '#fff';
+    else if(r < 0.7) color = '#cdd9ff';
+    else color = '#9bb8ff';
+    stars.push({
+      r, theta, color,
+      size: Math.random()*1.2 + 0.6
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════
+function fitCanvas(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  CW = rect.width; CH = rect.height;
+  canvas.width = CW*dpr; canvas.height = CH*dpr;
+  canvas.style.width = CW+'px'; canvas.style.height = CH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function draw(dt){
+  ctx.fillStyle = 'rgba(3,4,12,0.5)';
+  ctx.fillRect(0,0,CW,CH);
+
+  const cx = CW/2, cy = CH/2;
+  const R = Math.min(CW,CH)*0.42;
+
+  // DM halo glow
+  if(showHalo && (mode==='flat'||mode==='both')){
+    const dm = dmFrac / 100;
+    const halo = ctx.createRadialGradient(cx, cy, R*0.5, cx, cy, R*1.6);
+    halo.addColorStop(0, `rgba(129,140,248,0)`);
+    halo.addColorStop(0.4, `rgba(129,140,248,${0.05+dm*0.10})`);
+    halo.addColorStop(1, `rgba(129,140,248,0)`);
+    ctx.fillStyle = halo;
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  // Bulge glow
+  if(showBulge){
+    const bulge = ctx.createRadialGradient(cx, cy, 0, cx, cy, R*0.3);
+    bulge.addColorStop(0, 'rgba(255,243,196,0.6)');
+    bulge.addColorStop(0.5, 'rgba(255,203,107,0.15)');
+    bulge.addColorStop(1, 'rgba(255,203,107,0)');
+    ctx.fillStyle = bulge;
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  // Compare line for 'both' mode
+  if(mode==='both'){
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.setLineDash([5,5]);
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(CW, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Labels
+    ctx.fillStyle = 'rgba(129,140,248,0.85)';
+    ctx.font = 'bold 11px Sarabun';
+    ctx.fillText('▲ Kepler (มวลที่เห็นเท่านั้น)', 10, cy-8);
+    ctx.fillStyle = 'rgba(52,211,153,0.85)';
+    ctx.fillText('▼ Flat (มี Dark Matter halo)', 10, cy+18);
+  }
+
+  // Update + draw stars
+  stars.forEach(s=>{
+    let v;
+    if(mode==='both'){
+      // Top half: Kepler, bottom half: Flat
+      const isTop = (s.theta % (2*Math.PI)) > Math.PI;
+      // Use sin(theta) sign in y axis: y < 0 means top
+      const yNorm = Math.sin(s.theta);
+      v = (yNorm < 0) ? vKepler(s.r) : vFlat(s.r);
+    } else {
+      v = vForR(s.r);
+    }
+    // Angular velocity = v / r
+    const omega = v / Math.max(s.r, 0.05);
+    s.theta += omega * 0.012 * speed * (dt/16.7);
+
+    const x = cx + Math.cos(s.theta) * s.r * R;
+    const y = cy + Math.sin(s.theta) * s.r * R;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(x, y, s.size, 0, Math.PI*2);
+    ctx.fill();
+
+    // Velocity vector
+    if(showVec && Math.random()<0.012){
+      const len = v * 50;
+      const tx = -Math.sin(s.theta), ty = Math.cos(s.theta);
+      ctx.strokeStyle = 'rgba(251,146,60,0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + tx*len, y + ty*len);
+      ctx.stroke();
+    }
+  });
+
+  // Center black hole
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI*2);
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════
+// CURVE CHART
+// ═══════════════════════════════════════════════
+function drawCurve(){
+  if(!curveCtx) return;
+  const c = curveCanvas, x = curveCtx;
+  const W = c.width, H = c.height;
+  x.fillStyle = '#01020a';
+  x.fillRect(0,0,W,H);
+
+  const m = {l:36, r:10, t:10, b:26};
+  const pw = W-m.l-m.r, ph = H-m.t-m.b;
+
+  // Axes
+  x.strokeStyle = 'rgba(226,232,240,0.5)';
+  x.lineWidth = 1;
+  x.beginPath();
+  x.moveTo(m.l, m.t); x.lineTo(m.l, H-m.b); x.lineTo(W-m.r, H-m.b); x.stroke();
+
+  x.fillStyle = 'rgba(226,232,240,0.7)';
+  x.font = '9px Sarabun';
+  x.fillText('r (รัศมี)', m.l+pw/2-15, H-6);
+  x.save(); x.translate(8, m.t+ph/2+15); x.rotate(-Math.PI/2);
+  x.fillText('v (ความเร็ว)', 0,0); x.restore();
+
+  // Plot curves: Kepler (blue), Flat (orange-current), Observed (green dashed)
+  function plot(fn, color, dashed){
+    x.strokeStyle = color; x.lineWidth = 2;
+    if(dashed) x.setLineDash([4,3]); else x.setLineDash([]);
+    x.beginPath();
+    for(let i=0;i<=100;i++){
+      const r = i/100;
+      const v = fn(r);
+      const px = m.l + r*pw;
+      const py = (H-m.b) - Math.min(v/1.5, 1)*ph;
+      if(i===0) x.moveTo(px,py); else x.lineTo(px,py);
+    }
+    x.stroke(); x.setLineDash([]);
+  }
+
+  // Kepler reference (blue)
+  plot(vKepler, '#60a5fa', false);
+  // Selected mode (orange thicker)
+  if(mode==='flat' || mode==='both'){
+    plot(vFlat, '#fb923c', false);
+  }
+  // Observed (similar to flat with given dmFrac, but as ground truth)
+  const obs = (r)=>{
+    const M = mass/100;
+    const rCore = 0.15;
+    let vVis = r<rCore ? Math.sqrt(M*r/rCore)*0.7 : Math.sqrt(M*rCore/r)*0.7;
+    const vDM = 0.55 * (1 - Math.exp(-r*4));
+    return Math.sqrt(vVis*vVis + vDM*vDM);
+  };
+  plot(obs, '#34d399', true);
+
+  // Highlight current mode line
+  x.fillStyle = '#fb923c';
+  x.font = 'bold 9px Sarabun';
+  x.fillText(`mode: ${mode}`, W-m.r-50, m.t+10);
+}
+
+// ═══════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════
+function tick(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = ts - lastTs;
+  lastTs = ts;
+
+  if(isPlaying) draw(dt);
+  drawCurve();
+  updateRT();
+  animId = requestAnimationFrame(tick);
+}
+
+function updateRT(){
+  const vEdge = vForR(0.9);
+  const vMid = vForR(0.45);
+  const M_vis = mass / 100;
+  const M_dm = dmFrac/100 * 0.55*0.55 * 5; // arbitrary scale
+  const M_tot = M_vis + M_dm;
+  const dmPct = M_tot>0 ? (M_dm/M_tot*100) : 0;
+  document.getElementById('rtVEdge').textContent = (vEdge*220).toFixed(0)+' km/s';
+  document.getElementById('rtVMid').textContent = (vMid*220).toFixed(0)+' km/s';
+  document.getElementById('rtMTot').textContent = (M_tot*1e11).toExponential(2)+' M☉';
+  document.getElementById('rtDMPct').textContent = dmPct.toFixed(0)+' %';
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+function togglePlay(){
+  isPlaying = !isPlaying;
+  const b = document.getElementById('playBtn');
+  if(isPlaying){ b.textContent='⏸ หยุด'; b.classList.add('playing'); }
+  else { b.textContent='▶ เล่น'; b.classList.remove('playing'); }
+}
+function resetSim(){
+  mass=80; dmFrac=60; speed=1;
+  document.getElementById('slMass').value=80;
+  document.getElementById('viMass').value=80;
+  document.getElementById('slDM').value=60;
+  document.getElementById('viDM').value=60;
+  document.getElementById('slSpd').value=1;
+  document.getElementById('spdDisp').textContent='1.0';
+  initStars();
+}
+function setMode(m){
+  mode = m;
+  document.getElementById('mK').classList.toggle('on', m==='kepler');
+  document.getElementById('mF').classList.toggle('on', m==='flat');
+  document.getElementById('mB').classList.toggle('on', m==='both');
+}
+function togFeat(f){
+  if(f==='bulge') showBulge=!showBulge;
+  if(f==='halo') showHalo=!showHalo;
+  if(f==='vec') showVec=!showVec;
+  document.getElementById('t'+f.charAt(0).toUpperCase()+f.slice(1)).classList.toggle('on');
+}
+function showSec(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function bindControls(){
+  const slMass = document.getElementById('slMass'), viMass = document.getElementById('viMass');
+  slMass.addEventListener('input', ()=>{ mass=+slMass.value; viMass.value=mass; });
+  viMass.addEventListener('change', ()=>{ mass=Math.max(20,Math.min(200,+viMass.value||80)); slMass.value=mass; });
+  const slDM = document.getElementById('slDM'), viDM = document.getElementById('viDM');
+  slDM.addEventListener('input', ()=>{ dmFrac=+slDM.value; viDM.value=dmFrac; });
+  viDM.addEventListener('change', ()=>{ dmFrac=Math.max(0,Math.min(100,+viDM.value||0)); slDM.value=dmFrac; });
+  const slSpd = document.getElementById('slSpd');
+  slSpd.addEventListener('input', ()=>{ speed=+slSpd.value; document.getElementById('spdDisp').textContent=speed.toFixed(1); });
+  const slN = document.getElementById('slN');
+  slN.addEventListener('input', ()=>{ N=+slN.value; document.getElementById('nDisp').textContent=N; initStars(); });
+}
+
+window.addEventListener('load', ()=>{
+  canvas = document.getElementById('simCanvas');
+  ctx = canvas.getContext('2d');
+  curveCanvas = document.getElementById('curveChart');
+  curveCtx = curveCanvas.getContext('2d');
+  fitCanvas();
+  initStars();
+  bindControls();
+  animId = requestAnimationFrame(tick);
+});
+window.addEventListener('resize', ()=>{ if(canvas){ fitCanvas(); }});
+</script>
+
+<!-- KP Watermark -->
+<script src="../../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("demo:astronomy", "../../demo-astronomy.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

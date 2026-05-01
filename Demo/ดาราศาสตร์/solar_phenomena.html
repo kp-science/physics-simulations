@@ -1,0 +1,881 @@
+<!-- © 2568 KP Science simulation | สงวนลิขสิทธิ์ -->
+<!-- อ้างอิง: NASA/SDO + ESA/SOHO observations | Parker (1958) solar wind | NOAA Space Weather scale -->
+<!-- ขอบเขต: จำลองปรากฏการณ์สุริยะ 5 ชนิด (sunspot/prominence/flare/CME/wind) เชิงคุณภาพ -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 ปรากฏการณ์สุริยะ — KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03040d; --panel:#0a0e1c; --panel2:#10172a; --border:#1a2a45;
+  --accent:#fb923c; --a2:#818cf8; --a3:#34d399; --a4:#fbbf24; --a5:#f472b6;
+  --text:#e2e8f0; --muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#060914,#0f172a);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.3rem;font-weight:700;color:var(--accent)}
+header p{font-size:.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1a1a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 12px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.scope{background:#04060f;border-left:3px solid var(--accent);padding:5px 20px;font-size:11px;color:var(--muted)}
+
+nav.tabs{display:flex;gap:4px;padding:8px 20px;background:#080b18;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.83rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#03040d}
+
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cbar{background:var(--panel);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.83rem;transition:opacity .15s}
+.btn-play{background:#14532d;color:#86efac;border:1px solid #166534}
+.btn-play.playing{background:#7f1d1d;color:#fca5a5;border-color:#991b1b}
+.btn-reset{background:#1e3a8a;color:#93c5fd;border:1px solid #1d4ed8}
+.btn-fire{background:#7f1d1d;color:#fecaca;border:1px solid #b91c1c}
+.cbar-sep{width:1px;height:22px;background:var(--border)}
+
+.phen-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--border)}
+@media(max-width:760px){.phen-bar{grid-template-columns:repeat(3,1fr)}}
+.pc{padding:8px 6px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;transition:all .2s}
+.pc:hover{border-color:var(--accent);transform:translateY(-1px)}
+.pc.sel{border-color:var(--accent);background:#1a1a3a;box-shadow:0 0 12px rgba(251,146,60,0.3)}
+.pc .ic{font-size:1.4rem}
+.pc .nm{font-size:.74rem;color:var(--text);font-weight:700;margin-top:2px}
+
+.sim-layout{display:flex;height:calc(100vh - 270px);min-height:480px}
+.cvs-wrap{flex:1;position:relative;overflow:hidden;background:#01020a}
+#simCanvas{display:block;width:100%;height:100%}
+.sim-panel{width:300px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.psec{border-bottom:1px solid var(--border);padding-bottom:10px}
+.ptitle{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.sl-lbl{font-size:.79rem;color:var(--muted);flex-shrink:0;min-width:70px}
+.sl-r{flex:1;accent-color:var(--accent);cursor:pointer;height:4px}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:48px;flex-shrink:0;text-align:right}
+
+.bbox{padding:9px 11px;background:var(--panel2);border-radius:8px;border:1px solid var(--border);text-align:center}
+.bbox .lbl{font-size:.7rem;color:var(--muted)}
+.bbox .val{font-size:1.15rem;font-weight:700;font-family:'Share Tech Mono',monospace;margin-top:2px}
+
+.info-card{padding:10px 12px;background:var(--panel2);border-radius:8px;border:1px solid var(--border);font-size:.79rem;line-height:1.65}
+.info-card .h{font-weight:700;color:var(--accent);margin-bottom:4px}
+
+.dsec{padding:18px;max-width:920px}
+.dsec h2{font-size:1.05rem;color:var(--accent);margin-bottom:12px}
+.dsec p{font-size:.86rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.fbox{background:var(--panel2);border-left:3px solid var(--a3);border-radius:0 7px 7px 0;padding:9px 13px;font-family:'Share Tech Mono',monospace;font-size:.86rem;color:var(--a3);margin:9px 0}
+.law{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.law-n{font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:5px}
+.law h3{font-size:.95rem;color:var(--text);margin-bottom:7px}
+.law p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+.footer{text-align:center;padding:7px;font-size:10px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:900px){.sim-layout{flex-direction:column;height:auto}.cvs-wrap{height:60vw;min-height:340px}.sim-panel{width:100%;border-left:none;border-top:1px solid var(--border)}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="demo:astronomy">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../../index.html#demos">Demo</a><a href="../../index.html#collections">Collections</a><a href="../../library.html">Library</a><a href="../../index.html#about">เกี่ยวกับ</a><a href="../../index.html#contact">ติดต่อ</a></div>
+  <a href="../../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">⚡</div>
+  <div>
+    <h1>5 ปรากฏการณ์สุริยะ</h1>
+    <p>Sunspot · Prominence · Flare · CME · Solar Wind · ม.4–6</p>
+  </div>
+  <div class="badge">KP Science simulation</div>
+</header>
+<div class="scope">⚠️ จำลองเชิงคุณภาพ (qualitative) | ความเร็ว/ขนาดไม่ใช่ scale จริง | อ้างอิง NASA/SDO + ESA/SOHO + NOAA</div>
+
+<nav class="tabs">
+  <button class="active" onclick="showSec('sim',this)">🎬 Simulation</button>
+  <button onclick="showSec('theory',this)">📐 ทฤษฎี</button>
+</nav>
+
+<div class="section active" id="sec-sim">
+  <div class="phen-bar" id="phenBar"></div>
+
+  <div class="cbar" id="cbarPhen">
+    <button class="btn btn-reset" onclick="resetPhen()">↺ รีเซ็ต</button>
+    <span style="margin-left:auto;font-size:.78rem;color:var(--muted)" id="cbarHint">เลือกปรากฏการณ์ด้านบน</span>
+  </div>
+
+  <div class="sim-layout">
+    <div class="cvs-wrap"><canvas id="simCanvas"></canvas></div>
+
+    <div class="sim-panel" id="simPanel"></div>
+  </div>
+</div>
+
+<div class="section" id="sec-theory">
+  <div class="dsec">
+    <h2>📐 ปรากฏการณ์สุริยะและ Space Weather</h2>
+
+    <div class="law">
+      <div class="law-n">⚫ Sunspot</div>
+      <h3>บริเวณ field แม่เหล็กแรง → blocks convection → cooler → ดู "ดำ"</h3>
+      <p>T ใน umbra ~3,800–4,000 K (เทียบกับ photosphere 5,778 K) · มีวงจร ~11 ปี (Schwabe cycle)</p>
+    </div>
+
+    <div class="law">
+      <div class="law-n">🔴 Prominence (Filament)</div>
+      <h3>plasma ห้อยอยู่บนเส้นแม่เหล็กรูปวงโค้ง · สูงได้หลายแสน km</h3>
+      <p>ถ้าเห็นบนผิว = filament (ดำ) · ถ้าเห็นที่ขอบ = prominence (สว่าง) อาจอยู่ได้หลายเดือน · บางครั้งระเบิดเป็น CME</p>
+      <div class="fbox">ความสูงทั่วไป 30,000–700,000 km · T ~10,000 K</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">⚡ Solar Flare</div>
+      <h3>การปะทุของ EM radiation จาก magnetic reconnection</h3>
+      <p>เดินทางมาถึงโลกเป็น <b>แสง</b> ใช้เวลาประมาณ 8 นาที 20 วินาที (= ระยะ 1 AU / c) <br>
+      จัดระดับ A < B < C < M < X (X = แรงสุด) ทำให้ HF radio blackout ทันที</p>
+      <div class="fbox">ETA flare → Earth = 1 AU / c ≈ 8.3 นาที (เร็วเท่าแสง)</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">💥 CME (Coronal Mass Ejection)</div>
+      <h3>การพ่นมวล plasma ขนาดมหาศาล (10¹² kg) ออกจากดวงอาทิตย์</h3>
+      <p>เคลื่อนที่ช้ากว่า flare มาก · ความเร็วทั่วไป 250–3,000 km/s · ETA 1–4 วันถึงโลก<br>
+      ถ้าชนกับ magnetosphere → geomagnetic storm + aurora · อาจทำให้ power grid trip (Quebec 1989)</p>
+      <div class="fbox">ETA CME → Earth = 1 AU / v ≈ 24 ชม. ที่ 1,700 km/s</div>
+    </div>
+
+    <div class="law">
+      <div class="law-n">🌬 Solar Wind</div>
+      <h3>กระแส plasma ต่อเนื่องจาก corona ออกไปทั่วระบบสุริยะ</h3>
+      <p>ความเร็ว 300–800 km/s · ทำนายโดย Eugene Parker (1958) · ยืนยันโดย Mariner 2 (1962)<br>
+      Solar wind พา particles ชาร์จเข้าสู่ magnetosphere โลก → aurora ที่ขั้วเหนือ-ใต้</p>
+      <div class="fbox">v_slow ≈ 400 km/s · v_fast ≈ 750 km/s · ความหนาแน่น ~5 ions/cm³</div>
+    </div>
+
+    <div class="law" style="border-color:var(--a2)">
+      <div class="law-n" style="color:var(--a2)">เปรียบเทียบเวลามาถึงโลก</div>
+      <h3>Flare (8 นาที) → CME (1–4 วัน) → จะมาถึงไหน?</h3>
+      <p>Flare มาก่อน (เร็วเท่าแสง) → ทำให้รู้ตัวล่วงหน้าว่า CME จะตามมา · ใช้เวลานี้เตรียมการป้องกันดาวเทียม + ถอดสาย power grid</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">อ้างอิง: NASA/SDO | ESA/SOHO | Parker (1958) | NOAA Space Weather | สสวท. &nbsp;|&nbsp; © 2568 KP Science simulation สงวนลิขสิทธิ์</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// PHENOMENA DEFINITIONS
+// ═══════════════════════════════════════════════
+const PHEN = [
+  {id:'sunspot',    name:'Sunspot',    icon:'⚫'},
+  {id:'prominence', name:'Prominence', icon:'🔴'},
+  {id:'flare',      name:'Solar Flare',icon:'⚡'},
+  {id:'cme',        name:'CME',        icon:'💥'},
+  {id:'wind',       name:'Solar Wind', icon:'🌬'},
+];
+
+let canvas, ctx, CW, CH;
+let currentPhen = 'sunspot';
+let lastTs = null;
+let phase = 0;
+
+// Phenomena state
+const ps = {
+  sunspot:    {T:5780, Bfield:0},
+  prominence: {h:0.5},
+  flare:      {fired:false, t:0, cmeFired:false, cmeT:0},
+  cme:        {speed:1500, fired:false, t:0},
+  wind:       {speed:500, earthY:0.5, earthX:0.7, dragging:false},
+};
+
+// ═══════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════
+function fitCanvas(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  CW = r.width; CH = r.height;
+  canvas.width = CW*dpr; canvas.height = CH*dpr;
+  canvas.style.width = CW+'px'; canvas.style.height = CH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+// ═══════════════════════════════════════════════
+// SUN drawing (shared)
+// ═══════════════════════════════════════════════
+function drawSun(cx, cy, R){
+  const coronaGrad = ctx.createRadialGradient(cx, cy, R*0.95, cx, cy, R*1.5);
+  coronaGrad.addColorStop(0, 'rgba(251,191,36,0.4)');
+  coronaGrad.addColorStop(0.4, 'rgba(251,146,60,0.2)');
+  coronaGrad.addColorStop(1, 'rgba(251,146,60,0)');
+  ctx.fillStyle = coronaGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, R*1.5, 0, Math.PI*2); ctx.fill();
+
+  const sunGrad = ctx.createRadialGradient(cx-R*0.2, cy-R*0.2, 0, cx, cy, R);
+  sunGrad.addColorStop(0, '#fff5cc');
+  sunGrad.addColorStop(0.5, '#fbbf24');
+  sunGrad.addColorStop(0.8, '#fb923c');
+  sunGrad.addColorStop(1, '#7f1d1d');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
+}
+
+// ═══════════════════════════════════════════════
+// SUNSPOT scene
+// ═══════════════════════════════════════════════
+function drawSunspotScene(){
+  ctx.fillStyle = '#01020a'; ctx.fillRect(0,0,CW,CH);
+  const cx = CW/2, cy = CH/2, R = Math.min(CW,CH)*0.32;
+  drawSun(cx, cy, R);
+
+  // Convection cells
+  const cellsActive = ps.sunspot.Bfield < 30;
+  const cellAlpha = cellsActive ? 0.6 : 0.15;
+  for(let i=0;i<24;i++){
+    const ang = (i*0.7 + phase*0.3) % (Math.PI*2);
+    const r = R*(0.3 + 0.4*Math.sin(i*1.3));
+    const x = cx + Math.cos(ang)*r;
+    const y = cy + Math.sin(ang)*r;
+    ctx.fillStyle = `rgba(255,225,150,${cellAlpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 4+Math.sin(phase+i)*1.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Magnetic field arches when B > 0
+  if(ps.sunspot.Bfield > 0){
+    ctx.strokeStyle = `rgba(56,189,248,${ps.sunspot.Bfield/100*0.8})`;
+    ctx.lineWidth = 1.5;
+    for(let i=0;i<5;i++){
+      const ang = -0.3 + i*0.15;
+      const x1 = cx + Math.cos(ang)*R - 30;
+      const y1 = cy + Math.sin(ang)*R + 8;
+      const x2 = cx + Math.cos(ang)*R + 30;
+      const y2 = cy + Math.sin(ang)*R + 8;
+      const archH = 80*ps.sunspot.Bfield/100;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.bezierCurveTo(x1, y1-archH, x2, y2-archH, x2, y2);
+      ctx.stroke();
+    }
+  }
+
+  // Sunspot
+  if(ps.sunspot.T < 5500){
+    const opacity = Math.min(1, (5780 - ps.sunspot.T) / 1980);
+    const spotR = 22;
+    // Penumbra
+    ctx.fillStyle = `rgba(127,29,29,${0.55*opacity})`;
+    ctx.beginPath(); ctx.arc(cx, cy+R*0.1, spotR*1.7, 0, Math.PI*2); ctx.fill();
+    // Umbra
+    const tFrac = (5780 - ps.sunspot.T) / 1980;
+    const umbraColor = `rgba(${10+tFrac*30},${5+tFrac*15},0,${0.85*opacity})`;
+    ctx.fillStyle = umbraColor;
+    ctx.beginPath(); ctx.arc(cx, cy+R*0.1, spotR, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Header
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  ctx.fillText(`⚫ Sunspot · T = ${ps.sunspot.T.toLocaleString()} K · B field = ${ps.sunspot.Bfield}% · ΔT จาก photosphere = ${(5780-ps.sunspot.T).toLocaleString()} K`, 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// PROMINENCE scene
+// ═══════════════════════════════════════════════
+function drawProminenceScene(){
+  ctx.fillStyle = '#01020a'; ctx.fillRect(0,0,CW,CH);
+  const cx = CW/2, cy = CH*0.7, R = Math.min(CW,CH)*0.28;
+  drawSun(cx, cy, R);
+
+  // Prominence loop
+  const h = ps.prominence.h; // 0..1
+  const baseY = cy - R + 4;
+  const archH = h * R * 1.2;
+  const archW = R * 0.5;
+
+  // Filament path
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 8;
+  ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(cx - archW, baseY);
+  ctx.bezierCurveTo(cx - archW, baseY - archH, cx + archW, baseY - archH, cx + archW, baseY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Plasma blobs along loop
+  for(let i=1;i<8;i++){
+    const t = i/8;
+    const px = cx - archW + (cx + archW - (cx - archW))*t;
+    const py = baseY - 4*archH*t*(1-t);
+    ctx.fillStyle = '#ff7a94';
+    ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(px + Math.sin(phase*2+i)*2, py + Math.cos(phase*2+i)*2, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+
+  // Foot points (sunspot pair)
+  ctx.fillStyle = '#1a0500';
+  ctx.beginPath(); ctx.arc(cx-archW, baseY, 8, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+archW, baseY, 8, 0, Math.PI*2); ctx.fill();
+
+  // Height label
+  const heightKm = Math.round(h * 700);
+  ctx.fillStyle = 'rgba(220,38,38,0.85)';
+  ctx.font = 'bold 12px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText(`h = ${heightKm.toLocaleString()},000 km`, cx, baseY - archH - 14);
+
+  // Header
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  ctx.fillText(`🔴 Prominence · plasma ห้อยบน magnetic loop · ความสูง = ${heightKm*1000} km (โลก = 12,742 km)`, 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// FLARE + CME race scene
+// ═══════════════════════════════════════════════
+function drawFlareScene(dt){
+  ctx.fillStyle = '#01020a'; ctx.fillRect(0,0,CW,CH);
+  const sunX = 100, sunY = CH/2, R = Math.min(CW,CH)*0.18;
+  const earthX = CW - 80, earthY = CH/2;
+  drawSun(sunX, sunY, R);
+
+  // Earth
+  const eGrad = ctx.createRadialGradient(earthX-4, earthY-4, 0, earthX, earthY, 16);
+  eGrad.addColorStop(0, '#60a5fa');
+  eGrad.addColorStop(1, '#1e3a8a');
+  ctx.fillStyle = eGrad;
+  ctx.beginPath(); ctx.arc(earthX, earthY, 16, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(96,165,250,0.85)';
+  ctx.font = '11px Sarabun'; ctx.textAlign = 'center';
+  ctx.fillText('🌍 โลก (1 AU)', earthX, earthY+30);
+
+  const distance = earthX - sunX - R;
+
+  // Update flare
+  if(ps.flare.fired){
+    ps.flare.t += dt;
+    // Flare travel time: 8.3 min mapped to 4 seconds visual
+    const flareProg = ps.flare.t / 4;
+    if(flareProg < 1){
+      const fx = sunX + R + flareProg*distance;
+      // Light rays
+      ctx.strokeStyle = `rgba(254,240,138,${1-flareProg*0.5})`;
+      ctx.lineWidth = 2;
+      for(let i=-2;i<=2;i++){
+        ctx.beginPath();
+        ctx.moveTo(sunX + R, sunY + i*5);
+        ctx.lineTo(fx, sunY + i*5);
+        ctx.stroke();
+      }
+      // Wave front
+      ctx.fillStyle = '#fef08a';
+      ctx.shadowColor = '#fef08a'; ctx.shadowBlur = 16;
+      ctx.beginPath(); ctx.arc(fx, sunY, 8, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      // Flare arrived
+      ctx.fillStyle = 'rgba(254,240,138,0.4)';
+      ctx.beginPath(); ctx.arc(earthX, earthY, 25, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Update CME
+  if(ps.flare.cmeFired){
+    ps.flare.cmeT += dt;
+    // CME mapped to 24 sec visual (3 days actual, much slower)
+    const cmeProg = ps.flare.cmeT / 24;
+    if(cmeProg < 1){
+      const cx = sunX + R + cmeProg*distance;
+      // Plasma cloud
+      ctx.fillStyle = 'rgba(244,114,182,0.6)';
+      ctx.beginPath(); ctx.ellipse(cx, sunY+15, 30+cmeProg*40, 25, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(244,114,182,0.3)';
+      for(let i=0;i<8;i++){
+        const px = cx + (Math.random()-0.5)*60;
+        const py = sunY+15 + (Math.random()-0.5)*40;
+        ctx.beginPath(); ctx.arc(px, py, 4+Math.random()*6, 0, Math.PI*2); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = 'rgba(244,114,182,0.7)';
+      ctx.beginPath(); ctx.arc(earthX, earthY, 30, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Distance line + scale
+  ctx.strokeStyle = 'rgba(56,189,248,0.3)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();
+  ctx.moveTo(sunX+R, sunY-50); ctx.lineTo(earthX-16, sunY-50);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(56,189,248,0.7)';
+  ctx.font = '10px Share Tech Mono';
+  ctx.fillText('1 AU = 150,000,000 km', (sunX+earthX)/2, sunY-58);
+
+  // Status
+  let status = '⏸ พร้อม';
+  if(ps.flare.fired && ps.flare.t < 4) status = `⚡ Flare กำลังมา (${(ps.flare.t/4*8.3).toFixed(1)}/8.3 นาที)`;
+  else if(ps.flare.fired && ps.flare.t >= 4 && !ps.flare.cmeFired) status = '⚡ Flare ถึงแล้ว → ปล่อย CME ดู?';
+  else if(ps.flare.cmeFired && ps.flare.cmeT < 24) status = `💥 CME กำลังมา (${(ps.flare.cmeT/24*72).toFixed(1)}/72 ชม.)`;
+  else if(ps.flare.cmeT >= 24) status = '💥 CME ถึงแล้ว · geomagnetic storm!';
+
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  ctx.fillText(`⚡ Flare vs 💥 CME · ${status}`, 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// CME alone scene
+// ═══════════════════════════════════════════════
+function drawCMEScene(dt){
+  ctx.fillStyle = '#01020a'; ctx.fillRect(0,0,CW,CH);
+  const sunX = 100, sunY = CH/2, R = Math.min(CW,CH)*0.18;
+  const earthX = CW - 80, earthY = CH/2;
+  drawSun(sunX, sunY, R);
+
+  // Earth
+  const eGrad = ctx.createRadialGradient(earthX-4, earthY-4, 0, earthX, earthY, 18);
+  eGrad.addColorStop(0, '#60a5fa');
+  eGrad.addColorStop(1, '#1e3a8a');
+  ctx.fillStyle = eGrad;
+  ctx.beginPath(); ctx.arc(earthX, earthY, 18, 0, Math.PI*2); ctx.fill();
+  // Magnetosphere
+  ctx.strokeStyle = 'rgba(96,165,250,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(earthX-10, earthY, 40, 28, 0, 0, Math.PI*2);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(96,165,250,0.85)';
+  ctx.font = '11px Sarabun'; ctx.textAlign = 'center';
+  ctx.fillText('🌍 + magnetosphere', earthX, earthY+38);
+
+  if(ps.cme.fired){
+    ps.cme.t += dt;
+    // Speed-dependent ETA: faster = shorter visual time
+    const visTime = 24 * (1500/ps.cme.speed); // ~24s at 1500 km/s
+    const prog = ps.cme.t / visTime;
+    if(prog < 1){
+      const cx = sunX + R + prog*(earthX - sunX - R);
+      ctx.fillStyle = 'rgba(244,114,182,0.6)';
+      ctx.beginPath(); ctx.ellipse(cx, sunY, 30+prog*50, 35, 0, 0, Math.PI*2); ctx.fill();
+      // Particle trail
+      for(let i=0;i<14;i++){
+        const px = cx + (Math.random()-0.5)*70;
+        const py = sunY + (Math.random()-0.5)*60;
+        ctx.fillStyle = 'rgba(244,114,182,0.4)';
+        ctx.beginPath(); ctx.arc(px, py, 3+Math.random()*5, 0, Math.PI*2); ctx.fill();
+      }
+    } else {
+      // Impact!
+      ctx.fillStyle = 'rgba(244,114,182,0.7)';
+      ctx.beginPath(); ctx.arc(earthX, earthY, 35, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(earthX-10, earthY, 50, 36, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  // ETA calculation
+  const etaHours = (150e6 / ps.cme.speed) / 3600;
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  ctx.fillText(`💥 CME · ความเร็ว = ${ps.cme.speed} km/s · ETA = ${etaHours.toFixed(1)} ชม. (${(etaHours/24).toFixed(1)} วัน)`, 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// SOLAR WIND scene
+// ═══════════════════════════════════════════════
+function drawWindScene(dt){
+  ctx.fillStyle = '#01020a'; ctx.fillRect(0,0,CW,CH);
+  const sunX = 80, sunY = CH/2, R = Math.min(CW,CH)*0.14;
+  drawSun(sunX, sunY, R);
+
+  // Wind stream (band across screen)
+  const streamY1 = CH*0.35, streamY2 = CH*0.65;
+  const windGrad = ctx.createLinearGradient(sunX, sunY, CW, sunY);
+  windGrad.addColorStop(0, 'rgba(126,255,178,0.3)');
+  windGrad.addColorStop(1, 'rgba(126,255,178,0.05)');
+  ctx.fillStyle = windGrad;
+  ctx.fillRect(sunX, streamY1, CW-sunX, streamY2-streamY1);
+
+  // Particles
+  if(!ps.wind.particles) ps.wind.particles = [];
+  // Spawn
+  if(Math.random() < 0.5){
+    ps.wind.particles.push({x:sunX+R, y:streamY1+Math.random()*(streamY2-streamY1), v:ps.wind.speed/100});
+  }
+  ps.wind.particles = ps.wind.particles.filter(p=>{
+    p.x += p.v;
+    return p.x < CW + 20;
+  });
+  ctx.fillStyle = '#7effb2';
+  ctx.shadowColor = '#7effb2'; ctx.shadowBlur = 4;
+  ps.wind.particles.forEach(p=>{
+    ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.shadowBlur = 0;
+
+  // Earth (draggable)
+  const ex = CW * ps.wind.earthX, ey = CH * ps.wind.earthY;
+  const inStream = ey > streamY1 && ey < streamY2 && ex > sunX + R + 20;
+
+  // Magnetosphere bow shock
+  if(inStream){
+    ctx.strokeStyle = 'rgba(126,255,178,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.ellipse(ex-8, ey, 36, 28, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Aurora
+    ctx.fillStyle = 'rgba(126,255,178,0.7)';
+    ctx.shadowColor = '#7effb2'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.ellipse(ex, ey-22, 20, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex, ey+22, 20, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Earth body
+  const eGrad = ctx.createRadialGradient(ex-4, ey-4, 0, ex, ey, 18);
+  eGrad.addColorStop(0, '#60a5fa');
+  eGrad.addColorStop(1, '#1e3a8a');
+  ctx.fillStyle = eGrad;
+  ctx.beginPath(); ctx.arc(ex, ey, 18, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = inStream?'#7effb2':'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(ex, ey, 18, 0, Math.PI*2); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(96,165,250,0.85)';
+  ctx.font = '11px Sarabun'; ctx.textAlign = 'center';
+  ctx.fillText(inStream?'🌍 + Aurora!':'🌍 ลากเข้าใน stream', ex, ey+34);
+
+  // Header
+  ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
+  ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
+  ctx.fillText(`🌬 Solar Wind · ${ps.wind.speed} km/s · ${inStream?'✓ โลกอยู่ใน stream → Aurora ที่ขั้ว!':'⤵ ลากโลกเข้า stream เพื่อดู aurora'}`, 12, 18);
+}
+
+// ═══════════════════════════════════════════════
+// LOOP DISPATCH
+// ═══════════════════════════════════════════════
+function tick(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = (ts-lastTs)/1000;
+  lastTs = ts;
+  phase += dt * 1.2;
+
+  if(currentPhen==='sunspot') drawSunspotScene();
+  else if(currentPhen==='prominence') drawProminenceScene();
+  else if(currentPhen==='flare') drawFlareScene(dt);
+  else if(currentPhen==='cme') drawCMEScene(dt);
+  else if(currentPhen==='wind') drawWindScene(dt);
+
+  requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════
+// PANEL BUILDER PER PHENOMENON
+// ═══════════════════════════════════════════════
+function buildPanel(){
+  const p = document.getElementById('simPanel');
+  if(currentPhen==='sunspot'){
+    p.innerHTML = `
+      <div class="psec">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="bbox"><div class="lbl">T</div><div class="val" style="color:var(--accent)" id="rT">${ps.sunspot.T}K</div></div>
+          <div class="bbox"><div class="lbl">B field</div><div class="val" style="color:var(--a2)" id="rB">${ps.sunspot.Bfield}%</div></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">ควบคุม</div>
+        <div class="sl-row">
+          <span class="sl-lbl">B field</span>
+          <input class="sl-r" type="range" id="ssB" min="0" max="100" value="${ps.sunspot.Bfield}">
+          <span class="sl-unit"><span id="ssBd">${ps.sunspot.Bfield}</span>%</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">T (K)</span>
+          <input class="sl-r" type="range" id="ssT" min="3000" max="5780" value="${ps.sunspot.T}">
+          <span class="sl-unit"><span id="ssTd">${ps.sunspot.T}</span>K</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="h">⚫ Sunspot</div>
+        ลด B → 0 + T → 5,780 K = ผิวปกติ<br>
+        เพิ่ม B → 100% → field รบกวน convection<br>
+        ลด T → 3,800 K → จุดดำปรากฏ
+      </div>`;
+    document.getElementById('ssB').oninput = e=>{
+      ps.sunspot.Bfield = +e.target.value;
+      document.getElementById('ssBd').textContent = ps.sunspot.Bfield;
+      document.getElementById('rB').textContent = ps.sunspot.Bfield+'%';
+    };
+    document.getElementById('ssT').oninput = e=>{
+      ps.sunspot.T = +e.target.value;
+      document.getElementById('ssTd').textContent = ps.sunspot.T;
+      document.getElementById('rT').textContent = ps.sunspot.T+'K';
+    };
+  }
+  else if(currentPhen==='prominence'){
+    p.innerHTML = `
+      <div class="psec">
+        <div class="bbox"><div class="lbl">ความสูง</div><div class="val" style="color:#dc2626" id="rH">${Math.round(ps.prominence.h*700)},000 km</div></div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">ควบคุม</div>
+        <div class="sl-row">
+          <span class="sl-lbl">ความสูง</span>
+          <input class="sl-r" type="range" id="prH" min="0.1" max="1" step="0.01" value="${ps.prominence.h}">
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="h">🔴 Prominence</div>
+        plasma ห้อยบน magnetic loop<br>
+        T ~10,000 K (เย็นกว่า corona)<br>
+        ความสูงทั่วไป 30,000–700,000 km<br>
+        บางครั้งระเบิด → CME
+      </div>`;
+    document.getElementById('prH').oninput = e=>{
+      ps.prominence.h = +e.target.value;
+      document.getElementById('rH').textContent = Math.round(ps.prominence.h*700)+',000 km';
+    };
+  }
+  else if(currentPhen==='flare'){
+    p.innerHTML = `
+      <div class="psec">
+        <button class="btn btn-fire" style="width:100%" onclick="fireFlare()">⚡ ปล่อย Flare</button>
+        <button class="btn btn-fire" style="width:100%;margin-top:6px;background:#831843;border-color:#9d174d" onclick="fireCME()">💥 ปล่อย CME</button>
+      </div>
+      <div class="psec">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="bbox"><div class="lbl">Flare ETA</div><div class="val" style="color:var(--a4)">8.3 min</div></div>
+          <div class="bbox"><div class="lbl">CME ETA</div><div class="val" style="color:var(--a5)">~3 days</div></div>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="h">⚡ Flare vs 💥 CME</div>
+        <b>Flare</b> = แสง+รังสี · เร็วเท่าแสง · 8 นาที<br>
+        <b>CME</b> = plasma cloud · ช้ามาก · 1–4 วัน<br>
+        Flare มาก่อน → เตรียมตัว!<br>
+        ทั้งคู่มักเกิดพร้อมจาก reconnection
+      </div>`;
+  }
+  else if(currentPhen==='cme'){
+    p.innerHTML = `
+      <div class="psec">
+        <div class="bbox"><div class="lbl">ETA ถึงโลก</div><div class="val" style="color:var(--a5)" id="rEta">—</div></div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">ความเร็ว CME</div>
+        <div class="sl-row">
+          <span class="sl-lbl">v (km/s)</span>
+          <input class="sl-r" type="range" id="cmeV" min="250" max="3000" step="50" value="${ps.cme.speed}">
+          <span class="sl-unit"><span id="cmeVd">${ps.cme.speed}</span></span>
+        </div>
+        <button class="btn btn-fire" style="width:100%;margin-top:8px" onclick="fireCMEonly()">💥 ปล่อย CME</button>
+      </div>
+      <div class="info-card">
+        <div class="h">💥 CME — ความเร็วสำคัญ</div>
+        v < 500 km/s → 4–5 วัน (slow)<br>
+        v ≈ 1,500 km/s → ~1 วัน (typical)<br>
+        v > 2,500 km/s → &lt; 12 ชม. (extreme)<br>
+        ETA = 1.5×10⁸ km / v
+      </div>`;
+    const slV = document.getElementById('cmeV');
+    const updateEta = ()=>{
+      const eta = (150e6/ps.cme.speed)/3600;
+      document.getElementById('rEta').textContent = eta<24? eta.toFixed(1)+'h' : (eta/24).toFixed(1)+'d';
+    };
+    updateEta();
+    slV.oninput = e=>{
+      ps.cme.speed = +e.target.value;
+      document.getElementById('cmeVd').textContent = ps.cme.speed;
+      updateEta();
+    };
+  }
+  else if(currentPhen==='wind'){
+    p.innerHTML = `
+      <div class="psec">
+        <div class="bbox"><div class="lbl">v wind</div><div class="val" style="color:var(--a3)" id="rV">${ps.wind.speed} km/s</div></div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">ควบคุม</div>
+        <div class="sl-row">
+          <span class="sl-lbl">v (km/s)</span>
+          <input class="sl-r" type="range" id="wV" min="200" max="800" step="10" value="${ps.wind.speed}">
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="h">🌬 Solar Wind</div>
+        v_slow ≈ 400 km/s · จาก streamer<br>
+        v_fast ≈ 750 km/s · จาก coronal hole<br>
+        ลากโลก ↑↓ เข้าใน stream → Aurora<br>
+        Aurora สีเขียว = O · สีแดง = N
+      </div>`;
+    document.getElementById('wV').oninput = e=>{
+      ps.wind.speed = +e.target.value;
+      document.getElementById('rV').textContent = ps.wind.speed+' km/s';
+    };
+  }
+}
+
+function fireFlare(){ ps.flare.fired = true; ps.flare.t = 0; ps.flare.cmeFired = false; ps.flare.cmeT = 0; }
+function fireCME(){ ps.flare.cmeFired = true; ps.flare.cmeT = 0; }
+function fireCMEonly(){ ps.cme.fired = true; ps.cme.t = 0; }
+
+// ═══════════════════════════════════════════════
+// PHEN BAR + RESET
+// ═══════════════════════════════════════════════
+function buildPhenBar(){
+  const host = document.getElementById('phenBar');
+  host.innerHTML = '';
+  PHEN.forEach(p=>{
+    const el = document.createElement('div');
+    el.className = 'pc'+(p.id===currentPhen?' sel':'');
+    el.innerHTML = `<div class="ic">${p.icon}</div><div class="nm">${p.name}</div>`;
+    el.onclick = ()=>{
+      currentPhen = p.id;
+      buildPhenBar();
+      buildPanel();
+    };
+    host.appendChild(el);
+  });
+}
+
+function resetPhen(){
+  if(currentPhen==='sunspot'){ ps.sunspot.T=5780; ps.sunspot.Bfield=0; }
+  if(currentPhen==='prominence'){ ps.prominence.h=0.5; }
+  if(currentPhen==='flare'){ ps.flare.fired=false; ps.flare.cmeFired=false; ps.flare.t=0; ps.flare.cmeT=0; }
+  if(currentPhen==='cme'){ ps.cme.fired=false; ps.cme.t=0; ps.cme.speed=1500; }
+  if(currentPhen==='wind'){ ps.wind.speed=500; ps.wind.earthX=0.7; ps.wind.earthY=0.5; ps.wind.particles=[]; }
+  buildPanel();
+}
+
+function showSec(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Earth dragging in wind scene
+function setupDrag(){
+  let dragging = false;
+  canvas.addEventListener('mousedown', e=>{
+    if(currentPhen!=='wind') return;
+    const r = canvas.getBoundingClientRect();
+    const mx = (e.clientX-r.left), my = (e.clientY-r.top);
+    const ex = CW * ps.wind.earthX, ey = CH * ps.wind.earthY;
+    if(Math.hypot(mx-ex, my-ey) < 30) dragging = true;
+  });
+  canvas.addEventListener('mousemove', e=>{
+    if(!dragging || currentPhen!=='wind') return;
+    const r = canvas.getBoundingClientRect();
+    ps.wind.earthX = Math.max(0.15, Math.min(0.95, (e.clientX-r.left)/CW));
+    ps.wind.earthY = Math.max(0.1, Math.min(0.9, (e.clientY-r.top)/CH));
+  });
+  canvas.addEventListener('mouseup', ()=>dragging=false);
+  canvas.addEventListener('mouseleave', ()=>dragging=false);
+  // Touch
+  canvas.addEventListener('touchstart', e=>{
+    if(currentPhen!=='wind') return;
+    const t = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    const mx = (t.clientX-r.left), my = (t.clientY-r.top);
+    const ex = CW * ps.wind.earthX, ey = CH * ps.wind.earthY;
+    if(Math.hypot(mx-ex, my-ey) < 40) dragging = true;
+  });
+  canvas.addEventListener('touchmove', e=>{
+    if(!dragging || currentPhen!=='wind') return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    ps.wind.earthX = Math.max(0.15, Math.min(0.95, (t.clientX-r.left)/CW));
+    ps.wind.earthY = Math.max(0.1, Math.min(0.9, (t.clientY-r.top)/CH));
+  }, {passive:false});
+  canvas.addEventListener('touchend', ()=>dragging=false);
+}
+
+window.addEventListener('load', ()=>{
+  canvas = document.getElementById('simCanvas');
+  ctx = canvas.getContext('2d');
+  fitCanvas();
+  buildPhenBar();
+  buildPanel();
+  setupDrag();
+  requestAnimationFrame(tick);
+});
+window.addEventListener('resize', ()=>{ if(canvas){ fitCanvas(); }});
+</script>
+
+<!-- KP Watermark -->
+<script src="../../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("demo:astronomy", "../../demo-astronomy.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
