@@ -1,0 +1,2909 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Lab 42 — การวัดด้วยเวอร์เนียร์และไมโครมิเตอร์ v2.0 | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --panel:#111827; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --accent4:#fb923c; --accent5:#f472b6;
+  --text:#e2e8f0; --muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none;padding:14px 20px}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Layout */
+.sim-grid{display:grid;grid-template-columns:1fr 320px;gap:14px}
+@media(max-width:900px){.sim-grid{grid-template-columns:1fr}}
+.canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;min-height:420px;display:flex;flex-direction:column}
+#simCanvas{width:100%;height:440px;background:linear-gradient(180deg,#1e293b,#0c1424);border-radius:8px;display:block;cursor:ew-resize}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px}
+.card h3{font-size:.92rem;color:var(--accent);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+
+/* Controls */
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.row label{font-size:.8rem;color:var(--muted);min-width:80px}
+select,.btn,input[type=text],input[type=number]{font-family:inherit}
+select{padding:6px 8px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;flex:1;min-width:120px}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.82rem;transition:.15s}
+.btn-play{background:#1b5e20;color:#fff}.btn-play:hover{background:#2e7d32}
+.btn-reset{background:#0d47a1;color:#fff}.btn-reset:hover{background:#1565c0}
+.btn-add{background:var(--accent3);color:#0a0e1a}.btn-add:hover{opacity:.85}
+.btn-check{background:var(--accent2);color:#fff}.btn-check:hover{opacity:.85}
+.btn-mini{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.78rem}
+.btn-mini:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Mode Toggle */
+.modes{display:flex;gap:0;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:10px}
+.modes button{flex:1;background:transparent;border:none;color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+.modes button.active{background:var(--accent);color:#0a0e1a}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sl-label{font-size:.78rem;color:var(--muted)}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:24px}
+.val-input{width:64px;padding:2px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.85rem;text-align:center;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+/* Reading */
+.read-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.read-box{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.read-box .lbl{font-size:.7rem;color:var(--muted)}
+.read-box .val{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent3);font-weight:700}
+
+/* Manual input */
+.manual-box{background:#0c1424;border:1px dashed var(--accent2);border-radius:8px;padding:10px;margin-top:8px}
+.manual-box h4{font-size:.85rem;color:var(--accent2);margin-bottom:6px}
+.minp{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.8rem;color:var(--muted)}
+.minp input{width:80px;padding:3px 6px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--text);text-align:center;font-family:'Share Tech Mono',monospace}
+.feedback{margin-top:6px;padding:6px 8px;border-radius:5px;font-size:.8rem;display:none}
+.feedback.ok{background:#1a3320;color:var(--accent3);border:1px solid var(--accent3);display:block}
+.feedback.no{background:#3a1a1a;color:#f87171;border:1px solid #f87171;display:block}
+.hint{margin-top:5px;font-size:.75rem;color:var(--accent4);display:none}
+.hint.show{display:block}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:6px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--border);text-align:center}
+th{color:var(--accent);background:var(--panel2);font-weight:700}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center}
+.stat .l{font-size:.68rem;color:var(--muted)}
+.stat .v{font-family:'Share Tech Mono',monospace;color:var(--accent);font-weight:700;font-size:.95rem}
+
+/* Theory */
+.theory-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.theory-grid{grid-template-columns:1fr}}
+.t-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+.t-card h3{color:var(--accent);font-size:1rem;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.t-card h4{color:var(--accent2);font-size:.9rem;margin:10px 0 6px}
+.t-card p,.t-card li{color:var(--text);font-size:.88rem;line-height:1.7}
+.t-card ul,.t-card ol{padding-left:22px;margin:6px 0}
+.formula{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem}
+.kbd{display:inline-block;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--accent4)}
+canvas.t-canvas{width:100%;height:200px;background:#0c1424;border-radius:6px;display:block;margin:6px 0}
+
+/* Steps */
+.step-list{counter-reset:s}
+.step-list li{list-style:none;position:relative;padding:10px 12px 10px 40px;margin-bottom:8px;background:var(--panel2);border-left:3px solid var(--accent);border-radius:6px;counter-increment:s}
+.step-list li::before{content:counter(s);position:absolute;left:10px;top:10px;width:22px;height:22px;background:var(--accent);color:#0a0e1a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem}
+
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border);margin-top:20px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600}
+.tag.v{background:#1e3a5f;color:var(--accent);border:1px solid var(--accent)}
+.tag.m{background:#2d1a3a;color:var(--accent2);border:1px solid var(--accent2)}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="vlab:vpl02:lab-42">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <div class="icon">📏</div>
+  <div>
+    <h1>Lab 42 — การวัดด้วยเวอร์เนียร์ &amp; ไมโครมิเตอร์</h1>
+    <p>ฝึกอ่านสเกล • บันทึกข้อมูล • หาค่าเฉลี่ยและความคลาดเคลื่อน</p>
+  </div>
+  <span class="badge" style="background:#2d1a3a;border-color:#a78bfa;color:#c4b5fd">v2.0 redesign</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง / บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎีและคำอธิบาย</button>
+</nav>
+
+<!-- ============ TAB 1: SIMULATION ============ -->
+<section id="tab-sim" class="tab-section active">
+  <div class="sim-grid">
+
+    <!-- Canvas + SVG -->
+    <div class="canvas-wrap">
+      <canvas id="simCanvas" style="display:none"></canvas>
+      <svg id="simSvg" viewBox="0 0 1100 440" preserveAspectRatio="xMidYMid meet" style="width:100%;height:440px;background:linear-gradient(180deg,#1e293b,#0c1424);border-radius:8px;display:block;cursor:ew-resize;user-select:none">
+        <defs>
+          <!-- gradients -->
+          <linearGradient id="gFlatGray" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#e5e7eb"/>
+            <stop offset="50%" stop-color="#d1d5db"/>
+            <stop offset="100%" stop-color="#9ca3af"/>
+          </linearGradient>
+          <linearGradient id="gChromeRod" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#374151"/>
+            <stop offset="20%" stop-color="#9ca3af"/>
+            <stop offset="45%" stop-color="#f9fafb"/>
+            <stop offset="55%" stop-color="#ffffff"/>
+            <stop offset="80%" stop-color="#9ca3af"/>
+            <stop offset="100%" stop-color="#1f2937"/>
+          </linearGradient>
+          <linearGradient id="gChromeBarrel" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4b5563"/>
+            <stop offset="18%" stop-color="#9ca3af"/>
+            <stop offset="40%" stop-color="#f3f4f6"/>
+            <stop offset="55%" stop-color="#ffffff"/>
+            <stop offset="75%" stop-color="#cbd5e1"/>
+            <stop offset="100%" stop-color="#374151"/>
+          </linearGradient>
+          <linearGradient id="gThimble" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1f2937"/>
+            <stop offset="12%" stop-color="#6b7280"/>
+            <stop offset="30%" stop-color="#d1d5db"/>
+            <stop offset="48%" stop-color="#ffffff"/>
+            <stop offset="55%" stop-color="#ffffff"/>
+            <stop offset="72%" stop-color="#cbd5e1"/>
+            <stop offset="88%" stop-color="#6b7280"/>
+            <stop offset="100%" stop-color="#1f2937"/>
+          </linearGradient>
+          <linearGradient id="gFrame" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f8fafc"/>
+            <stop offset="20%" stop-color="#e5e7eb"/>
+            <stop offset="45%" stop-color="#cbd5e1"/>
+            <stop offset="65%" stop-color="#9ca3af"/>
+            <stop offset="85%" stop-color="#6b7280"/>
+            <stop offset="100%" stop-color="#374151"/>
+          </linearGradient>
+          <radialGradient id="gMarble" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stop-color="#fde047"/>
+            <stop offset="50%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#7c2d12"/>
+          </radialGradient>
+          <radialGradient id="gSteelBall" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stop-color="#f9fafb"/>
+            <stop offset="55%" stop-color="#9ca3af"/>
+            <stop offset="100%" stop-color="#1f2937"/>
+          </radialGradient>
+          <filter id="fShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+            <feOffset dx="2" dy="4"/>
+            <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- ====== VERNIER GROUP ====== -->
+        <g id="svgVernier">
+          <!-- Beam -->
+          <rect id="vBeam" x="100" y="120" width="950" height="32" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1.3"/>
+          <!-- Depth rod tip -->
+          <rect id="vDepthRod" x="1050" y="132" width="50" height="8" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1"/>
+          <circle cx="1042" cy="136" r="2.5" fill="#1f2937"/>
+
+          <!-- Main scale (cm/mm ticks generated by JS) -->
+          <g id="vMainScale" font-family="Share Tech Mono" font-size="11" font-weight="bold" fill="#1f2937"></g>
+
+          <!-- Fixed body (upper inner jaw + carriage + lower outer jaw) -->
+          <path id="vFixedBody" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1.4" stroke-linejoin="round"/>
+
+          <!-- Movable body (mirror) -->
+          <g id="vMovableGroup">
+            <path id="vMovableBody" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1.4" stroke-linejoin="round"/>
+            <!-- carriage block on top of beam -->
+            <rect id="vCarriageBlock" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1"/>
+            <!-- thumb screw -->
+            <circle id="vThumbScrew" r="8" fill="#9ca3af" stroke="#1f2937" stroke-width="1"/>
+            <circle id="vThumbScrewInner" r="3" fill="#4b5563"/>
+            <text id="vInchLabel" font-family="Share Tech Mono" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="middle">1/128 in</text>
+            <!-- Vernier plate -->
+            <rect id="vVernierPlate" fill="url(#gFlatGray)" stroke="#1f2937" stroke-width="1.3"/>
+            <g id="vVernierScale" font-family="Share Tech Mono" font-size="9" font-weight="bold" fill="#1f2937"></g>
+            <text id="vLcLabel" font-family="Share Tech Mono" font-size="9" font-weight="bold" fill="#1f2937" text-anchor="end">0,05 mm</text>
+          </g>
+
+          <!-- Object (between lower jaws) -->
+          <g id="vObjectGroup">
+            <circle id="vObjShape" cx="0" cy="0" r="20" fill="url(#gMarble)" stroke="#1f2937" stroke-width="1.2"/>
+            <ellipse id="vObjShine" cx="-7" cy="-8" rx="5" ry="3" fill="rgba(255,255,255,0.6)"/>
+            <text id="vObjLabel" font-family="Sarabun" font-size="11" fill="#e2e8f0" text-anchor="middle">ลูกแก้ว (??)</text>
+          </g>
+
+          <!-- Reading box -->
+          <g id="vReadingBox" transform="translate(820,8)">
+            <rect width="270" height="60" fill="rgba(15,23,42,0.92)" stroke="#38bdf8" stroke-width="1" rx="6"/>
+            <text x="10" y="20" font-family="Sarabun" font-size="11" fill="#94a3b8">ค่าที่อ่าน (ซ่อน — ฝึกอ่านเอง)</text>
+            <text id="vReadingValue" x="10" y="44" font-family="Share Tech Mono" font-size="18" font-weight="bold" fill="#fb923c">— ?? —</text>
+            <text id="vReadingHint" x="10" y="56" font-family="Sarabun" font-size="10" fill="#94a3b8">อ่านสเกลด้วยตา แล้วกรอก →</text>
+          </g>
+
+          <!-- Tray for object -->
+          <rect id="vTrayBox" x="20" y="370" width="1060" height="56" fill="rgba(15,23,42,0.6)" stroke="#1e3a5f" stroke-dasharray="4 4" stroke-width="1"/>
+          <text x="30" y="384" font-family="Sarabun" font-size="10" fill="#94a3b8">🧩 ลากวัตถุไปวางระหว่างขากรรไกร ↑</text>
+        </g>
+
+        <!-- ====== MICROMETER GROUP — match reference photo ====== -->
+        <g id="svgMicrometer" style="display:none">
+          <!-- U-frame: compact C-shape, opens to the RIGHT (matches reference) -->
+          <!-- Frame body — outer outline + inner cutout -->
+          <path id="mFrame" fill="url(#gFrame)" stroke="#374151" stroke-width="1.2" filter="url(#fShadow)"
+                d="M 250 145
+                   L 100 145
+                   C 60 145, 30 175, 30 230
+                   C 30 285, 60 320, 100 320
+                   L 250 320
+                   L 250 280
+                   L 130 280
+                   C 105 280, 90 260, 90 230
+                   C 90 200, 105 180, 130 180
+                   L 250 180
+                   Z"/>
+          <!-- frame outer highlight (subtle inner lighter line) -->
+          <path fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2"
+                d="M 250 148 L 105 148 C 75 148, 50 175, 48 220"/>
+
+          <!-- Brand label on frame -->
+          <rect x="60" y="290" width="70" height="14" fill="#1f2937" rx="2"/>
+          <text x="95" y="301" font-family="Share Tech Mono" font-size="9" font-weight="bold" fill="#fbbf24" text-anchor="middle">0–25mm</text>
+
+          <!-- Anvil rod (chrome cylinder coming RIGHT from the frame's upper-right) -->
+          <rect id="mAnvil" x="250" y="218" width="120" height="24" fill="url(#gChromeRod)" stroke="#1f2937" stroke-width="0.8"/>
+
+          <!-- Clutch block (where anvil meets rotating part) -->
+          <rect id="mClutch" x="370" y="200" width="50" height="60" rx="4" fill="url(#gFlatGray)" stroke="#374151" stroke-width="1"/>
+          <!-- locking knob (small black) -->
+          <circle cx="395" cy="218" r="6" fill="#1f2937" stroke="#374151" stroke-width="0.8"/>
+          <circle cx="395" cy="218" r="2.5" fill="#4b5563"/>
+          <!-- locking lever (curved stick from knob) -->
+          <path d="M 393 224 Q 388 240 396 252 L 400 250 Q 393 240 397 224 Z" fill="#374151" stroke="#1f2937" stroke-width="0.5"/>
+
+          <!-- Object group (between anvil tip and spindle tip) -->
+          <g id="mObjectGroup">
+            <rect id="mObjShape" x="0" y="0" width="20" height="14" fill="#fbbf24" stroke="#1f2937" stroke-width="0.8"/>
+            <text id="mObjLabel" font-family="Sarabun" font-size="11" fill="#cbd5e1" text-anchor="middle">ลวด (??)</text>
+          </g>
+
+          <!-- Spindle (movable, comes from sleeve to the LEFT toward object) -->
+          <g id="mSpindleGroup">
+            <rect id="mSpindle" x="0" y="218" width="40" height="24" fill="url(#gChromeRod)" stroke="#1f2937" stroke-width="0.8"/>
+          </g>
+
+          <!-- Sleeve (stationary — chrome cylinder with horizontal scale) -->
+          <g id="mSleeveGroup">
+            <rect id="mSleeve" x="0" y="210" width="240" height="40" fill="url(#gChromeBarrel)" stroke="#374151" stroke-width="1"/>
+            <line id="mDatum" x1="0" y1="230" x2="240" y2="230" stroke="#1f2937" stroke-width="1.4"/>
+            <g id="mSleeveScale" font-family="Share Tech Mono" font-size="11" font-weight="bold" fill="#1f2937"></g>
+          </g>
+
+          <!-- Thimble (rotating cylinder, shows current 0.01 mm reading) -->
+          <g id="mThimbleGroup">
+            <rect id="mThimble" x="0" y="190" width="150" height="80" fill="url(#gThimble)" stroke="#374151" stroke-width="1"/>
+            <!-- left bevel (reading edge against sleeve) -->
+            <rect x="0" y="190" width="3" height="80" fill="rgba(0,0,0,0.6)"/>
+            <rect x="3" y="190" width="1" height="80" fill="rgba(255,255,255,0.5)"/>
+            <g id="mThimbleScale" font-family="Share Tech Mono" font-size="11" font-weight="bold" fill="#1f2937"></g>
+          </g>
+
+          <!-- Ratchet (knurled cap at far right) -->
+          <g id="mRatchetGroup">
+            <rect id="mRatchet" x="0" y="195" width="60" height="70" fill="url(#gThimble)" stroke="#374151" stroke-width="1"/>
+            <g id="mRatchetKnurl"></g>
+            <rect id="mRatchetCap" x="55" y="190" width="8" height="80" fill="#1f2937" stroke="#0f172a"/>
+            <circle cx="63" cy="230" r="3" fill="#374151"/>
+          </g>
+
+          <!-- Reading box -->
+          <g id="mReadingBox" transform="translate(820,8)">
+            <rect width="270" height="60" fill="rgba(15,23,42,0.92)" stroke="#38bdf8" stroke-width="1" rx="6"/>
+            <text x="10" y="20" font-family="Sarabun" font-size="11" fill="#94a3b8">ค่าที่อ่าน (ซ่อน — ฝึกอ่านเอง)</text>
+            <text id="mReadingValue" x="10" y="44" font-family="Share Tech Mono" font-size="18" font-weight="bold" fill="#fb923c">— ?? —</text>
+            <text id="mReadingHint" x="10" y="56" font-family="Sarabun" font-size="10" fill="#94a3b8">อ่านสเกลด้วยตา แล้วกรอก →</text>
+          </g>
+
+          <rect id="mTrayBox" x="20" y="370" width="1060" height="56" fill="rgba(15,23,42,0.6)" stroke="#1e3a5f" stroke-dasharray="4 4" stroke-width="1"/>
+          <text x="30" y="384" font-family="Sarabun" font-size="10" fill="#94a3b8">🧩 ลากวัตถุไปวางระหว่าง anvil ↔ spindle ↑</text>
+        </g>
+      </svg>
+      <div style="font-size:.74rem;color:var(--muted);margin-top:6px">
+        💡 <b>เลื่อนสเกล:</b> ใช้สไลเดอร์ "ตำแหน่งขากรรไกร/หัววัด" หรือ <b>ลากเมาส์ในแนวนอน</b> บน canvas •
+        <b>ขยาย:</b> ใช้สไลเดอร์ Zoom เพื่ออ่านสเกลละเอียด
+      </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side">
+
+      <div class="card">
+        <h3>⚙️ ตั้งค่าการทดลอง</h3>
+        <div class="row">
+          <label>เครื่องมือ:</label>
+          <select id="tool" onchange="onToolChange()">
+            <option value="vernier">Vernier Caliper (0.05 mm)</option>
+            <option value="micrometer">Micrometer Screw Gauge (0.01 mm)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>วัตถุ:</label>
+          <select id="obj" onchange="onObjChange()"></select>
+        </div>
+        <div class="row">
+          <label>โหมดวัด <span id="modeIcon" class="tag v">เวอร์เนียร์</span>:</label>
+        </div>
+        <div class="row" id="vMeasureRow">
+          <select id="vMeasure" onchange="onObjChange()">
+            <option value="outer">วัดภายนอก (ขากรรไกรล่าง)</option>
+            <option value="inner">วัดภายใน (ขากรรไกรบน)</option>
+            <option value="depth">วัดความลึก (แกนวัดลึก)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>ขนาดวัตถุ:</label>
+          <select id="objSize" onchange="onObjChange()">
+            <option value="fixed">ขนาดคงที่ (ค่าจริงตามตาราง)</option>
+            <option value="random">สุ่มขนาด (ทุกครั้งที่กด snap)</option>
+          </select>
+        </div>
+        <div class="row" id="vDivRow">
+          <label>เวอร์เนียร์:</label>
+          <select id="vDiv" onchange="onDivChange()">
+            <option value="10">10 ช่อง (0.1 mm)</option>
+            <option value="20" selected>20 ช่อง (0.05 mm)</option>
+            <option value="50">50 ช่อง (0.02 mm)</option>
+          </select>
+        </div>
+
+        <div class="modes">
+          <button id="md-manual" class="active" onclick="setMode('manual')">✍️ Manual (ฝึกอ่านเอง)</button>
+          <button id="md-auto" onclick="setMode('auto')">⚡ Auto</button>
+        </div>
+
+        <div class="sl-row">
+          <span class="sl-label">ตำแหน่ง</span>
+          <input class="sl-range" type="range" id="sl-pos" min="0" max="1000" step="1" value="500">
+          <input class="val-input" type="number" id="vi-pos" min="0" max="1000" step="1" value="500">
+        </div>
+        <div class="sl-row">
+          <span class="sl-label">Zoom</span>
+          <input class="sl-range" type="range" id="sl-zoom" min="1" max="4" step="0.1" value="1.5">
+          <input class="val-input" type="number" id="vi-zoom" min="1" max="4" step="0.1" value="1.5">
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <button class="btn btn-mini" onclick="snapToObject()">🎯 จับวัตถุ (snap)</button>
+          <button class="btn btn-mini" onclick="ejectObject()">⏏ เอาวัตถุออก</button>
+          <button class="btn btn-mini" onclick="randomNoise()">🔀 สุ่ม</button>
+        </div>
+      </div>
+
+      <!-- Reading display (Auto mode shows answer; Manual hides until check) -->
+      <div class="card">
+        <h3>🔍 ค่าที่อ่านได้</h3>
+        <div id="readAuto" class="read-grid">
+          <div class="read-box"><div class="lbl">สเกลหลัก (Main)</div><div class="val" id="rdMain">— mm</div></div>
+          <div class="read-box"><div class="lbl">สเกลเวอร์เนียร์ / thimble</div><div class="val" id="rdVer">— ขีด</div></div>
+          <div class="read-box" style="grid-column:span 2"><div class="lbl">ค่าที่วัดได้ (รวม)</div><div class="val" id="rdTotal" style="font-size:1.3rem">— mm</div></div>
+        </div>
+
+        <!-- Manual input box -->
+        <div id="manualBox" class="manual-box" style="display:none">
+          <h4>✍️ บันทึกค่าด้วยตัวเอง</h4>
+          <div class="minp">
+            <span id="lbMain">สเกลหลัก (mm):</span>
+            <input type="number" id="inMain" step="0.5" placeholder="0.0">
+          </div>
+          <div class="minp">
+            <span id="lbVer">เวอร์เนียร์ตรงขีด:</span>
+            <input type="number" id="inVer" step="1" placeholder="0">
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+            <button class="btn btn-check" onclick="checkAnswer()">✅ ตรวจคำตอบ</button>
+            <button class="btn btn-mini" onclick="showHint()">💡 ขอคำใบ้</button>
+            <button class="btn btn-mini" onclick="revealAnswer()">👁 เฉลย</button>
+          </div>
+          <div id="fb" class="feedback"></div>
+          <div id="hintBox" class="hint"></div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-add" onclick="recordReading()">➕ บันทึกลงตาราง</button>
+          <button class="btn btn-reset" onclick="resetTable()">🗑 ล้างตาราง</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Data table -->
+  <div class="card" style="margin-top:14px">
+    <h3>📊 ตารางบันทึกผลการวัด</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ครั้งที่</th><th>วัตถุ</th><th>เครื่องมือ</th><th>สเกลหลัก (mm)</th><th>ขีดเวอร์เนียร์/thimble</th><th>ค่าที่วัด (mm)</th><th>—</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="7" style="color:var(--muted);font-style:italic">— ยังไม่มีข้อมูล —</td></tr></tbody>
+      </table>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="l">ค่าเฉลี่ย x̄ (mm)</div><div class="v" id="stMean">—</div></div>
+      <div class="stat"><div class="l">ส่วนเบี่ยงเบนมาตรฐาน σ</div><div class="v" id="stSd">—</div></div>
+      <div class="stat"><div class="l">ค่าที่รายงาน</div><div class="v" id="stRep">—</div></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-mini" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-mini" onclick="autoFill5()">🔁 วัดอัตโนมัติ 5 ครั้ง (โหมด Auto)</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2: PROCEDURE ============ -->
+<section id="tab-proc" class="tab-section">
+  <div class="theory-grid">
+
+    <div class="t-card">
+      <h3>🎯 จุดประสงค์การทดลอง</h3>
+      <ul>
+        <li>อ่านสเกลของเวอร์เนียร์คาลิปเปอร์ความละเอียด <b>0.05 mm</b> ได้ถูกต้อง</li>
+        <li>อ่านสเกลของไมโครมิเตอร์ความละเอียด <b>0.01 mm</b> ได้ถูกต้อง</li>
+        <li>วัดขนาดวัตถุหลายครั้ง คำนวณค่าเฉลี่ย และความคลาดเคลื่อน (uncertainty)</li>
+        <li>เลือกใช้เครื่องมือวัดได้เหมาะสมกับขนาดของวัตถุ</li>
+      </ul>
+    </div>
+
+    <div class="t-card">
+      <h3>🧰 อุปกรณ์ (เสมือนจริงในแล็บนี้)</h3>
+      <ul>
+        <li>เวอร์เนียร์คาลิปเปอร์ — สเกลหลัก 0–150 mm, สเกลเวอร์เนียร์ 20 ขีด → least count = 1/20 = <b>0.05 mm</b></li>
+        <li>ไมโครมิเตอร์สกรูเกจ — สเกลหลัก 0–25 mm (ระยะคาบ pitch = 0.5 mm), thimble 50 ขีด → least count = 0.5/50 = <b>0.01 mm</b></li>
+        <li>วัตถุที่ใช้วัด: ลูกแก้ว, ลูกเหล็ก, เหรียญ 1 บาท, ลวดทองแดง, แผ่นกระจก, ท่อ PVC</li>
+      </ul>
+    </div>
+
+    <div class="t-card" style="grid-column:span 2">
+      <h3>📋 วิธีการทดลอง (โหมด Manual — ดีฟอลต์)</h3>
+      <ol class="step-list">
+        <li>ใน <span class="kbd">Tab Simulation</span> เลือก <b>เครื่องมือ</b> และ <b>วัตถุ</b> ที่ต้องการวัด</li>
+        <li>กดปุ่ม <b>🎯 จับวัตถุ (snap)</b> เพื่อให้ขากรรไกร/หัววัดเลื่อนเข้าจับวัตถุพอดี (จำลองการหมุน ratchet จนได้ยินเสียง "คลิก")</li>
+        <li>ถ้าต้องการฝึกอ่านสเกลที่ตำแหน่งใหม่ — ปรับสไลเดอร์ <b>ตำแหน่ง</b> หรือลากเมาส์บน canvas และกด <b>🔀 สุ่มจุดวัดใหม่</b></li>
+        <li>ใช้สไลเดอร์ <b>Zoom</b> ขยายภาพเพื่ออ่านสเกลให้ชัด</li>
+        <li><b>อ่านค่าจากสเกลด้วยตนเอง</b> แล้วกรอกในช่อง:
+          <ul>
+            <li><i>เวอร์เนียร์</i> — สเกลหลัก = ขีด mm ใหญ่ที่สุดที่อยู่ก่อน "0" ของเวอร์เนียร์ • ขีดเวอร์เนียร์ = ขีดที่ตรงกันกับสเกลหลัก (0–19)</li>
+            <li><i>ไมโครมิเตอร์</i> — สเกลหลัก = ขีดบน sleeve (0.5 mm ที่สุดก่อนขอบ thimble) • thimble = ขีดบน thimble ที่ตรงเส้นอ้างอิง (0–49)</li>
+          </ul>
+        </li>
+        <li>กดปุ่ม <b>✅ ตรวจคำตอบ</b> — ระบบจะบอกว่าถูก/ผิด พร้อม tolerance ±1 ขีด</li>
+        <li>ถ้าผิด สามารถกด <b>💡 คำใบ้</b> หรือ <b>👁 เฉลย</b> เพื่อเรียนรู้</li>
+        <li>เมื่อมั่นใจ กด <b>➕ บันทึกลงตาราง</b> เพื่อเก็บข้อมูล</li>
+        <li><b>ทำซ้ำอย่างน้อย 5 ครั้ง</b> โดยกด <b>🔀 สุ่มจุดวัดใหม่</b> ระหว่างครั้ง (จำลองความคลาดเคลื่อนของผู้วัด)</li>
+        <li>ดูค่าเฉลี่ย x̄ และส่วนเบี่ยงเบนมาตรฐาน σ ใต้ตาราง — รายงานผลในรูป <b>x̄ ± σ</b></li>
+      </ol>
+    </div>
+
+    <div class="t-card">
+      <h3>⚡ โหมด Auto (เปรียบเทียบ/เก็บข้อมูลเร็ว)</h3>
+      <ol>
+        <li>กดปุ่มสลับเป็น <b>⚡ Auto</b></li>
+        <li>เครื่องจะอ่านค่าและแสดงทันทีในกล่อง "ค่าที่อ่านได้"</li>
+        <li>กด <b>🔁 วัดอัตโนมัติ 5 ครั้ง</b> เพื่อสุ่มจุดวัดและบันทึกตารางทันที 5 แถว</li>
+        <li>เหมาะสำหรับเปรียบเทียบกับโหมด Manual หลังฝึกอ่านสเกลเสร็จแล้ว</li>
+      </ol>
+    </div>
+
+    <div class="t-card">
+      <h3>📑 รูปแบบการบันทึกผล (ตัวอย่าง)</h3>
+      <div class="formula">
+ครั้งที่ | วัตถุ | สเกลหลัก | ขีดเวอร์เนียร์ | ค่าที่วัด (mm)
+   1     | ลูกแก้ว |  16.0   |       7        |    16.35
+   2     | ลูกแก้ว |  16.0   |       8        |    16.40
+   ...
+      </div>
+      <p>คำนวณ:</p>
+      <div class="formula">x̄ = (Σxᵢ) / N</div>
+      <div class="formula">σ = √[ Σ(xᵢ − x̄)² / (N−1) ]</div>
+      <p>รายงานในรูป <b>D = x̄ ± σ mm</b> (ใช้ σ เป็น uncertainty ของการสุ่ม)</p>
+    </div>
+
+    <div class="t-card" style="grid-column:span 2">
+      <h3>❓ คำถามท้ายการทดลอง</h3>
+      <ol>
+        <li>ถ้าวัดลวดทองแดงด้วย<b>เวอร์เนียร์</b> เทียบกับ<b>ไมโครมิเตอร์</b> เครื่องมือใดเหมาะสมกว่ากัน เพราะอะไร?</li>
+        <li>เพราะเหตุใดการวัดซ้ำหลายๆ ครั้งจึงให้ผลการวัดน่าเชื่อถือกว่าการวัดเพียงครั้งเดียว?</li>
+        <li>ถ้านักเรียนพบว่าเมื่อปิดขากรรไกรสนิทแล้วเวอร์เนียร์อ่านได้ +0.10 mm (ไม่ใช่ 0) — ค่านี้เรียกว่าอะไร และต้องแก้ผลการวัดอย่างไร?</li>
+        <li>ส่วนเบี่ยงเบนมาตรฐาน σ ในการวัดบอกอะไรเกี่ยวกับ "ความแม่น (precision)" และ "ความเที่ยง (accuracy)" ของการวัด?</li>
+      </ol>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ TAB 3: THEORY ============ -->
+<section id="tab-theory" class="tab-section">
+  <div class="theory-grid">
+
+    <div class="t-card" style="grid-column:span 2">
+      <h3>🔬 หลักการของเวอร์เนียร์สเกล (Vernier principle)</h3>
+      <p>เวอร์เนียร์เพิ่มความละเอียดของการวัดโดยใช้สเกลเสริมที่มี <b>N ขีด ยาวเท่ากับ (N−1) ขีดของสเกลหลัก</b>:</p>
+      <div class="formula">least count = (1 ขีดสเกลหลัก) − (1 ขีดสเกลเวอร์เนียร์) = 1/N × (1 ขีดสเกลหลัก)</div>
+      <p>เวอร์เนียร์ในแล็บนี้: สเกลหลัก 1 mm และเวอร์เนียร์ 20 ขีด ยาวเท่ากับ 19 mm
+      → least count = 1 − 19/20 = <b>0.05 mm</b></p>
+      <canvas id="thCanvas1" class="t-canvas"></canvas>
+      <p style="font-size:.82rem;color:var(--muted)">ภาพข้างบน: เลื่อนเวอร์เนียร์ทีละน้อย — ขีดที่ "ตรงกัน" กับสเกลหลักเพียงขีดเดียว = จำนวน 0.05 mm ที่บวกเพิ่ม</p>
+      <h4>วิธีอ่าน 3 ขั้น</h4>
+      <ol>
+        <li><b>สเกลหลัก:</b> อ่านขีด mm ที่ใหญ่ที่สุด ที่อยู่ <i>ก่อน</i> เลข 0 ของสเกลเวอร์เนียร์ (เช่น 16.0 mm)</li>
+        <li><b>สเกลเวอร์เนียร์:</b> หาขีดของเวอร์เนียร์ที่ <i>ตรงกัน</i> กับขีดของสเกลหลัก (เช่นขีดที่ 7) — ค่าเศษ = 7 × 0.05 = 0.35 mm</li>
+        <li><b>รวม:</b> 16.0 + 0.35 = <b>16.35 mm</b></li>
+      </ol>
+    </div>
+
+    <div class="t-card" style="grid-column:span 2">
+      <h3>🔬 หลักการของไมโครมิเตอร์ (Micrometer screw gauge)</h3>
+      <p>ไมโครมิเตอร์ใช้หลักของสกรู — เมื่อหมุน thimble ครบ 1 รอบ spindle จะเคลื่อนที่ไป <b>1 pitch</b> (โดยทั่วไป 0.5 mm)
+        และ thimble แบ่งเป็น 50 ขีดเท่าๆ กัน ดังนั้น</p>
+      <div class="formula">least count = pitch / จำนวนขีด thimble = 0.5 / 50 = 0.01 mm</div>
+      <canvas id="thCanvas2" class="t-canvas"></canvas>
+      <h4>วิธีอ่าน 3 ขั้น</h4>
+      <ol>
+        <li><b>สเกล Sleeve:</b> อ่านขีด mm และครึ่ง mm ที่ใหญ่ที่สุดซึ่งโผล่ก่อนขอบ thimble (เช่น 7.5 mm)</li>
+        <li><b>สเกล Thimble:</b> ขีดบน thimble ที่ตรงกับเส้นอ้างอิงแนวนอนของ sleeve (เช่นขีดที่ 23 → 0.23 mm)</li>
+        <li><b>รวม:</b> 7.5 + 0.23 = <b>7.73 mm</b></li>
+      </ol>
+      <p><b>หมายเหตุ:</b> หมุนเฉพาะปุ่ม <i>ratchet</i> ที่ปลาย เพื่อกันการขันแน่นเกินจนวัตถุเสียหาย และให้ทุกครั้งวัดแรงเท่ากัน</p>
+    </div>
+
+    <div class="t-card">
+      <h3>📏 ความแม่น vs ความเที่ยง</h3>
+      <p><b>Precision (ความแม่น):</b> ค่าที่ได้แต่ละครั้งใกล้เคียงกัน → σ น้อย</p>
+      <p><b>Accuracy (ความเที่ยง):</b> ค่าเฉลี่ยใกล้ค่าจริง</p>
+      <p>เครื่องมือยิ่ง least count เล็ก → ยิ่ง precise แต่ยังต้องสอบเทียบ (calibration) ให้ accurate</p>
+    </div>
+
+    <div class="t-card">
+      <h3>⚠️ Zero Error (ความผิดพลาดจากศูนย์)</h3>
+      <p>เมื่อปิดขากรรไกร/หัววัดสนิท ถ้าสเกลไม่อ่าน 0 — เรียกว่า zero error ต้องลบออกเสมอ:</p>
+      <div class="formula">ค่าจริง = ค่าที่อ่านได้ − zero error</div>
+      <ul>
+        <li>Positive zero error (อ่านได้ +0.05) → ลบ 0.05 จากค่าวัด</li>
+        <li>Negative zero error (อ่านได้ −0.03) → บวก 0.03 ในค่าวัด</li>
+      </ul>
+    </div>
+
+    <div class="t-card" style="grid-column:span 2">
+      <h3>🧮 การคำนวณ Uncertainty</h3>
+      <p>เมื่อวัดซ้ำ N ครั้ง ได้ x₁, x₂, ..., x_N:</p>
+      <div class="formula">x̄ = (1/N) Σ xᵢ</div>
+      <div class="formula">σ = √[ (1/(N−1)) Σ (xᵢ − x̄)² ]</div>
+      <p>รายงานผลเป็น <b>x̄ ± σ</b> (1σ confidence ≈ 68%) หรือ <b>x̄ ± σ/√N</b> (standard error)</p>
+      <p>หาก σ น้อยกว่า least count ของเครื่องมือ — ใช้ <b>least count/2</b> เป็น uncertainty แทน เพราะเป็นขีดจำกัดของความละเอียด</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  KP Science simulation · Lab 42 — การวัดด้วยเวอร์เนียร์และไมโครมิเตอร์
+</footer>
+
+<script>
+/* ============ DATA ============ */
+const OBJECTS = {
+  vernier: [
+    {id:'marble',     name:'ลูกแก้ว',           D:16.35, range:[10,30]},
+    {id:'steelball',  name:'ลูกเหล็ก',          D:12.70, range:[8,25]},
+    {id:'coin1',      name:'เหรียญ 1 บาท (Ø)', D:20.00, range:[15,30]},
+    {id:'coin1t',     name:'เหรียญ 1 บาท (หนา)',D:1.85,  range:[1,5]},
+    {id:'glass',      name:'แผ่นกระจก',        D:3.20,  range:[1,8]},
+    {id:'pvcOuter',   name:'ท่อ PVC (นอก)',    D:21.50, range:[15,30]},
+    {id:'pvcInner',   name:'ท่อ PVC (ใน)',     D:16.80, range:[10,25]},
+  ],
+  micrometer: [
+    {id:'wire',     name:'ลวดทองแดง',     D:0.45,  range:[0.1,1.0]},
+    {id:'paper',    name:'กระดาษ A4',     D:0.10,  range:[0.05,0.5]},
+    {id:'foil',     name:'แผ่นอลูมิเนียมฟอยล์', D:0.025, range:[0.01,0.1]},
+    {id:'wirethick',name:'ลวดเหล็กหนา',  D:1.25,  range:[0.5,3]},
+    {id:'glassMM',  name:'แผ่นกระจกบาง',  D:3.20,  range:[1,8]},
+    {id:'coinMM',   name:'เหรียญ 1 บาท (หนา)',D:1.85,range:[0.5,5]},
+  ]
+};
+
+/* ============ STATE ============ */
+let state = {
+  tool: 'vernier',
+  obj: 'marble',
+  measureMode: 'outer',
+  mode: 'manual',
+  sizeMode: 'fixed',
+  divisions: 20,              // 10 / 20 / 50
+  objInserted: false,         // วัตถุอยู่ในที่วัดหรือยัง (drag-in)
+  dragging: null,             // 'object' | 'jaw' | null
+  objDragX: 0, objDragY: 0,   // ตำแหน่งวัตถุระหว่างลาก (px)
+  pos: 500,
+  zoom: 1.5,
+  noise: 0,
+  records: [],
+  trueVal: 16.35,
+  jaw: 18.0,
+};
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+/* ============ TAB ============ */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='theory'){ drawTheory1(); drawTheory2(); }
+}
+
+/* ============ MODE / TOOL ============ */
+function setMode(m){
+  state.mode = m;
+  document.getElementById('md-manual').classList.toggle('active', m==='manual');
+  document.getElementById('md-auto').classList.toggle('active', m==='auto');
+  document.getElementById('manualBox').style.display = (m==='manual')?'block':'none';
+  updateReadout();
+}
+function onDivChange(){
+  state.divisions = parseInt(document.getElementById('vDiv').value);
+  hideFeedback(); draw(); updateReadout();
+}
+function onToolChange(){
+  state.tool = document.getElementById('tool').value;
+  populateObjects();
+  document.getElementById('vMeasureRow').style.display = (state.tool==='vernier')?'flex':'none';
+  document.getElementById('vDivRow').style.display = (state.tool==='vernier')?'flex':'none';
+  const mi = document.getElementById('modeIcon');
+  mi.textContent = state.tool==='vernier' ? 'เวอร์เนียร์' : 'ไมโครมิเตอร์';
+  mi.className = 'tag '+(state.tool==='vernier'?'v':'m');
+  document.getElementById('lbMain').textContent = state.tool==='vernier' ? 'สเกลหลัก (mm):' : 'Sleeve (mm, รวมครึ่ง mm):';
+  document.getElementById('lbVer').textContent  = state.tool==='vernier' ? 'เวอร์เนียร์ตรงขีดที่ (0–19):' : 'Thimble ตรงขีดที่ (0–49):';
+  onObjChange();
+}
+function populateObjects(){
+  const sel = document.getElementById('obj');
+  sel.innerHTML = '';
+  OBJECTS[state.tool].forEach(o=>{
+    const op = document.createElement('option');
+    op.value = o.id; op.textContent = o.name + ' (≈ '+o.D.toFixed(2)+' mm)';
+    sel.appendChild(op);
+  });
+  state.obj = OBJECTS[state.tool][0].id;
+}
+function onObjChange(){
+  state.obj = document.getElementById('obj').value;
+  state.measureMode = document.getElementById('vMeasure').value;
+  state.sizeMode = document.getElementById('objSize').value;
+  pickTrueVal();
+  // ตำแหน่ง jaw เริ่มต้น: เปิดกว้างกว่าวัตถุเล็กน้อย (ยังไม่ snap)
+  setJaw(state.trueVal + (state.tool==='vernier'?2.5:0.6));
+  hideFeedback();
+  draw(); updateReadout();
+}
+function getObj(){ return OBJECTS[state.tool].find(o=>o.id===state.obj); }
+
+function pickTrueVal(){
+  const o = getObj();
+  if(state.sizeMode==='random'){
+    // สุ่มขนาดในช่วงที่สมเหตุสมผลของวัตถุประเภทนั้น
+    const [lo,hi] = o.range;
+    // จำกัดช่วง random ใกล้ค่ากลางของชนิดวัตถุ ±30%
+    const span = Math.min((hi-lo)*0.4, o.D*0.6);
+    const center = o.D;
+    let v = center + (Math.random()*2-1)*span;
+    v = Math.max(lo+0.05, Math.min(hi-0.05, v));
+    // round to least count of tool
+    const lc = state.tool==='vernier'?0.05:0.01;
+    state.trueVal = Math.round(v/lc)*lc;
+  } else {
+    state.trueVal = o.D;
+  }
+}
+
+function randomNoise(){
+  // ในโหมด random → สุ่มขนาดวัตถุใหม่ ในโหมด fixed → เพิ่ม jitter เล็กน้อยจำลองตำแหน่งจับ
+  if(state.sizeMode==='random'){
+    pickTrueVal();
+  } else {
+    // jitter ±0.04 mm (vernier) / ±0.008 mm (micrometer) — จำลองความคลาดเคลื่อนของผู้วัด
+    const j = state.tool==='vernier' ? 0.04 : 0.008;
+    state.noise = (Math.random()*2-1)*j;
+  }
+  hideFeedback();
+  draw(); updateReadout();
+}
+
+function setJaw(mm){
+  const o = getObj();
+  const [lo,hi] = o.range;
+  state.jaw = Math.max(0, Math.min(hi*1.2, mm));
+  const f = (state.jaw - 0)/(hi*1.2 - 0);
+  const sliderVal = Math.round(Math.max(0, Math.min(1, f))*1000);
+  document.getElementById('sl-pos').value = sliderVal;
+  document.getElementById('vi-pos').value = sliderVal;
+  state.pos = sliderVal;
+}
+
+function snapToObject(){
+  state.objInserted = true;
+  const j = state.tool==='vernier' ? 0.04 : 0.008;
+  const jitter = state.sizeMode==='fixed' ? (Math.random()*2-1)*j : 0;
+  // jaw ปิดถึงผิววัตถุ (ไม่ลึกเกิน) + jitter เล็กน้อยจาก contact
+  setJaw(state.trueVal + Math.abs(jitter));
+  hideFeedback();
+  draw(); updateReadout();
+}
+function ejectObject(){
+  state.objInserted = false;
+  setJaw(state.trueVal + (state.tool==='vernier'?5:1));
+  hideFeedback();
+  draw(); updateReadout();
+}
+
+function posToJaw(){
+  const o = getObj();
+  const [_,hi] = o.range;
+  let v = (state.pos/1000)*(hi*1.2);
+  // ถ้าวัตถุอยู่ในที่วัด → spindle/jaw ปิดได้แค่ถึงผิววัตถุ (ไม่บีบเข้าเกิน)
+  if(state.objInserted && v < state.trueVal) v = state.trueVal;
+  return v;
+}
+
+/* ============ READING ============ */
+// returns { main:Number(mm), sub:Integer, total:Number(mm) }
+function readVernier(jaw){
+  const lc = 1/state.divisions;   // 0.1 / 0.05 / 0.02 mm
+  const rounded = Math.round(jaw/lc)*lc;
+  const main = Math.floor(rounded);
+  const sub = Math.round((rounded - main)/lc) % state.divisions;
+  return {main, sub, total: rounded};
+}
+function readMicrometer(jaw){
+  // round to nearest 0.01
+  const rounded = Math.round(jaw/0.01)*0.01;
+  const halfmm = Math.floor(rounded*2)/2;
+  const sub = Math.round((rounded - halfmm)/0.01); // 0..49 normally
+  // Sleeve reading is halfmm
+  return {main: halfmm, sub: sub%50, total: rounded};
+}
+function getReading(){
+  state.jaw = posToJaw();
+  return state.tool==='vernier' ? readVernier(state.jaw) : readMicrometer(state.jaw);
+}
+function updateReadout(){
+  const r = getReading();
+  if(state.mode==='auto'){
+    document.getElementById('rdMain').textContent  = r.main.toFixed(state.tool==='vernier'?0:1)+' mm';
+    document.getElementById('rdVer').textContent   = r.sub + ' ขีด';
+    document.getElementById('rdTotal').textContent = r.total.toFixed(state.tool==='vernier'?2:3)+' mm';
+  } else {
+    document.getElementById('rdMain').textContent  = '— (อ่านเอง)';
+    document.getElementById('rdVer').textContent   = '— (อ่านเอง)';
+    document.getElementById('rdTotal').textContent = '— (อ่านเอง)';
+  }
+}
+
+/* ============ MANUAL CHECK ============ */
+function checkAnswer(){
+  const r = getReading();
+  const am = parseFloat(document.getElementById('inMain').value);
+  const av = parseInt(document.getElementById('inVer').value);
+  const fb = document.getElementById('fb');
+  if(isNaN(am)||isNaN(av)){
+    fb.className='feedback no'; fb.textContent='กรุณากรอกทั้งสเกลหลักและขีดเวอร์เนียร์/thimble'; return;
+  }
+  // tolerance: main exact (or ±0.5 for micrometer), sub ±1
+  const mainOK = state.tool==='vernier'
+    ? Math.abs(am - r.main) < 0.01
+    : Math.abs(am - r.main) < 0.01;
+  const subOK = Math.abs(av - r.sub) <= 1 || Math.abs(av - r.sub) >= (state.tool==='vernier'?19:49);
+  if(mainOK && subOK){
+    fb.className='feedback ok';
+    fb.innerHTML = `✅ ถูกต้อง! ค่าที่วัดได้ = <b>${r.total.toFixed(state.tool==='vernier'?2:3)} mm</b>`;
+  } else {
+    fb.className='feedback no';
+    let msg = '❌ ยังไม่ถูก — ';
+    if(!mainOK) msg += `สเกลหลักควรเป็น <b>${r.main.toFixed(state.tool==='vernier'?0:1)} mm</b>. `;
+    if(!subOK) msg += `ขีด${state.tool==='vernier'?'เวอร์เนียร์':'thimble'}ควรเป็น <b>${r.sub}</b> (±1).`;
+    fb.innerHTML = msg;
+  }
+}
+function showHint(){
+  const r = getReading();
+  const h = document.getElementById('hintBox');
+  h.classList.add('show');
+  if(state.tool==='vernier'){
+    h.innerHTML = `💡 ดูที่เลข 0 ของสเกลเวอร์เนียร์ — เลข mm ที่ใหญ่ที่สุดที่อยู่ "ก่อน" เลข 0 คือสเกลหลัก
+    (ในกรณีนี้อยู่ระหว่าง ${r.main} กับ ${r.main+1} mm) จากนั้นมองหาขีดเวอร์เนียร์ที่ตรงกับขีดของสเกลหลักพอดี → คือเลขขีดเวอร์เนียร์`;
+  } else {
+    h.innerHTML = `💡 อ่าน sleeve ทีละขีด: 1 mm → 2 mm → ... — ขีด mm ที่ใหญ่ที่สุดก่อนขอบ thimble คือสเกลหลัก
+    (ในกรณีนี้อยู่ใกล้ ${r.main} mm) แล้วดูขีดบน thimble ที่ตรงเส้นอ้างอิงแนวนอนของ sleeve → คือเลข thimble (0–49)`;
+  }
+}
+function revealAnswer(){
+  const r = getReading();
+  document.getElementById('inMain').value = r.main;
+  document.getElementById('inVer').value  = r.sub;
+  checkAnswer();
+}
+function hideFeedback(){
+  document.getElementById('fb').className='feedback';
+  document.getElementById('hintBox').classList.remove('show');
+}
+
+/* ============ TABLE ============ */
+function recordReading(){
+  const r = getReading();
+  let mainV, subV;
+  if(state.mode==='manual'){
+    mainV = parseFloat(document.getElementById('inMain').value);
+    subV = parseInt(document.getElementById('inVer').value);
+    if(isNaN(mainV)||isNaN(subV)){ alert('กรุณากรอกค่าและตรวจคำตอบก่อนบันทึก'); return; }
+    // recompute total from user input (educational — student's value)
+  } else {
+    mainV = r.main; subV = r.sub;
+  }
+  const lc = state.tool==='vernier' ? (1/state.divisions) : 0.01;
+  const total = mainV + subV*lc;
+  const obj = getObj();
+  state.records.push({
+    n: state.records.length+1,
+    obj: obj.name,
+    tool: state.tool==='vernier'?'เวอร์เนียร์':'ไมโครมิเตอร์',
+    main: mainV,
+    sub: subV,
+    total: total
+  });
+  renderTable();
+  randomNoise(); // prepare next measurement with new jitter
+}
+function renderTable(){
+  const tb = document.getElementById('tbody');
+  if(state.records.length===0){
+    tb.innerHTML='<tr><td colspan="7" style="color:var(--muted);font-style:italic">— ยังไม่มีข้อมูล —</td></tr>';
+    document.getElementById('stMean').textContent='—';
+    document.getElementById('stSd').textContent='—';
+    document.getElementById('stRep').textContent='—';
+    return;
+  }
+  tb.innerHTML = state.records.map(r=>`
+    <tr>
+      <td>${r.n}</td><td>${r.obj}</td><td>${r.tool}</td>
+      <td class="mono">${r.main.toFixed(1)}</td>
+      <td class="mono">${r.sub}</td>
+      <td class="mono"><b>${r.total.toFixed(state.tool==='vernier'?2:3)}</b></td>
+      <td><button class="btn-mini" onclick="delRow(${r.n})">✕</button></td>
+    </tr>`).join('');
+  // Stats — use only same-object same-tool group
+  const last = state.records[state.records.length-1];
+  const grp = state.records.filter(r=>r.obj===last.obj && r.tool===last.tool);
+  if(grp.length>=1){
+    const xs = grp.map(r=>r.total);
+    const m = xs.reduce((a,b)=>a+b,0)/xs.length;
+    const sd = xs.length>1 ? Math.sqrt(xs.reduce((a,b)=>a+(b-m)**2,0)/(xs.length-1)) : 0;
+    const lc = last.tool==='เวอร์เนียร์'?0.05:0.01;
+    const u = Math.max(sd, lc/2);
+    const dp = last.tool==='เวอร์เนียร์'?2:3;
+    document.getElementById('stMean').textContent = m.toFixed(dp)+' mm';
+    document.getElementById('stSd').textContent   = sd.toFixed(dp)+' mm';
+    document.getElementById('stRep').textContent  = m.toFixed(dp)+' ± '+u.toFixed(dp)+' mm';
+  }
+}
+function delRow(n){
+  state.records = state.records.filter(r=>r.n!==n).map((r,i)=>({...r,n:i+1}));
+  renderTable();
+}
+function resetTable(){ if(confirm('ล้างตารางทั้งหมด?')){ state.records=[]; renderTable(); } }
+
+function autoFill5(){
+  setMode('auto');
+  for(let i=0;i<5;i++){ randomNoise(); recordReading(); }
+}
+
+function exportCSV(){
+  if(state.records.length===0){ alert('ยังไม่มีข้อมูล'); return; }
+  const head = 'n,object,tool,main_mm,sub,total_mm\n';
+  const body = state.records.map(r=>`${r.n},"${r.obj}",${r.tool},${r.main},${r.sub},${r.total.toFixed(3)}`).join('\n');
+  const blob = new Blob([head+body],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'measurement_data.csv'; a.click();
+}
+
+/* ============ DRAWING ============ */
+function resizeCanvas(){
+  const w = canvas.parentElement.clientWidth - 20;
+  canvas.width = Math.max(400, w);
+  canvas.height = 440;
+  draw();
+}
+
+function draw(){
+  // SVG-based rendering (replaces canvas)
+  const svg = document.getElementById('simSvg');
+  if(!svg) return;
+  document.getElementById('svgVernier').style.display = state.tool==='vernier' ? '' : 'none';
+  document.getElementById('svgMicrometer').style.display = state.tool==='micrometer' ? '' : 'none';
+  if(state.tool==='vernier') updateVernierSvg();
+  else updateMicrometerSvg();
+}
+
+// SVG coord system: viewBox 0 0 1100 440
+const VW = 1100, VH = 440;
+
+function updateVernierSvg(){
+  const jaw = posToJaw();
+  const pxmm = 9 * state.zoom;
+  const divisions = state.divisions;
+  const verLenMM = divisions===10?9:(divisions===20?19:49);
+
+  const beamLeft = 100, beamRight = 1050;
+  const beamY = 120, beamH = 32;
+  const mmToX = mm => beamLeft + (mm + 1)*pxmm;
+  const fixedX = mmToX(0);
+  const movX = mmToX(jaw);
+
+  // ---- Beam (full width) ----
+  const beamRect = document.getElementById('vBeam');
+  beamRect.setAttribute('x', fixedX);
+  beamRect.setAttribute('y', beamY);
+  beamRect.setAttribute('width', beamRight-fixedX);
+  beamRect.setAttribute('height', beamH);
+
+  // ---- Main scale ticks ----
+  const mainScale = document.getElementById('vMainScale');
+  let s = '';
+  for(let mm=0; mm<=160; mm++){
+    const x = mmToX(mm);
+    if(x<fixedX || x>beamRight-2) continue;
+    const big=(mm%10===0), mid=(mm%5===0);
+    const tickH = big?9:(mid?6:4);
+    const sw = big?1.2:(mid?0.8:0.6);
+    s += `<line x1="${x}" y1="${beamY+1}" x2="${x}" y2="${beamY+1+tickH}" stroke="#1f2937" stroke-width="${sw}"/>`;
+    if(big) s += `<text x="${x}" y="${beamY+beamH-4}" text-anchor="middle">${mm/10}</text>`;
+  }
+  s += `<text x="${fixedX+4}" y="${beamY+beamH-4}" font-family="Sarabun" font-size="9">cm</text>`;
+  mainScale.innerHTML = s;
+
+  // ---- Fixed body path ----
+  // L-shape: upper inner jaw + carriage at beam level + lower outer jaw
+  const ujTop = beamY-40, ujBot = beamY-15;     // upper jaw range
+  const ljTop = beamY+beamH+8, ljBot = beamY+beamH+95;  // lower jaw range
+  const fbW = 28;                                // body width (extending outward)
+  // Fixed (extends LEFT of fixedX)
+  const fixedPath = [
+    `M ${fixedX} ${ujTop+5}`,                    // top of contact face inside upper jaw
+    `L ${fixedX-3} ${ujTop}`,                    // upper jaw nose tip
+    `L ${fixedX-22} ${ujTop}`,
+    `L ${fixedX-22} ${ujBot}`,
+    `L ${fixedX-fbW} ${ujBot}`,
+    `L ${fixedX-fbW} ${ljBot}`,                  // down the outer left edge
+    `L ${fixedX-3} ${ljBot}`,                    // bottom of jaw outer
+    `Q ${fixedX-1} ${ljBot-3} ${fixedX} ${ljBot-12}`,  // beak curve
+    `L ${fixedX} ${ljTop}`,                      // up contact face
+    `L ${fixedX} ${beamY+beamH}`,                // up to beam bottom
+    `L ${fixedX} ${beamY}`,                      // up through beam (covered by beam rect)
+    `L ${fixedX} ${ujBot}`,                      // up to upper jaw inner top
+    `L ${fixedX} ${ujTop+5}`,                    // close back to start
+    `Z`
+  ].join(' ');
+  document.getElementById('vFixedBody').setAttribute('d', fixedPath);
+
+  // ---- Movable body path (mirrored) ----
+  const movablePath = [
+    `M ${movX} ${ujTop+5}`,
+    `L ${movX+3} ${ujTop}`,
+    `L ${movX+22} ${ujTop}`,
+    `L ${movX+22} ${ujBot}`,
+    `L ${movX+fbW} ${ujBot}`,
+    `L ${movX+fbW} ${ljBot}`,
+    `L ${movX+3} ${ljBot}`,
+    `Q ${movX+1} ${ljBot-3} ${movX} ${ljBot-12}`,
+    `L ${movX} ${ljTop}`,
+    `L ${movX} ${beamY+beamH}`,
+    `L ${movX} ${beamY}`,
+    `L ${movX} ${ujBot}`,
+    `L ${movX} ${ujTop+5}`,
+    `Z`
+  ].join(' ');
+  document.getElementById('vMovableBody').setAttribute('d', movablePath);
+
+  // ---- Movable carriage block (rectangle on top of beam, holds thumb screw) ----
+  const cbX = movX+10, cbW2 = 78, cbY = beamY-30, cbH = 24;
+  const cb = document.getElementById('vCarriageBlock');
+  cb.setAttribute('x', cbX); cb.setAttribute('y', cbY);
+  cb.setAttribute('width', cbW2); cb.setAttribute('height', cbH);
+
+  // thumb screw
+  document.getElementById('vThumbScrew').setAttribute('cx', cbX+30);
+  document.getElementById('vThumbScrew').setAttribute('cy', cbY-6);
+  document.getElementById('vThumbScrewInner').setAttribute('cx', cbX+30);
+  document.getElementById('vThumbScrewInner').setAttribute('cy', cbY-6);
+  document.getElementById('vInchLabel').setAttribute('x', cbX+58);
+  document.getElementById('vInchLabel').setAttribute('y', cbY+15);
+
+  // ---- Vernier plate ----
+  const vpX = movX-12, vpY = beamY+beamH+1, vpW = verLenMM*pxmm + 30, vpH = 24;
+  const vp = document.getElementById('vVernierPlate');
+  vp.setAttribute('x', vpX); vp.setAttribute('y', vpY);
+  vp.setAttribute('width', vpW); vp.setAttribute('height', vpH);
+
+  const vScale = document.getElementById('vVernierScale');
+  let vs = '';
+  const labelEvery = divisions===10?1:(divisions===20?5:5);
+  for(let i=0;i<=divisions;i++){
+    const x = movX + (i*verLenMM/divisions)*pxmm;
+    const big = (i%labelEvery===0);
+    const tickH = big?14:8;
+    const sw = big?1.2:0.7;
+    vs += `<line x1="${x}" y1="${vpY+1}" x2="${x}" y2="${vpY+1+tickH}" stroke="#1f2937" stroke-width="${sw}"/>`;
+    if(big){
+      const lbl = divisions===50?(i/5):i;
+      vs += `<text x="${x}" y="${vpY+vpH-3}" text-anchor="middle">${lbl}</text>`;
+    }
+  }
+  vScale.innerHTML = vs;
+  const lcText = divisions===10?'0,1 mm':(divisions===20?'0,05 mm':'0,02 mm');
+  const lcLab = document.getElementById('vLcLabel');
+  lcLab.setAttribute('x', vpX+vpW-4);
+  lcLab.setAttribute('y', vpY+vpH-3);
+  lcLab.textContent = lcText;
+
+  // ---- Object ----
+  updateObjectSvg('v', fixedX, movX, ljTop, ljBot, jaw);
+
+  // ---- Reading box ----
+  const r = getReading();
+  const rv = document.getElementById('vReadingValue');
+  const rh = document.getElementById('vReadingHint');
+  if(state.mode==='auto'){
+    rv.textContent = r.total.toFixed(2)+' mm';
+    rv.setAttribute('fill','#34d399');
+    rh.textContent = `main=${r.main} sub=${r.sub} ขีด`;
+  } else {
+    rv.textContent = '— ?? —';
+    rv.setAttribute('fill','#fb923c');
+    rh.textContent = 'อ่านสเกลด้วยตา แล้วกรอก →';
+  }
+}
+
+function updateObjectSvg(prefix, leftX, rightX, topY, botY, jaw){
+  const o = getObj();
+  const objMM = state.trueVal;
+  const pxmm = 9 * state.zoom;
+  const objWpx = objMM*pxmm;
+  const grp = document.getElementById(prefix+'ObjectGroup');
+  const shape = document.getElementById(prefix+'ObjShape');
+  const shine = document.getElementById(prefix+'ObjShine');
+  const label = document.getElementById(prefix+'ObjLabel');
+
+  let cx, cy;
+  if(state.dragging==='object'){
+    cx = state.objDragX * (VW/canvas.width || 1);
+    cy = state.objDragY * (VH/canvas.height || 1);
+  } else if(state.objInserted){
+    cx = leftX + objWpx/2;
+    cy = (topY+botY)/2;
+  } else {
+    // Tray position
+    cx = 80;
+    cy = 398;
+  }
+
+  // pick shape based on object id
+  const id = o.id;
+  const isCircle = ['marble','steelball','coin1','wire','wirethick'].includes(id);
+  const isFlat = ['glass','coin1t','paper','foil','glassMM','coinMM'].includes(id);
+  const isPipe = ['pvcOuter','pvcInner'].includes(id);
+
+  if(prefix==='m'){
+    // micrometer object — small flat strip at anvil tip
+    shape.setAttribute('x', cx-objWpx/2);
+    shape.setAttribute('y', cy-7);
+    shape.setAttribute('width', Math.max(2, objWpx));
+    shape.setAttribute('height', 14);
+    if(shine) shine.setAttribute('opacity','0');
+  } else {
+    // vernier object
+    if(isCircle){
+      shape.setAttribute('cx', cx);
+      shape.setAttribute('cy', cy);
+      const r = Math.max(8, objWpx/2);
+      shape.setAttribute('r', r);
+      shape.setAttribute('rx', null);
+      shape.setAttribute('ry', null);
+      shine.setAttribute('cx', cx-r*0.35);
+      shine.setAttribute('cy', cy-r*0.4);
+      shine.setAttribute('rx', r*0.22);
+      shine.setAttribute('ry', r*0.15);
+      shine.setAttribute('opacity','1');
+    } else {
+      // turn circle into rect by hiding
+      shape.setAttribute('r','0');
+      shine.setAttribute('opacity','0');
+    }
+    // pick fill based on object
+    const fillMap = {
+      marble:'url(#gMarble)', steelball:'url(#gSteelBall)', coin1:'url(#gMarble)',
+      coin1t:'#fde68a', glass:'#bae6fd', pvcOuter:'#e5e7eb', pvcInner:'#e5e7eb',
+      wire:'#fbbf24', wirethick:'#cbd5e1', paper:'#fef3c7', foil:'#f1f5f9',
+      glassMM:'#bae6fd', coinMM:'#fde68a'
+    };
+    shape.setAttribute('fill', fillMap[id] || '#a78bfa');
+  }
+  label.setAttribute('x', cx);
+  label.setAttribute('y', cy + (prefix==='m'?28:35));
+  label.textContent = o.name + ' (' + (state.mode==='auto'?o.D.toFixed(2)+' mm':'??') + ')';
+
+  // store layout
+  const lay = {
+    objBox: {x:cx-objWpx/2, y:cy-15, w:Math.max(20,objWpx), h:30},
+    insertZone: {x:leftX, y:topY, w:Math.max(50, rightX-leftX), h:botY-topY},
+    pxmm, fixedX:leftX, movX:rightX
+  };
+  if(prefix==='v') _vernierLayout = lay; else _micLayout = lay;
+}
+
+function updateMicrometerSvg(){
+  const jaw = posToJaw();
+  const objMM = state.trueVal;
+  const pxmm = 9 * state.zoom;
+
+  // Fixed positions in viewBox coords (matching new SVG layout)
+  const anvilEndX = 420;        // right edge of clutch block (object starts here)
+  const cy = 230;               // datum line
+
+  const objWpx = objMM*pxmm;
+  // Object position
+  let cx, cyObj;
+  if(state.dragging==='object'){
+    cx = state.objDragX * (VW/canvas.width || 1);
+    cyObj = state.objDragY * (VH/canvas.height || 1);
+  } else if(state.objInserted){
+    cx = anvilEndX + objWpx/2;
+    cyObj = cy;
+  } else {
+    cx = 80; cyObj = 398;
+  }
+  const mShape = document.getElementById('mObjShape');
+  mShape.setAttribute('x', cx - objWpx/2);
+  mShape.setAttribute('y', cyObj - 7);
+  mShape.setAttribute('width', Math.max(2, objWpx));
+  mShape.setAttribute('height', 14);
+  const o = getObj();
+  const fillMap = {wire:'#fbbf24',paper:'#fef3c7',foil:'#f1f5f9',wirethick:'#cbd5e1',glassMM:'#bae6fd',coinMM:'#fde68a'};
+  mShape.setAttribute('fill', fillMap[o.id]||'#a78bfa');
+  mShape.setAttribute('stroke','#1f2937');
+  mShape.setAttribute('stroke-width','0.8');
+  document.getElementById('mObjLabel').setAttribute('x', cx);
+  document.getElementById('mObjLabel').setAttribute('y', cyObj + 28);
+  document.getElementById('mObjLabel').textContent = o.name + ' (' + (state.mode==='auto'?o.D.toFixed(3)+' mm':'??') + ')';
+
+  // Spindle position
+  const spindleX = anvilEndX + jaw*pxmm;
+  const sg = document.getElementById('mSpindleGroup');
+  sg.setAttribute('transform', `translate(${spindleX} 0)`);
+
+  // Sleeve at spindle+50
+  const sleeveX = spindleX + 50;
+  const sleeveG = document.getElementById('mSleeveGroup');
+  sleeveG.setAttribute('transform', `translate(${sleeveX} 0)`);
+
+  // Sleeve scale ticks (relative to sleeve group transform; datum at y=230)
+  const sScale = document.getElementById('mSleeveScale');
+  let ss = '';
+  const refY = cy;
+  for(let mm=0; mm<=25; mm++){
+    const x = mm*pxmm;
+    if(x>240) break;
+    const big = (mm%5===0);
+    const sw = big?1.4:0.8;
+    ss += `<line x1="${x}" y1="${refY}" x2="${x}" y2="${refY-(big?10:6)}" stroke="#1f2937" stroke-width="${sw}"/>`;
+    if(big) ss += `<text x="${x}" y="${refY-13}" text-anchor="middle">${mm}</text>`;
+    const xh = x+pxmm/2;
+    if(xh<240){
+      ss += `<line x1="${xh}" y1="${refY}" x2="${xh}" y2="${refY+6}" stroke="#1f2937" stroke-width="0.8"/>`;
+    }
+  }
+  sScale.innerHTML = ss;
+
+  // Thimble at sleeveX + jaw_scaled (here sleeveX origin so just jaw*pxmm)
+  // thimble is drawn at the position where its left edge = sleeveX + jaw*pxmm
+  // BUT sleeve already starts at sleeveX. Thimble's local x relative to viewport:
+  const thimbleX = sleeveX + jaw*pxmm;
+  const tg = document.getElementById('mThimbleGroup');
+  tg.setAttribute('transform', `translate(${thimbleX} 0)`);
+
+  // Thimble ticks (relative coords; thimble rect y=190..270, datum at y=230)
+  const halfmm = Math.floor(jaw*2)/2;
+  const fracInHalfMM = jaw - halfmm;
+  const thimbleVal = Math.round(fracInHalfMM/0.01) % 50;
+  const tScale = document.getElementById('mThimbleScale');
+  let ts = '';
+  const tickSp = 6;
+  for(let k=-7;k<=7;k++){
+    const v = ((thimbleVal + k)%50 + 50)%50;
+    const yT = refY - k*tickSp;
+    if(yT<195 || yT>265) continue;
+    const big = (v%5===0);
+    const sw = big?1.4:0.8;
+    ts += `<line x1="6" y1="${yT}" x2="${6+(big?16:10)}" y2="${yT}" stroke="#1f2937" stroke-width="${sw}"/>`;
+    if(big) ts += `<text x="26" y="${yT+4}">${v}</text>`;
+  }
+  tScale.innerHTML = ts;
+
+  // Ratchet at thimbleX + thimbleW (thimble width = 150)
+  const ratchetX = thimbleX + 150;
+  const rg = document.getElementById('mRatchetGroup');
+  rg.setAttribute('transform', `translate(${ratchetX} 0)`);
+  // knurling — vertical lines (matching reference)
+  const knurl = document.getElementById('mRatchetKnurl');
+  let kk = '';
+  for(let i=3;i<58;i+=2){
+    kk += `<line x1="${i}" y1="200" x2="${i}" y2="262" stroke="rgba(0,0,0,0.55)" stroke-width="0.6"/>`;
+  }
+  knurl.innerHTML = kk;
+
+  // Reading
+  const r = getReading();
+  const rv = document.getElementById('mReadingValue');
+  const rh = document.getElementById('mReadingHint');
+  if(state.mode==='auto'){
+    rv.textContent = r.total.toFixed(3)+' mm';
+    rv.setAttribute('fill','#34d399');
+    rh.textContent = `sleeve=${r.main.toFixed(1)} thimble=${r.sub}`;
+  } else {
+    rv.textContent = '— ?? —';
+    rv.setAttribute('fill','#fb923c');
+    rh.textContent = 'อ่านสเกลด้วยตา แล้วกรอก →';
+  }
+
+  // store layout for drag
+  _micLayout = {
+    objBox: {x:cx-objWpx/2, y:cyObj-15, w:Math.max(20,objWpx), h:30},
+    insertZone: {x:anvilEndX, y:cy-15, w:Math.max(20, spindleX-anvilEndX), h:30},
+    pxmm, anvilEndX, spindleX
+  };
+}
+
+/* === Vernier (Stefanelli-style) === */
+function drawVernier_OLD(){
+  const W = canvas.width, H = canvas.height;
+  const jaw = posToJaw();
+  const pxmm = 9 * state.zoom;
+
+  // Viewport — แสดงตั้งแต่ก่อน fixed jaw ถึงเลยตำแหน่ง movable jaw
+  const viewMin = -3;
+  const mmToX = (mm)=> 80 + (mm - viewMin)*pxmm;
+  const jawX0 = mmToX(0);          // ตำแหน่งขากรรไกรซ้าย (fixed)
+  const jawX  = mmToX(jaw);        // ตำแหน่งขากรรไกรขวา (movable)
+
+  // ===== Main beam (เหล็กหลัก) =====
+  const beamY = H/2 - 28, beamH = 22;
+  // body gradient
+  let g = ctx.createLinearGradient(0, beamY, 0, beamY+beamH);
+  g.addColorStop(0,'#e2e8f0'); g.addColorStop(0.5,'#cbd5e1'); g.addColorStop(1,'#64748b');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, beamY, W, beamH);
+  // top bevel
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, beamY, W, 3);
+  // bottom shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, beamY+beamH-2, W, 3);
+
+  // ===== Tick marks on main scale =====
+  ctx.strokeStyle = '#1e293b';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 11px Share Tech Mono';
+  ctx.textAlign='center';
+  const startMM = Math.floor(viewMin);
+  const endMM = Math.ceil(viewMin + (W-80)/pxmm);
+  for(let mm = startMM; mm<=endMM; mm++){
+    if(mm<0) continue;
+    const x = mmToX(mm);
+    if(x<0||x>W) continue;
+    const big = (mm%10===0), mid = (mm%5===0);
+    ctx.lineWidth = big?1.6:1;
+    const tickH = big?13:(mid?9:6);
+    ctx.beginPath();
+    ctx.moveTo(x, beamY+beamH-2);
+    ctx.lineTo(x, beamY+beamH-2-tickH);
+    ctx.stroke();
+    if(big){ ctx.fillText((mm/10).toFixed(0), x, beamY+beamH-16); }
+  }
+  // label
+  ctx.fillStyle='#0f172a'; ctx.textAlign='left'; ctx.font='bold 10px Sarabun';
+  ctx.fillText('cm', 8, beamY+15);
+
+  // ===== Fixed jaw (left) — เหล็กชุบสีเงิน =====
+  drawJaw(jawX0, H, true);
+  // ===== Movable jaw (right) =====
+  drawJaw(jawX, H, false);
+
+  // ===== Object — ขนาดคงที่ตาม trueVal (ไม่ยืดตาม jaw) =====
+  const objMM = state.trueVal;
+  const objWpx = objMM*pxmm;
+  // วัตถุติดอยู่กับ fixed jaw
+  if(state.measureMode==='outer'){
+    drawObject3D(jawX0, jawX0+objWpx, H/2+30, H/2+95, jaw>=objMM);
+    // ถ้า jaw แคบกว่าวัตถุ → highlight ว่าจับไม่ได้
+    if(jaw < objMM-0.01){
+      ctx.fillStyle='rgba(248,113,113,0.85)';
+      ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+      ctx.fillText('⚠ ขากรรไกรแคบกว่าวัตถุ — เปิดให้กว้างขึ้น', (jawX0+jawX)/2, H/2+118);
+    }
+  } else if(state.measureMode==='inner'){
+    drawObjectInner3D(jawX0, jawX0+objWpx, H/2-100, H/2-32);
+  } else {
+    drawDepth(jawX, jawX0+objWpx, H);
+  }
+
+  // ===== Vernier slider plate (ใต้ beam, ติด movable jaw) =====
+  const verY = beamY + beamH;
+  drawVernierPlate(jawX, verY, pxmm);
+
+  // ===== Watermark / reading box =====
+  drawReadingBox();
+}
+
+/* ============================================================
+   Realistic Vernier — based on Stefanelli reference image
+   Flat 2D shape, classic light-gray with black outlines
+============================================================ */
+
+// helper: เก็บตำแหน่งของวัตถุใน tray และ bbox สำหรับ hit-test
+let _vernierLayout = null;
+let _micLayout = null;
+
+function drawVernier(){
+  const W = canvas.width, H = canvas.height;
+  const jaw = posToJaw();
+  const pxmm = 7.5 * state.zoom;
+  const divisions = state.divisions;
+  const verLenMM = divisions===10 ? 9 : (divisions===20 ? 19 : 49);
+  const lc = 1/divisions;
+
+  const beamLeft = 90;
+  const beamY = 110;
+  const beamH = 28;
+  const mmToX = mm => beamLeft + (mm + 1)*pxmm;
+  const fixedX = mmToX(0);
+  const movX = mmToX(jaw);
+  const fillC = '#d1d5db';
+  const strk = '#1f2937';
+
+  // ====== FIXED side — single continuous body (upper inner jaw + carriage + lower outer jaw) ======
+  ctx.fillStyle = fillC; ctx.strokeStyle = strk; ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  // measuring face at x=fixedX, going clockwise from inner top
+  ctx.moveTo(fixedX, beamY-30);              // top of upper inner jaw, contact face
+  ctx.lineTo(fixedX-3, beamY-45);            // pointed nose tip (left)
+  ctx.lineTo(fixedX-22, beamY-45);           // top-left of upper jaw
+  ctx.lineTo(fixedX-22, beamY-25);           // bottom-left of upper jaw tab
+  ctx.lineTo(fixedX-30, beamY-25);           // step out (carriage body)
+  ctx.lineTo(fixedX-30, beamY+beamH+90);     // bottom-left of lower jaw body
+  ctx.lineTo(fixedX-3, beamY+beamH+90);      // bottom-right of lower jaw (hook tip area)
+  ctx.lineTo(fixedX-3, beamY+beamH+78);      // hook outer notch
+  ctx.lineTo(fixedX, beamY+beamH+72);        // hook tip pointing inward
+  ctx.lineTo(fixedX, beamY+beamH);           // up the contact face to beam bottom
+  ctx.lineTo(fixedX, beamY);                 // continue contact face up past beam
+  ctx.lineTo(fixedX, beamY-30);              // close to upper jaw
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // ====== BEAM (drawn over fixed body so beam runs full width) ======
+  // beam from fixedX to depth rod
+  ctx.fillStyle = fillC;
+  ctx.fillRect(fixedX, beamY, W-50-fixedX, beamH);
+  ctx.strokeStyle = strk; ctx.lineWidth=1.3;
+  ctx.beginPath(); ctx.moveTo(fixedX, beamY); ctx.lineTo(W-50, beamY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fixedX, beamY+beamH); ctx.lineTo(W-50, beamY+beamH); ctx.stroke();
+
+  // depth rod
+  ctx.fillStyle = fillC;
+  ctx.fillRect(W-50, beamY+beamH/2-4, 50, 8);
+  ctx.strokeRect(W-50, beamY+beamH/2-4, 50, 8);
+  // hole
+  ctx.fillStyle = strk;
+  ctx.beginPath(); ctx.arc(W-58, beamY+beamH/2, 2.5, 0, Math.PI*2); ctx.fill();
+  // right tip notch
+  ctx.fillStyle = fillC;
+  ctx.beginPath();
+  ctx.moveTo(W, beamY+beamH/2-4);
+  ctx.lineTo(W-3, beamY+beamH/2);
+  ctx.lineTo(W, beamY+beamH/2+4);
+  ctx.closePath(); ctx.fill();
+
+  // ====== MAIN SCALE — cm numbers on TOP of beam, mm ticks on bottom edge of beam ======
+  ctx.strokeStyle = strk; ctx.fillStyle = strk;
+  ctx.font='bold 11px Share Tech Mono'; ctx.textAlign='center';
+  for(let mm=0; mm<=160; mm++){
+    const x = mmToX(mm);
+    if(x<fixedX-1 || x>W-55) continue;
+    const big = (mm%10===0), mid = (mm%5===0);
+    ctx.lineWidth = big?1.3:(mid?0.9:0.6);
+    const tickH = big?9:(mid?6:4);
+    ctx.beginPath();
+    ctx.moveTo(x, beamY+1);
+    ctx.lineTo(x, beamY+1+tickH);
+    ctx.stroke();
+    if(big){
+      ctx.font='bold 11px Share Tech Mono';
+      ctx.fillText((mm/10).toFixed(0), x, beamY+beamH-4);
+    }
+  }
+  ctx.font='bold 9px Sarabun'; ctx.textAlign='left';
+  ctx.fillText('cm', fixedX+4, beamY+beamH-4);
+
+  // ====== MOVABLE side — single continuous body with thumb screw on top ======
+  ctx.fillStyle = fillC; ctx.strokeStyle = strk; ctx.lineWidth=1.3;
+  ctx.beginPath();
+  ctx.moveTo(movX, beamY-30);
+  ctx.lineTo(movX+3, beamY-45);
+  ctx.lineTo(movX+22, beamY-45);
+  ctx.lineTo(movX+22, beamY-25);
+  // carriage block — extends right with thumb screw
+  ctx.lineTo(movX+78, beamY-25);
+  ctx.lineTo(movX+78, beamY-2);
+  ctx.lineTo(movX+30, beamY-2);              // back near beam top
+  ctx.lineTo(movX+30, beamY+beamH+90);       // down to bottom of lower jaw
+  ctx.lineTo(movX+3, beamY+beamH+90);
+  ctx.lineTo(movX+3, beamY+beamH+78);
+  ctx.lineTo(movX, beamY+beamH+72);
+  ctx.lineTo(movX, beamY+beamH);
+  ctx.lineTo(movX, beamY);
+  ctx.lineTo(movX, beamY-30);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // ====== Movable carriage block over beam (continuous through, drawn for clean appearance) ======
+  // covers beam from movX to movX+30 to make it look like one piece
+  ctx.fillStyle = fillC;
+  ctx.fillRect(movX, beamY-2, 30, beamH+4);
+  ctx.strokeStyle = strk; ctx.lineWidth=1;
+  ctx.strokeRect(movX, beamY-2, 30, beamH+4);
+
+  // thumb screw on top of carriage
+  ctx.fillStyle = '#9ca3af';
+  ctx.beginPath(); ctx.arc(movX+50, beamY-32, 7, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = strk; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle = '#6b7280';
+  ctx.beginPath(); ctx.arc(movX+50, beamY-32, 3, 0, Math.PI*2); ctx.fill();
+  // thumb screw stem
+  ctx.fillStyle = '#9ca3af';
+  ctx.fillRect(movX+47, beamY-25, 6, 8);
+  ctx.strokeRect(movX+47, beamY-25, 6, 8);
+
+  // mini "1/128 in" inch scale label on carriage
+  ctx.fillStyle = strk; ctx.font='bold 8px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText('1/128 in', movX+62, beamY-9);
+  // small inch tick marks
+  for(let i=0;i<=8;i+=2){
+    const x = movX+30 + i*4;
+    if(i%4===0){
+      ctx.fillText(i.toString(), x, beamY-15);
+    }
+    ctx.beginPath(); ctx.moveTo(x, beamY-23); ctx.lineTo(x, beamY-19); ctx.stroke();
+  }
+
+  // ====== VERNIER PLATE (below beam, attached to movable side) ======
+  const verPlateW = verLenMM*pxmm + 32;
+  const verPlateH = 22;
+  const verPlateY = beamY + beamH;
+  ctx.fillStyle = fillC;
+  ctx.fillRect(movX-12, verPlateY, verPlateW, verPlateH);
+  ctx.strokeStyle = strk; ctx.lineWidth=1.3;
+  ctx.strokeRect(movX-12, verPlateY, verPlateW, verPlateH);
+
+  // vernier ticks
+  ctx.strokeStyle = strk; ctx.fillStyle = strk;
+  ctx.font = 'bold 9px Share Tech Mono'; ctx.textAlign='center';
+  for(let i=0;i<=divisions;i++){
+    const x = movX + (i*verLenMM/divisions)*pxmm;
+    const labelEvery = divisions===50 ? 5 : (divisions===20 ? 5 : 1);
+    const big = (i%labelEvery===0);
+    ctx.lineWidth = big?1.3:0.7;
+    const tickH = big?14:8;
+    ctx.beginPath();
+    ctx.moveTo(x, verPlateY+1);
+    ctx.lineTo(x, verPlateY+1+tickH);
+    ctx.stroke();
+    if(big){
+      const labelV = divisions===50 ? (i/5) : i;
+      ctx.fillText(labelV.toString(), x, verPlateY+verPlateH-3);
+    }
+  }
+  const lcText = divisions===10?'0,1 mm':(divisions===20?'0,05 mm':'0,02 mm');
+  ctx.font='bold 8px Share Tech Mono'; ctx.textAlign='right';
+  ctx.fillText(lcText, movX+verPlateW-14, verPlateY+verPlateH-4);
+
+  // ====== Object area between lower jaws ======
+  const objMM = state.trueVal;
+  const objWpx = objMM*pxmm;
+  const jawAreaY1 = beamY + beamH + 35;
+  const jawAreaY2 = beamY + beamH + 78;
+
+  // Tray at bottom
+  const trayY = H - 70;
+  ctx.fillStyle='rgba(15,23,42,0.6)';
+  ctx.fillRect(20, trayY, W-40, 56);
+  ctx.strokeStyle='#1e3a5f'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+  ctx.strokeRect(20, trayY, W-40, 56); ctx.setLineDash([]);
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun'; ctx.textAlign='left';
+  ctx.fillText('🧩 ลากวัตถุนี้ขึ้นไปในที่วัด ↑', 30, trayY+12);
+
+  // วัตถุใน tray หรือใน jaw
+  let objX1, objY1, objW, objH;
+  if(state.dragging==='object'){
+    objX1 = state.objDragX - objWpx/2;
+    objY1 = state.objDragY - 25;
+    objW = objWpx; objH = 50;
+  } else if(state.objInserted && state.measureMode==='outer'){
+    objX1 = fixedX;
+    objY1 = jawAreaY1;
+    objW = objWpx; objH = jawAreaY2 - jawAreaY1;
+  } else {
+    objX1 = 50;
+    objY1 = trayY+18;
+    objW = Math.min(objWpx, W-100);
+    objH = 32;
+  }
+  drawVerObjectNew(objX1, objY1, objW, objH);
+  _vernierLayout = {
+    objBox: {x:objX1, y:objY1, w:objW, h:objH},
+    insertZone: {x:fixedX, y:jawAreaY1, w:Math.max(50, movX-fixedX), h:objH},
+    pxmm, fixedX, movX
+  };
+
+  // วัดภายใน
+  if(state.measureMode==='inner' && state.objInserted){
+    drawVernierObjectInner(fixedX, fixedX+objWpx, beamY-90, beamY-15);
+  }
+
+  drawReadingBox();
+}
+
+function drawVerJawNew(x, beamY, beamH, fixed){
+  // upper jaw (small pointed, for inner measurement)
+  ctx.fillStyle='#d1d5db'; ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.2;
+  ctx.beginPath();
+  if(fixed){
+    ctx.moveTo(x, beamY);
+    ctx.lineTo(x, beamY-50);
+    ctx.lineTo(x-22, beamY-50);
+    ctx.lineTo(x-22, beamY-15);
+    ctx.lineTo(x-8, beamY-15);
+    ctx.lineTo(x-3, beamY);
+  } else {
+    ctx.moveTo(x, beamY);
+    ctx.lineTo(x, beamY-50);
+    ctx.lineTo(x+22, beamY-50);
+    ctx.lineTo(x+22, beamY-15);
+    ctx.lineTo(x+8, beamY-15);
+    ctx.lineTo(x+3, beamY);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // movable carriage adds a top block with thumb screw
+  if(!fixed){
+    ctx.fillStyle='#d1d5db';
+    ctx.fillRect(x-10, beamY-58, 90, 22);
+    ctx.strokeRect(x-10, beamY-58, 90, 22);
+    // thumb screw
+    ctx.fillStyle='#9ca3af';
+    ctx.beginPath(); ctx.arc(x+25, beamY-65, 9, 0, Math.PI*2); ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle='#6b7280';
+    ctx.beginPath(); ctx.arc(x+25, beamY-65, 4, 0, Math.PI*2); ctx.fill();
+    // mini inch scale on top of carriage
+    ctx.font='bold 8px Share Tech Mono'; ctx.fillStyle='#1f2937'; ctx.textAlign='center';
+    ctx.fillText('1/128 in', x+62, beamY-43);
+  }
+}
+
+function drawVerLowerJaws(fixedX, movX, jawTopY, fixed){
+  // Fixed jaw — large, hooked
+  ctx.fillStyle='#d1d5db'; ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.2;
+  ctx.beginPath();
+  ctx.moveTo(fixedX, jawTopY);
+  ctx.lineTo(fixedX, jawTopY+85);
+  ctx.lineTo(fixedX-30, jawTopY+85);
+  ctx.lineTo(fixedX-30, jawTopY+25);
+  ctx.lineTo(fixedX-12, jawTopY+25);
+  ctx.lineTo(fixedX-12, jawTopY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Movable jaw — same hooked shape mirrored
+  ctx.beginPath();
+  ctx.moveTo(movX, jawTopY);
+  ctx.lineTo(movX, jawTopY+85);
+  ctx.lineTo(movX+30, jawTopY+85);
+  ctx.lineTo(movX+30, jawTopY+25);
+  ctx.lineTo(movX+12, jawTopY+25);
+  ctx.lineTo(movX+12, jawTopY);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+
+function drawVerObjectNew(x, y, w, h){
+  const o = getObj();
+  const id = o.id;
+  ctx.save();
+  if(['marble','steelball','coin1'].includes(id)){
+    // circular
+    const r = Math.min(w,h)/2;
+    const cx = x+w/2, cy = y+h/2;
+    const colors = {marble:['#fde047','#b45309'], steelball:['#e5e7eb','#374151'], coin1:['#fde68a','#92400e']};
+    const c = colors[id];
+    const grd = ctx.createRadialGradient(cx-r*0.3, cy-r*0.3, 1, cx, cy, r);
+    grd.addColorStop(0,c[0]); grd.addColorStop(1,c[1]);
+    ctx.fillStyle=grd;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.beginPath(); ctx.ellipse(cx-r*0.35, cy-r*0.4, r*0.22, r*0.15, 0, 0, Math.PI*2); ctx.fill();
+  } else if(['pvcOuter','pvcInner'].includes(id)){
+    ctx.fillStyle='#e5e7eb'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.2; ctx.strokeRect(x, y, w, h);
+    if(id==='pvcInner'){ ctx.fillStyle='#1f2937'; ctx.fillRect(x+5, y+h*0.25, w-10, h*0.5); }
+  } else {
+    ctx.fillStyle='#a78bfa'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.2; ctx.strokeRect(x, y, w, h);
+  }
+  ctx.restore();
+  ctx.fillStyle='#e2e8f0'; ctx.font='10px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(o.name + ' ('+(state.mode==='auto'?o.D.toFixed(2)+' mm':'??')+')', x+w/2, y+h+12);
+}
+
+function drawVernier_DEAD(){
+  const W = canvas.width, H = canvas.height;
+  const jaw = posToJaw();
+  const pxmm = 9 * state.zoom;
+
+  // viewport: pin fixed jaw at left, scroll if jaw goes off
+  const leftMargin = 70;
+  const viewMin = -2;          // mm shown before fixed jaw
+  const mmToX = mm => leftMargin + (mm - viewMin)*pxmm;
+  const fixedX = mmToX(0);
+  const movX = mmToX(jaw);
+
+  const beamY = 110;            // top of beam
+  const beamH = 50;             // beam thickness
+
+  // ============ MAIN BEAM (chrome metal) ============
+  let bg = ctx.createLinearGradient(0, beamY, 0, beamY+beamH);
+  bg.addColorStop(0,'#f8fafc'); bg.addColorStop(0.15,'#cbd5e1');
+  bg.addColorStop(0.5,'#e2e8f0'); bg.addColorStop(0.85,'#94a3b8');
+  bg.addColorStop(1,'#475569');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, beamY, W, beamH);
+  // top edge highlight
+  ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.fillRect(0, beamY, W, 1);
+  // bottom shadow line
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0, beamY+beamH-1, W, 1);
+
+  // ============ MAIN SCALE on beam ============
+  // mm ticks on the BOTTOM of beam pointing down into the open area
+  const scaleAreaY = beamY + beamH;     // y position where scale starts
+  ctx.strokeStyle='#0f172a'; ctx.fillStyle='#0f172a';
+  ctx.font='bold 12px Share Tech Mono'; ctx.textAlign='center';
+  const startMM = Math.max(0, Math.floor(viewMin));
+  const endMM = Math.ceil(viewMin + (W-leftMargin)/pxmm);
+  for(let mm=startMM; mm<=endMM; mm++){
+    const x = mmToX(mm); if(x<leftMargin-2 || x>W-2) continue;
+    const big = (mm%10===0), mid = (mm%5===0);
+    ctx.lineWidth = big?1.8:(mid?1.2:0.8);
+    const tickH = big?14:(mid?10:6);
+    ctx.beginPath();
+    ctx.moveTo(x, beamY+beamH-tickH-2);
+    ctx.lineTo(x, beamY+beamH-2);
+    ctx.stroke();
+    if(big){
+      ctx.font='bold 13px Share Tech Mono';
+      ctx.fillText((mm/10).toFixed(0), x, beamY+beamH-18);
+    }
+  }
+  // "cm" label
+  ctx.fillStyle='#0f172a'; ctx.font='bold 10px Sarabun'; ctx.textAlign='left';
+  ctx.fillText('cm', 6, beamY+beamH-4);
+  ctx.fillText('mm', 6, beamY+beamH+18);
+
+  // ============ FIXED JAW (left side) ============
+  drawVernierJaw(fixedX, beamY, beamH, true);
+
+  // ============ MOVABLE CARRIAGE (right side, holds movable jaw + vernier plate) ============
+  drawVernierJaw(movX, beamY, beamH, false);
+
+  // ============ VERNIER PLATE (yellow, on movable carriage) ============
+  const verPlateY = beamY + beamH + 4;
+  const verPlateW = 19*pxmm + 30;
+  const verPlateH = 36;
+  // yellow plate gradient
+  let yp = ctx.createLinearGradient(0, verPlateY, 0, verPlateY+verPlateH);
+  yp.addColorStop(0,'#fde047'); yp.addColorStop(0.4,'#facc15'); yp.addColorStop(1,'#a16207');
+  ctx.fillStyle = yp;
+  ctx.fillRect(movX-12, verPlateY, verPlateW, verPlateH);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillRect(movX-12, verPlateY, verPlateW, 2);
+  ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.fillRect(movX-12, verPlateY+verPlateH-1, verPlateW, 1);
+  // vernier ticks (20 divisions, 19mm long)
+  ctx.strokeStyle='#0f172a'; ctx.fillStyle='#0f172a';
+  ctx.font='bold 10px Share Tech Mono'; ctx.textAlign='center';
+  for(let i=0;i<=20;i++){
+    const x = movX + (i*19/20)*pxmm;
+    const big = (i%5===0);
+    ctx.lineWidth = big?1.8:1;
+    ctx.beginPath();
+    ctx.moveTo(x, verPlateY);
+    ctx.lineTo(x, verPlateY + (big?20:13));
+    ctx.stroke();
+    if(big){ ctx.fillText(i.toString(), x, verPlateY+verPlateH-3); }
+  }
+  // 0 indicator arrow pointing UP at main scale
+  ctx.fillStyle='#dc2626';
+  ctx.beginPath();
+  ctx.moveTo(movX, beamY+beamH);
+  ctx.lineTo(movX-5, verPlateY+1);
+  ctx.lineTo(movX+5, verPlateY+1);
+  ctx.closePath(); ctx.fill();
+
+  // ============ OBJECT (fixed size, attached to fixed jaw) ============
+  const objMM = state.trueVal;
+  const objWpx = objMM * pxmm;
+  if(state.measureMode==='outer'){
+    drawVernierObject(fixedX, fixedX+objWpx, beamY+beamH+verPlateH+30, beamY+beamH+verPlateH+105);
+    if(jaw < objMM-0.01){
+      ctx.fillStyle='rgba(248,113,113,0.92)';
+      ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+      ctx.fillText('⚠ ขากรรไกรแคบกว่าวัตถุ — เลื่อนสไลเดอร์ให้กว้างขึ้น', (fixedX+movX)/2, beamY+beamH+verPlateH+125);
+    }
+  } else if(state.measureMode==='inner'){
+    drawVernierObjectInner(fixedX, fixedX+objWpx, beamY-100, beamY-15);
+  } else {
+    drawVernierDepth(movX, fixedX+objWpx, H, beamY+beamH);
+  }
+
+  drawReadingBox();
+}
+
+function drawVernierJaw(x, beamY, beamH, fixed){
+  // shaft attached to beam (slightly thicker than beam, polished metal)
+  const shaftW = 28;
+  let g = ctx.createLinearGradient(0, beamY-58, 0, beamY+beamH);
+  g.addColorStop(0,'#e2e8f0'); g.addColorStop(0.5,'#94a3b8'); g.addColorStop(1,'#475569');
+  ctx.fillStyle = g;
+
+  // ===== Outer jaw (going DOWN) =====
+  // shaped like a hook: thick at top, tapers to thin tip
+  ctx.beginPath();
+  if(fixed){
+    ctx.moveTo(x-shaftW, beamY+beamH);
+    ctx.lineTo(x-shaftW, beamY+beamH+95);
+    ctx.lineTo(x-6, beamY+beamH+95);
+    ctx.lineTo(x, beamY+beamH+60);
+    ctx.lineTo(x, beamY+beamH);
+  } else {
+    ctx.moveTo(x+shaftW, beamY+beamH);
+    ctx.lineTo(x+shaftW, beamY+beamH+95);
+    ctx.lineTo(x+6, beamY+beamH+95);
+    ctx.lineTo(x, beamY+beamH+60);
+    ctx.lineTo(x, beamY+beamH);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1; ctx.stroke();
+  // edge highlight
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  if(fixed) ctx.fillRect(x-shaftW+1, beamY+beamH+2, 2, 90);
+  else ctx.fillRect(x+shaftW-3, beamY+beamH+2, 2, 90);
+
+  // ===== Inner jaw (going UP) =====
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  if(fixed){
+    ctx.moveTo(x-shaftW+4, beamY);
+    ctx.lineTo(x-shaftW+4, beamY-50);
+    ctx.lineTo(x-3, beamY-50);
+    ctx.lineTo(x, beamY-30);
+    ctx.lineTo(x, beamY);
+  } else {
+    ctx.moveTo(x+shaftW-4, beamY);
+    ctx.lineTo(x+shaftW-4, beamY-50);
+    ctx.lineTo(x+3, beamY-50);
+    ctx.lineTo(x, beamY-30);
+    ctx.lineTo(x, beamY);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.stroke();
+
+  // ===== Carriage block on beam (movable only — locking screw decoration) =====
+  if(!fixed){
+    let cg = ctx.createLinearGradient(0, beamY-2, 0, beamY+beamH+2);
+    cg.addColorStop(0,'#f1f5f9'); cg.addColorStop(0.5,'#cbd5e1'); cg.addColorStop(1,'#64748b');
+    ctx.fillStyle = cg;
+    ctx.fillRect(x-2, beamY-2, shaftW+6, beamH+4);
+    // locking screw circle
+    ctx.fillStyle='#1e293b';
+    ctx.beginPath(); ctx.arc(x+shaftW/2+2, beamY+beamH/2, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#475569'; ctx.lineWidth=1; ctx.stroke();
+    // screw slot
+    ctx.strokeStyle='#94a3b8'; ctx.beginPath();
+    ctx.moveTo(x+shaftW/2-2, beamY+beamH/2); ctx.lineTo(x+shaftW/2+6, beamY+beamH/2); ctx.stroke();
+  }
+}
+
+function drawVernierObject(x1,x2,y1,y2){
+  const o = getObj();
+  const cx=(x1+x2)/2, cy=(y1+y2)/2;
+  const rx=(x2-x1)/2, ry=(y2-y1)/2;
+  const isFlat = ['glass','coin1t'].includes(o.id);
+  const isCircle = ['marble','steelball','coin1'].includes(o.id);
+  const isPipe = ['pvcOuter','pvcInner'].includes(o.id);
+
+  const colors = {
+    marble:['#fde047','#f59e0b','#7c2d12'],
+    steelball:['#f1f5f9','#94a3b8','#0f172a'],
+    coin1:['#fde68a','#d97706','#78350f'],
+    coin1t:['#fde68a','#d97706','#78350f'],
+    glass:['#e0f2fe','#38bdf8','#0c4a6e'],
+    pvcOuter:['#f1f5f9','#94a3b8','#475569'],
+    pvcInner:['#f1f5f9','#94a3b8','#475569'],
+  };
+  const c = colors[o.id] || ['#c4b5fd','#7c3aed','#3b0764'];
+
+  if(isCircle){
+    const grd = ctx.createRadialGradient(cx-rx*0.3, cy-ry*0.4, 2, cx, cy, Math.max(rx,ry)*1.1);
+    grd.addColorStop(0,c[0]); grd.addColorStop(0.6,c[1]); grd.addColorStop(1,c[2]);
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(cx, cy, Math.min(rx,ry), 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.ellipse(cx-rx*0.35, cy-ry*0.4, rx*0.22, ry*0.18, 0, 0, Math.PI*2); ctx.fill();
+  } else if(isPipe){
+    const grd = ctx.createLinearGradient(0, y1, 0, y2);
+    grd.addColorStop(0,c[0]); grd.addColorStop(0.3,c[1]); grd.addColorStop(0.7,c[1]); grd.addColorStop(1,c[2]);
+    ctx.fillStyle = grd;
+    ctx.fillRect(x1, y1, x2-x1, y2-y1);
+    // hole in center for pvcInner
+    if(o.id==='pvcInner'){
+      ctx.fillStyle='#0c1424';
+      const ix = cx-(x2-x1)*0.35, iw=(x2-x1)*0.7;
+      ctx.fillRect(ix, y1+8, iw, (y2-y1)-16);
+    }
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1.2; ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+  } else {
+    // flat (glass / coin thickness)
+    const grd = ctx.createLinearGradient(0, y1, 0, y2);
+    grd.addColorStop(0,c[0]); grd.addColorStop(0.5,c[1]); grd.addColorStop(1,c[2]);
+    ctx.fillStyle = grd;
+    ctx.fillRect(x1, y1, x2-x1, y2-y1);
+    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(x1, y1, x2-x1, 2);
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1; ctx.strokeRect(x1, y1, x2-x1, y2-y1);
+  }
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx, y2+8, rx*0.7, 4, 0, 0, Math.PI*2); ctx.fill();
+  // label
+  ctx.fillStyle='#e2e8f0'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(o.name, cx, y2+30);
+}
+
+function drawVernierObjectInner(x1,x2,y1,y2){
+  let g = ctx.createLinearGradient(0,y1,0,y2);
+  g.addColorStop(0,'#cbd5e1'); g.addColorStop(0.5,'#94a3b8'); g.addColorStop(1,'#475569');
+  ctx.fillStyle=g;
+  const wallT = 10;
+  ctx.fillRect(x1-wallT, y1, (x2-x1)+wallT*2, y2-y1);
+  ctx.fillStyle='#0c1424';
+  ctx.fillRect(x1, y1+wallT, (x2-x1), (y2-y1)-wallT*2);
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(x1-wallT, y1, (x2-x1)+wallT*2, 2);
+  ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(getObj().name+' — วัดภายใน', (x1+x2)/2, y1-8);
+}
+
+function drawVernierDepth(movX, depthEnd, H, beamBottom){
+  // box at right end with depth rod sticking down from movable carriage
+  const boxX = depthEnd+24, boxY = H-110, boxW = 130, boxH = 70;
+  let g = ctx.createLinearGradient(0,boxY,0,boxY+boxH);
+  g.addColorStop(0,'#cbd5e1'); g.addColorStop(0.5,'#94a3b8'); g.addColorStop(1,'#334155');
+  ctx.fillStyle=g; ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.fillStyle='#0c1424'; ctx.fillRect(boxX+10, boxY+8, boxW-20, boxH-12);
+  // rod
+  let rg = ctx.createLinearGradient(0,beamBottom,0,boxY);
+  rg.addColorStop(0,'#e2e8f0'); rg.addColorStop(0.5,'#94a3b8'); rg.addColorStop(1,'#475569');
+  ctx.fillStyle=rg;
+  ctx.fillRect(movX-3, beamBottom, 6, boxY+8 - beamBottom);
+  ctx.fillStyle='#94a3b8'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText('วัดความลึก', boxX+boxW/2, boxY-6);
+}
+
+function drawJaw(x, H, fixed){
+  const beamY = H/2 - 28, beamH = 22;
+  // ขากรรไกรล่าง (วัดภายนอก)
+  let g = ctx.createLinearGradient(x-22, 0, x+22, 0);
+  g.addColorStop(0,'#94a3b8'); g.addColorStop(0.5,'#cbd5e1'); g.addColorStop(1,'#475569');
+  ctx.fillStyle = g;
+  // shaft ติดกับ beam
+  ctx.fillRect(x - (fixed?28:0), beamY-3, fixed?28:28, beamH+6);
+  // ขากรรไกรล่าง (ลงล่าง)
+  ctx.beginPath();
+  if(fixed){
+    ctx.moveTo(x-28, beamY+beamH);
+    ctx.lineTo(x-28, beamY+beamH+90);
+    ctx.lineTo(x-8, beamY+beamH+90);
+    ctx.lineTo(x, beamY+beamH+50);
+    ctx.lineTo(x, beamY+beamH);
+  } else {
+    ctx.moveTo(x+28, beamY+beamH);
+    ctx.lineTo(x+28, beamY+beamH+90);
+    ctx.lineTo(x+8, beamY+beamH+90);
+    ctx.lineTo(x, beamY+beamH+50);
+    ctx.lineTo(x, beamY+beamH);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.stroke();
+  // ขากรรไกรบน (วัดภายใน)
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  if(fixed){
+    ctx.moveTo(x-22, beamY);
+    ctx.lineTo(x-22, beamY-50);
+    ctx.lineTo(x-4, beamY-50);
+    ctx.lineTo(x, beamY-30);
+    ctx.lineTo(x, beamY);
+  } else {
+    ctx.moveTo(x+22, beamY);
+    ctx.lineTo(x+22, beamY-50);
+    ctx.lineTo(x+4, beamY-50);
+    ctx.lineTo(x, beamY-30);
+    ctx.lineTo(x, beamY);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.stroke();
+  // highlight
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  if(fixed) ctx.fillRect(x-26, beamY-48, 3, 95);
+  else ctx.fillRect(x+23, beamY-48, 3, 95);
+}
+
+function drawVernierPlate(jawX, verY, pxmm){
+  // plate body — สีน้ำเงินเข้มเงาเหมือนเหล็กชุบ
+  const plateW = 19*pxmm + 30;
+  let g = ctx.createLinearGradient(0, verY, 0, verY+38);
+  g.addColorStop(0,'#475569'); g.addColorStop(0.4,'#334155'); g.addColorStop(1,'#0f172a');
+  ctx.fillStyle = g;
+  ctx.fillRect(jawX-12, verY, plateW, 38);
+  // top edge highlight
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(jawX-12, verY, plateW, 2);
+  // ticks
+  ctx.strokeStyle = '#fef3c7'; ctx.fillStyle = '#fde68a';
+  ctx.font = 'bold 10px Share Tech Mono'; ctx.textAlign='center';
+  for(let i=0;i<=20;i++){
+    const x = jawX + (i*19/20)*pxmm;
+    const big = (i%5===0);
+    ctx.lineWidth = big?1.6:1;
+    ctx.beginPath();
+    ctx.moveTo(x, verY+4);
+    ctx.lineTo(x, verY+4 + (big?20:12));
+    ctx.stroke();
+    if(big){ ctx.fillText(i.toString(), x, verY+36); }
+  }
+  // 0 marker (ลูกศร)
+  ctx.fillStyle='#fbbf24';
+  ctx.beginPath();
+  ctx.moveTo(jawX, verY-2);
+  ctx.lineTo(jawX-4, verY+4);
+  ctx.lineTo(jawX+4, verY+4);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawObject3D(x1,x2,y1,y2,gripped){
+  const o = getObj();
+  const cx=(x1+x2)/2, cy=(y1+y2)/2;
+  const rx=(x2-x1)/2, ry=(y2-y1)/2;
+  // เลือกสีตามวัตถุ
+  const colors = {
+    marble:['#fbbf24','#f59e0b','#7c2d12'],
+    steelball:['#e2e8f0','#94a3b8','#1e293b'],
+    coin1:['#fef3c7','#fbbf24','#92400e'],
+    coin1t:['#fef3c7','#fbbf24','#92400e'],
+    glass:['#bae6fd','#0ea5e9','#0c4a6e'],
+    pvcOuter:['#f1f5f9','#cbd5e1','#475569'],
+    pvcInner:['#f1f5f9','#cbd5e1','#475569'],
+  };
+  const c = colors[o.id] || ['#a78bfa','#7c3aed','#3b0764'];
+  const grd = ctx.createRadialGradient(cx-rx*0.3, cy-ry*0.4, 2, cx, cy, Math.max(rx,ry));
+  grd.addColorStop(0,c[0]); grd.addColorStop(0.5,c[1]); grd.addColorStop(1,c[2]);
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+  // shine
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.beginPath(); ctx.ellipse(cx-rx*0.35, cy-ry*0.45, rx*0.25, ry*0.18, 0, 0, Math.PI*2); ctx.fill();
+  // shadow under
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(cx, y2+8, rx*0.7, 4, 0, 0, Math.PI*2); ctx.fill();
+  // label
+  ctx.fillStyle='#e2e8f0'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(o.name, cx, y2+30);
+}
+function drawObjectInner3D(x1,x2,y1,y2){
+  // กล่อง/ท่อกลวง — จะวัดความกว้างภายใน
+  let g = ctx.createLinearGradient(0,y1,0,y2);
+  g.addColorStop(0,'#cbd5e1'); g.addColorStop(0.5,'#94a3b8'); g.addColorStop(1,'#475569');
+  ctx.fillStyle=g;
+  const wallT = 8;
+  // ผนังนอก
+  ctx.fillRect(x1-wallT, y1, (x2-x1)+wallT*2, y2-y1);
+  // ช่องว่างภายใน
+  ctx.fillStyle='#0c1424';
+  ctx.fillRect(x1, y1+wallT, (x2-x1), (y2-y1)-wallT*2);
+  // edge highlight
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.fillRect(x1-wallT, y1, (x2-x1)+wallT*2, 2);
+  ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(getObj().name+' — วัดภายใน', (x1+x2)/2, y1-8);
+}
+function drawDepth(jawX, depthEnd, H){
+  const beamY = H/2 - 28, beamH = 22;
+  // กล่องที่ปลายขวา
+  const boxX = depthEnd+20, boxY = H-90, boxW = 140, boxH = 70;
+  let g = ctx.createLinearGradient(0,boxY,0,boxY+boxH);
+  g.addColorStop(0,'#94a3b8'); g.addColorStop(1,'#334155');
+  ctx.fillStyle=g; ctx.fillRect(boxX, boxY, boxW, boxH);
+  // ช่องว่าง
+  ctx.fillStyle='#0c1424'; ctx.fillRect(boxX+10, boxY+8, boxW-20, boxH-12);
+  // depth rod
+  ctx.fillStyle='#cbd5e1';
+  const rodX = boxX+30;
+  ctx.fillRect(rodX, beamY+beamH, 6, (boxY+8) - (beamY+beamH));
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1;
+  ctx.strokeRect(rodX, beamY+beamH, 6, (boxY+8) - (beamY+beamH));
+  ctx.fillStyle='#94a3b8'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  ctx.fillText('วัดความลึก', boxX+boxW/2, boxY-6);
+}
+
+/* === Realistic Micrometer — refs: Asimeto/Mitutoyo + user image === */
+function drawMicrometer(){
+  const W = canvas.width, H = canvas.height;
+  const jaw = posToJaw();
+  const objMM = state.trueVal;
+  const pxmm = 9 * state.zoom;
+
+  const cy = H/2 - 20;
+  const shaftH = 22;
+  const trayY = H - 70;
+
+  // ====== Drop shadow under whole tool ======
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(W*0.45, cy+150, W*0.35, 12, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // ====== U-FRAME (smooth chrome casted with shading) ======
+  const fLeft = 50;
+  const fOuterTop = cy-65;
+  const fOuterBot = cy+170;
+  const fThroatLeft = fLeft+25;
+  const fNeckRight = 240;
+
+  // outer outline
+  ctx.beginPath();
+  ctx.moveTo(fNeckRight, fOuterTop);                                    // top right
+  ctx.bezierCurveTo(fLeft+90, fOuterTop-3, fThroatLeft-5, fOuterTop+25, fLeft, cy+10);  // top-left curve
+  ctx.bezierCurveTo(fLeft-5, cy+90, fLeft+30, fOuterBot, fLeft+90, fOuterBot+5);        // bottom-left curve
+  ctx.bezierCurveTo(fLeft+150, fOuterBot+8, fNeckRight-30, fOuterBot, fNeckRight, fOuterBot-15); // bottom-right
+  ctx.lineTo(fNeckRight, cy+shaftH/2+18);
+  // inner cutout (throat)
+  ctx.bezierCurveTo(fNeckRight-25, cy+shaftH/2+18, fThroatLeft+70, fOuterBot-30, fThroatLeft+90, cy+50);
+  ctx.bezierCurveTo(fThroatLeft+50, cy+5, fThroatLeft+55, cy-shaftH/2-15, fNeckRight-25, cy-shaftH/2-15);
+  ctx.lineTo(fNeckRight, cy-shaftH/2-15);
+  ctx.closePath();
+
+  // chrome gradient
+  let frameG = ctx.createLinearGradient(fLeft, fOuterTop, fLeft+120, fOuterBot);
+  frameG.addColorStop(0,'#f8fafc');
+  frameG.addColorStop(0.15,'#e5e7eb');
+  frameG.addColorStop(0.35,'#cbd5e1');
+  frameG.addColorStop(0.55,'#9ca3af');
+  frameG.addColorStop(0.8,'#6b7280');
+  frameG.addColorStop(1,'#374151');
+  ctx.fillStyle = frameG;
+  ctx.fill();
+  ctx.strokeStyle='rgba(31,41,55,0.7)'; ctx.lineWidth=1; ctx.stroke();
+
+  // soft inner shadow on the bottom-left of frame (for depth)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(fLeft, cy+10);
+  ctx.bezierCurveTo(fLeft-5, cy+90, fLeft+30, fOuterBot, fLeft+90, fOuterBot+5);
+  ctx.bezierCurveTo(fLeft+90, fOuterBot-30, fLeft+30, cy+90, fLeft+15, cy+30);
+  ctx.closePath();
+  let shG = ctx.createLinearGradient(fLeft, fOuterBot, fLeft+50, fOuterBot-80);
+  shG.addColorStop(0,'rgba(0,0,0,0.45)');
+  shG.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = shG;
+  ctx.fill();
+  ctx.restore();
+
+  // top highlight on upper edge of frame
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(fNeckRight, fOuterTop+1);
+  ctx.bezierCurveTo(fLeft+90, fOuterTop-2, fThroatLeft-5, fOuterTop+25, fLeft+5, cy+10);
+  ctx.lineWidth=2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.stroke();
+  ctx.restore();
+
+  // ====== ANVIL HOLDER block (where rod attaches to frame) ======
+  const holderX = fNeckRight;
+  const holderW = 62;
+  let hg = ctx.createLinearGradient(0, cy-50, 0, cy+50);
+  hg.addColorStop(0,'#e5e7eb'); hg.addColorStop(0.4,'#cbd5e1');
+  hg.addColorStop(0.6,'#9ca3af'); hg.addColorStop(1,'#4b5563');
+  ctx.fillStyle = hg;
+  // rounded rectangle holder
+  roundRect(ctx, holderX, cy-50, holderW, 100, 8); ctx.fill();
+  ctx.strokeStyle='rgba(31,41,55,0.6)'; ctx.lineWidth=1; ctx.stroke();
+  // top highlight
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillRect(holderX+4, cy-48, holderW-8, 2);
+  // locking lever (small black knob)
+  ctx.fillStyle='#1f2937';
+  ctx.beginPath(); ctx.arc(holderX+24, cy-20, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#374151';
+  ctx.beginPath(); ctx.arc(holderX+24, cy-20, 4, 0, Math.PI*2); ctx.fill();
+  // lever stick
+  ctx.fillStyle='#475569';
+  ctx.beginPath();
+  ctx.moveTo(holderX+22, cy-15);
+  ctx.bezierCurveTo(holderX+18, cy-3, holderX+24, cy+15, holderX+30, cy+25);
+  ctx.lineTo(holderX+34, cy+22);
+  ctx.bezierCurveTo(holderX+30, cy+10, holderX+24, cy-3, holderX+26, cy-15);
+  ctx.closePath(); ctx.fill();
+
+  // ====== ANVIL ROD (chrome cylinder, sticking right from holder) ======
+  const anvilEndX = holderX + holderW + 20;
+  const anvilStartX = holderX + holderW - 4;
+  drawChromeRod(anvilStartX, cy-shaftH/2, anvilEndX-anvilStartX, shaftH);
+  // contact tip
+  ctx.fillStyle='#cbd5e1';
+  ctx.beginPath(); ctx.arc(anvilEndX, cy, shaftH/2+2, -Math.PI/2, Math.PI/2); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.stroke();
+  // small dark dot at the rod end of holder (visual detail from reference)
+  ctx.fillStyle='#1f2937';
+  ctx.beginPath(); ctx.arc(holderX+8, cy, 4, 0, Math.PI*2); ctx.fill();
+
+  // ====== OBJECT ======
+  const objWpx = objMM*pxmm;
+  const objY = cy - 9, objH = 14;
+  let objX1, objY1, objW, objHpx;
+
+  if(state.dragging==='object'){
+    objX1 = state.objDragX - objWpx/2;
+    objY1 = state.objDragY - 12;
+    objW = objWpx; objHpx = 24;
+  } else if(state.objInserted){
+    objX1 = anvilEndX;
+    objY1 = objY;
+    objW = objWpx; objHpx = objH;
+  } else {
+    objX1 = 50;
+    objY1 = trayY+18;
+    objW = Math.min(Math.max(objWpx, 12), 200);
+    objHpx = 28;
+  }
+  drawMicObjectNew(objX1, objY1, objW, objHpx);
+
+  // ====== SPINDLE (chrome rod) ======
+  const spindleX = anvilEndX + jaw*pxmm;
+  const spindleW = 50;
+  drawChromeRod(spindleX, cy-shaftH/2, spindleW, shaftH);
+  // spindle contact tip
+  ctx.fillStyle='#cbd5e1';
+  ctx.beginPath(); ctx.arc(spindleX, cy, shaftH/2+2, Math.PI/2, -Math.PI/2, true); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.stroke();
+
+  // ====== SLEEVE BARREL (chrome cylinder with scale) ======
+  const sleeveX = spindleX + spindleW;
+  const sleeveW = Math.min(220, W - sleeveX - 200);
+  const sleeveTop = cy - shaftH/2 - 5;
+  const sleeveH = shaftH + 10;
+  drawChromeBarrel(sleeveX, sleeveTop, sleeveW, sleeveH);
+  // datum line
+  const refY = cy;
+  ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(sleeveX+2, refY); ctx.lineTo(sleeveX+sleeveW-2, refY); ctx.stroke();
+
+  // mm above (long ticks every 5), half-mm below
+  ctx.font='bold 11px Share Tech Mono'; ctx.fillStyle='#1f2937'; ctx.textAlign='center';
+  for(let mm=0; mm<=25; mm++){
+    const x = sleeveX + mm*pxmm;
+    if(x<sleeveX+2 || x>sleeveX+sleeveW-30) continue;
+    const big = (mm%5===0);
+    ctx.lineWidth = big?1.4:0.9;
+    ctx.beginPath(); ctx.moveTo(x, refY); ctx.lineTo(x, refY-(big?11:6)); ctx.stroke();
+    if(big){ ctx.fillText(mm.toString(), x, refY-13); }
+    const xh = x+pxmm/2;
+    if(xh<sleeveX+sleeveW-30){
+      ctx.beginPath(); ctx.moveTo(xh, refY); ctx.lineTo(xh, refY+5); ctx.stroke();
+    }
+  }
+
+  // ====== THIMBLE (cylindrical with scale numbers 5,10,15,...) ======
+  const thimbleX = sleeveX + jaw*pxmm;
+  const thimbleW = 145;
+  const thimbleTop = cy - 38;
+  const thimbleH = 76;
+  drawThimbleCylinder(thimbleX, thimbleTop, thimbleW, thimbleH);
+  // thimble scale ticks + numbers
+  const halfmm = Math.floor(jaw*2)/2;
+  const fracInHalfMM = jaw - halfmm;
+  const thimbleVal = Math.round(fracInHalfMM/0.01) % 50;
+  ctx.font='bold 11px Share Tech Mono'; ctx.fillStyle='#1f2937'; ctx.textAlign='left';
+  const tickSp = 6;
+  for(let k=-7;k<=7;k++){
+    const v = ((thimbleVal + k)%50 + 50)%50;
+    const yT = refY - k*tickSp;
+    if(yT<thimbleTop+8 || yT>thimbleTop+thimbleH-8) continue;
+    const big = (v%5===0);
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth = big?1.4:0.8;
+    ctx.beginPath();
+    ctx.moveTo(thimbleX+5, yT);
+    ctx.lineTo(thimbleX+5 + (big?16:10), yT);
+    ctx.stroke();
+    if(big){ ctx.fillText(v.toString(), thimbleX+25, yT+4); }
+  }
+
+  // ====== RATCHET (knurled cap, vertical lines like reference) ======
+  const ratchetX = thimbleX + thimbleW;
+  const ratchetW = 56;
+  const ratchetTop = cy - 32;
+  const ratchetH = 64;
+  drawRatchetKnurl(ratchetX, ratchetTop, ratchetW, ratchetH);
+
+  // ====== Tray ======
+  ctx.fillStyle='rgba(15,23,42,0.6)';
+  ctx.fillRect(20, trayY, W-40, 56);
+  ctx.strokeStyle='#1e3a5f'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+  ctx.strokeRect(20, trayY, W-40, 56); ctx.setLineDash([]);
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun'; ctx.textAlign='left';
+  ctx.fillText('🧩 ลากวัตถุไปวางระหว่าง anvil ↔ spindle ↑', 30, trayY+12);
+
+  _micLayout = {
+    objBox: {x:objX1, y:objY1, w:objW, h:objHpx},
+    insertZone: {x:anvilEndX, y:objY-6, w:Math.max(20, spindleX-anvilEndX), h:objH+12},
+    pxmm, anvilEndX, spindleX
+  };
+
+  if(state.objInserted && jaw < objMM-0.005){
+    ctx.fillStyle='rgba(248,113,113,0.92)';
+    ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('⚠ spindle ถูกวัตถุกั้น — หมุน ratchet ปิดให้สนิท', anvilEndX+objWpx/2, objY-14);
+  }
+
+  drawReadingBox();
+}
+
+// ---- Helper: rounded rectangle path ----
+function roundRect(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r, y); c.quadraticCurveTo(x+w, y, x+w, y+r);
+  c.lineTo(x+w, y+h-r); c.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  c.lineTo(x+r, y+h); c.quadraticCurveTo(x, y+h, x, y+h-r);
+  c.lineTo(x, y+r); c.quadraticCurveTo(x, y, x+r, y);
+  c.closePath();
+}
+
+// ---- Helper: chrome rod cylindrical shading (light band in middle) ----
+function drawChromeRod(x, y, w, h){
+  let g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0, '#374151');
+  g.addColorStop(0.15, '#9ca3af');
+  g.addColorStop(0.4, '#f3f4f6');
+  g.addColorStop(0.55, '#ffffff');
+  g.addColorStop(0.75, '#cbd5e1');
+  g.addColorStop(1, '#374151');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y+h); ctx.lineTo(x+w, y+h); ctx.stroke();
+}
+
+// ---- Helper: chrome barrel (sleeve) — slightly larger gradient ----
+function drawChromeBarrel(x, y, w, h){
+  let g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0, '#4b5563');
+  g.addColorStop(0.18, '#9ca3af');
+  g.addColorStop(0.4, '#f3f4f6');
+  g.addColorStop(0.5, '#ffffff');
+  g.addColorStop(0.6, '#f3f4f6');
+  g.addColorStop(0.82, '#9ca3af');
+  g.addColorStop(1, '#374151');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+// ---- Helper: thimble cylinder with strong cylindrical shading ----
+function drawThimbleCylinder(x, y, w, h){
+  let g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0, '#1f2937');
+  g.addColorStop(0.1, '#6b7280');
+  g.addColorStop(0.3, '#d1d5db');
+  g.addColorStop(0.45, '#f9fafb');
+  g.addColorStop(0.55, '#ffffff');
+  g.addColorStop(0.7, '#e5e7eb');
+  g.addColorStop(0.88, '#9ca3af');
+  g.addColorStop(1, '#1f2937');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=1;
+  ctx.strokeRect(x, y, w, h);
+  // bevel reading edge (left)
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(x, y, 2, h);
+}
+
+// ---- Helper: ratchet knurled cap (vertical lines) ----
+function drawRatchetKnurl(x, y, w, h){
+  let g = ctx.createLinearGradient(0, y, 0, y+h);
+  g.addColorStop(0,'#1f2937'); g.addColorStop(0.1,'#6b7280');
+  g.addColorStop(0.4,'#e5e7eb'); g.addColorStop(0.5,'#f9fafb');
+  g.addColorStop(0.6,'#e5e7eb'); g.addColorStop(0.85,'#6b7280');
+  g.addColorStop(1,'#1f2937');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
+  ctx.strokeRect(x, y, w, h);
+  // vertical knurl lines
+  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=0.8;
+  for(let i=2; i<w-1; i+=2){
+    ctx.beginPath();
+    ctx.moveTo(x+i, y+3);
+    ctx.lineTo(x+i, y+h-3);
+    ctx.stroke();
+  }
+  // dark cap on right
+  let cap = ctx.createLinearGradient(0, y, 0, y+h);
+  cap.addColorStop(0,'#1f2937'); cap.addColorStop(0.5,'#4b5563'); cap.addColorStop(1,'#111827');
+  ctx.fillStyle = cap;
+  ctx.fillRect(x+w-6, y-3, 8, h+6);
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.strokeRect(x+w-6, y-3, 8, h+6);
+}
+
+function drawMicObjectNew(x, y, w, h){
+  const o = getObj();
+  const id = o.id;
+  const colors = {
+    wire:['#fbbf24','#92400e'],
+    paper:['#fef3c7','#a16207'],
+    foil:['#f1f5f9','#94a3b8'],
+    wirethick:['#cbd5e1','#1e293b'],
+    glassMM:['#bae6fd','#0c4a6e'],
+    coinMM:['#fde68a','#92400e']
+  };
+  const c = colors[id] || ['#a78bfa','#3b0764'];
+  if(['wire','wirethick'].includes(id)){
+    const r = h/2;
+    const cx = x+w/2, cy2 = y+h/2;
+    const grd = ctx.createRadialGradient(cx-r*0.3, cy2-r*0.3, 0.5, cx, cy2, r);
+    grd.addColorStop(0,c[0]); grd.addColorStop(1,c[1]);
+    ctx.fillStyle=grd;
+    ctx.fillRect(x, cy2-r, w, h);
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=1; ctx.strokeRect(x, cy2-r, w, h);
+  } else {
+    let g=ctx.createLinearGradient(0,y,0,y+h);
+    g.addColorStop(0,c[0]); g.addColorStop(1,c[1]);
+    ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h);
+  }
+  ctx.fillStyle='#e2e8f0'; ctx.font='10px Sarabun'; ctx.textAlign='center';
+  ctx.fillText(o.name + ' ('+(state.mode==='auto'?o.D.toFixed(3)+' mm':'??')+')', x+w/2, y+h+12);
+}
+
+function drawMicrometer_DEAD(){
+  const W = canvas.width, H = canvas.height;
+  const jaw = posToJaw();
+  const objMM = state.trueVal;
+  const pxmm = 9 * state.zoom;
+
+  // Layout (left → right):
+  //  [U-frame] [anvil] [object] [spindle] [sleeve scale] [thimble] [ratchet]
+  const cy = H/2 + 10;            // shaft center y
+  const shaftH = 26;
+  const shaftTop = cy - shaftH/2;
+
+  // ============ U-FRAME (black rubber-coated) ============
+  // semicircular U on the left, with anvil rod sticking right from upper arm
+  const frameLeft = 40;
+  const frameRight = 230;          // where anvil meets object area
+  const frameTop = cy - 95;
+  const frameBot = cy + 95;
+  let fg = ctx.createLinearGradient(0, frameTop, 0, frameBot);
+  fg.addColorStop(0,'#475569'); fg.addColorStop(0.3,'#1e293b'); fg.addColorStop(0.5,'#0f172a');
+  fg.addColorStop(0.7,'#1e293b'); fg.addColorStop(1,'#334155');
+  ctx.fillStyle = fg;
+  ctx.beginPath();
+  // outer outline
+  ctx.moveTo(frameRight, frameTop);
+  ctx.lineTo(frameLeft+45, frameTop);
+  ctx.quadraticCurveTo(frameLeft, frameTop, frameLeft, (frameTop+frameBot)/2);
+  ctx.quadraticCurveTo(frameLeft, frameBot, frameLeft+45, frameBot);
+  ctx.lineTo(frameRight, frameBot);
+  // inner cutout
+  ctx.lineTo(frameRight, cy+shaftH/2+8);
+  ctx.lineTo(frameLeft+58, cy+shaftH/2+8);
+  ctx.quadraticCurveTo(frameLeft+30, cy+shaftH/2+8, frameLeft+30, cy);
+  ctx.quadraticCurveTo(frameLeft+30, cy-shaftH/2-8, frameLeft+58, cy-shaftH/2-8);
+  ctx.lineTo(frameRight, cy-shaftH/2-8);
+  ctx.closePath(); ctx.fill();
+  // bevel highlight
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=2; ctx.stroke();
+  // grip pad lines
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  for(let i=0;i<6;i++){
+    const yp = frameBot - 18 - i*14;
+    ctx.fillRect(frameLeft+10, yp, 30, 5);
+  }
+  // brand plate
+  ctx.fillStyle='#fbbf24';
+  ctx.font='bold 9px Share Tech Mono'; ctx.textAlign='center';
+  ctx.fillText('0–25 mm', frameLeft+25, cy-30);
+  ctx.fillText('0.01', frameLeft+25, cy+5);
+
+  // ============ ANVIL (chrome rod from upper arm) ============
+  const anvilEndX = 290;          // contact face
+  const anvilStartX = frameRight-15;
+  let ag = ctx.createLinearGradient(0, shaftTop, 0, shaftTop+shaftH);
+  ag.addColorStop(0,'#f8fafc'); ag.addColorStop(0.15,'#e2e8f0');
+  ag.addColorStop(0.5,'#cbd5e1'); ag.addColorStop(0.85,'#64748b');
+  ag.addColorStop(1,'#1e293b');
+  ctx.fillStyle = ag;
+  ctx.fillRect(anvilStartX, shaftTop, anvilEndX-anvilStartX, shaftH);
+  // hard contact tip (slightly darker, polished steel)
+  let tg = ctx.createLinearGradient(0, shaftTop, 0, shaftTop+shaftH);
+  tg.addColorStop(0,'#e2e8f0'); tg.addColorStop(0.5,'#94a3b8'); tg.addColorStop(1,'#475569');
+  ctx.fillStyle = tg;
+  ctx.fillRect(anvilEndX-8, shaftTop-2, 8, shaftH+4);
+  // edges
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(anvilStartX, shaftTop, anvilEndX-anvilStartX, 2);
+  ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fillRect(anvilStartX, shaftTop+shaftH-2, anvilEndX-anvilStartX, 2);
+
+  // ============ OBJECT (fixed size, between anvil and spindle) ============
+  const objWpx = objMM * pxmm;
+  const objY = cy - 9;
+  const objH = 14;
+  const objColors = {
+    wire:['#fbbf24','#92400e'],
+    paper:['#fef3c7','#a16207'],
+    foil:['#f1f5f9','#94a3b8'],
+    wirethick:['#cbd5e1','#1e293b'],
+    glassMM:['#bae6fd','#0c4a6e'],
+    coinMM:['#fde68a','#92400e']
+  };
+  const cl = objColors[getObj().id] || ['#a78bfa','#3b0764'];
+  const isWire = ['wire','wirethick'].includes(getObj().id);
+
+  if(isWire){
+    // round wire — circular cross-section
+    const wireR = Math.max(3, objWpx/2);
+    const grd = ctx.createRadialGradient(anvilEndX+wireR-wireR*0.3, cy-wireR*0.3, 1, anvilEndX+wireR, cy, wireR*1.2);
+    grd.addColorStop(0,cl[0]); grd.addColorStop(1,cl[1]);
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(anvilEndX+wireR, cy, wireR, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1; ctx.stroke();
+    // shine
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.ellipse(anvilEndX+wireR-wireR*0.3, cy-wireR*0.4, wireR*0.3, wireR*0.18, 0, 0, Math.PI*2); ctx.fill();
+  } else {
+    let og = ctx.createLinearGradient(0, objY, 0, objY+objH);
+    og.addColorStop(0,cl[0]); og.addColorStop(0.5,cl[1]); og.addColorStop(1,cl[1]);
+    ctx.fillStyle = og;
+    ctx.fillRect(anvilEndX, objY, objWpx, objH);
+    ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.fillRect(anvilEndX, objY, objWpx, 2);
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.strokeRect(anvilEndX, objY, objWpx, objH);
+  }
+
+  // ============ SPINDLE (chrome, slides) ============
+  const spindleX = anvilEndX + jaw*pxmm;
+  const spindleW = 38;
+  ctx.fillStyle = ag;
+  ctx.fillRect(spindleX, shaftTop, spindleW, shaftH);
+  ctx.fillStyle = tg;
+  ctx.fillRect(spindleX, shaftTop-2, 8, shaftH+4);  // contact tip on left
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(spindleX, shaftTop, spindleW, 2);
+  ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fillRect(spindleX, shaftTop+shaftH-2, spindleW, 2);
+
+  if(jaw < objMM-0.005){
+    ctx.fillStyle='rgba(248,113,113,0.92)';
+    ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('⚠ spindle ยังไม่แตะวัตถุ — หมุน ratchet ต่อ', anvilEndX+objWpx/2, objY-14);
+  }
+
+  // ============ SLEEVE (continues right, with scale) ============
+  const sleeveX = spindleX + spindleW;
+  const sleeveW = Math.min(310, W - sleeveX - 100);
+  const sleeveTop = cy - shaftH/2 - 4;
+  const sleeveH = shaftH + 8;
+  let slg = ctx.createLinearGradient(0, sleeveTop, 0, sleeveTop+sleeveH);
+  slg.addColorStop(0,'#f1f5f9'); slg.addColorStop(0.2,'#cbd5e1');
+  slg.addColorStop(0.5,'#e2e8f0'); slg.addColorStop(0.85,'#94a3b8');
+  slg.addColorStop(1,'#475569');
+  ctx.fillStyle = slg;
+  ctx.fillRect(sleeveX, sleeveTop, sleeveW, sleeveH);
+  ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fillRect(sleeveX, sleeveTop, sleeveW, 2);
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(sleeveX, sleeveTop+sleeveH-2, sleeveW, 2);
+
+  // datum line (horizontal reference)
+  const refY = cy;
+  ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sleeveX, refY); ctx.lineTo(sleeveX+sleeveW, refY); ctx.stroke();
+
+  // mm marks ABOVE datum, half-mm BELOW (Stefanelli style)
+  ctx.font='bold 11px Share Tech Mono'; ctx.fillStyle='#0f172a'; ctx.textAlign='center';
+  for(let mm=0; mm<=25; mm++){
+    const x = sleeveX + mm*pxmm;
+    if(x<sleeveX-1 || x>sleeveX+sleeveW-30) continue;
+    const big = (mm%5===0);
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth = big?1.8:1;
+    // mm tick — above datum
+    ctx.beginPath(); ctx.moveTo(x, refY); ctx.lineTo(x, refY-(big?12:7)); ctx.stroke();
+    if(big){ ctx.fillText(mm.toString(), x, refY-15); }
+    // half-mm tick — below datum
+    const xh = x + pxmm/2;
+    if(xh<sleeveX+sleeveW-30){
+      ctx.beginPath(); ctx.moveTo(xh, refY); ctx.lineTo(xh, refY+6); ctx.stroke();
+    }
+  }
+
+  // ============ THIMBLE (chrome cylinder, covers part of sleeve) ============
+  const thimbleX = sleeveX + jaw*pxmm;
+  const thimbleW = 140;
+  const thimbleTop = cy - 38;
+  const thimbleH = 76;
+  // strong cylindrical shading: dark→light→dark
+  let tg2 = ctx.createLinearGradient(0, thimbleTop, 0, thimbleTop+thimbleH);
+  tg2.addColorStop(0,'#1e293b'); tg2.addColorStop(0.15,'#475569');
+  tg2.addColorStop(0.4,'#cbd5e1'); tg2.addColorStop(0.5,'#f8fafc');
+  tg2.addColorStop(0.6,'#cbd5e1'); tg2.addColorStop(0.85,'#475569');
+  tg2.addColorStop(1,'#0f172a');
+  ctx.fillStyle = tg2;
+  ctx.fillRect(thimbleX, thimbleTop, thimbleW, thimbleH);
+  // bevel on left edge (this is the reading edge against sleeve)
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(thimbleX, thimbleTop, 2, thimbleH);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillRect(thimbleX+2, thimbleTop, 1, thimbleH);
+  // right edge shadow (joins ratchet)
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(thimbleX+thimbleW-2, thimbleTop, 2, thimbleH);
+
+  // thimble scale ticks (50 divisions, only visible portion)
+  const halfmm = Math.floor(jaw*2)/2;
+  const fracInHalfMM = jaw - halfmm;
+  const thimbleVal = Math.round(fracInHalfMM/0.01) % 50;
+  ctx.font='bold 11px Share Tech Mono'; ctx.fillStyle='#0f172a'; ctx.textAlign='left';
+  const tickSp = 6;
+  for(let k=-6;k<=6;k++){
+    const v = ((thimbleVal + k)%50 + 50)%50;
+    const yT = refY - k*tickSp;
+    if(yT<thimbleTop+8 || yT>thimbleTop+thimbleH-8) continue;
+    const big = (v%5===0);
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth = big?1.6:1;
+    ctx.beginPath();
+    ctx.moveTo(thimbleX+6, yT);
+    ctx.lineTo(thimbleX+6 + (big?16:10), yT);
+    ctx.stroke();
+    if(big){ ctx.fillText(v.toString().padStart(2,'0'), thimbleX+26, yT+4); }
+  }
+
+  // ============ RATCHET (knurled cap at right end) ============
+  const ratchetX = thimbleX + thimbleW;
+  const ratchetW = 24;
+  const ratchetTop = cy - 30;
+  const ratchetH = 60;
+  let rg = ctx.createLinearGradient(0, ratchetTop, 0, ratchetTop+ratchetH);
+  rg.addColorStop(0,'#1e293b'); rg.addColorStop(0.2,'#64748b');
+  rg.addColorStop(0.5,'#94a3b8'); rg.addColorStop(0.8,'#475569'); rg.addColorStop(1,'#0f172a');
+  ctx.fillStyle = rg;
+  ctx.fillRect(ratchetX, ratchetTop, ratchetW, ratchetH);
+  // knurling pattern
+  ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1;
+  for(let i=0; i<10; i++){
+    const y = ratchetTop+4 + i*((ratchetH-8)/9);
+    ctx.beginPath(); ctx.moveTo(ratchetX+2, y); ctx.lineTo(ratchetX+ratchetW-2, y); ctx.stroke();
+  }
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun'; ctx.textAlign='center';
+  ctx.fillText('ratchet', ratchetX+ratchetW/2, ratchetTop+ratchetH+14);
+
+  // ============ Labels ============
+  ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun'; ctx.textAlign='center';
+  const objLabel = state.mode==='auto' ? 'ขนาดจริง = '+objMM.toFixed(3)+' mm' : 'ขนาดจริง = ??';
+  ctx.fillText(getObj().name + ' ('+objLabel+')', anvilEndX+objWpx/2, objY+objH+24);
+
+  drawReadingBox();
+}
+
+
+function drawReadingBox(){
+  const r = getReading();
+  const W = canvas.width;
+  ctx.fillStyle='rgba(15,23,42,0.92)';
+  ctx.strokeStyle='var(--accent)'; ctx.fillRect(W-200, 8, 192, 60);
+  ctx.strokeStyle='#38bdf8'; ctx.lineWidth=1; ctx.strokeRect(W-200, 8, 192, 60);
+  ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun'; ctx.textAlign='left';
+  ctx.fillText(state.mode==='auto'?'ค่าที่อ่าน (Auto)':'ค่าที่อ่าน (ซ่อน — ฝึกอ่านเอง)', W-194, 22);
+  if(state.mode==='auto'){
+    ctx.fillStyle='#34d399'; ctx.font='bold 16px Share Tech Mono';
+    ctx.fillText(r.total.toFixed(state.tool==='vernier'?2:3)+' mm', W-194, 44);
+    ctx.fillStyle='#94a3b8'; ctx.font='10px Share Tech Mono';
+    ctx.fillText(`main=${r.main.toFixed(state.tool==='vernier'?0:1)} sub=${r.sub}`, W-194, 60);
+  } else {
+    ctx.fillStyle='#fb923c'; ctx.font='bold 13px Sarabun';
+    ctx.fillText('— ?? —', W-194, 44);
+    ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun';
+    ctx.fillText('อ่านสเกลด้วยตา แล้วกรอก →', W-194, 60);
+  }
+}
+
+/* === THEORY canvases === */
+function drawTheory1(){
+  const c = document.getElementById('thCanvas1');
+  if(!c) return;
+  c.width = c.parentElement.clientWidth - 28; c.height = 200;
+  const ctx2 = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx2.fillStyle='#0c1424'; ctx2.fillRect(0,0,W,H);
+  // Main scale (top)
+  const pxmm = 24;
+  const startX = 40;
+  ctx2.strokeStyle='#cbd5e1'; ctx2.fillStyle='#cbd5e1'; ctx2.font='12px Share Tech Mono'; ctx2.textAlign='center';
+  for(let i=0;i<=20;i++){
+    const x = startX + i*pxmm;
+    if(x>W-20) break;
+    ctx2.lineWidth = (i%5===0)?1.5:1;
+    ctx2.beginPath(); ctx2.moveTo(x, 60); ctx2.lineTo(x, 50-(i%5===0?12:7)); ctx2.stroke();
+    if(i%5===0) ctx2.fillText(i.toString(), x, 38);
+  }
+  ctx2.fillStyle='#94a3b8'; ctx2.textAlign='left'; ctx2.fillText('main (mm)', 6, 50);
+  // Vernier (bottom) — offset 0.35 mm so 7th tick aligns
+  const offset = 0.35; // mm
+  ctx2.fillStyle='#fbbf24'; ctx2.strokeStyle='#fbbf24';
+  ctx2.fillText('vernier — 20 ticks span 19 mm (each = 0.95 mm)', 6, H-10);
+  for(let i=0;i<=20;i++){
+    const x = startX + (i*0.95 + offset)*pxmm;
+    if(x>W-20) break;
+    ctx2.lineWidth = (i%5===0)?1.5:1;
+    ctx2.beginPath(); ctx2.moveTo(x, 110); ctx2.lineTo(x, 110+(i%5===0?14:9)); ctx2.stroke();
+    if(i%5===0){ ctx2.fillText(i.toString(), x-4, H-30); }
+  }
+  // Highlight aligned tick (7)
+  const xAlign = startX + (7*0.95 + offset)*pxmm;
+  ctx2.strokeStyle='#34d399'; ctx2.lineWidth=2;
+  ctx2.beginPath(); ctx2.moveTo(xAlign, 50); ctx2.lineTo(xAlign, 130); ctx2.stroke();
+  ctx2.fillStyle='#34d399'; ctx2.textAlign='left';
+  ctx2.fillText('← ขีดที่ตรงกัน = ขีดที่ 7 → 0.35 mm', xAlign+8, 92);
+}
+
+function drawTheory2(){
+  const c = document.getElementById('thCanvas2');
+  if(!c) return;
+  c.width = c.parentElement.clientWidth - 28; c.height = 200;
+  const ctx2 = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx2.fillStyle='#0c1424'; ctx2.fillRect(0,0,W,H);
+  // Sleeve
+  const sleeveY = 80, sleeveH = 28;
+  ctx2.fillStyle='#3b4a66'; ctx2.fillRect(40, sleeveY, W-200, sleeveH);
+  ctx2.strokeStyle='#fbbf24'; ctx2.lineWidth=1.5;
+  ctx2.beginPath(); ctx2.moveTo(40, sleeveY+sleeveH/2); ctx2.lineTo(W-160, sleeveY+sleeveH/2); ctx2.stroke();
+  // Sleeve ticks
+  const pxmm2 = 28;
+  ctx2.fillStyle='#cbd5e1'; ctx2.strokeStyle='#cbd5e1'; ctx2.font='10px Share Tech Mono'; ctx2.textAlign='center';
+  for(let mm=0; mm<=10; mm++){
+    const x = 50 + mm*pxmm2; if(x>W-160) break;
+    ctx2.lineWidth = (mm%5===0)?1.5:1;
+    ctx2.beginPath(); ctx2.moveTo(x, sleeveY+sleeveH/2); ctx2.lineTo(x, sleeveY+4); ctx2.stroke();
+    if(mm%5===0) ctx2.fillText(mm.toString(), x, sleeveY-2);
+    // half mm
+    const xh = x+pxmm2/2; if(xh<W-160){
+      ctx2.beginPath(); ctx2.moveTo(xh, sleeveY+sleeveH/2); ctx2.lineTo(xh, sleeveY+sleeveH-4); ctx2.stroke();
+    }
+  }
+  // Thimble at 7.5 mm + 23
+  const thimbleX = 50 + 7.5*pxmm2;
+  ctx2.fillStyle='#1e3a5f'; ctx2.fillRect(thimbleX, sleeveY-25, 130, sleeveH+50);
+  // Thimble ticks vertical centered at value 23
+  const refY = sleeveY+sleeveH/2;
+  ctx2.strokeStyle='#fde68a'; ctx2.fillStyle='#fde68a'; ctx2.textAlign='left';
+  for(let k=-6;k<=6;k++){
+    const v = ((23+k)%50+50)%50;
+    const yT = refY - k*5;
+    if(yT<sleeveY-22||yT>sleeveY+sleeveH+22) continue;
+    const big = v%5===0;
+    ctx2.lineWidth = big?1.5:1;
+    ctx2.beginPath(); ctx2.moveTo(thimbleX+4, yT); ctx2.lineTo(thimbleX+4+(big?14:9), yT); ctx2.stroke();
+    if(big) ctx2.fillText(v.toString().padStart(2,'0'), thimbleX+22, yT+3);
+  }
+  // highlight 23 at refY
+  ctx2.strokeStyle='#34d399'; ctx2.lineWidth=2;
+  ctx2.beginPath(); ctx2.moveTo(thimbleX-6, refY); ctx2.lineTo(thimbleX+30, refY); ctx2.stroke();
+  ctx2.fillStyle='#34d399'; ctx2.font='12px Sarabun';
+  ctx2.fillText('thimble = 23 → 0.23 mm', thimbleX+40, refY+4);
+  ctx2.fillStyle='#cbd5e1'; ctx2.font='12px Sarabun';
+  ctx2.fillText('sleeve = 7.5 mm + thimble 0.23 mm = 7.73 mm', 6, H-10);
+}
+
+/* ============ DRAG on canvas — รองรับลากวัตถุ + ลาก jaw ============ */
+function _hit(box, x, y){ return x>=box.x && x<=box.x+box.w && y>=box.y && y<=box.y+box.h; }
+function _layout(){ return state.tool==='vernier' ? _vernierLayout : _micLayout; }
+function getCanvasPos(e){
+  const svg = document.getElementById('simSvg');
+  const rect = svg.getBoundingClientRect();
+  const cx = (e.touches?e.touches[0].clientX:e.clientX) - rect.left;
+  const cy = (e.touches?e.touches[0].clientY:e.clientY) - rect.top;
+  // Map to SVG viewBox coords
+  return {x: cx*(VW/rect.width), y: cy*(VH/rect.height)};
+}
+
+let _drag = {kind:null, startX:0, startPos:0};
+function onDragStart(e){
+  const p = getCanvasPos(e);
+  const L = _layout();
+  if(L && _hit(L.objBox, p.x, p.y)){
+    state.dragging = 'object';
+    state.objDragX = p.x; state.objDragY = p.y;
+    _drag.kind='object';
+    draw();
+    return;
+  }
+  _drag.kind='jaw';
+  _drag.startX = p.x; _drag.startPos = state.pos;
+}
+function onDragMove(e){
+  if(!_drag.kind) return;
+  const p = getCanvasPos(e);
+  if(_drag.kind==='object'){
+    state.objDragX = p.x; state.objDragY = p.y;
+    draw();
+  } else {
+    const dx = p.x - _drag.startX;
+    const newPos = Math.max(0, Math.min(1000, _drag.startPos + dx*2));
+    document.getElementById('sl-pos').value = newPos;
+    document.getElementById('vi-pos').value = newPos;
+    state.pos = newPos;
+    hideFeedback(); draw(); updateReadout();
+  }
+}
+function onDragEnd(e){
+  if(_drag.kind==='object'){
+    const L = _layout();
+    if(L && _hit(L.insertZone, state.objDragX, state.objDragY)){
+      // วางในที่วัด → snap
+      state.dragging = null;
+      snapToObject();
+    } else {
+      // กลับไป tray
+      state.dragging = null;
+      state.objInserted = false;
+      draw();
+    }
+  }
+  _drag.kind = null;
+}
+const _svgEl = document.getElementById('simSvg');
+_svgEl.addEventListener('mousedown', onDragStart);
+_svgEl.addEventListener('mousemove', onDragMove);
+window.addEventListener('mouseup', onDragEnd);
+_svgEl.addEventListener('touchstart', e=>{ if(e.touches.length===1){ onDragStart(e); } }, {passive:true});
+_svgEl.addEventListener('touchmove', e=>{ if(e.touches.length===1){ onDragMove(e); e.preventDefault(); } }, {passive:false});
+_svgEl.addEventListener('touchend', onDragEnd);
+
+/* ============ INIT ============ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  populateObjects();
+  // sliders
+  const v2s = {'vi-pos':'sl-pos','vi-zoom':'sl-zoom'};
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=document.getElementById(si), inp=document.getElementById(vi);
+    sl.addEventListener('input',()=>{
+      inp.value = parseFloat(sl.value);
+      if(si==='sl-pos') state.pos = parseFloat(sl.value);
+      if(si==='sl-zoom') state.zoom = parseFloat(sl.value);
+      hideFeedback(); draw(); updateReadout();
+    });
+    inp.addEventListener('blur',()=>{
+      let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0));
+      inp.value=v; sl.value=v; sl.dispatchEvent(new Event('input'));
+    });
+  });
+  resizeCanvas();
+  onToolChange();
+  setMode('manual');
+});
+window.addEventListener('resize', resizeCanvas);
+</script>
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-42", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
