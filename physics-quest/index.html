@@ -6900,6 +6900,27 @@ function showXpPenaltyToast(amount){
   setTimeout(()=>t.remove(), 1400);
 }
 
+// On wrong/timeout: question goes BACK into queue (eligible to spawn again later) + mob escapes.
+// On correct: question stays popped from queue (won't repeat until full pool consumed).
+function requeueCurrentQuestion(){
+  if(currentSubstage && bState && bState.q && currentSubstage.queue){
+    currentSubstage.queue.push(bState.q);
+    shuffleArray(currentSubstage.queue);
+  }
+}
+function escapeCurrentMob(){
+  // Animate mob disappear and respawn a fresh one (with a different question from the queue)
+  const mob = bState && bState.mobData;
+  if(!mob || !mob.el || !mob.el.parentNode) return;
+  mob.el.classList.add('dying');
+  setTimeout(()=>{
+    if(mob.el.parentNode) mob.el.parentNode.removeChild(mob.el);
+    if(currentSubstage){
+      currentSubstage.mobs = currentSubstage.mobs.filter(m => m !== mob);
+      spawnSubstageMob();
+    }
+  }, 500);
+}
 function onWrong(){
   showMockLaugh(bState && bState.mobData && bState.mobData.mob, 'wrong');
   playSfx('wrong');
@@ -6933,11 +6954,14 @@ function onWrong(){
   if(pen > 0) showXpPenaltyToast(pen);
   // ── Pity MP regen (+0.5) — anti-starvation, keeps engagement reward even when wrong ──
   pityMpRegen();
+  // Question rotation: requeue this question + escape this mob (chance to encounter again)
+  requeueCurrentQuestion();
+  escapeCurrentMob();
   setTimeout(()=>{
     document.getElementById('rIcon').textContent = '😶';
     document.getElementById('rTitle').textContent = 'ตอบผิด';
     document.getElementById('rTitle').classList.add('fail');
-    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · กลับไปอ่านอีกครั้ง` : (graceUsed ? '🧱 ผิดฟรี (จาก แก้จากผิด) · ลองใหม่ได้' : 'มอนสเตอร์หัวเราะเยาะ! ลองใหม่ได้');
+    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · มอนหนีไปแล้ว ข้อนี้จะวนกลับมา` : (graceUsed ? '🧱 ผิดฟรี · มอนหนีไป ข้อนี้จะวนกลับมา' : 'มอนสเตอร์หัวเราะแล้วหนี! ข้อนี้จะวนกลับมา');
     const rXp = document.getElementById('rXp');
     rXp.textContent = pen > 0 ? `−${pen}` : '+0';
     rXp.style.color = pen > 0 ? 'var(--red)' : '';
@@ -6972,11 +6996,14 @@ function timeOut(){
   const pen = graceUsed ? 0 : applyXpPenalty();
   if(pen > 0) showXpPenaltyToast(pen);
   pityMpRegen();
+  // Question rotation: requeue + mob escapes (same as onWrong)
+  requeueCurrentQuestion();
+  escapeCurrentMob();
   setTimeout(()=>{
     document.getElementById('rIcon').textContent = '⏰';
     document.getElementById('rTitle').textContent = 'หมดเวลา';
     document.getElementById('rTitle').classList.add('fail');
-    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · ช้าไป!` : 'ช้าไป! มอนสเตอร์หัวเราะเยาะ';
+    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · มอนหนี ข้อนี้จะวนกลับมา` : 'ช้าไป! มอนหนีไปแล้ว ข้อนี้จะวนกลับมา';
     const rXp = document.getElementById('rXp');
     rXp.textContent = pen > 0 ? `−${pen}` : '+0';
     rXp.style.color = pen > 0 ? 'var(--red)' : '';
