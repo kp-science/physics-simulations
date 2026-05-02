@@ -1127,6 +1127,61 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 @media (min-width:768px){#game.shake-light,#game.shake-med,#game.shake-heavy{animation-name:shake-scaled;}}
 @keyframes shake-scaled{0%,100%{transform:scale(var(--game-scale,1.18)) translate(0,0);}25%{transform:scale(var(--game-scale,1.18)) translate(-3px,2px);}50%{transform:scale(var(--game-scale,1.18)) translate(3px,-2px);}75%{transform:scale(var(--game-scale,1.18)) translate(-2px,2px);}}
 
+/* ─── LIQUID LANDSCAPE MODE (phone-rotated / iPad / desktop landscape) ─── */
+/* Triggers when viewport ≥720px wide AND landscape orientation. Baseline 780×440 (mirrors portrait area but wider). Battle screen uses 2-col grid: monster+question on left, answer+actions on right. */
+@media (min-width:720px) and (orientation:landscape){
+  #game{ width:780px; height:440px; }
+
+  /* Battle screen: 2-column grid */
+  #screen-battle .battle-bg{
+    display:grid;
+    grid-template-columns: 1fr 1.05fr;
+    grid-template-areas:
+      "timer  timer"
+      "mob    answer"
+      "qbox   answer"
+      "figure answer"
+      "aux    skill"
+      "hint   hint"
+      "act    act";
+    grid-auto-rows: min-content;
+    gap:8px 14px;
+    padding:10px 14px;
+    align-content:start;
+  }
+  #screen-battle .b-timer-wrap{ grid-area:timer; margin-bottom:0; }
+  #screen-battle .b-mob-art{ grid-area:mob; height:96px; margin-bottom:0; font-size:2.4rem; }
+  #screen-battle .b-mob-art > svg{ width:74px; height:74px; }
+  #screen-battle .b-qbox{ grid-area:qbox; margin-bottom:0; }
+  #screen-battle .b-qbox .b-qtxt{ font-size:0.82rem; line-height:1.5; }
+  #screen-battle #bFigure{ grid-area:figure; margin:0; }
+  #screen-battle #bAnswer{ grid-area:answer; align-self:start; }
+  #screen-battle #bAnswer .b-choices{ margin-bottom:0; gap:5px; }
+  #screen-battle #bAnswer .b-choice{ padding:7px 11px; font-size:0.8rem; }
+  #screen-battle #bAnswer .b-tf{ margin-bottom:0; }
+  #screen-battle #bAnswer .b-fill{ margin-bottom:0; }
+  #screen-battle .b-aux-row{ grid-area:aux; }
+  #screen-battle #bSkillBar{ grid-area:skill; }
+  #screen-battle #bHintReveal{ grid-area:hint; }
+  #screen-battle .b-actions{ grid-area:act; }
+  #screen-battle .b-hint-btn{ margin-bottom:0; }
+  #screen-battle .b-attack{ padding:10px; }
+  #screen-battle .b-flee{ padding:10px 14px; }
+  /* Combo banner re-positioned for wider canvas */
+  #screen-battle .combo-banner{ top:54px; }
+
+  /* Generic .scr screens: relax inner content to flow horizontally where it fits */
+  /* Map / region / world / shop / inventory / character / mail / pvp keep their column flex
+     but the wider #game gives them more breathing room automatically. Add 2-col splits where
+     the existing content is narrow-tall. */
+  #screen-character .stat-grid,
+  #screen-inv .inv-grid{ grid-template-columns: repeat(4, 1fr) !important; }
+
+  /* Result screen: center content with wider max-width */
+  #screen-result .result-card,
+  #screen-result .drop-card{ max-width:420px; }
+}
+
 /* small toast */
 .toast{position:absolute;bottom:14%;left:50%;transform:translateX(-50%);background:rgba(15,26,46,.95);border:1px solid var(--border2);color:var(--text);padding:8px 16px;border-radius:20px;font-size:0.78rem;opacity:0;transition:opacity .3s;z-index:40;pointer-events:none;}
 .toast.show{opacity:1;}
@@ -2339,24 +2394,29 @@ function updateGameScale(){
   const g = document.getElementById('game'); if(!g) return;
   const vw = (window.visualViewport?.width  || window.innerWidth);
   const vh = (window.visualViewport?.height || window.innerHeight);
+  // Match CSS @media (min-width:720px) and (orientation:landscape) — baseline 780×440
+  const isLandscape = window.matchMedia('(min-width:720px) and (orientation:landscape)').matches;
+  const baseW = isLandscape ? 780 : 390;
+  const baseH = isLandscape ? 440 : 780;
   const padX = 28, padY = 28;
   const availW = Math.max(100, vw - padX);
   const availH = Math.max(100, vh - padY);
-  const scaleW = availW / 390;
-  const scaleH = availH / 780;
+  const scaleW = availW / baseW;
+  const scaleH = availH / baseH;
   let scale = Math.min(scaleW, scaleH, 1.7);
-  // Don't shrink below 1.0 on phones (iOS Safari toolbar makes vh small;
-  // shrinking would make UI tiny). If game taller than viewport at 1.0,
-  // we let the body scroll vertically.
-  if(scaleW >= 1.0){
+  if(isLandscape){
+    // Landscape: fit fully — allow shrink down to 0.7 so phone-landscape (e.g. 932×430) fits without scroll
+    scale = Math.max(0.7, Math.min(scaleW, scaleH, 1.7));
+  } else if(scaleW >= 1.0){
+    // Portrait phones/tablets: don't shrink below 1.0 (iOS Safari toolbar makes vh small)
     scale = Math.max(1.0, scale);
   } else {
-    // Truly narrow viewport (<390 + 28 = 418px wide) — allow shrink to fit width
+    // Truly narrow viewport (<418px wide) — allow shrink to fit width
     scale = Math.min(scaleW, 1.0);
   }
   g.style.setProperty('--pq-scale', scale.toFixed(4));
   // If scaled height > viewport height, allow body scroll vertically
-  const scaledH = 780 * scale;
+  const scaledH = baseH * scale;
   document.body.style.overflowY = (scaledH > vh - padY) ? 'auto' : 'hidden';
 }
 window.addEventListener('resize', updateGameScale);
