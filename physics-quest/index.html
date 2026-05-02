@@ -225,6 +225,16 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .b-fill{width:100%;background:rgba(4,6,13,.6);border:1.5px solid var(--border2);border-radius:8px;color:var(--green);font-family:'Sarabun',sans-serif;font-size:1rem;padding:11px;text-align:center;font-weight:700;outline:none;margin-bottom:10px;}
 .b-fill:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(56,189,248,.15);}
 
+/* ── FILL → drag-drop tokens (replaces text input) ── */
+.b-fill-drag{display:flex;flex-direction:column;gap:9px;margin-bottom:10px;}
+.b-fill-slot{min-height:40px;display:flex;align-items:center;justify-content:center;background:rgba(4,6,13,.55);border:1.8px dashed var(--border2);border-radius:8px;padding:9px 14px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:.5px;transition:.15s;}
+.b-fill-slot.filled{color:var(--green);border-style:solid;border-color:var(--green);background:rgba(52,211,153,.08);box-shadow:0 0 0 2px rgba(52,211,153,.1);}
+.b-fill-bank{display:flex;flex-wrap:wrap;gap:7px;}
+.b-fill-token{padding:8px 14px;background:rgba(15,26,46,.7);border:1.5px solid var(--border);color:var(--text);border-radius:18px;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:.15s;}
+.b-fill-token:hover{border-color:var(--accent);background:rgba(56,189,248,.1);transform:translateY(-1px);}
+.b-fill-token:active{transform:translateY(0);}
+.b-fill-token.sel{background:rgba(56,189,248,.18);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 2px rgba(56,189,248,.18);}
+
 /* hint button */
 .b-hint-btn{width:100%;padding:8px;background:rgba(129,140,248,.06);border:1px dashed var(--purple);color:var(--purple);border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;margin-bottom:9px;}
 .b-hint-btn:hover{background:rgba(129,140,248,.12);}
@@ -5240,6 +5250,7 @@ function handleStageClick(mode, stageId){
   currentSubstage = {
     mode, id:stageId, stage,
     pool,
+    queue: shuffleArray(pool.slice()),  // sampling-without-replacement queue
     mobs:[]
   };
   // 🧱 Recover: clear per-map state when entering a new substage
@@ -5280,8 +5291,11 @@ function spawnSubstageMob(){
   const stageMobLv = currentSubstage.stage.mobLv;
   // small variance ±1 around stage's mob level
   const lv = Math.max(1, stageMobLv + (Math.random()<0.5 ? 0 : (Math.random()<0.5?-1:1)));
-  const pool = currentSubstage.pool;
-  const q = pool[Math.floor(Math.random()*pool.length)];
+  // Sampling-without-replacement: pop from shuffled queue; reshuffle when empty
+  if(!currentSubstage.queue || currentSubstage.queue.length === 0){
+    currentSubstage.queue = shuffleArray(currentSubstage.pool.slice());
+  }
+  const q = currentSubstage.queue.pop();
   const qIdx = QUESTIONS.indexOf(q);
 
   const el = document.createElement('div');
@@ -6498,14 +6512,34 @@ function renderAnswerInput(q){
     });
     c.appendChild(wrap);
   } else if(q.type==='fill'){
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'b-fill';
-    inp.placeholder = 'พิมพ์คำตอบ...';
-    inp.oninput = ()=>{ bState.ans = inp.value.trim(); };
-    inp.onkeypress = (e)=>{ if(e.key==='Enter' && !bState.locked) submitAnswer(); };
-    c.appendChild(inp);
-    setTimeout(()=>inp.focus(),100);
+    // Fill rendered as drag-drop tokens (tap to place into blank slot)
+    // Avoids typo/whitespace mismatches that frustrated students with free-text input
+    const tokens = buildFillTokens(q);
+    bState.ans = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'b-fill-drag';
+    const slot = document.createElement('div');
+    slot.className = 'b-fill-slot';
+    slot.textContent = '___';
+    wrap.appendChild(slot);
+    const bank = document.createElement('div');
+    bank.className = 'b-fill-bank';
+    tokens.forEach(t => {
+      const chip = document.createElement('button');
+      chip.className = 'b-fill-token';
+      chip.textContent = t;
+      chip.onclick = ()=>{
+        if(bState.locked) return;
+        bank.querySelectorAll('.b-fill-token').forEach(c=>c.classList.remove('sel'));
+        chip.classList.add('sel');
+        slot.textContent = t;
+        slot.classList.add('filled');
+        bState.ans = t;
+      };
+      bank.appendChild(chip);
+    });
+    wrap.appendChild(bank);
+    c.appendChild(wrap);
   } else if(q.type==='check'){
     // Multi-select. Tap to toggle. bState.ans = sorted array of selected keys
     const wrap = document.createElement('div');
@@ -6647,6 +6681,35 @@ function showHint(){
   }
 }
 
+// ── Token bank for fill-in questions converted to drag-drop ──
+// Pulled from existing fill answers + common physics terms in Region 1.1.
+// Auto-decoy picks 3 entries that are NOT a valid answer for the current question.
+const FILL_TOKEN_BANK = [
+  'สเกลาร์','เวกเตอร์','scalar','vector',
+  'ระยะทาง','การกระจัด','อัตราเร็ว','ความเร็ว','ความเร่ง','เวลา','มวล','แรง','พลังงาน',
+  'ทางทิศเหนือ','ทางทิศใต้','ทางทิศตะวันออก','ทางทิศตะวันตก','ขึ้น','ลง',
+  'm/s²','m/s','m','s','kg','N','J'
+];
+function buildFillTokens(q){
+  const accepted = new Set((q.accept||[]).map(a => a.toLowerCase().trim()));
+  const correct = (q.accept && q.accept[0]) || '';
+  const pool = FILL_TOKEN_BANK.filter(t => !accepted.has(t.toLowerCase().trim()));
+  const decoys = [];
+  const poolCopy = pool.slice();
+  while(decoys.length < 3 && poolCopy.length){
+    const idx = Math.floor(Math.random()*poolCopy.length);
+    decoys.push(poolCopy.splice(idx,1)[0]);
+  }
+  return shuffleArray([correct, ...decoys]);
+}
+// Fisher-Yates shuffle (mutates + returns)
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
 function levenshtein(a, b){
   if(a===b) return 0;
   if(!a.length) return b.length; if(!b.length) return a.length;
