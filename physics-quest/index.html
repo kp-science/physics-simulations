@@ -810,7 +810,9 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .char-action-btn .cost{font-family:'Share Tech Mono',monospace;font-size:0.7rem;background:rgba(0,0,0,.3);padding:1px 6px;border-radius:6px;}
 .points-pill.zero{background:rgba(15,26,46,.7);color:var(--muted);border:1px solid var(--border);}
 
-.stat-row{display:grid;grid-template-columns:60px 1fr 28px 28px 28px;gap:7px;align-items:center;padding:5px 0;font-size:0.82rem;}
+.stat-row{display:grid;grid-template-columns:60px 20px 1fr 28px 28px 28px;gap:7px;align-items:center;padding:5px 0;font-size:0.82rem;}
+.stat-help{width:18px;height:18px;border-radius:50%;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.4);color:var(--accent);font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-family:'Share Tech Mono',monospace;}
+.stat-help:hover{background:var(--accent);color:#000;}
 .stat-row+.stat-row{border-top:1px solid rgba(26,46,80,.4);}
 .stat-name{font-family:'Share Tech Mono',monospace;font-weight:700;font-size:0.74rem;letter-spacing:.5px;}
 .stat-name.str{color:#f87171;}
@@ -4368,6 +4370,7 @@ function renderCharacter(){
     const pct = Math.min(100, v/50*100);
     return `<div class="stat-row">
       <span class="stat-name ${s.key}">${s.label}</span>
+      <button class="stat-help" onclick="showStatHelp('${s.key}')" title="ดูคำอธิบาย">?</button>
       <div class="stat-bar-wrap"><div class="stat-bar ${s.key}" style="width:${pct}%"></div></div>
       <span class="stat-val">${v}</span>
       <button class="stat-btn minus" onclick="adjStat('${s.key}',-1)" ${v<=5?'disabled':''}>−</button>
@@ -4465,6 +4468,34 @@ function renderCharacter(){
   const fill = document.getElementById('chXpFill');
   if(fill) fill.style.width = Math.min(100, player.xp/need*100) + '%';
 }
+
+const STAT_HELP = {
+  str: { icon:'💪', name:'STR · Combo Master', color:'#f87171', body:`<b>พลังตี = base × combo multiplier</b><br>STR สูง = combo cap สูงขึ้น = ตอบถูกติดกันได้นานขึ้น และดาเมจคูณแรงขึ้น<br><br><b>วิธีใช้:</b> เหมาะกับสาย farm — ตอบถูกติดกัน 5+ → drop +10% · 10+ → drop +25% · 25+ → ลุ้น tier-up · 50 → all rare guaranteed 🔥<br><br><b>Cap ที่:</b> STR 5→×1.25 · 25→×2.0 · 50→×3.5 · 99→×6.0` },
+  dex: { icon:'🎯', name:'DEX · ความแม่นยำ', color:'#fbbf24', body:`<b>กรอกคำตอบเลขใกล้เคียงก็ผ่าน</b> margin ±(2 + DEX×0.1)%<br>DEX 5→±2.5% · 50→±7% · 99→±11.9%<br><br><b>Partial Credit (block answers):</b> DEX 20+ ผิดเล็กน้อย = 30% dmg · 50+ = 50% · 80+ = 70% + บอกตำแหน่งผิด<br><br><b>วิธีใช้:</b> ถ้ากลัวพิมพ์เลขผิด หรือเล่นโจทย์ block ให้ลง DEX` },
+  int: { icon:'🧠', name:'INT · MP + Boss Preview', color:'#a78bfa', body:`<b>Max MP = 30 + INT×2 + Lv</b> · MP regen +(1+INT×0.05) ต่อข้อถูก<br>ลด MP cost ของ skill: −(INT×0.5%)<br><br><b>Boss Step Preview:</b> INT 30+ เห็น step ถัดไป · 60+ เห็นทุก step · 90+ เห็น parameter range<br><br><b>วิธีใช้:</b> สาย skill spam หรือนักวางแผนสู้บอส` },
+  agi: { icon:'⚡', name:'AGI · เวลา + ต้านทาน', color:'#34d399', body:`<b>Bonus timer +0.5s/แต้ม</b> (cap +20s ที่ AGI 40)<br>Confusion Resist: AGI×1% หลีก debuff "สับสน"<br>Map walking speed +AGI% · mob detection radius +AGI px<br><br><b>วิธีใช้:</b> สำหรับเด็กที่กลัว timer หมด — คิดช้าแต่ถูก` },
+  luk: { icon:'🍀', name:'LUK · โชคดรอป', color:'#fb923c', body:`<b>Drop rate scaling:</b> +0.5% ต่อแต้ม (LUK 50 → +25%)<br>Base drop เริ่มต้น 20% — LUK ดันให้ขึ้น<br><br><b>วิธีใช้:</b> สาย collector — อยากเก็บการ์ดครบ ลง LUK ก่อน<br><br><i>หมายเหตุ: ใช้การ์ดช่วย → drop ลด 50% · First-time-correct → +20%</i>` }
+};
+function showStatHelp(key){
+  const h = STAT_HELP[key]; if(!h) return;
+  let modal = document.getElementById('statHelpModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'statHelpModal';
+    modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+    const game = document.getElementById('game') || document.body;
+    game.appendChild(modal);
+  }
+  modal.innerHTML = `<div style="background:linear-gradient(135deg,var(--panel),var(--panel2));border:2px solid ${h.color};border-radius:14px;padding:18px 16px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 24px ${h.color}33;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;">
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;color:${h.color};">${h.icon} ${h.name}</div>
+      <button onclick="document.getElementById('statHelpModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;">✕</button>
+    </div>
+    <div style="font-size:0.78rem;line-height:1.55;color:var(--text);">${h.body}</div>
+  </div>`;
+}
+window.showStatHelp = showStatHelp;
 
 function manualSaveFromChar(){
   saveGame();
