@@ -1186,6 +1186,35 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
   }
   #screen-home .action-btn{ padding:10px 8px; font-size:0.85rem; border-radius:10px; }
 
+  /* ── SUBSTAGE: compact header + bottom, give map-area max height ── */
+  #screen-substage.on{
+    display:grid;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas: "head" "prog" "map" "bot";
+  }
+  #screen-substage .ss-header{ grid-area:head; padding:6px 12px 2px; }
+  #screen-substage .ss-header h2{ font-size:0.95rem; }
+  #screen-substage .ss-header .ss-meta{ font-size:0.6rem; }
+  #screen-substage .ss-progress{ grid-area:prog; padding:2px 14px 4px; }
+  #screen-substage .map-area{ grid-area:map; min-height:0; }
+  #screen-substage .ss-bottom{ grid-area:bot; padding:5px 12px 6px; }
+  #screen-substage .ss-stats{ padding:5px 8px; gap:4px; margin-bottom:4px; }
+  #screen-substage .ss-stats .ss-stat-lbl{ font-size:0.55rem; }
+  #screen-substage .ss-stats .ss-stat-val{ font-size:0.78rem; }
+  #screen-substage .ss-tabs .ss-tab{ padding:5px 4px; font-size:0.6rem; }
+  #screen-substage .ss-tabs .ico{ font-size:0.9rem; }
+
+  /* ── MAP / REGION / WORLD: keep flex column but tighten verticals ── */
+  #screen-map .topbar,
+  #screen-region .topbar,
+  #screen-world .topbar{ padding:6px 12px; font-size:0.65rem; }
+  #screen-map .region-name,
+  #screen-region .region-name,
+  #screen-world .region-name{ padding:6px 14px 2px; font-size:0.9rem; }
+  #screen-map .region-sub,
+  #screen-region .region-sub,
+  #screen-world .region-sub{ padding:0 14px 4px; }
+
   /* ── BATTLE: 2-column grid (already present — keep) ── */
 
   /* Battle screen: 2-column grid */
@@ -5226,8 +5255,10 @@ function handleStageClick(mode, stageId){
   const lvRange = `LV ${stagesArr[0].mobLv}-${stagesArr[stagesArr.length-1].mobLv}`;
   const modeLabel = isHard ? 'HARD MODE · XP×0.5 · R+ ×1.5' : 'GENERAL';
   document.getElementById('ssStageSub').textContent = `REGION ${region.id} · ${lvRange} · ${modeLabel}`;
-  renderSubstageMobs();
   showScreen('substage');
+  // Spawn mobs AFTER screen is visible so map-area has real width/height
+  // (otherwise clientWidth=0 falls back to portrait 388 and mobs clump in landscape)
+  requestAnimationFrame(() => renderSubstageMobs());
 }
 
 function renderSubstageMobs(){
@@ -5256,8 +5287,9 @@ function spawnSubstageMob(){
   const el = document.createElement('div');
   el.className = 'mob spawning';
   // place on the lower half (the field area) with min-distance from other mobs
-  const W = 388, H = area.clientHeight || 380;
-  const minX = 20, maxX = W - 88;
+  // Use real container size so landscape (wider map) spreads mobs across full width
+  const W = area.clientWidth || 388, H = area.clientHeight || 380;
+  const minX = 20, maxX = Math.max(minX + 80, W - 88);
   const minY = H * 0.30, maxY = H * 0.74;
   const MIN_DIST = 84; // min center-to-center distance (mob is 68px)
   const existing = currentSubstage.mobs.map(m => ({
