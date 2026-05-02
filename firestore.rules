@@ -1,0 +1,89 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════
+// Physics Quest — Firestore Security Rules
+// Project: physics-quest-21336
+//
+// Collections:
+//   /users/{uid}           — per-user save (cloud sync)
+//   /system/announcement   — public marquee (read-only for clients)
+//   /duels/{code}          — PVP duel rooms (1-on-1, real-time)
+// ═══════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function inPlayersMap(roomData) {
+      return isSignedIn()
+          && roomData.players is map
+          && (request.auth.uid in roomData.players);
+    }
+
+    // ═══════════════════════════════════════════
+    // USERS — own save only
+    // ═══════════════════════════════════════════
+    match /users/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // ═══════════════════════════════════════════
+    // SYSTEM — public read, no client writes
+    //   (push announcements via Firebase Console
+    //   or admin SDK, never from client)
+    // ═══════════════════════════════════════════
+    match /system/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // DUELS — PVP rooms
+    //   - read: any authed user (need code to find doc)
+    //   - create: authed user marking themselves createdBy + listed in players
+    //   - update: authed user already in players, OR a 2nd player joining
+    //     (room has <2 players AND new player adds self to players map)
+    //   - delete: createdBy only
+    // ═══════════════════════════════════════════
+    match /duels/{code} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.players is map
+        && (request.auth.uid in request.resource.data.players)
+        // schema sanity
+        && request.resource.data.status in ['waiting', 'active', 'reveal']
+        && request.resource.data.settings.tier in ['green', 'yellow', 'orange', 'red']
+        && request.resource.data.settings.timerSec is number
+        && request.resource.data.settings.timerSec >= 5
+        && request.resource.data.settings.timerSec <= 600;
+
+      // Update allowed when:
+      //   (a) caller is already in players (gameplay updates)
+      //   (b) caller is joining: existing room has <2 players AND
+      //       resource will contain caller in players after write
+      allow update: if isSignedIn() && (
+           inPlayersMap(resource.data)
+        || (
+              resource.data.players.size() < 2
+              && (request.auth.uid in request.resource.data.players)
+           )
+      );
+
+      allow delete: if isSignedIn()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    // ── Default deny everything else ─────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
