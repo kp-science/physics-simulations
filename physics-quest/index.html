@@ -1108,6 +1108,12 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .mail-claim-btn:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(251,191,36,.4);}
 .mail-claim-btn:disabled{opacity:.5;cursor:not-allowed;background:linear-gradient(135deg,var(--muted),var(--muted));color:var(--text);}
 .mail-empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:0.84rem;}
+.mail-login-gate{text-align:center;padding:36px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.mail-login-gate-icon{font-size:3rem;filter:drop-shadow(0 0 16px rgba(251,191,36,0.6));animation:badge-pulse 2s ease-in-out infinite;}
+.mail-login-gate-title{font-family:'Cinzel',serif;color:var(--gold);font-size:1.05rem;letter-spacing:0.5px;font-weight:700;line-height:1.3;}
+.mail-login-gate-sub{color:var(--muted);font-size:0.78rem;line-height:1.5;max-width:280px;}
+.mail-login-gate-btn{margin-top:8px;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;border-radius:10px;padding:11px 22px;font-family:'Sarabun',sans-serif;font-size:0.92rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(56,189,248,0.4);transition:transform 0.15s;}
+.mail-login-gate-btn:active{transform:scale(0.96);}
 .mail-empty-icon{font-size:3rem;margin-bottom:14px;opacity:.5;}
 
 /* Mail screen tabs */
@@ -2361,6 +2367,13 @@ function bindAuthState(){
   PQ_FB.onAuthStateChanged(PQ_FB.auth, async (user)=>{
     currentUser = user;
     updateAuthUi();
+    // Refresh mail/quest UI when login state changes (gates/unlocks claim)
+    if(typeof updateMailBadge==='function') updateMailBadge();
+    const mailScr = document.getElementById('screen-mail');
+    if(mailScr && mailScr.classList.contains('on')){
+      if(typeof renderMailList==='function') renderMailList();
+      if(typeof renderQuestList==='function') renderQuestList();
+    }
     if(!user){ userProfile = null; return; }
     // Loaded user — pull cloud doc + merge with local
     setSyncPill('syncing', '☁️ โหลด...');
@@ -2694,6 +2707,12 @@ function applyRewards(rewards){
 
 function claimMail(mailId){
   ensureMailbox();
+  if(!currentUser){
+    toast('🔒 ต้องเข้าสู่ระบบก่อนจึงจะรับรางวัลได้');
+    closeMailDetail();
+    if(typeof openAuthModal==='function') openAuthModal();
+    return;
+  }
   const m = player.mailbox[mailId];
   if(!m){ toast('ไม่พบจดหมาย'); return; }
   if(m.claimedAt){ toast('รับไปแล้ว'); return; }
@@ -2758,6 +2777,15 @@ function renderMailList(){
   ensureMailbox();
   const body = document.getElementById('mailTabBody-mail');
   if(!body) return;
+  if(!currentUser){
+    body.innerHTML = `<div class="mail-login-gate">
+      <div class="mail-login-gate-icon">🎁</div>
+      <div class="mail-login-gate-title">รับรางวัลมากมายเมื่อล๊อคอิน</div>
+      <div class="mail-login-gate-sub">เข้าสู่ระบบเพื่อรับ KC, การ์ด, Crystal, Token และโบนัสพิเศษ</div>
+      <button class="mail-login-gate-btn" onclick="openAuthModal()">🔐 เข้าสู่ระบบ</button>
+    </div>`;
+    return;
+  }
   const all = Object.values(player.mailbox).sort((a,b)=> (b.sentAt||0) - (a.sentAt||0));
   if(!all.length){
     body.innerHTML = `<div class="mail-empty"><div class="mail-empty-icon">📭</div>ยังไม่มีจดหมาย<br><span style="font-size:0.7rem;">เล่นเกม → ผ่านด่าน → จดหมายจะมา</span></div>`;
@@ -2984,6 +3012,15 @@ function renderQuestList(){
   ensureDaily();
   const body = document.getElementById('mailTabBody-quest');
   if(!body) return;
+  if(!currentUser){
+    body.innerHTML = `<div class="mail-login-gate">
+      <div class="mail-login-gate-icon">🎯</div>
+      <div class="mail-login-gate-title">รับรางวัลมากมายเมื่อล๊อคอิน</div>
+      <div class="mail-login-gate-sub">เข้าสู่ระบบเพื่อรับภารกิจประจำวัน + โบนัส KC ทุกวัน</div>
+      <button class="mail-login-gate-btn" onclick="openAuthModal()">🔐 เข้าสู่ระบบ</button>
+    </div>`;
+    return;
+  }
   // Reset countdown header
   const tomorrow = new Date(); tomorrow.setHours(24,0,0,0);
   const hoursLeft = Math.ceil((tomorrow - new Date())/3600000);
@@ -3017,6 +3054,11 @@ function renderQuestList(){
 
 function claimDailyQuest(qid){
   ensureDaily();
+  if(!currentUser){
+    toast('🔒 ต้องเข้าสู่ระบบก่อนจึงจะรับรางวัลได้');
+    if(typeof openAuthModal==='function') openAuthModal();
+    return;
+  }
   const q = DAILY_QUEST_POOL.find(x=>x.id===qid); if(!q) return;
   const cur = q.external ? (player.daily.completedSent?.includes(qid) ? q.target : 0) : Math.min(player.daily[q.metric]||0, q.target);
   if(cur < q.target){ toast('ยังทำไม่ครบ'); return; }
