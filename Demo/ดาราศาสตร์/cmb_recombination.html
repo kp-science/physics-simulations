@@ -244,7 +244,9 @@ let isPlaying = true, animId = null, lastTs = null;
 let showPhotons = true, showParts = true, showFlash = true;
 let particles = [];
 let photons = [];
+let sparks = [];      // Big Bang explosion shrapnel
 let lastEpochName = '';
+let flashIntensity = 0;  // 0..1 for recombination flash
 
 // ═══════════════════════════════════════════════
 // UTIL
@@ -255,7 +257,6 @@ function getCurrentEpoch(){
   return cur;
 }
 function getTempK(){
-  // Interpolate logT between epochs
   let prev = EPOCHS[0], next = EPOCHS[EPOCHS.length-1];
   for(let i=0;i<EPOCHS.length-1;i++){
     if(tProgress >= EPOCHS[i].t && tProgress <= EPOCHS[i+1].t){
@@ -285,128 +286,501 @@ function fitCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
-function initParticles(){
-  particles = [];
-  // Mix of particles depending on epoch
-  for(let i=0;i<60;i++){
-    particles.push({
-      x: Math.random()*CW, y: Math.random()*CH,
-      vx: (Math.random()-0.5)*1.2, vy: (Math.random()-0.5)*1.2,
-      type: Math.random()<0.5 ? 'electron' : 'proton',
-      bound: false, partner: -1
-    });
+// ═══════════════════════════════════════════════
+// SCENE INIT — switches when epoch changes
+// ═══════════════════════════════════════════════
+function initSceneForEpoch(name){
+  particles = []; photons = []; sparks = [];
+
+  if(name === 'Big Bang'){
+    // Explosion seed: ~150 sparks shot radially from center
+    for(let i=0;i<160;i++){
+      const ang = Math.random()*Math.PI*2;
+      const v = 2 + Math.random()*5;
+      const hue = 30 + Math.random()*30;
+      sparks.push({
+        x:CW/2, y:CH/2,
+        vx:Math.cos(ang)*v, vy:Math.sin(ang)*v,
+        age:0, life:60+Math.random()*40,
+        color:`hsl(${hue},100%,${65+Math.random()*20}%)`
+      });
+    }
+    flashIntensity = 1.0;
   }
-  photons = [];
-  for(let i=0;i<80;i++){
-    photons.push({
-      x: Math.random()*CW, y: Math.random()*CH,
-      vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
-      free: false
-    });
+  else if(name === 'Quark Soup'){
+    // Quarks + antiquarks zipping around fast
+    for(let i=0;i<48;i++){
+      const ang = Math.random()*Math.PI*2;
+      const sp = 1.6 + Math.random()*1.2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp,
+        type: i%2===0 ? 'quark' : 'antiquark'
+      });
+    }
+    for(let i=0;i<30;i++){
+      const ang = Math.random()*Math.PI*2;
+      photons.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*1.5, vy:Math.sin(ang)*1.5,
+        scatterT: Math.random()*30
+      });
+    }
+  }
+  else if(name === 'Nucleosynthesis'){
+    // Free protons + neutrons + a few He nuclei (forming over time)
+    for(let i=0;i<22;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*0.9, vy:Math.sin(ang)*0.9,
+        type: i<13 ? 'proton' : 'neutron'
+      });
+    }
+    // Existing He-4 nuclei (forming progressively)
+    for(let i=0;i<5;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*0.5, vy:Math.sin(ang)*0.5,
+        type:'helium'
+      });
+    }
+    for(let i=0;i<35;i++){
+      photons.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:(Math.random()-0.5)*1.4, vy:(Math.random()-0.5)*1.4,
+        scatterT: Math.random()*30
+      });
+    }
+  }
+  else if(name === 'Plasma Era' || name === 'Pre-Recomb'){
+    // Free e- + ions (p, He²⁺) bouncing; photons strongly scattered
+    const slow = name === 'Pre-Recomb' ? 0.7 : 1.0;
+    for(let i=0;i<24;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*1.0*slow, vy:Math.sin(ang)*1.0*slow,
+        type:'electron'
+      });
+    }
+    for(let i=0;i<22;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*0.45*slow, vy:Math.sin(ang)*0.45*slow,
+        type: i<16?'proton':'helium_nuc'
+      });
+    }
+    // Many photons trapped (zigzag scattering)
+    for(let i=0;i<70;i++){
+      const ang = Math.random()*Math.PI*2;
+      photons.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*1.4, vy:Math.sin(ang)*1.4,
+        scatterT: Math.random()*8,  // scatter often
+        trapped: true
+      });
+    }
+  }
+  else if(name === 'Recombination'){
+    // The transition: bright flash + atoms paring up
+    for(let i=0;i<26;i++){
+      const px = Math.random()*CW, py = Math.random()*CH;
+      const ang = Math.random()*Math.PI*2;
+      const proton = {x:px, y:py, vx:Math.cos(ang)*0.3, vy:Math.sin(ang)*0.3, type:'proton', bound:true, idx:particles.length};
+      proton.partner = particles.length + 1;
+      const electron = {x:px, y:py, vx:0, vy:0, type:'electron', bound:true, partner:particles.length, idx:particles.length+1, orbitPhase:Math.random()*Math.PI*2};
+      particles.push(proton);
+      particles.push(electron);
+    }
+    // A few He atoms
+    for(let i=0;i<5;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*0.25, vy:Math.sin(ang)*0.25,
+        type:'helium_atom'
+      });
+    }
+    // Photons newly liberated → straight lines
+    for(let i=0;i<80;i++){
+      const ang = Math.random()*Math.PI*2;
+      photons.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*2.0, vy:Math.sin(ang)*2.0,
+        trapped:false
+      });
+    }
+    flashIntensity = 1.0;
+  }
+  else if(name === 'CMB Today'){
+    // Drifting H + He atoms; CMB photons stream freely (slow drift, no scatter)
+    for(let i=0;i<22;i++){
+      const px = Math.random()*CW, py = Math.random()*CH;
+      const ang = Math.random()*Math.PI*2;
+      const proton = {x:px, y:py, vx:Math.cos(ang)*0.12, vy:Math.sin(ang)*0.12, type:'proton', bound:true, idx:particles.length};
+      proton.partner = particles.length + 1;
+      const electron = {x:px, y:py, vx:0, vy:0, type:'electron', bound:true, partner:particles.length, idx:particles.length+1, orbitPhase:Math.random()*Math.PI*2};
+      particles.push(proton);
+      particles.push(electron);
+    }
+    for(let i=0;i<6;i++){
+      const ang = Math.random()*Math.PI*2;
+      particles.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*0.1, vy:Math.sin(ang)*0.1,
+        type:'helium_atom'
+      });
+    }
+    for(let i=0;i<90;i++){
+      const ang = Math.random()*Math.PI*2;
+      photons.push({
+        x:Math.random()*CW, y:Math.random()*CH,
+        vx:Math.cos(ang)*2.2, vy:Math.sin(ang)*2.2,
+        trapped:false
+      });
+    }
   }
 }
 
+function ensureSceneForCurrentEpoch(){
+  const e = getCurrentEpoch();
+  if(e.name !== lastEpochName){
+    initSceneForEpoch(e.name);
+    lastEpochName = e.name;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// PARTICLE STYLES
+// ═══════════════════════════════════════════════
+const PSTYLE = {
+  quark:        {color:'#ff5c7a', label:'q',     size:4},
+  antiquark:    {color:'#ff8fa5', label:'q̄',    size:4},
+  electron:     {color:'#60a5fa', label:'e⁻',    size:3},
+  proton:       {color:'#ec4899', label:'p⁺',    size:5},
+  neutron:      {color:'#cbd5e1', label:'n',     size:5},
+  helium_nuc:   {color:'#b980ff', label:'He²⁺',  size:7},
+  helium_atom:  {color:'#a0e8ff', label:'He',    size:8},
+  hydrogen:     {color:'#34d399', label:'H',     size:6},
+};
+
+// ═══════════════════════════════════════════════
+// DRAW DISPATCHER
+// ═══════════════════════════════════════════════
 function draw(){
-  // BG color shifts with temp
+  ensureSceneForCurrentEpoch();
   const T = getTempK();
+  const e = getCurrentEpoch();
+
+  // Background tint by temperature
   const logT = Math.log10(Math.max(1, T));
-  // hot = orange, cool = dark
   const hue = Math.max(0, Math.min(40, logT*3));
-  const lightness = Math.max(2, Math.min(20, logT*2));
+  const lightness = Math.max(1, Math.min(15, logT*1.5));
   ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
   ctx.fillRect(0,0,CW,CH);
-  // overlay dim
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(0,0,CW,CH);
 
-  // Determine post-recombination state
-  const postRecomb = tProgress >= 90;
-
-  // Recombination flash
-  if(showFlash && tProgress >= 88 && tProgress <= 92){
-    const flash = 1 - Math.abs(tProgress - 90)/2;
-    ctx.fillStyle = `rgba(255,255,200,${flash*0.5})`;
-    ctx.fillRect(0,0,CW,CH);
-  }
-
-  // Particles
-  if(showParts){
-    particles.forEach(p=>{
-      p.x += p.vx; p.y += p.vy;
-      if(p.x<0||p.x>CW) p.vx*=-1;
-      if(p.y<0||p.y>CH) p.vy*=-1;
-      // After recombination: pair into atoms
-      if(postRecomb && !p.bound && p.type==='electron'){
-        // Find proton partner
-        const proton = particles.find((q,j)=>q.type==='proton' && !q.bound);
-        if(proton){
-          p.bound = true; proton.bound = true;
-          p.partner = particles.indexOf(proton);
-          proton.partner = particles.indexOf(p);
-        }
-      }
-      // Bound electrons orbit proton
-      if(p.bound && p.type==='electron' && p.partner>=0){
-        const proton = particles[p.partner];
-        if(proton){
-          p.x = proton.x + Math.cos(performance.now()*0.005 + p.partner)*8;
-          p.y = proton.y + Math.sin(performance.now()*0.005 + p.partner)*8;
-        }
-      }
-      // Color
-      let color, size;
-      if(p.type==='electron'){ color = '#60a5fa'; size = 3; }
-      else { color = '#ec4899'; size = 5; }
-      if(p.bound) color = '#34d399'; // bound = atom (green tint)
-      ctx.fillStyle = color;
-      ctx.shadowColor = color; ctx.shadowBlur = 5;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, size, 0, Math.PI*2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-  }
-
-  // Photons (yellow/red dots, scattering before, free after)
-  if(showPhotons){
-    photons.forEach(ph=>{
-      if(postRecomb){
-        ph.free = true;
-        // Move in straight line
-        ph.x += ph.vx*1.5; ph.y += ph.vy*1.5;
-        if(ph.x<0||ph.x>CW) ph.vx*=-1;
-        if(ph.y<0||ph.y>CH) ph.vy*=-1;
-      } else {
-        // Scatter randomly (short steps)
-        ph.x += ph.vx; ph.y += ph.vy;
-        if(Math.random()<0.05){
-          const ang = Math.random()*Math.PI*2;
-          ph.vx = Math.cos(ang)*1.2;
-          ph.vy = Math.sin(ang)*1.2;
-        }
-        if(ph.x<0||ph.x>CW) ph.vx*=-1;
-        if(ph.y<0||ph.y>CH) ph.vy*=-1;
-      }
-      // Color: hot = yellow-white, cool = orange-red
-      const photonColor = postRecomb? '#fef08a' : '#fbbf24';
-      ctx.fillStyle = photonColor;
-      ctx.shadowColor = photonColor; ctx.shadowBlur = 4;
-      ctx.beginPath();
-      ctx.arc(ph.x, ph.y, 2, 0, Math.PI*2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
+  // Dispatch scene
+  switch(e.name){
+    case 'Big Bang':       drawBigBang(); break;
+    case 'Quark Soup':     drawQuarkSoup(); break;
+    case 'Nucleosynthesis':drawNucleosynthesis(); break;
+    case 'Plasma Era':
+    case 'Pre-Recomb':     drawPlasma(); break;
+    case 'Recombination':  drawRecombination(); break;
+    case 'CMB Today':      drawCMBToday(); break;
   }
 
   // Header
   ctx.fillStyle = 'rgba(251,146,60,0.12)'; ctx.fillRect(0,0,CW,28);
   ctx.fillStyle = '#fb923c'; ctx.font = 'bold 12px Sarabun'; ctx.textAlign = 'left';
-  const e = getCurrentEpoch();
-  ctx.fillText(`📡 ${e.name} · t = ${e.label} · T = ${fmtTemp(T)} · ${postRecomb?'TRANSPARENT':'OPAQUE'}`, 12, 18);
+  const opaque = e.name !== 'Recombination' && e.name !== 'CMB Today';
+  ctx.fillText(`📡 ${e.name} · t = ${e.label} · T = ${fmtTemp(T)} · ${opaque?'OPAQUE':'TRANSPARENT'}`, 12, 18);
 
-  // Legend
+  // Legend (epoch-specific)
   ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '10px Sarabun'; ctx.textAlign = 'right';
-  ctx.fillText('🔵 e⁻  🩷 p⁺  🟢 atom (bound)  🟡 photon', CW-10, CH-8);
+  let legend = '';
+  if(e.name==='Big Bang') legend = '💥 พลังงาน + อนุภาคพื้นฐานเกิดทุกที่พร้อมกัน';
+  else if(e.name==='Quark Soup') legend = '🔴 q  🩷 q̄  🟡 photon — ชนกันตลอด';
+  else if(e.name==='Nucleosynthesis') legend = '🩷 p⁺  ⚪ n  🟣 He²⁺  🟡 photon';
+  else if(e.name==='Plasma Era' || e.name==='Pre-Recomb') legend = '🔵 e⁻  🩷 p⁺  🟣 He²⁺  🟡 photon (ติดอยู่)';
+  else if(e.name==='Recombination') legend = '🟢 H atom  🔵 He atom  🟡 photon ปลดปล่อย!';
+  else legend = '🟢 H  🔵 He  🟡 CMB photon (เดินตรง)';
+  ctx.fillText(legend, CW-10, CH-8);
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: Big Bang (explosion)
+// ═══════════════════════════════════════════════
+function drawBigBang(){
+  // Initial flash
+  flashIntensity = Math.max(0, flashIntensity - 0.015);
+  if(flashIntensity > 0.01){
+    ctx.fillStyle = `rgba(255,243,196,${flashIntensity*0.6})`;
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  // Bright core
+  const cx = CW/2, cy = CH/2;
+  const coreR = 30 + Math.sin(performance.now()*0.005)*3;
+  const cg = ctx.createRadialGradient(cx,cy,0,cx,cy,coreR*3);
+  cg.addColorStop(0,'rgba(255,255,255,0.9)');
+  cg.addColorStop(0.3,'rgba(255,243,196,0.5)');
+  cg.addColorStop(1,'rgba(251,146,60,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); ctx.arc(cx,cy,coreR*3,0,Math.PI*2); ctx.fill();
+
+  // Sparks fly outward
+  sparks = sparks.filter(s=>{
+    s.age++;
+    if(s.age > s.life) return false;
+    s.x += s.vx; s.y += s.vy;
+    const fade = 1 - s.age/s.life;
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = fade;
+    ctx.shadowColor = s.color; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(s.x, s.y, 2.5*fade+0.5, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    return true;
+  });
+
+  // Re-spawn sparks if running low
+  if(sparks.length < 30){
+    for(let i=0;i<15;i++){
+      const ang = Math.random()*Math.PI*2;
+      const v = 2 + Math.random()*5;
+      const hue = 30 + Math.random()*30;
+      sparks.push({x:cx, y:cy, vx:Math.cos(ang)*v, vy:Math.sin(ang)*v, age:0, life:60+Math.random()*40, color:`hsl(${hue},100%,75%)`});
+    }
+  }
+
+  // Center label
+  ctx.fillStyle = '#fff5cc';
+  ctx.font = 'bold 18px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('💥 BIG BANG', cx, cy-coreR*3-10);
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: Quark Soup
+// ═══════════════════════════════════════════════
+function drawQuarkSoup(){
+  if(showParts) particles.forEach(p=>{
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<5||p.x>CW-5) p.vx*=-1;
+    if(p.y<35||p.y>CH-5) p.vy*=-1;
+    drawParticle(p);
+  });
+  if(showPhotons) photons.forEach(ph=>{
+    // Frequent random scatter
+    ph.scatterT--;
+    if(ph.scatterT < 0){
+      const a = Math.random()*Math.PI*2;
+      ph.vx = Math.cos(a)*1.5; ph.vy = Math.sin(a)*1.5;
+      ph.scatterT = 8 + Math.random()*15;
+    }
+    ph.x += ph.vx; ph.y += ph.vy;
+    if(ph.x<5||ph.x>CW-5) ph.vx*=-1;
+    if(ph.y<35||ph.y>CH-5) ph.vy*=-1;
+    drawPhoton(ph, '#fbbf24');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: Nucleosynthesis (forming He nuclei)
+// ═══════════════════════════════════════════════
+function drawNucleosynthesis(){
+  if(showParts){
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<5||p.x>CW-5) p.vx*=-1;
+      if(p.y<35||p.y>CH-5) p.vy*=-1;
+      drawParticle(p);
+    });
+    // Occasional fusion event: 2p+2n → He (visual: convert one neutron+one proton to helium)
+    const phaseInEpoch = (tProgress - 18) / (50 - 18);
+    if(phaseInEpoch > 0.2 && Math.random() < 0.005){
+      // Find one proton + one neutron, replace with helium
+      const protonIdx = particles.findIndex(p => p.type === 'proton');
+      const neutronIdx = particles.findIndex(p => p.type === 'neutron');
+      if(protonIdx >= 0 && neutronIdx >= 0){
+        particles[protonIdx].type = 'helium';
+        particles[protonIdx].vx *= 0.6; particles[protonIdx].vy *= 0.6;
+        // Mark for fusion flash
+        particles[protonIdx]._flash = 12;
+        particles.splice(neutronIdx, 1);
+      }
+    }
+  }
+  if(showPhotons) photons.forEach(ph=>{
+    ph.scatterT--;
+    if(ph.scatterT < 0){
+      const a = Math.random()*Math.PI*2;
+      ph.vx = Math.cos(a)*1.4; ph.vy = Math.sin(a)*1.4;
+      ph.scatterT = 12 + Math.random()*20;
+    }
+    ph.x += ph.vx; ph.y += ph.vy;
+    if(ph.x<5||ph.x>CW-5) ph.vx*=-1;
+    if(ph.y<35||ph.y>CH-5) ph.vy*=-1;
+    drawPhoton(ph, '#fbbf24');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: Plasma Era / Pre-Recomb (zigzag photons)
+// ═══════════════════════════════════════════════
+function drawPlasma(){
+  if(showParts) particles.forEach(p=>{
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<5||p.x>CW-5) p.vx*=-1;
+    if(p.y<35||p.y>CH-5) p.vy*=-1;
+    drawParticle(p);
+  });
+  if(showPhotons) photons.forEach(ph=>{
+    ph.scatterT--;
+    if(ph.scatterT < 0){
+      // Zigzag — short mean free path
+      const a = Math.random()*Math.PI*2;
+      ph.vx = Math.cos(a)*1.4; ph.vy = Math.sin(a)*1.4;
+      ph.scatterT = 4 + Math.random()*8;  // very frequent scatter (opaque)
+    }
+    ph.x += ph.vx; ph.y += ph.vy;
+    if(ph.x<5||ph.x>CW-5) ph.vx*=-1;
+    if(ph.y<35||ph.y>CH-5) ph.vy*=-1;
+    drawPhoton(ph, '#fbbf24');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: Recombination (flash + atoms binding)
+// ═══════════════════════════════════════════════
+function drawRecombination(){
+  // Bright flash fading
+  flashIntensity = Math.max(0, flashIntensity - 0.012);
+  if(flashIntensity > 0.01){
+    ctx.fillStyle = `rgba(255,255,200,${flashIntensity*0.55})`;
+    ctx.fillRect(0,0,CW,CH);
+  }
+
+  if(showParts) particles.forEach(p=>{
+    if(p.bound && p.type==='proton'){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<10||p.x>CW-10) p.vx*=-1;
+      if(p.y<40||p.y>CH-10) p.vy*=-1;
+      // Draw H atom (proton + orbiting e-)
+      drawAtom(p);
+    } else if(p.type === 'helium_atom'){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<10||p.x>CW-10) p.vx*=-1;
+      if(p.y<40||p.y>CH-10) p.vy*=-1;
+      drawParticle(p);
+    }
+    // Don't draw bound electron separately — handled in drawAtom
+  });
+
+  if(showPhotons) photons.forEach(ph=>{
+    // Photons now travel in straight lines (decoupled)
+    ph.x += ph.vx; ph.y += ph.vy;
+    if(ph.x<5||ph.x>CW-5) ph.vx*=-1;
+    if(ph.y<35||ph.y>CH-5) ph.vy*=-1;
+    drawPhoton(ph, '#fef08a');
+  });
+
+  // "DECOUPLING!" callout
+  if(flashIntensity > 0.3){
+    ctx.fillStyle = `rgba(255,243,196,${flashIntensity})`;
+    ctx.font = 'bold 22px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText('✨ DECOUPLING!', CW/2, CH/2);
+    ctx.font = '13px Sarabun';
+    ctx.fillText('photon หลุดเป็นอิสระ → CMB', CW/2, CH/2 + 22);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SCENE: CMB Today
+// ═══════════════════════════════════════════════
+function drawCMBToday(){
+  if(showParts) particles.forEach(p=>{
+    if(p.bound && p.type==='proton'){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<10||p.x>CW-10) p.vx*=-1;
+      if(p.y<40||p.y>CH-10) p.vy*=-1;
+      drawAtom(p);
+    } else if(p.type === 'helium_atom'){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<10||p.x>CW-10) p.vx*=-1;
+      if(p.y<40||p.y>CH-10) p.vy*=-1;
+      drawParticle(p);
+    }
+  });
+  if(showPhotons) photons.forEach(ph=>{
+    ph.x += ph.vx; ph.y += ph.vy;
+    if(ph.x<5||ph.x>CW-5) ph.vx*=-1;
+    if(ph.y<35||ph.y>CH-5) ph.vy*=-1;
+    drawPhoton(ph, '#fef08a');
+  });
+  // CMB temperature label
+  ctx.fillStyle = 'rgba(254,240,138,0.85)';
+  ctx.font = 'bold 14px Share Tech Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('T_CMB = 2.725 K', CW/2, 48);
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS — drawing primitives
+// ═══════════════════════════════════════════════
+function drawParticle(p){
+  const s = PSTYLE[p.type];
+  if(!s) return;
+  ctx.fillStyle = s.color;
+  ctx.shadowColor = s.color;
+  ctx.shadowBlur = (p._flash && p._flash > 0) ? 14 : 4;
+  ctx.beginPath(); ctx.arc(p.x, p.y, s.size + (p._flash?2:0), 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  if(p._flash) p._flash--;
+  // Label for larger particles
+  if(s.size >= 5){
+    ctx.fillStyle = '#03040d';
+    ctx.font = `bold ${Math.max(8,s.size-1)}px Share Tech Mono`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(s.label, p.x, p.y);
+    ctx.textBaseline = 'alphabetic';
+  }
+}
+
+function drawPhoton(ph, color){
+  ctx.fillStyle = color;
+  ctx.shadowColor = color; ctx.shadowBlur = 5;
+  ctx.beginPath(); ctx.arc(ph.x, ph.y, 2, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawAtom(proton){
+  // Draw H atom: green nucleus + orbiting electron
+  const px = proton.x, py = proton.y;
+  // Nucleus (green tint = bound)
+  ctx.fillStyle = '#34d399';
+  ctx.shadowColor = '#34d399'; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#03040d';
+  ctx.font = 'bold 8px Share Tech Mono';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('H', px, py);
+  ctx.textBaseline = 'alphabetic';
+  // Orbiting electron
+  const phase = performance.now()*0.004 + (proton.idx||0);
+  const ex = px + Math.cos(phase)*9;
+  const ey = py + Math.sin(phase)*9;
+  ctx.fillStyle = '#60a5fa';
+  ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 4;
+  ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
 }
 
 // ═══════════════════════════════════════════════
@@ -448,7 +822,7 @@ function togglePlay(){
   if(isPlaying){ b.textContent='⏸ หยุด'; b.classList.add('playing'); }
   else { b.textContent='▶ เล่น'; b.classList.remove('playing'); }
 }
-function resetSim(){ tProgress = 0; particles.forEach(p=>{ p.bound=false; p.partner=-1; }); }
+function resetSim(){ tProgress = 0; lastEpochName = ''; }
 function togFeat(f){
   if(f==='photons') showPhotons=!showPhotons;
   if(f==='parts') showParts=!showParts;
@@ -469,7 +843,7 @@ function buildEpochList(){
     const el = document.createElement('div');
     el.className = 'epoch';
     el.innerHTML = `<span class="nm">${e.name}</span><span class="t">${e.label}</span>`;
-    el.onclick = ()=>{ tProgress = e.t; particles.forEach(p=>{ p.bound=false; p.partner=-1; }); };
+    el.onclick = ()=>{ tProgress = e.t; lastEpochName = ''; };
     host.appendChild(el);
   });
 }
@@ -478,9 +852,8 @@ window.addEventListener('load', ()=>{
   canvas = document.getElementById('simCanvas');
   ctx = canvas.getContext('2d');
   fitCanvas();
-  initParticles();
   buildEpochList();
-  document.getElementById('slT').oninput = e=>{ tProgress = +e.target.value; particles.forEach(p=>{ p.bound=false; p.partner=-1; }); };
+  document.getElementById('slT').oninput = e=>{ tProgress = +e.target.value; lastEpochName = ''; };
   document.getElementById('slSpd').oninput = e=>{ speed = +e.target.value; document.getElementById('spdDisp').textContent = speed.toFixed(2); };
   animId = requestAnimationFrame(tick);
 });
