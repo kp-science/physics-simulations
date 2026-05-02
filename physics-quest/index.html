@@ -5528,7 +5528,16 @@ function getSkillPassives(){
 }
 
 // substage clear target (kills needed to clear one ด่าน)
-const SUBSTAGE_TARGET = 5; // demo value (production: ~30)
+// Base 45, equipped cards reduce by 2-3 each, floor at 35.
+const SUBSTAGE_TARGET_BASE = 45;
+const SUBSTAGE_TARGET_FLOOR = 35;
+function getSubstageTarget(){
+  const equipped = Object.values(player.equipped || {}).filter(Boolean).length;
+  const reduction = Math.min(10, equipped * 2.5);
+  return Math.max(SUBSTAGE_TARGET_FLOOR, SUBSTAGE_TARGET_BASE - Math.round(reduction));
+}
+// Backward-compat var (read at use-sites that still reference SUBSTAGE_TARGET via closure)
+const SUBSTAGE_TARGET = SUBSTAGE_TARGET_BASE;
 let currentSubstage = null; // {mode, id, mobs:[]}
 
 function xpForLv(lv){ return 100 + (lv-1)*50; }
@@ -6795,9 +6804,10 @@ function updateHud(){
   if(currentSubstage){
     const key = currentSubstage.mode+'-'+currentSubstage.id;
     const kills = player.stageKills[key] || 0;
-    const killPct = Math.min(100, kills/SUBSTAGE_TARGET*100);
+    const stageTarget = getSubstageTarget();
+    const killPct = Math.min(100, kills/stageTarget*100);
     setW('ssPhaseFill', killPct+'%');
-    set('ssPhaseTxt', `${Math.min(kills,SUBSTAGE_TARGET)}/${SUBSTAGE_TARGET}`);
+    set('ssPhaseTxt', `${Math.min(kills,stageTarget)}/${stageTarget}`);
   }
 
   // Home screen HUD (new mockup layout)
@@ -7533,7 +7543,7 @@ function processVictory(){
   if(bState.mobData.stageMode && bState.mobData.stageId){
     const key = bState.mobData.stageMode+'-'+bState.mobData.stageId;
     player.stageKills[key] = (player.stageKills[key] || 0) + 1;
-    if(player.stageKills[key] >= SUBSTAGE_TARGET && !player.completed.includes(key)){
+    if(player.stageKills[key] >= getSubstageTarget() && !player.completed.includes(key)){
       player.completed.push(key);
       stageJustCleared = true;
       if(typeof cloudSyncMilestone==='function') cloudSyncMilestone();
