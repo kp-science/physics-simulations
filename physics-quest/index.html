@@ -794,6 +794,21 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .char-preview{display:flex;flex-direction:column;align-items:center;margin-bottom:14px;}
 .char-preview .hero-figure{width:110px;height:180px;}
 .char-preview .hero-figure::before{width:110px;height:24px;}
+.char-eq-flank{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;}
+.char-preview .char-eq-flank .hero-figure{flex:none;width:110px;height:180px;}
+.eq-side{display:flex;flex-direction:column;gap:6px;width:72px;flex:none;}
+.eq-flank-slot{position:relative;border-radius:10px;border:1.5px dashed var(--border);background:rgba(15,26,46,.5);padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:.15s;min-height:78px;}
+.eq-flank-slot:hover{transform:translateY(-1px);border-color:var(--accent);background:rgba(56,189,248,.08);}
+.eq-flank-slot.equipped{border-style:solid;background:linear-gradient(135deg,rgba(56,189,248,.1),rgba(15,26,46,.6));}
+.eq-flank-slot.equipped.r{border-color:#34d399;}
+.eq-flank-slot.equipped.sr{border-color:#a78bfa;}
+.eq-flank-slot.equipped.ssr{border-color:#fbbf24;}
+.eq-flank-slot.equipped.ur{border-color:#f87171;}
+.eq-flank-slot.card-locked{border-color:var(--red)!important;opacity:.7;}
+.eq-flank-slot .pq-card{transform:scale(0.85);transform-origin:top center;margin-bottom:-10px;pointer-events:none;}
+.eq-flank-icon{font-size:1.6rem;opacity:.6;}
+.eq-flank-label{font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:.5px;color:var(--muted2);text-align:center;}
+.eq-flank-slot.equipped .eq-flank-label{color:var(--accent);}
 .char-name{font-family:'Cinzel',serif;color:var(--gold);font-size:1.1rem;letter-spacing:1.5px;margin-top:4px;}
 .char-meta{font-family:'Share Tech Mono',monospace;font-size:0.66rem;color:var(--muted2);letter-spacing:.5px;margin-top:2px;}
 
@@ -1550,9 +1565,11 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 
   <div class="char-bg">
     <div class="char-scroll">
-      <!-- Preview -->
+      <!-- Preview with side equipment slots -->
       <div class="char-preview">
-        <div class="hero-figure">
+        <div class="char-eq-flank">
+          <div class="eq-side left" id="charEqLeft"></div>
+          <div class="hero-figure">
           <svg viewBox="0 0 110 180" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="bodyG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a2747"/><stop offset="100%" stop-color="#04060d"/></linearGradient>
@@ -1576,9 +1593,12 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
             <circle cx="50" cy="36" r="1" fill="#e0f7ff"/>
             <circle cx="60" cy="36" r="1" fill="#e0f7ff"/>
           </svg>
+          </div>
+          <div class="eq-side right" id="charEqRight"></div>
         </div>
         <div class="char-name">นักผจญภัย</div>
         <div class="char-meta">Lv <span id="chPreviewLv">1</span> · ทุ่งจลศาสตร์</div>
+        <div class="active-buffs" id="activeBuffsRow" style="margin-top:8px;"></div>
       </div>
 
       <!-- Stat allocation -->
@@ -1592,13 +1612,6 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <button class="char-action-btn save" id="charSaveBtn" onclick="manualSaveFromChar()">💾 บันทึก STAT</button>
           <button class="char-action-btn reset" onclick="resetStatsFromChar()">♻️ รีเซ็ต STAT <span class="cost">500 💎</span></button>
         </div>
-      </div>
-
-      <!-- Equipment (dynamic render) -->
-      <div class="char-section">
-        <div class="char-sec-h"><h3>🛡️ EQUIPMENT</h3></div>
-        <div class="eq-grid" id="charEqGrid"></div>
-        <div class="active-buffs" id="activeBuffsRow"></div>
       </div>
 
       <!-- Innate Skills (auto-unlock from journey) -->
@@ -4302,30 +4315,28 @@ function activeBuffsString(){
 }
 
 function renderEquipmentSlots(){
-  const grid = document.getElementById('charEqGrid');
-  if(!grid) return;
-  grid.innerHTML = EQ_SLOTS.map(s => {
+  const left = document.getElementById('charEqLeft');
+  const right = document.getElementById('charEqRight');
+  if(!left || !right) return;
+  const renderOne = (s) => {
     const cardId = player.equipped[s.id];
     const card = cardId ? CARDS.find(c => c.id === cardId) : null;
     if(card){
       const locked = !isCardActive(card);
-      const lockedTag = locked ? `<span style="color:var(--red);font-size:0.6rem;">🔒</span>` : '';
-      const buffDisplay = locked ? `<span style="color:var(--muted2);text-decoration:line-through;">${buffString(card)}</span>` : buffString(card);
-      // mini card thumbnail + label/buff side-by-side
-      return `<div class="eq-slot equipped ${card.rarity.toLowerCase()}${locked?' card-locked':''}" onclick="openCardPicker('${s.id}')" style="position:relative;">
-        <div class="eq-slot-mini-card">${renderCard(card, {size:'mini', checkLock:false})}</div>
-        <div class="eq-slot-info">
-          <div class="eq-slot-label">${s.label} · [${card.rarity}] ${lockedTag}</div>
-          <div class="eq-slot-name">${card.name}</div>
-          <div class="eq-slot-buff">${buffDisplay}</div>
-        </div>
+      const lockedTag = locked ? `🔒` : '';
+      return `<div class="eq-flank-slot equipped ${card.rarity.toLowerCase()}${locked?' card-locked':''}" onclick="openCardPicker('${s.id}')" title="${s.label} · ${card.name}">
+        ${renderCard(card, {size:'mini', checkLock:false})}
+        <div class="eq-flank-label">${s.label} ${lockedTag}</div>
       </div>`;
     }
-    return `<div class="eq-slot empty" onclick="openCardPicker('${s.id}')">
-      <div class="eq-slot-icon">${s.icon}</div>
-      <div class="eq-slot-info"><div class="eq-slot-label">${s.label}</div><div class="eq-slot-name">— ว่าง —</div></div>
+    return `<div class="eq-flank-slot empty" onclick="openCardPicker('${s.id}')" title="${s.name}">
+      <div class="eq-flank-icon">${s.icon}</div>
+      <div class="eq-flank-label">${s.label}</div>
     </div>`;
-  }).join('');
+  };
+  // Layout: left side = head, body | right side = staff, boots
+  left.innerHTML  = renderOne(EQ_SLOTS[0]) + renderOne(EQ_SLOTS[1]);
+  right.innerHTML = renderOne(EQ_SLOTS[2]) + renderOne(EQ_SLOTS[3]);
   // active buffs row
   const buffRow = document.getElementById('activeBuffsRow');
   if(buffRow){
