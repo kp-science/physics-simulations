@@ -1384,6 +1384,84 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
   /* Result screen: center content with wider max-width */
   #screen-result .result-card,
   #screen-result .drop-card{ max-width:420px; }
+
+  /* ── LANDSCAPE SIDEBAR (Phase 1) ── */
+  .ls-sidebar{ display:flex !important; }
+  /* Reserve space for sidebar on every screen except battle (battle handles its own grid via padding adjustment) */
+  .scr{ right: var(--ls-sidebar-w) !important; }
+  /* Battle keeps full width but inner padding shifted to avoid sidebar overlap */
+  #screen-battle{ right: var(--ls-sidebar-w) !important; }
+  /* Floating top-right buttons: shift left so they don't sit under the sidebar */
+  #homeBtn, #muteBtn{ right: calc(10px + var(--ls-sidebar-w)) !important; }
+  #syncPill{ right: calc(12px + var(--ls-sidebar-w)) !important; }
+}
+/* Hide sidebar in battle for max focus */
+#game.in-battle .ls-sidebar{ display:none !important; }
+#game.in-battle .scr,
+#game.in-battle #screen-battle{ right:0 !important; }
+#game.in-battle #homeBtn,
+#game.in-battle #muteBtn{ right:10px !important; }
+
+/* Sidebar base (hidden by default — only landscape media query shows it) */
+:root{ --ls-sidebar-w: clamp(56px, 7vw, 88px); }
+.ls-sidebar{
+  display:none;
+  position:absolute; top:0; right:0; bottom:0;
+  width: var(--ls-sidebar-w);
+  background:linear-gradient(180deg, rgba(10,16,32,.96), rgba(15,26,46,.96));
+  border-left:1px solid var(--border);
+  flex-direction:column;
+  padding: clamp(8px, 1.2vh, 18px) clamp(4px, 0.6vw, 10px);
+  gap: clamp(6px, 1vh, 14px);
+  z-index:30;
+  overflow-y:auto;
+  overflow-x:hidden;
+  backdrop-filter: blur(6px);
+}
+.ls-sidebar::-webkit-scrollbar{ width:0; }
+.ls-stats{
+  display:flex; flex-direction:column; gap:3px;
+  padding: clamp(4px, 0.6vh, 8px) clamp(4px, 0.5vw, 8px);
+  background:rgba(0,0,0,.25);
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+.ls-stat-row{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size: clamp(0.55rem, 0.9vw, 0.78rem);
+  line-height:1.1;
+}
+.ls-stat-lbl{ color:var(--muted2); font-family:'Share Tech Mono',monospace; }
+.ls-stat-val{ color:var(--gold); font-family:'Share Tech Mono',monospace; font-weight:700; }
+.ls-stat-val.ls-stat-sm{ font-size:0.92em; color:var(--text); }
+.ls-stat-val.ls-mp{ color:var(--purple); }
+.ls-stat-val.ls-kc{ color:var(--accent); }
+.ls-xp-bar{ height:3px; background:rgba(56,189,248,.12); border-radius:2px; overflow:hidden; margin:2px 0; }
+.ls-xp-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--purple)); transition:width .35s; }
+.ls-nav{ display:flex; flex-direction:column; gap: clamp(4px, 0.7vh, 9px); align-items:center; flex:1; }
+.ls-nav-btn{
+  position:relative;
+  width: clamp(40px, 4.5vw, 64px);
+  height: clamp(40px, 4.5vw, 64px);
+  border-radius: clamp(8px, 1vw, 14px);
+  background:rgba(15,26,46,.7);
+  border:1.4px solid var(--border2);
+  color:var(--text);
+  font-size: clamp(1.05rem, 2vw, 1.7rem);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:.15s;
+}
+.ls-nav-btn:hover{ border-color:var(--accent); background:rgba(56,189,248,.12); transform:translateY(-1px); }
+.ls-nav-btn:active{ transform:translateY(0); }
+.ls-badge{
+  position:absolute; top:-4px; right:-4px;
+  min-width:16px; height:16px; padding:0 4px; border-radius:8px;
+  background:#ef4444; color:#fff;
+  font-size:0.6rem; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Share Tech Mono',monospace;
+  border:1.5px solid var(--bg);
 }
 
 /* small toast */
@@ -1585,6 +1663,29 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 
 <!-- ─── SYNC PILL (cloud save status) ─── -->
 <div id="syncPill" class="sync-pill"></div>
+
+<!-- ─── LANDSCAPE SIDEBAR (Phase 1) — visible only in landscape ≥720px ─── -->
+<aside id="lsSidebar" class="ls-sidebar">
+  <div class="ls-stats">
+    <div class="ls-stat-row"><span class="ls-stat-lbl">Lv</span><span class="ls-stat-val" id="lsLv">1</span></div>
+    <div class="ls-xp-bar"><div class="ls-xp-fill" id="lsXpFill"></div></div>
+    <div class="ls-stat-row"><span class="ls-stat-lbl">XP</span><span class="ls-stat-val ls-stat-sm" id="lsXpTxt">0/100</span></div>
+    <div class="ls-stat-row"><span class="ls-stat-lbl">MP</span><span class="ls-stat-val ls-mp" id="lsMpTxt">30/30</span></div>
+    <div class="ls-stat-row"><span class="ls-stat-lbl">💎</span><span class="ls-stat-val ls-kc" id="lsKcTxt">0</span></div>
+  </div>
+  <div class="ls-nav">
+    <button class="ls-nav-btn" onclick="goHome()" title="หน้าหลัก">🏠</button>
+    <button class="ls-nav-btn" onclick="enterAdventure()" title="เล่นเกม">⚔</button>
+    <button class="ls-nav-btn" onclick="openShop()" title="ตลาด">🛒</button>
+    <button class="ls-nav-btn ls-has-badge" onclick="openInv()" title="กระเป๋า">🛍️<span class="ls-badge" id="lsBadgeBag" style="display:none;">0</span></button>
+    <button class="ls-nav-btn" onclick="openCrystals()" title="คริสตัล">💎</button>
+    <button class="ls-nav-btn" onclick="openCards()" title="การ์ด">🎴</button>
+    <button class="ls-nav-btn ls-has-badge" onclick="openQuestScreen()" title="ภารกิจ">🎯<span class="ls-badge" id="lsBadgeQuest" style="display:none;">0</span></button>
+    <button class="ls-nav-btn ls-has-badge" onclick="openMailScreen()" title="จดหมาย">📮<span class="ls-badge" id="lsBadgeMail" style="display:none;">0</span></button>
+    <button class="ls-nav-btn ls-has-badge" id="lsNavBook" onclick="openBook()" title="สมุด" style="display:none;">📓<span class="ls-badge" id="lsBadgeBook" style="display:none;">0</span></button>
+    <button class="ls-nav-btn" onclick="openPvp()" title="ดวล">🆚</button>
+  </div>
+</aside>
 
 <!-- ─── PROFILE MENU (dropdown after login) ─── -->
 <div id="profileMenu" class="profile-menu">
@@ -6472,6 +6573,34 @@ function updateHud(){
   }
   // refresh radar polygon
   updateRadar();
+
+  // Landscape sidebar mini-stats
+  set('lsLv', player.lv);
+  set('lsXpTxt', `${player.xp}/${need}`);
+  set('lsMpTxt', `${player.mp}/${maxMp}`);
+  set('lsKcTxt', player.kc);
+  setW('lsXpFill', xpPct+'%');
+  const lsBag = document.getElementById('lsBadgeBag');
+  if(lsBag){
+    if(invCount > 0){ lsBag.style.display='flex'; lsBag.textContent = invCount; }
+    else lsBag.style.display='none';
+  }
+  // Mirror quest/mail/book badges from existing badges
+  const mirror = (srcId, dstId)=>{
+    const src = document.getElementById(srcId), dst = document.getElementById(dstId);
+    if(!src || !dst) return;
+    const visible = src.classList.contains('show') || (src.style.display && src.style.display !== 'none');
+    if(visible && src.textContent){ dst.style.display='flex'; dst.textContent = src.textContent; }
+    else dst.style.display='none';
+  };
+  mirror('questBadge','lsBadgeQuest');
+  mirror('mailBadge','lsBadgeMail');
+  mirror('bookBadge','lsBadgeBook');
+  const bookWrap = document.getElementById('bookIconWrap');
+  const lsBook = document.getElementById('lsNavBook');
+  if(bookWrap && lsBook){
+    lsBook.style.display = (bookWrap.style.display === 'none' || !bookWrap.style.display) ? 'none' : 'flex';
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -7517,6 +7646,9 @@ function showScreen(name){
   // hide floating home btn on home (already there); show on others
   const homeBtn = document.getElementById('homeBtn');
   if(homeBtn) homeBtn.classList.toggle('hidden', name === 'home');
+  // Hide landscape sidebar during battle for max focus
+  const gameEl = document.getElementById('game');
+  if(gameEl) gameEl.classList.toggle('in-battle', name === 'battle');
   updateHud();
   // Re-evaluate soft auth prompt visibility (only shows on home, after Lv 5)
   if(name === 'home' && typeof maybeShowSoftPrompt === 'function') maybeShowSoftPrompt();
