@@ -751,7 +751,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .radar-lbl-dex{fill:#fbbf24;}
 .radar-lbl-int{fill:#a78bfa;}
 .radar-lbl-agi{fill:#34d399;}
-.radar-lbl-vit{fill:#fb923c;}
+.radar-lbl-luk{fill:#fb923c;}
 
 /* hero avatar (center, big silhouette) */
 .hero-avatar{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;cursor:pointer;position:relative;transition:.2s;width:100%;padding:6px 0 0;}
@@ -810,14 +810,14 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .stat-name.dex{color:#fbbf24;}
 .stat-name.int{color:#a78bfa;}
 .stat-name.agi{color:#34d399;}
-.stat-name.vit{color:#fb923c;}
+.stat-name.luk{color:#fb923c;}
 .stat-bar-wrap{position:relative;height:8px;background:rgba(56,189,248,.08);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
 .stat-bar{height:100%;border-radius:4px;}
 .stat-bar.str{background:linear-gradient(90deg,#7f1d1d,#f87171);}
 .stat-bar.dex{background:linear-gradient(90deg,#92400e,#fbbf24);}
 .stat-bar.int{background:linear-gradient(90deg,#5b21b6,#a78bfa);}
 .stat-bar.agi{background:linear-gradient(90deg,#065f46,#34d399);}
-.stat-bar.vit{background:linear-gradient(90deg,#9a3412,#fb923c);}
+.stat-bar.luk{background:linear-gradient(90deg,#9a3412,#fb923c);}
 .stat-val{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--text);text-align:center;font-size:0.84rem;}
 .stat-btn{width:24px;height:24px;border-radius:6px;background:rgba(56,189,248,.1);border:1px solid var(--accent);color:var(--accent);font-weight:700;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
 .stat-btn:hover{background:var(--accent);color:#000;}
@@ -1370,7 +1370,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <text class="radar-lbl radar-lbl-dex" x="139" y="50">DEX</text>
           <text class="radar-lbl radar-lbl-int" x="115" y="143">INT</text>
           <text class="radar-lbl radar-lbl-agi" x="35" y="143">AGI</text>
-          <text class="radar-lbl radar-lbl-vit" x="11" y="50">VIT</text>
+          <text class="radar-lbl radar-lbl-luk" x="11" y="50">LUK</text>
         </svg>
       </div>
 
@@ -3656,7 +3656,7 @@ const STAGES = {
 const SAVE_KEY = 'physics-quest-save-v2';
 let player = loadGame() || {
   lv:1, xp:0, mp:30, kc:0, mc:0,
-  str:5, agi:5, dex:5, int:5, vit:5,
+  str:5, agi:5, dex:5, int:5, luk:5,
   kills:0, totalKills:0,
   combo:0,
   inventory:{}, // {cardId: count}
@@ -3669,7 +3669,9 @@ let player = loadGame() || {
 if(!player.completed) player.completed = [];
 if(!player.currentMode) player.currentMode = 'general';
 if(!player.stageKills) player.stageKills = {};
-if(player.vit === undefined) player.vit = 5;
+// VIT → LUK migration (2026-05-02): VIT renamed to LUK + repurposed as drop master
+if(player.luk === undefined) player.luk = (player.vit !== undefined ? player.vit : 5);
+if(player.vit !== undefined) delete player.vit;
 if(!player.equipped) player.equipped = {head:null, body:null, staff:null, boots:null};
 if(player.skillPoints === undefined) player.skillPoints = 0;
 if(!player.skills) player.skills = {};
@@ -3989,10 +3991,10 @@ function exitSubstage(){
 // HUD
 // ═══════════════════════════════════════════════
 function updateRadar(){
-  // 5 vertices in radar SVG (matches radar-grid points): STR top, DEX top-r, INT bot-r, AGI bot-l, VIT top-l
+  // 5 vertices in radar SVG (matches radar-grid points): STR top, DEX top-r, INT bot-r, AGI bot-l, LUK top-l
   const cx = 75, cy = 75, maxR = 65, maxStat = 50;
   const angles = [-90, -18, 54, 126, 198].map(a => a*Math.PI/180);
-  const stats = [player.str, player.dex, player.int, player.agi, player.vit];
+  const stats = [player.str, player.dex, player.int, player.agi, player.luk];
   const dotIds = ['dotStr', 'dotDex', 'dotInt', 'dotAgi', 'dotVit'];
   const points = stats.map((s, i) => {
     const r = Math.min((s||0)/maxStat, 1) * maxR;
@@ -4327,7 +4329,7 @@ function unequipCard(){
 // ── CHARACTER SCREEN ──
 function getStatPoints(){
   const earned = (player.lv - 1) * 3;
-  const spent = (player.str + player.dex + player.int + player.agi + player.vit) - 25; // base 5 each
+  const spent = (player.str + player.dex + player.int + player.agi + player.luk) - 25; // base 5 each
   return Math.max(0, earned - spent);
 }
 
@@ -4343,7 +4345,7 @@ function renderCharacter(){
     {key:'dex', label:'DEX', name:'แม่นยำ'},
     {key:'int', label:'INT', name:'MP+เห็นบอส'},
     {key:'agi', label:'AGI', name:'เวลา'},
-    {key:'vit', label:'VIT', name:'ความอึด'}
+    {key:'luk', label:'LUK', name:'โชคดรอป'}
   ];
   const rows = document.getElementById('statRows');
   if(!rows) return;
@@ -4615,7 +4617,7 @@ function buyItem(action, price){
   if(player.kc < price){ toast('💎 Crystal ไม่พอ'); return; }
   // Confirm destructive actions
   if(action === 'stat_reset'){
-    const refund = (player.str-5)+(player.dex-5)+(player.int-5)+(player.agi-5)+(player.vit-5);
+    const refund = (player.str-5)+(player.dex-5)+(player.int-5)+(player.agi-5)+(player.luk-5);
     if(refund <= 0){ toast('ยังไม่ได้ใส่ stat points'); return; }
     if(!confirm(`🔮 ใช้ Stat Reset Token (${price} 💎)?\n\nรีเซต stat ทั้งหมดเป็น 5 · คืน ${refund} points`)) return;
   } else if(action === 'skill_reset'){
@@ -4642,7 +4644,7 @@ function buyItem(action, price){
     player.inventory['potion_'+action] = (player.inventory['potion_'+action]||0)+1;
     toast(`🧪 ได้ ${action} เก็บในกระเป๋า`);
   } else if(action === 'stat_reset'){
-    player.str = player.dex = player.int = player.agi = player.vit = 5;
+    player.str = player.dex = player.int = player.agi = player.luk = 5;
     toast('🔮 Stat รีเซตแล้ว');
   } else if(action === 'skill_reset'){
     // Refund all SP, clear skills
@@ -5234,14 +5236,15 @@ function processVictory(){
   const worldEl = WORLD_ELEMENT[currentWorld];
   const worldMatch = eqElements.includes(worldEl);
 
-  // Drop check — element synergy multiplies final dropChance
-  let dropChance = 0.5; // base 50% per kill
-  if(firstTime) dropChance += 0.2;
-  if(bState.timer > (bState.timerMax || 30) * 0.5) dropChance += 0.1; // fast solve
-  if(bState.hintsUsed > 0) dropChance *= 0.5;
-  dropChance += (buffs.dropBonus || 0); // card buff
-  if(worldMatch) dropChance += 0.1; // World element match
-  dropChance *= elemMul; // element synergy
+  // Drop check — base low; LUK/cards/skill scale it up (Earned Mastery)
+  let dropChance = 0.20;                                    // base 20% (was 50%)
+  if(firstTime) dropChance += 0.10;                         // first-time bonus
+  if(bState.timer > (bState.timerMax || 30) * 0.5) dropChance += 0.05; // fast solve
+  dropChance += (player.luk || 5) * 0.005;                  // LUK scaling: +0.5% per point (LUK 50 → +25%)
+  if(worldMatch) dropChance += 0.05;                        // World element match
+  dropChance += (buffs.dropBonus || 0);                     // card buff
+  if(bState.hintsUsed > 0) dropChance *= 0.5;               // hint penalty
+  dropChance *= elemMul;                                    // element synergy
 
   let drop = null;
   if(Math.random() < dropChance){
