@@ -2478,12 +2478,16 @@ window.addEventListener('beforeunload', ()=>{ if(currentUser && cloudSaveTimer) 
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && currentUser && cloudSaveTimer) pushCloudSave('hidden'); });
 
 // ── Sign-in / Sign-up handlers ──
-// Detect Safari/iOS — they have ITP issues with popup-based auth → use redirect instead
-function isSafariOrIOS(){
+// Mobile (any OS) + Safari → redirect-based (popups blocked / ITP issues).
+// Desktop Chrome/Edge/Firefox → popup (smoother UX, no full page reload).
+function shouldUseRedirectAuth(){
   const ua = navigator.userAgent;
   const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
   const isIOS = /iphone|ipad|ipod/i.test(ua);
-  return isSafari || isIOS;
+  const isAndroid = /android/i.test(ua);
+  // Treat any touch-primary mobile device as redirect-required
+  const isMobile = isIOS || isAndroid || /mobile/i.test(ua);
+  return isSafari || isIOS || isAndroid || isMobile;
 }
 
 async function signInWithGoogle(){
@@ -2491,9 +2495,9 @@ async function signInWithGoogle(){
   const provider = new PQ_FB.GoogleAuthProvider();
   const errEl = document.getElementById('authError');
   try{
-    if(isSafariOrIOS()){
-      // Safari: redirect-based (popup gets blocked by ITP)
-      errEl.textContent = 'กำลังเปลี่ยนหน้าไป Google...';
+    if(shouldUseRedirectAuth()){
+      // Safari/iOS/Android: redirect-based (popup blocked by ITP / mobile UA)
+      if(errEl) errEl.textContent = 'กำลังเปลี่ยนหน้าไป Google...';
       await PQ_FB.signInWithRedirect(PQ_FB.auth, provider);
       // Browser navigates away — code below won't run until return
     } else {
@@ -2502,7 +2506,7 @@ async function signInWithGoogle(){
     }
   }catch(e){
     console.error('[google-signin]', e);
-    errEl.textContent = friendlyAuthError(e);
+    if(errEl) errEl.textContent = friendlyAuthError(e);
   }
 }
 window.signInWithGoogle = signInWithGoogle;
