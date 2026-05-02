@@ -3787,12 +3787,22 @@ const INNATE = {
     } }
 };
 
-function getInnateRank(key){ return (player.innate && player.innate[key]) || 0; }
+// Innate unlock by level — easy questions don't need hints/connections
+const INNATE_UNLOCK_LV = { vit:1, review:1, recover:8, connect:10 };
+function isInnateUnlocked(key){
+  const lv = INNATE_UNLOCK_LV[key] || 1;
+  return player.lv >= lv;
+}
+function getInnateRank(key){
+  if(!isInnateUnlocked(key)) return 0;
+  return (player.innate && player.innate[key]) || 0;
+}
 function bumpInnate(key, n){
   n = n || 1;
   if(!player.innate) player.innate = {};
   if(!player.innateProgress) player.innateProgress = {};
   if(!INNATE[key]) return;
+  if(!isInnateUnlocked(key)) return; // locked — don't accumulate
   if(player.innate[key] === undefined) player.innate[key] = 0;
   if(player.innateProgress[key] === undefined) player.innateProgress[key] = 0;
   player.innateProgress[key] = player.innateProgress[key] + n;
@@ -3962,17 +3972,17 @@ function refreshBookBadge(){
   const bdg = document.getElementById('bookBadge');
   if(!wrap || !bdg) return;
   const cap = getBookCapacity();
-  if(cap <= 0){ wrap.style.display = 'none'; return; }
+  const n = (player.book || []).length;
+  if(cap <= 0 && n === 0){ wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  const n = player.book.length;
-  bdg.textContent = `${n}/${cap}`;
+  bdg.textContent = cap > 0 ? `${n}/${cap}` : `${n}`;
   bdg.style.display = '';
 }
 
 // ── 📓 Book modal ──
 function openBook(){
   const cap = getBookCapacity();
-  if(cap <= 0){ toast('📓 ยังไม่ปลด ทบทวน · กดบันทึกข้อในหน้า result เพื่อปลด Rank 1'); return; }
+  if(cap <= 0 && (!player.book || player.book.length === 0)){ toast('📓 ยังไม่ปลด ทบทวน · กดบันทึกข้อในหน้า result เพื่อปลด Rank 1'); return; }
   let modal = document.getElementById('bookModal');
   if(!modal){
     modal = document.createElement('div');
@@ -4787,22 +4797,32 @@ function renderCharacter(){
   const innateHost = document.getElementById('innateRows');
   if(innateHost){
     innateHost.innerHTML = Object.entries(INNATE).map(([key,def])=>{
-      const r = getInnateRank(key);
+      const unlocked = isInnateUnlocked(key);
+      const unlockLv = INNATE_UNLOCK_LV[key] || 1;
+      const r = unlocked ? ((player.innate && player.innate[key]) || 0) : 0;
       const prog = (player.innateProgress && player.innateProgress[key]) || 0;
       const next = r >= 5 ? null : def.ranks[r];
       const pctW = next ? Math.min(100, prog/next*100) : 100;
       const effect = def.effectAt(r);
-      const subline = r >= 5
-        ? `<span style="color:var(--gold);">★ MAX</span> · ${effect}`
-        : `${effect} · <span style="color:var(--muted);">${prog}/${next}</span>`;
-      return `<div class="innate-row" onclick="showInnateHelp('${key}')" style="cursor:pointer;" title="ดูคำอธิบาย">
+      let subline;
+      if(!unlocked){
+        subline = `<span style="color:var(--muted);">🔒 ปลดที่ Lv.${unlockLv} (อีก ${unlockLv - player.lv} เลเวล)</span>`;
+      } else {
+        subline = r >= 5
+          ? `<span style="color:var(--gold);">★ MAX</span> · ${effect}`
+          : `${effect} · <span style="color:var(--muted);">${prog}/${next}</span>`;
+      }
+      const rowOpacity = unlocked ? '' : 'opacity:0.55;';
+      const rankColor = unlocked ? (r>0?def.color:'var(--muted)') : 'var(--muted)';
+      const rankText = unlocked ? `Lv.${r}/5` : `🔒 Lv.${unlockLv}`;
+      return `<div class="innate-row" onclick="showInnateHelp('${key}')" style="cursor:pointer;${rowOpacity}" title="ดูคำอธิบาย">
         <div class="innate-icon">${def.icon}</div>
         <div>
           <div class="innate-name" style="color:${def.color};">${def.name}</div>
           <div class="innate-effect">${subline}</div>
           <div class="innate-prog"><div class="innate-prog-fill" style="width:${pctW}%;background:${def.color};"></div></div>
         </div>
-        <div class="innate-rank" style="color:${r>0?def.color:'var(--muted)'};">Lv.${r}/5</div>
+        <div class="innate-rank" style="color:${rankColor};font-size:0.66rem;">${rankText}</div>
         <div style="color:var(--muted);">›</div>
       </div>`;
     }).join('');
@@ -4932,8 +4952,10 @@ window.showStatHelp = showStatHelp;
 
 function showInnateHelp(key){
   const def = INNATE[key]; if(!def) return;
-  const r = getInnateRank(key);
-  const prog = player.innateProgress[key] || 0;
+  const unlocked = isInnateUnlocked(key);
+  const unlockLv = INNATE_UNLOCK_LV[key] || 1;
+  const r = unlocked ? ((player.innate && player.innate[key]) || 0) : 0;
+  const prog = (player.innateProgress && player.innateProgress[key]) || 0;
   const next = r >= 5 ? null : def.ranks[r];
   let rankList = '<div style="margin-top:10px;font-size:0.74rem;">';
   for(let i=1;i<=5;i++){
@@ -4960,6 +4982,7 @@ function showInnateHelp(key){
       <button onclick="document.getElementById('innateHelpModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;">✕</button>
     </div>
     <div style="font-size:0.78rem;line-height:1.5;color:var(--text);margin-bottom:8px;">${def.desc}</div>
+    ${!unlocked ? `<div style="font-size:0.78rem;color:var(--gold);background:rgba(251,191,36,.08);padding:8px 10px;border-radius:6px;border:1px solid rgba(251,191,36,.3);margin-bottom:8px;">🔒 ปลดล็อคที่ <b>Lv.${unlockLv}</b> (ตอนนี้ Lv.${player.lv}) — เลเวลแรกๆ โจทย์ง่าย ไม่จำเป็นต้องใช้สกิลนี้</div>` : ''}
     <div style="font-size:0.74rem;color:var(--accent);background:rgba(56,189,248,.06);padding:6px 8px;border-radius:6px;border:1px solid rgba(56,189,248,.2);">▸ ปลดจาก: ${def.track}</div>
     ${next ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--muted);">ความคืบหน้า Lv.${r+1}: <b style="color:${def.color};">${prog}/${next}</b></div>` : `<div style="margin-top:8px;font-size:0.74rem;color:var(--gold);font-weight:700;">★ MAX RANK ★</div>`}
     ${rankList}
@@ -5068,10 +5091,10 @@ function resetInnateFromChar(){
   const totalRanks = Object.values(player.innate).reduce((a,b)=>a+b,0);
   const totalProg = Object.values(player.innateProgress).reduce((a,b)=>a+b,0);
   if(totalRanks === 0 && totalProg === 0){ toast('ยังไม่มี INNATE progress'); return; }
-  if(!confirm(`♻️ รีเซ็ต INNATE?\n\nหัก 500 💎 · ลบ rank + progress\n(จะต้องเริ่มสะสม recovery ใหม่)`)) return;
+  if(!confirm(`♻️ รีเซ็ต INNATE?\n\nหัก 500 💎 · ลบ rank + progress ทุกสาย (vit/review/recover/connect)\n📓 สมุดทบทวนจะ "ไม่ถูกลบ" — แต่ความจุกลับเป็น 0`)) return;
   player.kc -= PRICE;
-  player.innate = {vit:0};
-  player.innateProgress = {vit:0};
+  player.innate = {vit:0, review:0, recover:0, connect:0};
+  player.innateProgress = {vit:0, review:0, recover:0, connect:0};
   saveGame();
   if(typeof playSfx==='function') playSfx('drop');
   toast('♻️ รีเซ็ต INNATE แล้ว');
