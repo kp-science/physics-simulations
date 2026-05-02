@@ -838,10 +838,6 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .innate-rank{font-family:'Share Tech Mono',monospace;font-size:0.74rem;text-align:center;background:rgba(0,0,0,.3);padding:2px 6px;border-radius:6px;border:1px solid var(--border);}
 .innate-prog{height:3px;background:rgba(56,189,248,.08);border-radius:2px;overflow:hidden;margin-top:3px;}
 .innate-prog-fill{height:100%;border-radius:2px;}
-/* Flow Zone visual (FOC innate) */
-#screen-battle.flow-zone{background:radial-gradient(ellipse at center, rgba(52,211,153,.08), rgba(4,6,13,1) 70%);transition:background .6s;}
-#screen-battle.flow-zone::before{content:'🌀 FLOW ZONE';position:absolute;top:8px;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:0.72rem;letter-spacing:3px;color:#34d399;text-shadow:0 0 8px rgba(52,211,153,.6);z-index:5;pointer-events:none;animation:flowGlow 2s ease-in-out infinite;}
-@keyframes flowGlow{0%,100%{opacity:.6;}50%{opacity:1;}}
 .stat-row+.stat-row{border-top:1px solid rgba(26,46,80,.4);}
 .stat-name{font-family:'Share Tech Mono',monospace;font-weight:700;font-size:0.74rem;letter-spacing:.5px;}
 .stat-name.str{color:#f87171;}
@@ -3735,45 +3731,27 @@ if(!player.skills) player.skills = {};
 if(!player.currentRegion) player.currentRegion = '1.1';
 if(!player.regionsCleared) player.regionsCleared = []; // ['1.1', '1.2', ...]
 // Innate skills (2026-05-03) — auto-unlock from journey, scale 0-5
-if(!player.innate) player.innate = {vit:0, mnd:0, wis:0, foc:0, grt:0};
-if(!player.innateProgress) player.innateProgress = {vit:0, mnd:0, wis:0, foc:0, grt:0};
+if(!player.innate) player.innate = {vit:0};
+if(!player.innateProgress) player.innateProgress = {vit:0};
 if(player.lastAnsWrong === undefined) player.lastAnsWrong = false;
-if(player.grtRetriesLeft === undefined) player.grtRetriesLeft = 0;
-if(player.grtCurStageKey === undefined) player.grtCurStageKey = '';
+// Cleanup deprecated innate (mnd/wis/foc/grt removed 2026-05-03)
+['mnd','wis','foc','grt'].forEach(k=>{ if(player.innate && player.innate[k]!==undefined) delete player.innate[k]; if(player.innateProgress && player.innateProgress[k]!==undefined) delete player.innateProgress[k]; });
+delete player.grtRetriesLeft; delete player.grtCurStageKey;
 
 const INNATE = {
   vit: { name:'ทนทาน', icon:'🛡️', color:'#f87171',
     desc:'ลด XP penalty เมื่อตอบผิด · เก่งขึ้นจากการลุกขึ้นใหม่',
     track:'ตอบผิดแล้วกลับมาตอบถูกในข้อถัดไป (recovery)',
     ranks:[10,30,60,100,150],
-    effectAt:r => r ? `−${r*10}% XP penalty` : '—' },
-  mnd: { name:'สงบ', icon:'🧘', color:'#60a5fa',
-    desc:'Pre-read Pause — เริ่มสู้ timer freeze ให้อ่านโจทย์',
-    track:'ตอบถูกโดยใช้เวลามากกว่า 50% ของ timer (ไม่รีบ)',
-    ranks:[20,50,100,200,350],
-    effectAt:r => r ? `freeze ${r}s ตอนเริ่มสู้` : '—' },
-  wis: { name:'ปัญญา', icon:'📜', color:'#a78bfa',
-    desc:'Post-mortem — ปลด "ดูเฉลย" หลังตอบผิด · เรียนจากความพลาด',
-    track:'จบ stage (ทุก mode)',
-    ranks:[4,10,20,35,50],
-    effectAt:r => ['—','ปลด ดูเฉลย','+breakdown สูตร','+misconception','+วิธีอื่น','+ครบทุกอย่าง'][r] },
-  foc: { name:'จดจ่อ', icon:'🌀', color:'#34d399',
-    desc:'Flow Zone — ลด distraction ตอน combo 10+',
-    track:'แตะ combo 10+ ครบ 1 ครั้ง',
-    ranks:[5,15,30,60,100],
-    effectAt:r => ['—','BG เปลี่ยนสี','+ปิด mock-laugh','+ปิด screen shake','+1 MP/ข้อใน flow','+กันหลุด combo 1 ครั้ง/zone'][r] },
-  grt: { name:'กล้า', icon:'⚔️', color:'#fb923c',
-    desc:'Brave Retry — ตอบโจทย์เดิมหลังพลาด · กล้าเผชิญข้อยาก',
-    track:'ชนะ mob ที่ Lv สูงกว่า player (over-leveled win)',
-    ranks:[5,15,30,50,80],
-    effectAt:r => r ? `${r} retries/stage` : '—' }
+    effectAt:r => r ? `−${r*10}% XP penalty` : '—' }
 };
 
 function getInnateRank(key){ return (player.innate && player.innate[key]) || 0; }
 function bumpInnate(key, n){
   n = n || 1;
-  if(!player.innate) player.innate = {vit:0,mnd:0,wis:0,foc:0,grt:0};
-  if(!player.innateProgress) player.innateProgress = {vit:0,mnd:0,wis:0,foc:0,grt:0};
+  if(!player.innate) player.innate = {vit:0};
+  if(!player.innateProgress) player.innateProgress = {vit:0};
+  if(!INNATE[key]) return;
   player.innateProgress[key] = (player.innateProgress[key] || 0) + n;
   // check rank-up
   const def = INNATE[key]; if(!def) return;
@@ -4475,8 +4453,8 @@ function renderCharacter(){
     </div>`;
   }).join('');
   // Innate skills render
-  if(!player.innate) player.innate = {vit:0,mnd:0,wis:0,foc:0,grt:0};
-  if(!player.innateProgress) player.innateProgress = {vit:0,mnd:0,wis:0,foc:0,grt:0};
+  if(!player.innate) player.innate = {vit:0};
+  if(!player.innateProgress) player.innateProgress = {vit:0};
   const innateHost = document.getElementById('innateRows');
   if(innateHost){
     innateHost.innerHTML = Object.entries(INNATE).map(([key,def])=>{
@@ -4756,15 +4734,15 @@ function manualSaveInnateFromChar(){
 function resetInnateFromChar(){
   const PRICE = 500;
   if(player.kc < PRICE){ toast('💎 Crystal ไม่พอ (ต้อง 500)'); return; }
-  if(!player.innate) player.innate = {vit:0,mnd:0,wis:0,foc:0,grt:0};
-  if(!player.innateProgress) player.innateProgress = {vit:0,mnd:0,wis:0,foc:0,grt:0};
+  if(!player.innate) player.innate = {vit:0};
+  if(!player.innateProgress) player.innateProgress = {vit:0};
   const totalRanks = Object.values(player.innate).reduce((a,b)=>a+b,0);
   const totalProg = Object.values(player.innateProgress).reduce((a,b)=>a+b,0);
   if(totalRanks === 0 && totalProg === 0){ toast('ยังไม่มี INNATE progress'); return; }
-  if(!confirm(`♻️ รีเซ็ต INNATE ทั้งหมด?\n\nหัก 500 💎 · ลบ rank + progress ของทั้ง 5 สกิล\n(จะต้องเริ่มสะสม trigger ใหม่)`)) return;
+  if(!confirm(`♻️ รีเซ็ต INNATE?\n\nหัก 500 💎 · ลบ rank + progress\n(จะต้องเริ่มสะสม recovery ใหม่)`)) return;
   player.kc -= PRICE;
-  player.innate = {vit:0,mnd:0,wis:0,foc:0,grt:0};
-  player.innateProgress = {vit:0,mnd:0,wis:0,foc:0,grt:0};
+  player.innate = {vit:0};
+  player.innateProgress = {vit:0};
   saveGame();
   if(typeof playSfx==='function') playSfx('drop');
   toast('♻️ รีเซ็ต INNATE แล้ว');
@@ -5145,14 +5123,8 @@ let bState = null; // {mob, lv, q, timer, timerInterval, ans, hintsUsed, locked,
 function enterBattle(mobData){
   const q = QUESTIONS[mobData.qIdx];
   const buffs = getActiveBuffs();
-  // Refresh GRT retries when entering a new stage
-  const stageKey = (mobData.stageMode||'') + '-' + (mobData.stageId||'');
-  if(player.grtCurStageKey !== stageKey){
-    player.grtCurStageKey = stageKey;
-    player.grtRetriesLeft = getInnateRank('grt');
-  }
   bState = {mobData, q, timer:30.0, timerInterval:null, ans:null, hintsUsed:0, locked:false, twoStepIdx:0,
-            rerollCardCharges: buffs.rerollCharge || 0, choiceCutApplied:false, focUsed:false};
+            rerollCardCharges: buffs.rerollCharge || 0, choiceCutApplied:false};
   document.getElementById('bMobName').textContent = mobData.mob.name;
   document.getElementById('bMobLv').textContent = mobData.lv;
   document.getElementById('bMobElement').innerHTML = elementBadgeHtml(mobData.mob.element, 11);
@@ -5160,7 +5132,6 @@ function enterBattle(mobData){
   bma.innerHTML = `${getMobArt(mobData.mob)}<span id="bMobArtBadge" class="el-badge battle" style="--el-color:${ELEMENTS[mobData.mob.element].color};--el-glow:${ELEMENTS[mobData.mob.element].glow};position:absolute;top:6px;right:6px;">${ELEMENTS[mobData.mob.element].greek}</span>`;
   bma.setAttribute('data-type', mobData.mob.id);
   document.getElementById('bCombo').textContent = player.combo;
-  updateFlowZone();
   document.getElementById('bQId').textContent = `Q · ${q.id} · ${q.title}`;
   document.getElementById('bQTxt').innerHTML = q.statement;
   // Render figure if present
@@ -5342,22 +5313,7 @@ function startTimer(resume){
   document.getElementById('bAttackBtn').disabled = false;
   updateTimerUI();
   if(bState.timerInterval) clearInterval(bState.timerInterval);
-  // Innate MND: pre-read pause (freeze timer for N seconds at battle start, not on resume/retry)
-  const mndFreeze = (!resume && !bState.skipMndFreeze) ? getInnateRank('mnd') : 0;
-  if(mndFreeze > 0){
-    const tEl = document.getElementById('bTimer');
-    const oldText = tEl ? tEl.textContent : '';
-    if(tEl){ tEl.textContent = `🧘 ${mndFreeze}s`; tEl.style.color = '#60a5fa'; }
-    setTimeout(()=>{ if(tEl){ tEl.style.color=''; } updateTimerUI(); _startTimerTick(); }, mndFreeze * 1000);
-    return;
-  }
   _startTimerTick();
-}
-function updateFlowZone(){
-  const battleScr = document.getElementById('screen-battle');
-  if(!battleScr) return;
-  const inFlow = player.combo >= 10 && getInnateRank('foc') >= 1;
-  battleScr.classList.toggle('flow-zone', inFlow);
 }
 function _startTimerTick(){
   bState.timerInterval = setInterval(()=>{
@@ -5495,18 +5451,9 @@ function onCorrect(){
   if(player.combo % 5 === 0 && player.combo > 0){
     bigCombo(player.combo);
   }
-  updateFlowZone();
   // ── Innate trackers ──
   // VIT: recovery (correct after wrong)
   if(player.lastAnsWrong){ bumpInnate('vit'); player.lastAnsWrong = false; }
-  // MND: thoughtful answer (used >50% of timer)
-  if(bState.timer < (bState.timerMax || 30) * 0.5) bumpInnate('mnd');
-  // FOC: hit combo 10 milestone (count once per reaching 10)
-  if(player.combo === 10) bumpInnate('foc');
-  // FOC effect: refill 1 MP per question while in flow zone (rank 4+)
-  if(player.combo >= 10 && getInnateRank('foc') >= 4){
-    player.mp = Math.min(getMaxMp(), player.mp + 1);
-  }
   // ── Daily quest tracking ──
   if(typeof trackDaily === 'function'){
     trackDaily('correctToday', 1);
@@ -5530,17 +5477,10 @@ function showXpPenaltyToast(amount){
 }
 
 function onWrong(){
-  // FOC rank 5: combo not broken on wrong, once per "flow zone" entry
-  const focR = getInnateRank('foc');
-  const inFlow = player.combo >= 10;
-  const focSaveCombo = focR >= 5 && inFlow && !bState.focUsed;
-  if(focSaveCombo){ bState.focUsed = true; }
-  // FOC rank 2: silence mock-laugh while in flow
-  if(!(focR >= 2 && inFlow)) showMockLaugh(bState && bState.mobData && bState.mobData.mob, 'wrong');
+  showMockLaugh(bState && bState.mobData && bState.mobData.mob, 'wrong');
   playSfx('wrong');
-  if(!(focR >= 2 && inFlow)) setTimeout(()=>playSfx('laugh'), 200);
-  // FOC rank 3: silence screen shake on wrong while in flow
-  if(!(focR >= 3 && inFlow)) shake('med');
+  setTimeout(()=>playSfx('laugh'), 200);
+  shake('med');
   player.lastAnsWrong = true;
   if(bState.q.type==='mcq'){
     document.querySelectorAll('.b-choice').forEach(c=>{
@@ -5549,7 +5489,7 @@ function onWrong(){
       else if(ltr === bState.ans) c.classList.add('wrong');
     });
   }
-  if(!focSaveCombo) player.combo = 0;
+  player.combo = 0;
   // ── XP penalty (educational anti-mash) ──
   const pen = applyXpPenalty();
   if(pen > 0) showXpPenaltyToast(pen);
@@ -5566,7 +5506,6 @@ function onWrong(){
     document.getElementById('rKc').textContent = '+0';
     document.getElementById('rCombo').textContent = '×0 (หลุด)';
     document.getElementById('rDrop').innerHTML = '';
-    renderInnateFailActions();
     showScreen('result');
     saveGame();
     updateHud();
@@ -5596,7 +5535,6 @@ function timeOut(){
     document.getElementById('rKc').textContent = '+0';
     document.getElementById('rCombo').textContent = '×0';
     document.getElementById('rDrop').innerHTML = '';
-    renderInnateFailActions();
     showScreen('result');
     saveGame();
     updateHud();
@@ -5609,79 +5547,6 @@ function flee(){
   // return to wherever the battle was launched from
   showScreen(currentSubstage ? 'substage' : 'map');
 }
-
-// ── Innate fail-screen actions: WIS post-mortem + GRT brave retry ──
-function renderInnateFailActions(){
-  const host = document.getElementById('rInnateActions');
-  if(!host) return;
-  host.innerHTML = '';
-  const wisR = getInnateRank('wis');
-  const grtR = getInnateRank('grt');
-  if(wisR > 0){
-    const btn = document.createElement('button');
-    btn.className = 'result-cta';
-    btn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(167,139,250,.08));border:1.5px solid #a78bfa;color:#a78bfa;';
-    btn.textContent = `💡 ดูเฉลย (ปัญญา Lv.${wisR})`;
-    btn.onclick = ()=>showWisExplanation();
-    host.appendChild(btn);
-  }
-  if(grtR > 0 && (player.grtRetriesLeft||0) > 0){
-    const btn = document.createElement('button');
-    btn.className = 'result-cta';
-    btn.style.cssText = 'background:linear-gradient(135deg,rgba(251,146,60,.2),rgba(251,146,60,.08));border:1.5px solid #fb923c;color:#fb923c;';
-    btn.textContent = `⚔️ ตอบข้อเดิมอีกครั้ง (เหลือ ${player.grtRetriesLeft})`;
-    btn.onclick = ()=>braveRetry();
-    host.appendChild(btn);
-  }
-}
-function showWisExplanation(){
-  const q = bState && bState.q;
-  const wisR = getInnateRank('wis');
-  let body = '';
-  if(!q){ body = '<i>ไม่พบโจทย์</i>'; }
-  else {
-    body = `<div style="font-size:0.78rem;color:var(--muted2);margin-bottom:6px;">โจทย์ (${q.id})</div>`;
-    body += `<div style="margin-bottom:10px;font-size:0.84rem;">${q.statement || ''}</div>`;
-    body += `<div style="font-size:0.8rem;color:var(--gold);margin-bottom:4px;">✓ คำตอบที่ถูก:</div>`;
-    body += `<div style="margin-bottom:10px;font-family:'Share Tech Mono',monospace;color:var(--green);">${q.correct !== undefined ? q.correct : '—'}</div>`;
-    if(wisR >= 2 && q.explanation) body += `<div style="font-size:0.78rem;color:var(--accent);margin-bottom:4px;">▸ วิธีคิด:</div><div style="margin-bottom:10px;font-size:0.78rem;line-height:1.5;">${q.explanation}</div>`;
-    if(wisR >= 3 && q.misconception) body += `<div style="font-size:0.78rem;color:var(--red);margin-bottom:4px;">⚠ ความเข้าใจผิดบ่อย:</div><div style="margin-bottom:10px;font-size:0.78rem;line-height:1.5;">${q.misconception}</div>`;
-    if(wisR >= 4 && q.altMethod) body += `<div style="font-size:0.78rem;color:var(--purple);margin-bottom:4px;">◇ วิธีอื่น:</div><div style="margin-bottom:10px;font-size:0.78rem;line-height:1.5;">${q.altMethod}</div>`;
-    if(!q.explanation && !q.misconception && !q.altMethod) body += `<div style="font-size:0.74rem;color:var(--muted);font-style:italic;">— ครูยังไม่ได้ใส่คำอธิบายเพิ่มเติมในโจทย์นี้ —</div>`;
-  }
-  let modal = document.getElementById('wisModal');
-  if(!modal){
-    modal = document.createElement('div');
-    modal.id = 'wisModal';
-    modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
-    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
-    (document.getElementById('game') || document.body).appendChild(modal);
-  }
-  modal.innerHTML = `<div style="background:linear-gradient(135deg,var(--panel),var(--panel2));border:2px solid #a78bfa;border-radius:14px;padding:18px 16px;max-width:340px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 24px #a78bfa55;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;">
-      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1rem;color:#a78bfa;">📜 ปัญญา · ดูเฉลย (Lv.${wisR})</div>
-      <button onclick="document.getElementById('wisModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;">✕</button>
-    </div>
-    ${body}
-  </div>`;
-}
-function braveRetry(){
-  if(!bState || (player.grtRetriesLeft||0) <= 0) return;
-  player.grtRetriesLeft--;
-  // Reset battle state for same question
-  bState.locked = false;
-  bState.ans = null;
-  bState.skipMndFreeze = true;
-  document.getElementById('bAttackBtn').disabled = false;
-  // Re-render battle screen and restart timer fresh
-  showScreen('battle');
-  // Re-render answer area (clear marks)
-  if(typeof renderAnswerInput === 'function') renderAnswerInput(bState.q);
-  startTimer(false);
-  toast('⚔️ ตอบใหม่!');
-}
-window.braveRetry = braveRetry;
-window.showWisExplanation = showWisExplanation;
 
 // ═══════════════════════════════════════════════
 // XP / DROP / VICTORY PROCESSING
@@ -5774,8 +5639,6 @@ function processVictory(){
   // kills
   player.kills++;
   player.totalKills++;
-  // Innate GRT: over-leveled win
-  if(bState.mobData.lv > player.lv) bumpInnate('grt');
 
   // Level up?
   let leveledUp = false;
@@ -5798,7 +5661,6 @@ function processVictory(){
     if(player.stageKills[key] >= SUBSTAGE_TARGET && !player.completed.includes(key)){
       player.completed.push(key);
       stageJustCleared = true;
-      bumpInnate('wis');
       if(typeof cloudSyncMilestone==='function') cloudSyncMilestone();
       if(typeof checkStageClearMail === 'function') checkStageClearMail(player.currentRegion, bState.mobData.stageId, bState.mobData.stageMode);
       if(typeof trackDaily === 'function') trackDaily('stagesClearedToday', 1);
