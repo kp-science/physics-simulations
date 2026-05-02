@@ -895,6 +895,19 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .shop-cat{padding:6px 12px;background:rgba(15,26,46,.7);border:1px solid var(--border);color:var(--muted2);border-radius:9px;font-family:'Share Tech Mono',monospace;font-size:0.66rem;font-weight:700;cursor:pointer;letter-spacing:.4px;white-space:nowrap;flex-shrink:0;}
 .shop-cat:hover{border-color:var(--accent);color:var(--accent);}
 .shop-cat.active{background:linear-gradient(135deg,var(--accent),var(--purple));color:#000;border-color:transparent;box-shadow:0 0 12px rgba(56,189,248,.3);}
+.card-shop-header{padding:8px 11px;margin-bottom:8px;background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(244,114,182,.08));border:1px solid rgba(251,191,36,.3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;}
+.card-shop-week{font-family:'Share Tech Mono',monospace;color:var(--gold);font-size:0.66rem;font-weight:700;letter-spacing:.4px;}
+.card-shop-rotate{font-size:0.62rem;color:var(--muted2);}
+.card-shop-footer{margin-top:6px;text-align:center;font-size:0.62rem;color:var(--muted2);padding:6px;font-style:italic;}
+.card-rarity-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:0.55rem;font-weight:800;padding:1px 5px;border-radius:5px;letter-spacing:.5px;margin-right:4px;}
+.tag-N{background:#475569;color:#e2e8f0;}
+.tag-R{background:#3b82f6;color:#fff;}
+.tag-SR{background:#a855f7;color:#fff;}
+.tag-SSR{background:linear-gradient(135deg,#fbbf24,#f97316);color:#0a0a0a;}
+.tag-UR{background:linear-gradient(135deg,#ec4899,#a855f7,#3b82f6);color:#fff;}
+.shop-card-item.rarity-SR{border-color:rgba(168,85,247,.5);}
+.shop-card-item.rarity-SSR{border-color:rgba(251,191,36,.6);box-shadow:0 0 14px rgba(251,191,36,.15);}
+.lock-reason{display:block;font-size:0.55rem;color:var(--red);font-weight:600;margin-top:2px;}
 
 .shop-items{display:flex;flex-direction:column;gap:8px;}
 .shop-item{background:rgba(15,26,46,.8);border:1px solid var(--border);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:10px;transition:.15s;}
@@ -1622,6 +1635,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
       <!-- categories -->
       <div class="shop-cats">
         <button class="shop-cat active" id="cat-gacha" onclick="switchShopCat('gacha')">🎰 GACHA</button>
+        <button class="shop-cat" id="cat-cards" onclick="switchShopCat('cards')">🎴 ตู้การ์ด</button>
         <button class="shop-cat" id="cat-potions" onclick="switchShopCat('potions')">🧪 POTIONS</button>
         <button class="shop-cat" id="cat-special" onclick="switchShopCat('special')">⭐ SPECIAL</button>
       </div>
@@ -4487,12 +4501,17 @@ function openShop(){
 
 function switchShopCat(cat){
   shopCat = cat;
-  ['gacha','potions','special'].forEach(c=>{
+  ['gacha','cards','potions','special'].forEach(c=>{
     const el = document.getElementById('cat-'+c);
     if(el) el.classList.toggle('active', c===cat);
   });
-  const items = SHOP_ITEMS[cat] || [];
   const list = document.getElementById('shopItems');
+  if(cat === 'cards'){
+    list.innerHTML = renderCardShop();
+    document.getElementById('shopKc').textContent = player.kc;
+    return;
+  }
+  const items = SHOP_ITEMS[cat] || [];
   list.innerHTML = items.map(it=>{
     const can = player.kc >= it.price;
     return `<div class="shop-item ${it.featured?'featured':''}">
@@ -4503,6 +4522,94 @@ function switchShopCat(cat){
   }).join('');
   document.getElementById('shopKc').textContent = player.kc;
 }
+
+// ── Weekly card shop (rotates every Mon 00:00 ICT) ──
+const CARD_SHOP_PRICES = { N:250, R:600, SR:850, SSR:2500 };
+const CARD_SHOP_LV_LOCK = { N:5, R:5, SR:10, SSR:15 };
+function getWeekIso(){
+  const now = new Date();
+  // Bangkok = UTC+7; align week to Monday
+  const tz = new Date(now.getTime() + 7*3600*1000);
+  const day = (tz.getUTCDay()+6)%7;            // 0=Mon
+  const monday = new Date(Date.UTC(tz.getUTCFullYear(), tz.getUTCMonth(), tz.getUTCDate()-day));
+  return monday.toISOString().slice(0,10);     // YYYY-MM-DD of Monday
+}
+function seededShuffle(arr, seed){
+  // mulberry32-ish from string seed
+  let h = 2166136261;
+  for(let i=0;i<seed.length;i++){ h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const rand = ()=>{ h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t>>>15), t|1); t ^= t + Math.imul(t ^ (t>>>7), t|61); return ((t ^ (t>>>14)) >>> 0) / 4294967296; };
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(rand()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function getWeeklyCards(){
+  // Pick: 1 N + 2 R + 1 SR + (1 SSR every other week) = 4-5 cards
+  const week = getWeekIso();
+  const byRarity = (r)=>CARDS.filter(c=>c.rarity===r);
+  const pickN  = seededShuffle(byRarity('N'),  week+':N')[0];
+  const pickRs = seededShuffle(byRarity('R'),  week+':R').slice(0,2);
+  const pickSR = seededShuffle(byRarity('SR'), week+':SR')[0];
+  const ssrPool = byRarity('SSR');
+  const weekNum = Math.floor(new Date(week).getTime()/(7*86400000));
+  const pickSSR = (weekNum % 2 === 0) && ssrPool.length ? seededShuffle(ssrPool, week+':SSR')[0] : null;
+  return [pickN, ...pickRs, pickSR, pickSSR].filter(Boolean);
+}
+function renderCardShop(){
+  const week = getWeekIso();
+  const cards = getWeeklyCards();
+  const nextMon = new Date(week);
+  nextMon.setUTCDate(nextMon.getUTCDate()+7);
+  const daysLeft = Math.ceil((nextMon - new Date())/86400000);
+  let html = `<div class="card-shop-header">
+    <div class="card-shop-week">🗓️ ตู้การ์ดประจำสัปดาห์ · เริ่ม ${week}</div>
+    <div class="card-shop-rotate">🔄 หมุนเวียนใน ~${daysLeft} วัน</div>
+  </div>`;
+  cards.forEach(c=>{
+    const price = CARD_SHOP_PRICES[c.rarity] || 999;
+    const lvReq = CARD_SHOP_LV_LOCK[c.rarity] || 1;
+    const owned = (player.inventory && player.inventory[c.id]) || 0;
+    const canAfford = player.kc >= price;
+    const lvOk = player.lv >= lvReq;
+    const can = canAfford && lvOk;
+    const lockReason = !lvOk ? `🔒 ต้อง Lv ${lvReq}` : (!canAfford ? '💎 ไม่พอ' : '');
+    html += `<div class="shop-item shop-card-item rarity-${c.rarity}">
+      <div class="shop-item-icon">${c.icon||'🎴'}</div>
+      <div class="shop-item-info">
+        <div class="shop-item-name"><span class="card-rarity-tag tag-${c.rarity}">${c.rarity}</span> ${escapeHtml(c.name)}</div>
+        <div class="shop-item-desc">${escapeHtml(c.desc||'')}${owned?` · มีอยู่ ${owned}`:''}</div>
+      </div>
+      <button class="shop-buy" onclick="buyCard('${c.id}',${price})" ${can?'':'disabled'} title="${lockReason}">
+        <span class="price">${price} 💎</span>
+        ${lockReason?`<span class="lock-reason">${lockReason}</span>`:''}
+      </button>
+    </div>`;
+  });
+  html += `<div class="card-shop-footer">💡 อยากได้ใบที่ไม่มีในร้าน? ลอง Gacha · หรือรอสัปดาห์หน้า</div>`;
+  return html;
+}
+function buyCard(cardId, price){
+  if(!currentUser){
+    toast('🔒 ต้องเข้าสู่ระบบก่อนซื้อการ์ด');
+    if(typeof openAuthModal==='function') openAuthModal();
+    return;
+  }
+  const card = CARDS.find(c=>c.id===cardId);
+  if(!card){ toast('ไม่พบการ์ด'); return; }
+  const lvReq = CARD_SHOP_LV_LOCK[card.rarity] || 1;
+  if(player.lv < lvReq){ toast(`🔒 ต้อง Lv ${lvReq} ก่อน`); return; }
+  if(player.kc < price){ toast('💎 Crystal ไม่พอ'); return; }
+  if(!confirm(`ซื้อ "${card.name}" ราคา ${price} 💎?`)) return;
+  player.kc -= price;
+  player.inventory = player.inventory || {};
+  player.inventory[cardId] = (player.inventory[cardId]||0) + 1;
+  saveGame();
+  if(typeof playSfx==='function') playSfx('dropSR');
+  toast(`✨ ได้ ${card.name}!`);
+  switchShopCat('cards');
+  updateHud();
+}
+window.buyCard = buyCard;
 
 function buyItem(action, price){
   if(player.kc < price){ toast('💎 Crystal ไม่พอ'); return; }
