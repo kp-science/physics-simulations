@@ -1522,6 +1522,11 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <span class="mail-badge" id="mailBadge">0</span>
           <span class="icon-label">จดหมาย</span>
         </div>
+        <div class="icon-btn-wrap" id="bookIconWrap" style="display:none;">
+          <button class="icon-btn" onclick="openBook()" title="สมุดทบทวน">📓</button>
+          <span class="icon-badge" id="bookBadge">0</span>
+          <span class="icon-label">สมุด</span>
+        </div>
       </div>
     </div>
 
@@ -3731,9 +3736,18 @@ if(!player.skills) player.skills = {};
 if(!player.currentRegion) player.currentRegion = '1.1';
 if(!player.regionsCleared) player.regionsCleared = []; // ['1.1', '1.2', ...]
 // Innate skills (2026-05-03) — auto-unlock from journey, scale 0-5
-if(!player.innate) player.innate = {vit:0};
-if(!player.innateProgress) player.innateProgress = {vit:0};
+if(!player.innate) player.innate = {vit:0, review:0, recover:0, connect:0};
+if(!player.innateProgress) player.innateProgress = {vit:0, review:0, recover:0, connect:0};
+['vit','review','recover','connect'].forEach(k=>{
+  if(player.innate[k] === undefined) player.innate[k] = 0;
+  if(player.innateProgress[k] === undefined) player.innateProgress[k] = 0;
+});
 if(player.lastAnsWrong === undefined) player.lastAnsWrong = false;
+if(!player.book) player.book = []; // review skill — saved questions, capped by rank
+if(!player.failedThisMap) player.failedThisMap = []; // recover — qids failed this substage
+if(player.recoverHintsThisMap === undefined) player.recoverHintsThisMap = 0;
+if(player.recoverFreeMissesUsed === undefined) player.recoverFreeMissesUsed = 0;
+if(!player.formulaHistory) player.formulaHistory = []; // connect — last 3 correct formulas (cross-mob)
 // Cleanup deprecated innate (mnd/wis/foc/grt removed 2026-05-03)
 ['mnd','wis','foc','grt'].forEach(k=>{ if(player.innate && player.innate[k]!==undefined) delete player.innate[k]; if(player.innateProgress && player.innateProgress[k]!==undefined) delete player.innateProgress[k]; });
 delete player.grtRetriesLeft; delete player.grtCurStageKey;
@@ -3743,16 +3757,45 @@ const INNATE = {
     desc:'ลด XP penalty เมื่อตอบผิด · เก่งขึ้นจากการลุกขึ้นใหม่',
     track:'ตอบผิดแล้วกลับมาตอบถูกในข้อถัดไป (recovery)',
     ranks:[10,30,60,100,150],
-    effectAt:r => r ? `−${r*10}% XP penalty` : '—' }
+    effectAt:r => r ? `−${r*10}% XP penalty` : '—' },
+  review: { name:'ทบทวน', icon:'📓', color:'#38bdf8',
+    desc:'สมุดสะสมโจทย์ — เลือกข้อสำคัญมาทบทวน + ฝึกซ้ำใน sandbox',
+    track:'กดปุ่ม "📌 บันทึก" บนหน้า result เพื่อเก็บโจทย์เข้าสมุด',
+    ranks:[5,15,30,60,120],
+    effectAt:r => r ? `สมุด ${r} ข้อ${r>=3?' + sandbox':''}${r>=4?' + สรุปสถิติ':''}${r>=5?' + export PDF':''}` : 'สมุด 0 ข้อ' },
+  recover: { name:'แก้จากผิด', icon:'🧱', color:'#fb923c',
+    desc:'เปิดฮินต์หลังตอบผิด — แก้สำเร็จได้ XP คูณ + ครั้งแรกที่ผิดในแมพไม่โดน penalty',
+    track:'ผิด → ใช้ฮินต์ → ตอบถูก ในแมพเดียว (cleared เมื่อออกแมพ)',
+    ranks:[3,10,25,50,90],
+    effectAt:r => {
+      if(!r) return '—';
+      const cap = r;
+      const xpMul = [1.2,1.5,2,2.5,3][r-1];
+      const free = r>=5 ? 2 : (r>=4 ? 1 : 0);
+      return `ฮินต์ ${cap}/แมพ · แก้สำเร็จ XP ×${xpMul}${free?` · ผิดฟรี ${free}/แมพ`:''}`;
+    } },
+  connect: { name:'เชื่อมโยง', icon:'🔗', color:'#a78bfa',
+    desc:'ใช้สูตรเดียวกันต่างบริบท — combo คงไว้ข้ามมอน + XP bonus',
+    track:'ตอบถูก 2 ข้อต่างกันที่ใช้สูตรเดียวกัน (ต้อง tag q.formula)',
+    ranks:[3,10,25,50,90],
+    effectAt:r => {
+      if(!r) return '—';
+      const carry = r;
+      const xpPct = [10,15,20,30,50][r-1];
+      const fm = r>=4 ? ` · Formula Mastery: choice cut −${r-3}` : '';
+      return `combo คง +${carry} ข้ามมอน · สูตรซ้ำ XP +${xpPct}%${fm}`;
+    } }
 };
 
 function getInnateRank(key){ return (player.innate && player.innate[key]) || 0; }
 function bumpInnate(key, n){
   n = n || 1;
-  if(!player.innate) player.innate = {vit:0};
-  if(!player.innateProgress) player.innateProgress = {vit:0};
+  if(!player.innate) player.innate = {};
+  if(!player.innateProgress) player.innateProgress = {};
   if(!INNATE[key]) return;
-  player.innateProgress[key] = (player.innateProgress[key] || 0) + n;
+  if(player.innate[key] === undefined) player.innate[key] = 0;
+  if(player.innateProgress[key] === undefined) player.innateProgress[key] = 0;
+  player.innateProgress[key] = player.innateProgress[key] + n;
   // check rank-up
   const def = INNATE[key]; if(!def) return;
   const cur = getInnateRank(key);
@@ -3766,6 +3809,288 @@ function bumpInnate(key, n){
     }, 500);
   }
 }
+
+// ── 📓 ทบทวน — book helpers ──
+function getBookCapacity(){ return getInnateRank('review'); }
+function isBookSandboxUnlocked(){ return getInnateRank('review') >= 3; }
+function isBookStatsUnlocked(){ return getInnateRank('review') >= 4; }
+function isBookExportUnlocked(){ return getInnateRank('review') >= 5; }
+function saveQuestionToBook(qid, wasCorrect, mark){
+  const cap = getBookCapacity();
+  if(cap <= 0){ toast('📓 ยังไม่ปลด ทบทวน · ผ่านการบันทึกข้อสอบเข้าระบบก่อน'); return false; }
+  // already in book?
+  if(player.book.some(b => b.qid === qid)){ toast('โจทย์นี้มีในสมุดแล้ว'); return false; }
+  if(player.book.length >= cap){ toast(`สมุดเต็ม (${cap}/${cap}) · ต้องลบข้อเก่าก่อน`); return false; }
+  player.book.push({ qid, wasCorrect: !!wasCorrect, mark: mark || (wasCorrect?'green':'red'), savedAt: Date.now() });
+  bumpInnate('review');
+  toast('📓 บันทึกเข้าสมุดแล้ว');
+  saveGame();
+  if(typeof refreshBookBadge === 'function') refreshBookBadge();
+  return true;
+}
+
+// ── 🧱 แก้จากผิด — recover helpers ──
+function getRecoverHintCapacity(){ return getInnateRank('recover'); } // 1..5 = max hints/map
+function getRecoverXpMultiplier(){
+  const r = getInnateRank('recover');
+  return [1, 1.2, 1.5, 2, 2.5, 3][r] || 1;
+}
+function getRecoverFreeMissesAllowed(){
+  const r = getInnateRank('recover');
+  if(r >= 5) return 2;
+  if(r >= 4) return 1;
+  return 0;
+}
+function getRecoverHintForLevel(q, level){
+  // level 1..5 = formula, vars, step1, misconception, allButAnswer
+  if(!q) return null;
+  if(level === 1) return q.formula ? `สูตรที่ใช้: ${q.formula}` : (q.hints && q.hints[0]) || 'ครูยังไม่ได้ใส่ฮินต์ Lv.1';
+  if(level === 2) return q.givens ? `ตัวแปรที่โจทย์ให้: ${q.givens}` : (q.hints && q.hints[0]) || 'ครูยังไม่ได้ใส่ฮินต์ Lv.2';
+  if(level === 3) return q.step1 || (q.hints && q.hints[1]) || 'ครูยังไม่ได้ใส่ฮินต์ Lv.3';
+  if(level === 4) return q.misconception ? `⚠️ ระวัง: ${q.misconception}` : 'ครูยังไม่ได้ใส่ misconception trap';
+  if(level === 5){
+    if(q.solution) return `วิธีคิดเต็ม: ${q.solution}`;
+    if(q.hints && q.hints.length) return q.hints.join(' → ');
+    if(q.explanation) return q.explanation;
+    return 'ครูยังไม่ได้ใส่วิธีคิดเต็ม';
+  }
+  return null;
+}
+
+// ── 🔗 เชื่อมโยง — connect helpers ──
+function getConnectComboCarry(){ return getInnateRank('connect'); } // +rank combo carried
+function getConnectXpBonus(){
+  const r = getInnateRank('connect');
+  return [0, 0.10, 0.15, 0.20, 0.30, 0.50][r] || 0;
+}
+function getConnectChoiceCut(){
+  const r = getInnateRank('connect');
+  return r >= 4 ? (r - 3) : 0; // r=4 → 1 cut, r=5 → 2 cuts (Formula Mastery)
+}
+function recordCorrectFormula(formula){
+  if(!formula) return { matched:false, formulaStreak:0 };
+  if(!player.formulaHistory) player.formulaHistory = [];
+  const recent = player.formulaHistory.slice(-3);
+  const matched = recent.includes(formula);
+  // count consecutive same-formula at the end
+  let streak = 1;
+  for(let i = player.formulaHistory.length - 1; i >= 0; i--){
+    if(player.formulaHistory[i] === formula) streak++;
+    else break;
+  }
+  player.formulaHistory.push(formula);
+  if(player.formulaHistory.length > 10) player.formulaHistory = player.formulaHistory.slice(-10);
+  return { matched, formulaStreak: streak };
+}
+
+// ── Result screen: render "📌 บันทึก" + 🧱 hint-retry buttons ──
+function renderResultInnateActions(wasCorrect){
+  const host = document.getElementById('rInnateActions');
+  if(!host) return;
+  host.innerHTML = '';
+  const q = bState && bState.q;
+  if(!q) return;
+  let html = '';
+  // 🧱 Recover: only on wrong/timeout, has rank, hints left in this map, q has any hint content
+  const recoverRank = getInnateRank('recover');
+  if(!wasCorrect && recoverRank > 0 && currentSubstage){
+    const cap = getRecoverHintCapacity();
+    const used = player.recoverHintsThisMap || 0;
+    if(used < cap){
+      const nextLevel = Math.min(used + 1, recoverRank);
+      const preview = getRecoverHintForLevel(q, nextLevel) || 'ไม่มีข้อมูลฮินต์';
+      const previewShort = preview.length > 50 ? preview.slice(0,50)+'…' : preview;
+      html += `<button class="result-cta" style="background:linear-gradient(135deg,#3a2517,#1a0e07);border:1px solid #fb923c;color:#fb923c;font-size:0.86rem;padding:10px;" onclick="recoverRetry()">🧱 ใช้ฮินต์ Lv.${nextLevel} แล้วลองใหม่ (${used}/${cap})</button>
+        <div style="font-size:0.68rem;color:var(--muted);text-align:center;line-height:1.3;">ตัวอย่าง: ${previewShort} · drop −50% เมื่อใช้ฮินต์</div>`;
+    }
+  }
+  // 📓 Save to book: on victory or even on wrong (let player save tough ones)
+  const cap = getBookCapacity();
+  if(cap > 0){
+    const already = player.book.some(b => b.qid === q.id);
+    const full = player.book.length >= cap;
+    let label;
+    if(already) label = '📓 มีในสมุดแล้ว';
+    else if(full) label = `📓 สมุดเต็ม (${player.book.length}/${cap})`;
+    else label = `📌 บันทึกเข้าสมุด (${player.book.length}/${cap})`;
+    const disabled = already || full;
+    html += `<button class="result-cta" style="background:${disabled?'rgba(56,189,248,.12)':'linear-gradient(135deg,#0a1020,#0f1a2e)'};border:1px solid var(--accent);color:${disabled?'var(--muted)':'var(--accent)'};font-size:0.86rem;padding:10px;${disabled?'opacity:.6;cursor:not-allowed;':''}" ${disabled?'disabled':`onclick="bookSaveCurrent(${wasCorrect?1:0})"`}>${label}</button>`;
+  }
+  host.innerHTML = html;
+}
+// Re-enter same question with the next hint revealed
+function recoverRetry(){
+  const q = bState && bState.q; if(!q) return;
+  const cap = getRecoverHintCapacity();
+  const used = player.recoverHintsThisMap || 0;
+  if(used >= cap){ toast(`ฮินต์หมดในแมพนี้ (${cap}/${cap})`); return; }
+  const recoverRank = getInnateRank('recover');
+  const nextLevel = Math.min(used + 1, recoverRank);
+  player.recoverHintsThisMap = used + 1;
+  // Re-enter the same battle: keep mobData, reset answer state
+  bState.locked = false;
+  bState.ans = null;
+  bState.usedRecoverHint = true;
+  bState.recoverHintLevel = nextLevel;
+  // mark the qid as failed-this-map (for recovery tracking on next correct)
+  if(!player.failedThisMap.includes(q.id)) player.failedThisMap.push(q.id);
+  // Re-render battle
+  if(typeof renderAnswerInput==='function') renderAnswerInput(q);
+  // Display hint in the hint reveal area
+  const r = document.getElementById('bHintReveal');
+  const hintText = getRecoverHintForLevel(q, nextLevel) || '—';
+  if(r) r.innerHTML = `<div class="b-hint-revealed" style="border-left:3px solid #fb923c;background:rgba(251,146,60,.08);">🧱 Lv.${nextLevel}: ${hintText}</div>`;
+  // hide MP-hint button (we already used recover)
+  const hb = document.getElementById('bHintBtn'); if(hb) hb.style.display = 'none';
+  document.getElementById('bAttackBtn').disabled = false;
+  document.getElementById('rTitle').classList.remove('fail');
+  showScreen('battle');
+  if(typeof startTimer==='function') startTimer(false);
+  saveGame();
+}
+window.recoverRetry = recoverRetry;
+function bookSaveCurrent(wasCorrect){
+  const q = bState && bState.q; if(!q) return;
+  if(saveQuestionToBook(q.id, !!wasCorrect)){
+    renderResultInnateActions(wasCorrect);
+    refreshBookBadge();
+  }
+}
+window.bookSaveCurrent = bookSaveCurrent;
+function refreshBookBadge(){
+  const wrap = document.getElementById('bookIconWrap');
+  const bdg = document.getElementById('bookBadge');
+  if(!wrap || !bdg) return;
+  const cap = getBookCapacity();
+  if(cap <= 0){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const n = player.book.length;
+  bdg.textContent = `${n}/${cap}`;
+  bdg.style.display = '';
+}
+
+// ── 📓 Book modal ──
+function openBook(){
+  const cap = getBookCapacity();
+  if(cap <= 0){ toast('📓 ยังไม่ปลด ทบทวน · กดบันทึกข้อในหน้า result เพื่อปลด Rank 1'); return; }
+  let modal = document.getElementById('bookModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'bookModal';
+    modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.92);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:18px 12px;overflow-y:auto;';
+    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+    (document.getElementById('game') || document.body).appendChild(modal);
+  }
+  const sandboxOn = isBookSandboxUnlocked();
+  const statsOn = isBookStatsUnlocked();
+  const exportOn = isBookExportUnlocked();
+  const items = player.book.map((b, idx) => {
+    const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+    const stmt = q ? (q.statement || '').replace(/<[^>]+>/g,' ').slice(0,90) : `(โจทย์ ${b.qid} ไม่พบ)`;
+    const markColor = b.mark === 'green' ? '#34d399' : (b.mark === 'yellow' ? '#fbbf24' : '#f87171');
+    const markIcon = b.mark === 'green' ? '🟢' : (b.mark === 'yellow' ? '🟡' : '🔴');
+    return `<div class="book-item" style="border:1px solid var(--border);border-left:3px solid ${markColor};border-radius:8px;padding:9px 10px;margin-bottom:8px;background:rgba(15,26,46,.5);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);">${b.qid}</span>
+        <div style="display:flex;gap:3px;">
+          <button onclick="bookCycleMark(${idx})" title="เปลี่ยน mark" style="background:transparent;border:1px solid var(--border);color:${markColor};border-radius:6px;padding:2px 6px;font-size:0.85rem;cursor:pointer;">${markIcon}</button>
+          ${sandboxOn ? `<button onclick="bookReplay(${idx})" title="ฝึกซ้ำใน sandbox" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:0.7rem;cursor:pointer;">▶ ฝึก</button>` : ''}
+          <button onclick="bookRemove(${idx})" title="ลบ" style="background:transparent;border:1px solid var(--red);color:var(--red);border-radius:6px;padding:2px 6px;font-size:0.75rem;cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div style="font-size:0.78rem;line-height:1.4;color:var(--text);">${stmt}${q && (q.statement||'').length>90?'…':''}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-style:italic;text-align:center;padding:20px 0;">— สมุดยังว่าง · กดปุ่ม 📌 บันทึก ในหน้า result —</div>';
+
+  let stats = '';
+  if(statsOn && player.book.length){
+    const counts = { green:0, yellow:0, red:0 };
+    player.book.forEach(b=>{ counts[b.mark||'red']++; });
+    stats = `<div style="margin-top:10px;padding:8px;border:1px solid var(--border);border-radius:8px;background:rgba(15,26,46,.4);font-size:0.76rem;">
+      <div style="font-weight:700;color:var(--accent);margin-bottom:5px;">📊 สถิติสมุด</div>
+      <div>🟢 เข้าใจ: ${counts.green} · 🟡 ไม่แน่ใจ: ${counts.yellow} · 🔴 ยังงง: ${counts.red}</div>
+    </div>`;
+  }
+  const exportBtn = exportOn ? `<button onclick="bookExportText()" style="width:100%;margin-top:8px;background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:8px;cursor:pointer;font-size:0.8rem;">📤 Export ข้อความ (สำหรับครู)</button>` : '';
+
+  modal.innerHTML = `<div style="background:linear-gradient(135deg,var(--panel),var(--panel2));border:2px solid var(--accent);border-radius:14px;padding:16px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.7),0 0 24px rgba(56,189,248,.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;">
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;color:var(--accent);">📓 สมุดทบทวน · ${player.book.length}/${getBookCapacity()}</div>
+      <button onclick="document.getElementById('bookModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;">✕</button>
+    </div>
+    <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:10px;">Rank ${getInnateRank('review')}/5 · ${INNATE.review.effectAt(getInnateRank('review'))}</div>
+    <div style="max-height:50vh;overflow-y:auto;">${items}</div>
+    ${stats}
+    ${exportBtn}
+  </div>`;
+}
+function bookCycleMark(idx){
+  const b = player.book[idx]; if(!b) return;
+  const order = ['green','yellow','red'];
+  const cur = order.indexOf(b.mark || 'red');
+  b.mark = order[(cur + 1) % order.length];
+  saveGame(); openBook();
+}
+function bookRemove(idx){
+  player.book.splice(idx, 1);
+  saveGame(); openBook(); refreshBookBadge();
+}
+function bookReplay(idx){
+  if(!isBookSandboxUnlocked()){ toast('Sandbox ปลดที่ Rank 3'); return; }
+  const b = player.book[idx]; if(!b) return;
+  const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+  if(!q){ toast('ไม่พบโจทย์'); return; }
+  document.getElementById('bookModal')?.remove();
+  // Sandbox: enter battle but flagged sandbox (no XP/MP/timer cost)
+  enterSandboxBattle(q);
+}
+function bookExportText(){
+  const lines = player.book.map((b,i)=>{
+    const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+    const stmt = q ? (q.statement || '').replace(/<[^>]+>/g,' ') : `(${b.qid})`;
+    const ans = q ? (q.correct !== undefined ? q.correct : '—') : '—';
+    return `${i+1}. [${b.mark}] ${b.qid}\n   ${stmt}\n   เฉลย: ${ans}`;
+  }).join('\n\n');
+  const blob = new Blob([`📓 สมุดทบทวน — ${new Date().toLocaleString('th-TH')}\n\n${lines}`], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `book-${Date.now()}.txt`; a.click();
+  URL.revokeObjectURL(url);
+  toast('📤 Export แล้ว');
+}
+function enterSandboxBattle(q){
+  // Lightweight sandbox — wraps a fake mob just enough for renderAnswerInput
+  const mobData = { mob:{ name:'Sandbox', element:'Σ', id:'ball' }, lv: player.lv, qIdx:-1, isSandbox:true };
+  const buffs = (typeof getActiveBuffs==='function') ? getActiveBuffs() : {};
+  bState = { mobData, q, timer: 9999, timerInterval:null, ans:null, hintsUsed:0, locked:false, twoStepIdx:0,
+             rerollCardCharges: 0, choiceCutApplied:false, isSandbox:true };
+  document.getElementById('bMobName').textContent = '📓 SANDBOX';
+  document.getElementById('bMobLv').textContent = '—';
+  document.getElementById('bMobElement').innerHTML = '';
+  const bma = document.getElementById('bMobArt');
+  bma.innerHTML = `<div style="font-size:3rem;text-align:center;padding:20px;">📓</div>`;
+  document.getElementById('bCombo').textContent = '—';
+  document.getElementById('bQId').textContent = `Q · ${q.id} · ${q.title || 'sandbox'}`;
+  document.getElementById('bQTxt').innerHTML = q.statement || '';
+  const figEl = document.getElementById('bFigure');
+  if(figEl){
+    if(q.figure){ figEl.innerHTML = q.figure; figEl.style.display = 'block'; }
+    else { figEl.innerHTML = ''; figEl.style.display = 'none'; }
+  }
+  document.getElementById('bHintBtn').style.display = 'none';
+  document.getElementById('bHintReveal').innerHTML = '<div style="text-align:center;font-size:0.72rem;color:var(--muted);padding:6px;border:1px dashed var(--border);border-radius:6px;margin:6px 0;">🧪 SANDBOX MODE · ไม่มี timer · ไม่มี XP · ฝึกซ้ำได้</div>';
+  if(typeof renderAnswerInput==='function') renderAnswerInput(q);
+  if(typeof renderBattleSkillBar==='function') renderBattleSkillBar();
+  showScreen('battle');
+  // disable timer countdown by clearing immediately
+  if(bState.timerInterval) clearInterval(bState.timerInterval);
+}
+window.openBook = openBook;
+window.bookCycleMark = bookCycleMark;
+window.bookRemove = bookRemove;
+window.bookReplay = bookReplay;
+window.bookExportText = bookExportText;
+window.refreshBookBadge = refreshBookBadge;
 
 // ═══════════════════════════════════════════════
 // SKILL TREE — 5 lanes per stat, 1 SP per 2 levels
@@ -3998,6 +4323,10 @@ function handleStageClick(mode, stageId){
     pool,
     mobs:[]
   };
+  // 🧱 Recover: clear per-map state when entering a new substage
+  player.failedThisMap = [];
+  player.recoverHintsThisMap = 0;
+  player.recoverFreeMissesUsed = 0;
   // Update substage UI labels (mockup format: clean title + uppercase meta)
   const isHard = (mode === 'legend');
   const region = REGIONS[player.currentRegion] || REGIONS['1.1'];
@@ -5051,6 +5380,7 @@ function doGachaPull(count){
 function closePull(){ document.getElementById('pullResult').classList.remove('show'); switchShopCat(shopCat); updateHud(); }
 
 function updateHud(){
+  if(typeof refreshBookBadge==='function') refreshBookBadge();
   const need = xpForLv(player.lv);
   const xpPct = Math.min(100, player.xp/need*100);
   const invCount = Object.values(player.inventory).reduce((a,b)=>a+b,0);
@@ -5123,8 +5453,30 @@ let bState = null; // {mob, lv, q, timer, timerInterval, ans, hintsUsed, locked,
 function enterBattle(mobData){
   const q = QUESTIONS[mobData.qIdx];
   const buffs = getActiveBuffs();
+  // 🔗 Connect: combo-carry across mobs when next q's formula matches recent history
+  if(q && q.formula && getInnateRank('connect') > 0){
+    const recent = (player.formulaHistory || []).slice(-3);
+    if(recent.includes(q.formula) && player.combo === 0){
+      player.combo = getConnectComboCarry();
+      if(player.combo > 0){
+        setTimeout(()=>toast(`🔗 combo คง +${player.combo} (สูตรซ้ำ)`), 200);
+      }
+    }
+  }
   bState = {mobData, q, timer:30.0, timerInterval:null, ans:null, hintsUsed:0, locked:false, twoStepIdx:0,
             rerollCardCharges: buffs.rerollCharge || 0, choiceCutApplied:false};
+  // 🔗 Formula Mastery (rank 4+): if the streak of this formula is 3+, give choice cut
+  if(q && q.formula && getConnectChoiceCut() > 0){
+    const hist = player.formulaHistory || [];
+    let streak = 0;
+    for(let i = hist.length - 1; i >= 0; i--){
+      if(hist[i] === q.formula) streak++; else break;
+    }
+    if(streak >= 3){
+      // Stash a synthetic choice-cut on bState so renderAnswerInput applies it
+      bState.connectChoiceCut = getConnectChoiceCut();
+    }
+  }
   document.getElementById('bMobName').textContent = mobData.mob.name;
   document.getElementById('bMobLv').textContent = mobData.lv;
   document.getElementById('bMobElement').innerHTML = elementBadgeHtml(mobData.mob.element, 11);
@@ -5161,7 +5513,7 @@ function renderAnswerInput(q){
     let cutKeys = new Set();
     if(bState){
       if(!bState.choiceCutApplied){
-        const cut = (getActiveBuffs().choiceCut || 0);
+        const cut = (getActiveBuffs().choiceCut || 0) + (bState.connectChoiceCut || 0);
         if(cut > 0){
           const wrongs = q.choices.filter(ch => ch.key !== q.correct).map(ch => ch.key);
           const shuffled = wrongs.slice().sort(()=>Math.random()-0.5);
@@ -5490,8 +5842,22 @@ function onWrong(){
     });
   }
   player.combo = 0;
+  // 🧱 Recover: track failed qid this map (for recovery tracking on next correct)
+  if(currentSubstage && bState.q && !player.failedThisMap.includes(bState.q.id)){
+    player.failedThisMap.push(bState.q.id);
+  }
+  // 🧱 Recover: free-miss grace — first N wrongs in map are penalty-free
+  let graceUsed = false;
+  if(currentSubstage){
+    const allowed = getRecoverFreeMissesAllowed();
+    const used = player.recoverFreeMissesUsed || 0;
+    if(used < allowed){
+      player.recoverFreeMissesUsed = used + 1;
+      graceUsed = true;
+    }
+  }
   // ── XP penalty (educational anti-mash) ──
-  const pen = applyXpPenalty();
+  const pen = graceUsed ? 0 : applyXpPenalty();
   if(pen > 0) showXpPenaltyToast(pen);
   // ── Pity MP regen (+0.5) — anti-starvation, keeps engagement reward even when wrong ──
   pityMpRegen();
@@ -5499,13 +5865,14 @@ function onWrong(){
     document.getElementById('rIcon').textContent = '😶';
     document.getElementById('rTitle').textContent = 'ตอบผิด';
     document.getElementById('rTitle').classList.add('fail');
-    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · กลับไปอ่านอีกครั้ง` : 'มอนสเตอร์หัวเราะเยาะ! ลองใหม่ได้';
+    document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · กลับไปอ่านอีกครั้ง` : (graceUsed ? '🧱 ผิดฟรี (จาก แก้จากผิด) · ลองใหม่ได้' : 'มอนสเตอร์หัวเราะเยาะ! ลองใหม่ได้');
     const rXp = document.getElementById('rXp');
     rXp.textContent = pen > 0 ? `−${pen}` : '+0';
     rXp.style.color = pen > 0 ? 'var(--red)' : '';
     document.getElementById('rKc').textContent = '+0';
     document.getElementById('rCombo').textContent = '×0 (หลุด)';
     document.getElementById('rDrop').innerHTML = '';
+    renderResultInnateActions(false);
     showScreen('result');
     saveGame();
     updateHud();
@@ -5521,7 +5888,16 @@ function timeOut(){
   shake('med');
   player.combo = 0;
   player.lastAnsWrong = true;
-  const pen = applyXpPenalty();
+  if(currentSubstage && bState && bState.q && !player.failedThisMap.includes(bState.q.id)){
+    player.failedThisMap.push(bState.q.id);
+  }
+  let graceUsed = false;
+  if(currentSubstage){
+    const allowed = getRecoverFreeMissesAllowed();
+    const used = player.recoverFreeMissesUsed || 0;
+    if(used < allowed){ player.recoverFreeMissesUsed = used + 1; graceUsed = true; }
+  }
+  const pen = graceUsed ? 0 : applyXpPenalty();
   if(pen > 0) showXpPenaltyToast(pen);
   pityMpRegen();
   setTimeout(()=>{
@@ -5535,6 +5911,7 @@ function timeOut(){
     document.getElementById('rKc').textContent = '+0';
     document.getElementById('rCombo').textContent = '×0';
     document.getElementById('rDrop').innerHTML = '';
+    renderResultInnateActions(false);
     showScreen('result');
     saveGame();
     updateHud();
@@ -5570,8 +5947,31 @@ function processVictory(){
     mul *= 3;
     player.seenQuestions.push(bState.q.id);
   }
-  // hint penalty
+  // hint penalty (MP hint skill)
   if(bState.hintsUsed > 0) mul *= 0.5;
+  // 🧱 Recover-hint penalty (separate from MP hint): drop/XP cut
+  if(bState.usedRecoverHint) mul *= 0.5;
+  // 🧱 Recover XP bonus: if this qid was failed-then-recovered in this map → multiplier
+  let recoveredHere = false;
+  if(currentSubstage && bState.q && player.failedThisMap.includes(bState.q.id)){
+    recoveredHere = true;
+    const recMul = getRecoverXpMultiplier();
+    if(recMul > 1) mul *= recMul;
+    bumpInnate('recover');
+    // Remove the qid so additional kills of same q don't keep getting the bonus
+    player.failedThisMap = player.failedThisMap.filter(x => x !== bState.q.id);
+  }
+  // 🔗 Connect: formula-history bookkeeping + XP bonus when same formula recently
+  let formulaMatched = false;
+  if(bState.q && bState.q.formula){
+    const result = recordCorrectFormula(bState.q.formula);
+    formulaMatched = result.matched;
+    if(formulaMatched){
+      const cb = getConnectXpBonus();
+      if(cb > 0) mul *= (1 + cb);
+      bumpInnate('connect');
+    }
+  }
   // ── Element synergy: best equipped-card multiplier vs mob ──
   const mobEl = bState.mobData.mob.element;
   const eqElements = Object.values(player.equipped).map(id => {
@@ -5610,7 +6010,8 @@ function processVictory(){
   dropChance += (player.luk || 5) * 0.005;                  // LUK scaling: +0.5% per point (LUK 50 → +25%)
   if(worldMatch) dropChance += 0.05;                        // World element match
   dropChance += (buffs.dropBonus || 0);                     // card buff
-  if(bState.hintsUsed > 0) dropChance *= 0.5;               // hint penalty
+  if(bState.hintsUsed > 0) dropChance *= 0.5;               // hint penalty (MP)
+  if(bState.usedRecoverHint) dropChance *= 0.5;             // 🧱 recover hint penalty
   dropChance *= elemMul;                                    // element synergy
 
   let drop = null;
@@ -5723,6 +6124,7 @@ function processVictory(){
     </div>`;
   }
   dropEl.innerHTML = dropHtml ? `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">${dropHtml}</div>` : '';
+  renderResultInnateActions(true);
 
   // ── SFX: stage clear > drop reveal (rarity-based) ──
   if(stageJustCleared){
