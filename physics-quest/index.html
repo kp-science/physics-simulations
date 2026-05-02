@@ -2500,23 +2500,49 @@ function shouldUseRedirectAuth(){
   return isSafari || isIOS || isAndroid || isMobile;
 }
 
+// Detect in-app browsers (LINE/Facebook/Messenger/etc.) that block OAuth
+function isInAppBrowser(){
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|Twitter|TikTok|Snapchat|KAKAOTALK/i.test(ua);
+}
+
 async function signInWithGoogle(){
   if(!PQ_FB){ toast('Firebase ยังไม่พร้อม รอสักครู่...'); return; }
+  // Block in-app browsers up front — they silently fail OAuth
+  if(isInAppBrowser()){
+    const errEl = document.getElementById('authError');
+    const msg = '⚠️ เปิดเกมใน Safari หรือ Chrome ตรงๆ — แอป (LINE/FB/Messenger) บล็อก Google login ในตัว';
+    if(errEl) errEl.textContent = msg;
+    toast(msg);
+    return;
+  }
   const provider = new PQ_FB.GoogleAuthProvider();
   const errEl = document.getElementById('authError');
   try{
     if(shouldUseRedirectAuth()){
       // Safari/iOS/Android: redirect-based (popup blocked by ITP / mobile UA)
       if(errEl) errEl.textContent = 'กำลังเปลี่ยนหน้าไป Google...';
-      await PQ_FB.signInWithRedirect(PQ_FB.auth, provider);
-      // Browser navigates away — code below won't run until return
+      // Delay log line so we see if call hangs
+      console.log('[google-signin] calling signInWithRedirect...');
+      try{
+        await PQ_FB.signInWithRedirect(PQ_FB.auth, provider);
+        console.log('[google-signin] signInWithRedirect returned (unexpected — should have navigated away)');
+      }catch(redirErr){
+        // Redirect failed — try popup as fallback
+        console.error('[google-signin] redirect failed, trying popup', redirErr);
+        if(errEl) errEl.textContent = 'redirect ล้มเหลว — ลอง popup...';
+        await PQ_FB.signInWithPopup(PQ_FB.auth, provider);
+        closeAuthModal();
+      }
     } else {
       await PQ_FB.signInWithPopup(PQ_FB.auth, provider);
       closeAuthModal();
     }
   }catch(e){
-    console.error('[google-signin]', e);
-    if(errEl) errEl.textContent = friendlyAuthError(e);
+    console.error('[google-signin] final error', e);
+    const msg = friendlyAuthError(e) + ` [${e.code || e.name || 'error'}]`;
+    if(errEl) errEl.textContent = msg;
+    toast(msg);
   }
 }
 window.signInWithGoogle = signInWithGoogle;
