@@ -801,6 +801,13 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .char-sec-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
 .char-sec-h h3{font-family:'Cinzel',serif;color:var(--accent);font-size:0.92rem;letter-spacing:.8px;flex:1;}
 .points-pill{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:#000;background:linear-gradient(135deg,var(--gold),var(--orange));padding:2px 9px;border-radius:9px;font-weight:700;letter-spacing:.4px;}
+.char-actions-row{display:flex;gap:8px;flex-wrap:wrap;}
+.char-action-btn{flex:1;min-width:140px;padding:11px 10px;border-radius:11px;border:1.5px solid;font-family:'Sarabun',sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;transition:.15s;}
+.char-action-btn.save{background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(56,189,248,.10));border-color:var(--green);color:var(--green);}
+.char-action-btn.save:hover{background:linear-gradient(135deg,rgba(52,211,153,.3),rgba(56,189,248,.18));transform:translateY(-1px);box-shadow:0 4px 12px rgba(52,211,153,.25);}
+.char-action-btn.reset{background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(244,114,182,.10));border-color:var(--purple);color:var(--purple);}
+.char-action-btn.reset:hover{background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(244,114,182,.18));transform:translateY(-1px);box-shadow:0 4px 12px rgba(167,139,250,.25);}
+.char-action-btn .cost{font-family:'Share Tech Mono',monospace;font-size:0.7rem;background:rgba(0,0,0,.3);padding:1px 6px;border-radius:6px;}
 .points-pill.zero{background:rgba(15,26,46,.7);color:var(--muted);border:1px solid var(--border);}
 
 .stat-row{display:grid;grid-template-columns:60px 1fr 28px 28px 28px;gap:7px;align-items:center;padding:5px 0;font-size:0.82rem;}
@@ -1590,6 +1597,14 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <span class="points-pill" id="cardCountPill">0 ใบ</span>
         </div>
         <div id="charCardList"></div>
+      </div>
+
+      <!-- Save + Reset actions -->
+      <div class="char-section">
+        <div class="char-actions-row">
+          <button class="char-action-btn save" onclick="manualSaveFromChar()">💾 บันทึกเกม</button>
+          <button class="char-action-btn reset" onclick="resetSkillsFromChar()">🌳 รีเซ็ตสกิล <span class="cost">500 💎</span></button>
+        </div>
       </div>
     </div>
 
@@ -3672,6 +3687,8 @@ if(!player.stageKills) player.stageKills = {};
 // VIT → LUK migration (2026-05-02): VIT renamed to LUK + repurposed as drop master
 if(player.luk === undefined) player.luk = (player.vit !== undefined ? player.vit : 5);
 if(player.vit !== undefined) delete player.vit;
+// Safety: heal corrupted/NaN stats from earlier saves
+['str','dex','int','agi','luk'].forEach(k=>{ if(!Number.isFinite(player[k])) player[k] = 5; });
 if(!player.equipped) player.equipped = {head:null, body:null, staff:null, boots:null};
 if(player.skillPoints === undefined) player.skillPoints = 0;
 if(!player.skills) player.skills = {};
@@ -4452,6 +4469,43 @@ function renderCharacter(){
   if(fill) fill.style.width = Math.min(100, player.xp/need*100) + '%';
 }
 
+function manualSaveFromChar(){
+  saveGame();
+  if(typeof playSfx==='function') playSfx('correct');
+  if(currentUser && typeof pushCloudSave==='function'){
+    pushCloudSave('manual');
+    toast('💾 บันทึกแล้ว · sync ขึ้น cloud');
+  } else {
+    toast('💾 บันทึกในเครื่องแล้ว · login เพื่อ sync cloud');
+  }
+}
+window.manualSaveFromChar = manualSaveFromChar;
+
+function resetSkillsFromChar(){
+  const PRICE = 500;
+  if(player.kc < PRICE){ toast('💎 Crystal ไม่พอ (ต้อง 500)'); return; }
+  const totalSpent = Object.entries(player.skills||{}).reduce((sum,[id,rk])=>{
+    const node = (typeof getSkillNode==='function') ? getSkillNode(id) : null;
+    return sum + (node ? node.cost * rk : 0);
+  }, 0);
+  if(totalSpent <= 0){ toast('ยังไม่ได้เรียน skill'); return; }
+  if(!confirm(`🌳 รีเซ็ตสกิลทั้งหมด?\n\nหัก 500 💎 · ลบทุก skill ใน tree · คืน ${totalSpent} SP`)) return;
+  player.kc -= PRICE;
+  let refund = 0;
+  Object.entries(player.skills||{}).forEach(([id,rk])=>{
+    const node = (typeof getSkillNode==='function') ? getSkillNode(id) : null;
+    if(node) refund += node.cost * rk;
+  });
+  player.skills = {};
+  player.skillPoints = (player.skillPoints||0) + refund;
+  saveGame();
+  if(typeof playSfx==='function') playSfx('dropSR');
+  toast(`🌳 รีเซต skill · คืน ${refund} SP`);
+  renderCharacter();
+  if(typeof updateHud==='function') updateHud();
+}
+window.resetSkillsFromChar = resetSkillsFromChar;
+
 function adjStat(key, delta){
   if(delta > 0){
     if(getStatPoints() <= 0){ toast('ไม่มี stat points · ขึ้นเลเวลก่อน'); return; }
@@ -4486,7 +4540,7 @@ const SHOP_ITEMS = {
   special:[
     {id:'focus',icon:'🌟',name:'Focus Elixir',desc:'mid-battle · timer ×1.5',price:200,action:'focus'},
     {id:'reset',icon:'🔮',name:'Stat Reset Token',desc:'รีเซตทุก stat กลับเป็น 5 · คืน stat points',price:500,action:'stat_reset'},
-    {id:'skill_reset',icon:'🌳',name:'Skill Reset Token',desc:'รีเซตทุก skill ใน tree · คืน SP เต็มจำนวน',price:800,action:'skill_reset'}
+    {id:'skill_reset',icon:'🌳',name:'Skill Reset Token',desc:'รีเซตทุก skill ใน tree · คืน SP เต็มจำนวน',price:500,action:'skill_reset'}
   ]
 };
 let shopCat = 'gacha';
