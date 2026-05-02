@@ -2337,17 +2337,27 @@ function toggleMute(){
 // ── Fluid scale: fit 390×780 into any viewport (portrait + landscape, iPad incl.) ──
 function updateGameScale(){
   const g = document.getElementById('game'); if(!g) return;
-  // Use visualViewport if available (iOS Safari soft keyboard handling)
   const vw = (window.visualViewport?.width  || window.innerWidth);
   const vh = (window.visualViewport?.height || window.innerHeight);
-  // Body padding baseline (matches CSS body padding 14px each side; safe-area can add more on iPad notch)
   const padX = 28, padY = 28;
   const availW = Math.max(100, vw - padX);
   const availH = Math.max(100, vh - padY);
   const scaleW = availW / 390;
   const scaleH = availH / 780;
-  const scale = Math.min(scaleW, scaleH, 1.7); // cap at 1.7×
+  let scale = Math.min(scaleW, scaleH, 1.7);
+  // Don't shrink below 1.0 on phones (iOS Safari toolbar makes vh small;
+  // shrinking would make UI tiny). If game taller than viewport at 1.0,
+  // we let the body scroll vertically.
+  if(scaleW >= 1.0){
+    scale = Math.max(1.0, scale);
+  } else {
+    // Truly narrow viewport (<390 + 28 = 418px wide) — allow shrink to fit width
+    scale = Math.min(scaleW, 1.0);
+  }
   g.style.setProperty('--pq-scale', scale.toFixed(4));
+  // If scaled height > viewport height, allow body scroll vertically
+  const scaledH = 780 * scale;
+  document.body.style.overflowY = (scaledH > vh - padY) ? 'auto' : 'hidden';
 }
 window.addEventListener('resize', updateGameScale);
 window.addEventListener('orientationchange', updateGameScale);
