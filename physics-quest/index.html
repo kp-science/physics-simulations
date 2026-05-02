@@ -1617,6 +1617,10 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <button class="points-pill" style="cursor:pointer;background:linear-gradient(135deg,rgba(56,189,248,.18),rgba(167,139,250,.10));border:1px solid var(--accent);color:var(--accent);" onclick="openSkillTree()">🌳 SKILL TREE · SP <span id="charSpBadge">0</span></button>
         </div>
         <div class="skills-list" id="charSkillsList"></div>
+        <div class="char-actions-row" style="margin-top:12px;">
+          <button class="char-action-btn save" onclick="manualSaveSkillsFromChar()">💾 บันทึก SKILL</button>
+          <button class="char-action-btn reset" onclick="resetSkillsFromChar()">🌳 รีเซ็ตสกิล <span class="cost">500 💎</span></button>
+        </div>
       </div>
 
       <!-- Cards equipped -->
@@ -4539,9 +4543,10 @@ function renderCharacter(){
         else if(s.id==='mp_costred') effect = `−${(sk.skillCostRed*100).toFixed(0)}% MP cost`;
         else if(s.id==='str_crit') effect = `combo10+ +${(sk.critCombo*100).toFixed(0)}% dmg`;
         else if(s.id==='int_preview') effect = `boss preview +${sk.bossPreviewLv}`;
-        return `<div class="skill-row" style="border-left:2px solid ${s.lane};opacity:.92;">
+        return `<div class="skill-row" style="border-left:2px solid ${s.lane};opacity:.92;display:flex;align-items:center;gap:8px;">
           <div class="skill-icon" style="font-size:1rem;">${s.icon}</div>
-          <div class="skill-info"><div class="skill-name" style="font-size:0.82rem;">${s.name} <span style="color:var(--gold);font-size:0.66rem;">Lv.${s.rk}/${s.maxRank}</span></div><div class="skill-cost">${effect}</div></div>
+          <div class="skill-info" style="flex:1;"><div class="skill-name" style="font-size:0.82rem;">${s.name} <span style="color:var(--gold);font-size:0.66rem;">Lv.${s.rk}/${s.maxRank}</span></div><div class="skill-cost">${effect}</div></div>
+          <button class="stat-help" onclick="showSkillHelp('${s.id}')" title="ดูรายละเอียด">?</button>
         </div>`;
       }).join('');
       html += `<div style="height:8px;"></div>`;
@@ -4549,18 +4554,20 @@ function renderCharacter(){
     // Active skills
     html += `<div style="font-size:0.66rem;color:var(--muted2);margin-bottom:6px;font-family:'Share Tech Mono',monospace;letter-spacing:.5px;">▸ ACTIVE SKILLS</div>`;
     const hintCost = hintMpCost();
-    html += `<div class="skill-row">
+    html += `<div class="skill-row" style="display:flex;align-items:center;gap:8px;">
       <div class="skill-icon">🔍</div>
-      <div class="skill-info"><div class="skill-name">Hint · เปิดตัวแปร 1 ตัว <span style="color:var(--muted2);font-size:0.62rem;">(default)</span></div><div class="skill-cost">${hintCost} MP · drop −50%</div></div>
+      <div class="skill-info" style="flex:1;"><div class="skill-name">Hint · เปิดตัวแปร 1 ตัว <span style="color:var(--muted2);font-size:0.62rem;">(default)</span></div><div class="skill-cost">${hintCost} MP · drop −50%</div></div>
+      <button class="stat-help" onclick="showSkillHelp('hint_default')" title="ดูรายละเอียด">?</button>
     </div>`;
     if(learnedActives.length){
       const costRed = getSkillPassives().skillCostRed;
       html += learnedActives.map(s => {
         const finalMp = Math.max(1, Math.round(s.mp * (1 - costRed)));
         const mpDisp = finalMp < s.mp ? `<span style="color:var(--gold);">${finalMp}</span> <span style="text-decoration:line-through;color:var(--muted2);font-size:0.66rem;">${s.mp}</span>` : `${s.mp}`;
-        return `<div class="skill-row" style="border-left:2px solid ${s.lane};">
+        return `<div class="skill-row" style="border-left:2px solid ${s.lane};display:flex;align-items:center;gap:8px;">
         <div class="skill-icon">${s.icon}</div>
-        <div class="skill-info"><div class="skill-name">${s.name}</div><div class="skill-cost">${mpDisp} MP · ${s.desc}</div></div>
+        <div class="skill-info" style="flex:1;"><div class="skill-name">${s.name} <span style="color:var(--gold);font-size:0.66rem;">Lv.${s.rk}/${s.maxRank}</span></div><div class="skill-cost">${mpDisp} MP · ${s.desc}</div></div>
+        <button class="stat-help" onclick="showSkillHelp('${s.id}')" title="ดูรายละเอียด">?</button>
       </div>`;}).join('');
     } else {
       html += `<div style="text-align:center;padding:10px;color:var(--muted);font-size:0.72rem;">ยังไม่มี active · กด <strong style="color:var(--accent);">🌳 SKILL TREE</strong> เพื่อเรียน</div>`;
@@ -4641,6 +4648,89 @@ function showInnateHelp(key){
   </div>`;
 }
 window.showInnateHelp = showInnateHelp;
+
+function showSkillHelp(skillId){
+  // Special-case the default Hint skill
+  if(skillId === 'hint_default'){
+    return _renderSkillHelpModal({
+      icon:'🔍', name:'Hint (default)', laneColor:'var(--accent)',
+      kind:'active', mp: hintMpCost(), maxRank: '∞',
+      desc: 'เปิดตัวแปร 1 ตัวจากโจทย์ — ลด guesswork',
+      bullets: [
+        `MP cost: ${hintMpCost()} (เริ่ม 10, +5/ครั้งใน battle เดียว)`,
+        'หลังใช้: drop chance ลด 50% (anti-bypass per Earned Mastery)',
+        'ใช้ได้กับโจทย์ทุกประเภท — ไม่ต้องเรียน',
+        'ทุก player มีติดตัวจุดเริ่มต้น'
+      ]
+    });
+  }
+  // Find node in SKILL_TREE
+  let node = null, laneColor = 'var(--accent)';
+  for(const lane of Object.values(SKILL_TREE)){
+    for(const n of lane.nodes){
+      if(n.id === skillId){ node = n; laneColor = lane.color; break; }
+    }
+    if(node) break;
+  }
+  if(!node){ toast('ไม่พบข้อมูลสกิล'); return; }
+  const rk = getSkillRank(node.id);
+  const sk = (typeof getSkillPassives==='function') ? getSkillPassives() : {};
+  // Build current effect line
+  let effectLine = '';
+  if(node.id==='str_combo_cap') effectLine = `combo cap +${sk.comboCapBonus||0} (จาก base 5)`;
+  else if(node.id==='agi_timer') effectLine = `+${sk.timerBonus||0}s timer ทุกข้อ`;
+  else if(node.id==='dex_margin') effectLine = `+${(sk.marginBonus||0).toFixed(1)}% tolerance margin`;
+  else if(node.id==='int_mpregen') effectLine = `+${(sk.mpRegenBonus||0).toFixed(2)} MP/ข้อถูก`;
+  else if(node.id==='mp_maxmp') effectLine = `+${sk.maxMpBonus||0} max MP`;
+  else if(node.id==='agi_resist') effectLine = `${sk.confusionResist||0}% chance หลีก confusion`;
+  else if(node.id==='mp_costred') effectLine = `−${((sk.skillCostRed||0)*100).toFixed(0)}% MP cost ทุก skill`;
+  else if(node.id==='str_crit') effectLine = `combo 10+ → +${((sk.critCombo||0)*100).toFixed(0)}% damage`;
+  else if(node.id==='int_preview') effectLine = `เห็น boss step ล่วงหน้า +${sk.bossPreviewLv||0} step`;
+  else effectLine = node.desc;
+  _renderSkillHelpModal({
+    icon: node.icon, name: node.name, laneColor,
+    kind: node.kind, mp: node.mp, maxRank: node.maxRank, rank: rk,
+    desc: node.desc,
+    bullets: [
+      `ประเภท: ${node.kind === 'active' ? '⚡ Active (ใช้ใน battle)' : '🔮 Passive (ผลถาวร)'}`,
+      node.kind === 'active' ? `MP cost: ${node.mp}` : `Effect ปัจจุบัน: ${effectLine}`,
+      `Rank: ${rk}/${node.maxRank} · cost ${node.cost} SP/rank`,
+      node.prereq ? `Prereq: ต้องเรียน ${node.prereq} ก่อน` : 'ไม่มี prereq',
+    ]
+  });
+}
+function _renderSkillHelpModal(d){
+  let modal = document.getElementById('skillHelpModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'skillHelpModal';
+    modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+    (document.getElementById('game') || document.body).appendChild(modal);
+  }
+  const bullets = d.bullets.map(b=>`<li style="margin-bottom:5px;">${b}</li>`).join('');
+  modal.innerHTML = `<div style="background:linear-gradient(135deg,var(--panel),var(--panel2));border:2px solid ${d.laneColor};border-radius:14px;padding:18px 16px;max-width:340px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 24px ${d.laneColor}33;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;">
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:1.05rem;color:${d.laneColor};">${d.icon} ${d.name}</div>
+      <button onclick="document.getElementById('skillHelpModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.9rem;">✕</button>
+    </div>
+    <div style="font-size:0.8rem;line-height:1.5;color:var(--text);margin-bottom:10px;">${d.desc}</div>
+    <ul style="font-size:0.74rem;line-height:1.4;color:var(--muted2);padding-left:16px;margin:0;">${bullets}</ul>
+  </div>`;
+}
+window.showSkillHelp = showSkillHelp;
+
+function manualSaveSkillsFromChar(){
+  saveGame();
+  if(typeof playSfx==='function') playSfx('correct');
+  if(currentUser && typeof pushCloudSave==='function'){
+    pushCloudSave('manual');
+    toast('💾 บันทึก SKILL แล้ว · sync ขึ้น cloud');
+  } else {
+    toast('💾 บันทึก SKILL แล้ว · login เพื่อ sync cloud');
+  }
+}
+window.manualSaveSkillsFromChar = manualSaveSkillsFromChar;
 
 function manualSaveFromChar(){
   const points = getStatPoints();
