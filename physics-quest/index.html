@@ -1147,7 +1147,8 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .sim-answer-input{width:100%;padding:11px;background:rgba(15,26,46,.7);border:1px solid var(--accent);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.92rem;border-radius:8px;margin-bottom:10px;text-align:center;letter-spacing:1px;box-sizing:border-box;}
 
 /* ── MARQUEE / ANNOUNCEMENT TICKER ── */
-.marquee{position:absolute;top:58px;left:14px;right:14px;height:26px;background:linear-gradient(90deg,rgba(251,191,36,.18),rgba(244,114,182,.12),rgba(251,191,36,.18));border:1px solid rgba(251,191,36,.4);border-radius:13px;overflow:hidden;z-index:80;display:none;align-items:center;}
+.marquee{position:absolute;top:46px;left:14px;right:14px;height:24px;background:linear-gradient(90deg,rgba(251,191,36,.22),rgba(244,114,182,.14),rgba(251,191,36,.22));border:1px solid rgba(251,191,36,.5);border-radius:12px;overflow:hidden;z-index:90;display:none;align-items:center;box-shadow:0 2px 12px rgba(251,191,36,.25);}
+#screen-home.has-marquee .title-block{margin-top:54px;}
 .marquee.show{display:flex;animation:marquee-glow 3s ease-in-out infinite;}
 @keyframes marquee-glow{0%,100%{box-shadow:0 0 8px rgba(251,191,36,.25);}50%{box-shadow:0 0 16px rgba(251,191,36,.5);}}
 .marquee-label{flex-shrink:0;padding:0 8px;height:100%;display:flex;align-items:center;background:linear-gradient(135deg,var(--gold),var(--orange));color:#0a1020;font-size:0.62rem;font-weight:800;letter-spacing:1px;font-family:'Share Tech Mono',monospace;}
@@ -1459,7 +1460,11 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <button class="icon-btn" onclick="openCards()" title="การ์ดสะสม">🎴</button>
         </div>
         <div class="icon-btn-wrap mail-icon-btn">
-          <button class="icon-btn" onclick="openMailScreen()" title="กล่องจดหมาย / ภารกิจ">📮</button>
+          <button class="icon-btn" onclick="openQuestScreen()" title="ภารกิจประจำวัน">🎯</button>
+          <span class="mail-badge" id="questBadge">0</span>
+        </div>
+        <div class="icon-btn-wrap mail-icon-btn">
+          <button class="icon-btn" onclick="openMailScreen()" title="กล่องจดหมาย">📮</button>
           <span class="mail-badge" id="mailBadge">0</span>
         </div>
       </div>
@@ -2652,13 +2657,28 @@ function unreadMailCount(){
 }
 function updateMailBadge(){
   const badge = document.getElementById('mailBadge');
-  if(!badge) return;
-  const n = unreadMailCount();
-  badge.textContent = n > 99 ? '99+' : String(n);
-  badge.classList.toggle('show', n > 0);
-  // Also tab badge inside mail screen
-  const tabBadge = document.getElementById('mailTabBadgeMail');
-  if(tabBadge){ tabBadge.textContent = n; tabBadge.style.display = n > 0 ? 'inline-flex' : 'none'; }
+  if(badge){
+    const n = unreadMailCount();
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('show', n > 0);
+    const tabBadge = document.getElementById('mailTabBadgeMail');
+    if(tabBadge){ tabBadge.textContent = n; tabBadge.style.display = n > 0 ? 'inline-flex' : 'none'; }
+  }
+  // Quest badge: count completed-not-claimed
+  const qBadge = document.getElementById('questBadge');
+  if(qBadge){
+    let qn = 0;
+    try{
+      ensureDaily();
+      (player.daily?.quests||[]).forEach(qid=>{
+        const q = DAILY_QUEST_POOL.find(x=>x.id===qid); if(!q) return;
+        const cur = q.external ? (player.daily.completedSent?.includes(qid) ? q.target : 0) : Math.min(player.daily[q.metric]||0, q.target);
+        if(cur >= q.target && !player.daily.claimed.includes(qid)) qn++;
+      });
+    }catch(e){}
+    qBadge.textContent = qn > 99 ? '99+' : String(qn);
+    qBadge.classList.toggle('show', qn > 0);
+  }
 }
 
 function addMail(mail){
@@ -2762,6 +2782,14 @@ function openMailScreen(){
   switchMailTab('mail');
 }
 window.openMailScreen = openMailScreen;
+
+function openQuestScreen(){
+  ensureMailbox();
+  rollDailyQuestsIfNeeded();
+  showScreen('mail');
+  switchMailTab('quest');
+}
+window.openQuestScreen = openQuestScreen;
 
 function switchMailTab(tab){
   document.getElementById('mailTab-mail').classList.toggle('active', tab==='mail');
@@ -3149,10 +3177,12 @@ function showMarquee(text, id){
   const el = document.getElementById('marquee'); if(!el) return;
   document.getElementById('marqueeContent').textContent = text;
   el.classList.add('show');
+  document.getElementById('screen-home')?.classList.add('has-marquee');
   _marqueeCurrentId = id;
 }
 function hideMarquee(){
   const el = document.getElementById('marquee'); if(el) el.classList.remove('show');
+  document.getElementById('screen-home')?.classList.remove('has-marquee');
 }
 function dismissMarquee(){
   if(_marqueeCurrentId){ try{ localStorage.setItem(MARQUEE_DISMISS_KEY, String(_marqueeCurrentId)); }catch(e){} }
