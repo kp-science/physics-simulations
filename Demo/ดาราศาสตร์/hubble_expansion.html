@@ -152,10 +152,10 @@ nav button.active{background:var(--accent);border-color:var(--accent);color:#030
     <button class="btn btn-play" id="playBtn" onclick="togglePlay()">▶ เริ่มขยาย</button>
     <button class="btn btn-reset" onclick="resetSim()">↺ รีเซ็ต a=1</button>
     <div class="cbar-sep"></div>
-    <button class="tog on" id="tGrid" onclick="togFeat('grid')">เส้น grid</button>
-    <button class="tog on" id="tLink" onclick="togFeat('link')">เส้นเชื่อม</button>
+    <button class="tog on" id="tGrid" onclick="togFeat('grid')">เส้น lat/lng</button>
+    <button class="tog on" id="tLink" onclick="togFeat('link')">arc เชื่อม</button>
     <button class="tog on" id="tLabel" onclick="togFeat('label')">ชื่อกาแล็กซี</button>
-    <button class="tog" id="tTrail" onclick="togFeat('trail')">เส้นทาง</button>
+    <button class="tog on" id="tRotate" onclick="togFeat('rotate')">หมุนลูกโป่ง</button>
   </div>
 
   <div class="sim-layout">
@@ -271,8 +271,9 @@ let scaleA = 1, targetA = 1;
 let isPlaying = false, animId = null, lastTs = null;
 let speed = 0.4;
 let observerIdx = 0;
-let showGrid = true, showLink = true, showLabel = true, showTrail = false;
-let trails = [];
+let showGrid = true, showLink = true, showLabel = true, autoRotate = true;
+let sphereRotY = 0;        // longitude rotation (animated)
+const sphereTilt = 0.45;   // fixed tilt for nice view
 
 let hubbleCanvas, hubbleCtx;
 
@@ -281,26 +282,27 @@ let hubbleCanvas, hubbleCtx;
 // ═══════════════════════════════════════════════
 function initGalaxies(){
   galaxies = [];
-  trails = [];
-  // Distribute galaxies in a spread pattern (not too clustered)
-  const golden = Math.PI * (3 - Math.sqrt(5));
+  // Fibonacci sphere distribution (uniform on surface)
   for(let i=0;i<N;i++){
-    const t = i / Math.max(N-1,1);
-    const r = Math.sqrt(t) * 0.85;
-    const ang = i * golden;
-    // Add slight randomness
-    const jx = (Math.random()-0.5)*0.04;
-    const jy = (Math.random()-0.5)*0.04;
+    const y = 1 - (i / Math.max(N-1,1)) * 2;            // y in [-1, 1]
+    const lat = Math.asin(y);                            // [-π/2, π/2]
+    const lng = (Math.PI * (1 + Math.sqrt(5)) * i) % (Math.PI*2);  // golden angle
     galaxies.push({
-      x0: Math.cos(ang)*r + jx,
-      y0: Math.sin(ang)*r + jy,
+      lat, lng,
       name: GAL_NAMES[i % GAL_NAMES.length],
       color: COLORS[i % COLORS.length]
     });
-    trails.push([]);
   }
   if(observerIdx >= N) observerIdx = 0;
   buildGalList();
+}
+
+// Great-circle angle between two points (radians)
+function angleBetween(g1, g2){
+  let c = Math.sin(g1.lat)*Math.sin(g2.lat) +
+          Math.cos(g1.lat)*Math.cos(g2.lat)*Math.cos(g1.lng - g2.lng);
+  c = Math.max(-1, Math.min(1, c));
+  return Math.acos(c);
 }
 
 function buildGalList(){
@@ -327,108 +329,156 @@ function fitCanvas(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 
-function W2S(x,y){
-  // World coordinates [-1,1] -> screen, observer at center
-  const obs = galaxies[observerIdx];
-  const dx = (x - obs.x0) * scaleA;
-  const dy = (y - obs.y0) * scaleA;
-  const half = Math.min(CW,CH)*0.42;
-  return { x: CW/2 + dx*half, y: CH/2 + dy*half };
+// 3D projection of point on sphere of radius R (with tilt + rotation)
+function project3D(lat, lng, R){
+  const lngR = lng + sphereRotY;
+  let x = R * Math.cos(lat) * Math.sin(lngR);
+  let y = R * Math.sin(lat);
+  let z = R * Math.cos(lat) * Math.cos(lngR);
+  // Tilt around X axis (positive tilts north pole forward)
+  const yt = y*Math.cos(sphereTilt) - z*Math.sin(sphereTilt);
+  const zt = y*Math.sin(sphereTilt) + z*Math.cos(sphereTilt);
+  return {x, y:yt, z:zt};
+}
+
+// Slerp two points on unit sphere (for great-circle arcs)
+function slerpLatLng(g1, g2, t){
+  // Convert to xyz
+  const v1 = [Math.cos(g1.lat)*Math.sin(g1.lng), Math.sin(g1.lat), Math.cos(g1.lat)*Math.cos(g1.lng)];
+  const v2 = [Math.cos(g2.lat)*Math.sin(g2.lng), Math.sin(g2.lat), Math.cos(g2.lat)*Math.cos(g2.lng)];
+  let dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
+  dot = Math.max(-1, Math.min(1, dot));
+  const omega = Math.acos(dot);
+  if(omega < 0.001) return {lat:g1.lat, lng:g1.lng};
+  const s1 = Math.sin((1-t)*omega)/Math.sin(omega);
+  const s2 = Math.sin(t*omega)/Math.sin(omega);
+  const x = s1*v1[0] + s2*v2[0];
+  const y = s1*v1[1] + s2*v2[1];
+  const z = s1*v1[2] + s2*v2[2];
+  return {lat: Math.asin(Math.max(-1,Math.min(1,y))), lng: Math.atan2(x, z)};
 }
 
 function draw(){
-  ctx.clearRect(0,0,CW,CH);
-  // Starfield
   ctx.fillStyle = '#01020a';
   ctx.fillRect(0,0,CW,CH);
 
-  // Grid (expanding)
+  const cx = CW/2, cy = CH/2;
+  const Rmin = Math.min(CW, CH);
+  // Balloon radius grows with a (capped to fit canvas)
+  const Rdraw = Math.min(Rmin*0.20*scaleA, Rmin*0.42);
+
+  // Soft sphere shading
+  const sg = ctx.createRadialGradient(cx-Rdraw*0.35, cy-Rdraw*0.35, 0, cx, cy, Rdraw*1.05);
+  sg.addColorStop(0, 'rgba(251,146,60,0.20)');
+  sg.addColorStop(0.7, 'rgba(251,146,60,0.04)');
+  sg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.arc(cx, cy, Rdraw, 0, Math.PI*2); ctx.fill();
+
+  // Lat/Lng wireframe (front side only)
   if(showGrid){
-    ctx.strokeStyle = 'rgba(56,189,248,0.10)';
+    ctx.strokeStyle = 'rgba(251,146,60,0.18)';
     ctx.lineWidth = 1;
-    const half = Math.min(CW,CH)*0.42;
-    const step = 0.2;
-    ctx.beginPath();
-    for(let g=-1;g<=1.001;g+=step){
-      // Vertical
-      const p1 = W2S(g, -1.2/scaleA);
-      const p2 = W2S(g, 1.2/scaleA);
-      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
-      // Horizontal
-      const p3 = W2S(-1.2/scaleA, g);
-      const p4 = W2S(1.2/scaleA, g);
-      ctx.moveTo(p3.x,p3.y); ctx.lineTo(p4.x,p4.y);
+    // Latitude circles every 30°
+    for(let lat = -Math.PI/2 + Math.PI/6; lat < Math.PI/2 - 0.01; lat += Math.PI/6){
+      let started = false;
+      ctx.beginPath();
+      for(let lng = 0; lng <= Math.PI*2 + 0.05; lng += 0.08){
+        const p = project3D(lat, lng, Rdraw);
+        if(p.z > -Rdraw*0.04){
+          const sx = cx + p.x, sy = cy + p.y;
+          if(!started){ ctx.moveTo(sx, sy); started = true; }
+          else ctx.lineTo(sx, sy);
+        } else { started = false; }
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
+    // Longitude meridians every 30°
+    for(let lng = 0; lng < Math.PI*2; lng += Math.PI/6){
+      let started = false;
+      ctx.beginPath();
+      for(let lat = -Math.PI/2; lat <= Math.PI/2 + 0.05; lat += 0.08){
+        const p = project3D(lat, lng, Rdraw);
+        if(p.z > -Rdraw*0.04){
+          const sx = cx + p.x, sy = cy + p.y;
+          if(!started){ ctx.moveTo(sx, sy); started = true; }
+          else ctx.lineTo(sx, sy);
+        } else { started = false; }
+      }
+      ctx.stroke();
+    }
   }
 
-  // Links from observer
+  // Sphere outline (silhouette)
+  ctx.strokeStyle = 'rgba(251,146,60,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, Rdraw, 0, Math.PI*2); ctx.stroke();
+
+  // Great-circle arcs from observer to other galaxies (front side only)
+  const obs = galaxies[observerIdx];
   if(showLink){
-    const obs = W2S(galaxies[observerIdx].x0, galaxies[observerIdx].y0);
-    ctx.strokeStyle = 'rgba(251,146,60,0.25)';
+    ctx.strokeStyle = 'rgba(251,146,60,0.30)';
     ctx.lineWidth = 1;
     galaxies.forEach((g,i)=>{
-      if(i===observerIdx) return;
-      const p = W2S(g.x0,g.y0);
+      if(i === observerIdx) return;
+      let started = false;
       ctx.beginPath();
-      ctx.moveTo(obs.x, obs.y); ctx.lineTo(p.x, p.y);
+      const segs = 40;
+      for(let s=0; s<=segs; s++){
+        const t = s/segs;
+        const sp = slerpLatLng(obs, g, t);
+        const p = project3D(sp.lat, sp.lng, Rdraw);
+        if(p.z > -Rdraw*0.04){
+          const sx = cx + p.x, sy = cy + p.y;
+          if(!started){ ctx.moveTo(sx, sy); started = true; }
+          else ctx.lineTo(sx, sy);
+        } else { started = false; }
+      }
       ctx.stroke();
     });
   }
 
-  // Trails
-  if(showTrail){
-    galaxies.forEach((g,i)=>{
-      const tr = trails[i];
-      if(tr.length<2) return;
-      ctx.strokeStyle = g.color+'55';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(tr[0].x, tr[0].y);
-      for(let k=1;k<tr.length;k++) ctx.lineTo(tr[k].x, tr[k].y);
-      ctx.stroke();
-    });
-  }
+  // Galaxies — sort back-to-front for proper occlusion
+  const projected = galaxies.map((g,i) => {
+    const p = project3D(g.lat, g.lng, Rdraw);
+    return {g, i, p};
+  }).sort((a,b) => a.p.z - b.p.z);
 
-  // Galaxies
-  galaxies.forEach((g,i)=>{
-    const p = W2S(g.x0,g.y0);
-    const isObs = i===observerIdx;
+  projected.forEach(({g, i, p}) => {
+    const isObs = i === observerIdx;
+    const isFront = p.z > -Rdraw*0.05;
+    if(!isFront) return;
+    const fade = Math.max(0.35, Math.min(1, (p.z + Rdraw*0.5)/Rdraw));
+    const sx = cx + p.x, sy = cy + p.y;
+    ctx.globalAlpha = fade;
     ctx.fillStyle = g.color;
-    ctx.shadowBlur = isObs?20:8;
     ctx.shadowColor = g.color;
+    ctx.shadowBlur = isObs ? 18 : 6;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, isObs?7:4.5, 0, Math.PI*2);
+    ctx.arc(sx, sy, isObs ? 7 : 4.5, 0, Math.PI*2);
     ctx.fill();
     ctx.shadowBlur = 0;
     if(isObs){
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 11, 0, Math.PI*2);
+      ctx.arc(sx, sy, 11, 0, Math.PI*2);
       ctx.stroke();
     }
-    if(showLabel){
-      ctx.fillStyle = isObs?'#fff':'rgba(226,232,240,0.7)';
-      ctx.font = (isObs?'bold ':'')+'10px Sarabun';
-      ctx.fillText(g.name, p.x+8, p.y-6);
+    if(showLabel && p.z > 0){
+      ctx.fillStyle = isObs ? '#fff' : `rgba(226,232,240,${fade*0.85})`;
+      ctx.font = (isObs ? 'bold ' : '') + '10px Sarabun';
+      ctx.fillText(g.name, sx + 8, sy - 6);
     }
-
-    // Update trail
-    if(showTrail){
-      trails[i].push({x:p.x,y:p.y});
-      if(trails[i].length>120) trails[i].shift();
-    }
+    ctx.globalAlpha = 1;
   });
 
-  // Observer label at center
-  const obs = W2S(galaxies[observerIdx].x0, galaxies[observerIdx].y0);
+  // Observer label
   ctx.fillStyle = 'rgba(251,146,60,0.15)';
   ctx.fillRect(0, CH-26, CW, 26);
-  ctx.fillStyle = 'var(--accent)';
   ctx.fillStyle = '#fb923c';
   ctx.font = 'bold 11px Sarabun';
-  ctx.fillText('👁 ผู้สังเกต: '+galaxies[observerIdx].name, 10, CH-9);
+  ctx.fillText('👁 ผู้สังเกต: '+galaxies[observerIdx].name+' · ผิวลูกโป่ง 2D · ไม่มีศูนย์กลางบนผิว', 10, CH-9);
 
   // Scale label
   ctx.fillStyle = '#fbbf24';
@@ -439,23 +489,24 @@ function draw(){
 // ═══════════════════════════════════════════════
 // PHYSICS — distances & velocities
 // ═══════════════════════════════════════════════
+// Distance on balloon surface: arc length = R₀_world · a · θ
+// Pick scale so that a galaxy at angle π (opposite side) gives ~3000 Mpc when a=1
+const MPC_PER_RADIAN = 1000;  // arbitrary scale: π rad ≈ 3140 Mpc
+
 function updateRT(){
-  // Find galaxy nearest to observer that isn't observer
-  let target = -1, minD = Infinity;
+  // Find galaxy with smallest angle from observer (not observer itself)
+  let target = -1, minAng = Infinity;
   const obs = galaxies[observerIdx];
   galaxies.forEach((g,i)=>{
     if(i===observerIdx) return;
-    const dx = g.x0-obs.x0, dy = g.y0-obs.y0;
-    const d = Math.sqrt(dx*dx+dy*dy);
-    if(d<minD){ minD=d; target=i; }
+    const ang = angleBetween(obs, g);
+    if(ang < minAng){ minAng = ang; target = i; }
   });
   if(target<0) return;
   const g = galaxies[target];
-  const dx = (g.x0-obs.x0)*scaleA, dy = (g.y0-obs.y0)*scaleA;
-  const d = Math.sqrt(dx*dx+dy*dy);
-  // Convert to physical: 1 unit = 1000 Mpc, H0 = 67.4 km/s/Mpc
-  const dMpc = d * 1000;
-  const v = 67.4 * dMpc; // km/s
+  const ang = angleBetween(obs, g);
+  const dMpc = ang * MPC_PER_RADIAN * scaleA;
+  const v = 67.4 * dMpc; // km/s (Hubble's law)
   document.getElementById('rtDot').style.background = g.color;
   document.getElementById('rtName').textContent = g.name;
   document.getElementById('rtDist').textContent = dMpc.toFixed(0)+' Mpc';
@@ -483,14 +534,13 @@ function drawHubbleChart(){
   x.moveTo(m.l, m.t); x.lineTo(m.l, H-m.b);
   x.lineTo(W-m.r, H-m.b); x.stroke();
 
-  // Compute v vs d for all galaxies (relative to observer)
+  // Compute v vs d for all galaxies (arc-length on balloon × a)
   const obs = galaxies[observerIdx];
   const data = [];
   galaxies.forEach((g,i)=>{
     if(i===observerIdx) return;
-    const dx = (g.x0-obs.x0)*scaleA, dy = (g.y0-obs.y0)*scaleA;
-    const d = Math.sqrt(dx*dx+dy*dy);
-    const dMpc = d*1000;
+    const ang = angleBetween(obs, g);
+    const dMpc = ang * MPC_PER_RADIAN * scaleA;
     const v = 67.4 * dMpc;
     data.push({d:dMpc, v:v, color:g.color});
   });
@@ -570,10 +620,12 @@ function tick(ts){
 
   if(isPlaying){
     targetA += speed * dt * 0.3;
-    if(targetA>3) { targetA=1; trails.forEach(t=>t.length=0); }
+    if(targetA>3) { targetA=1; }
   }
   // Smooth approach
   scaleA += (targetA - scaleA) * Math.min(1, dt*8);
+  // Sphere auto-rotation
+  if(autoRotate) sphereRotY += dt * 0.35;
 
   document.getElementById('aDisp').textContent = scaleA.toFixed(3);
   document.getElementById('pctDisp').textContent = ((scaleA-1)*100).toFixed(0);
@@ -604,18 +656,17 @@ function togglePlay(){
 function resetSim(){
   isPlaying = false;
   scaleA = 1; targetA = 1;
-  trails.forEach(t=>t.length=0);
+  sphereRotY = 0;
   document.getElementById('playBtn').textContent = '▶ เริ่มขยาย';
   document.getElementById('playBtn').classList.remove('playing');
 }
 
 function togFeat(f){
-  const map = {grid:'showGrid',link:'showLink',label:'showLabel',trail:'showTrail'};
   if(f==='grid') showGrid=!showGrid;
   if(f==='link') showLink=!showLink;
   if(f==='label') showLabel=!showLabel;
-  if(f==='trail'){ showTrail=!showTrail; if(!showTrail) trails.forEach(t=>t.length=0); }
-  const id = {grid:'tGrid',link:'tLink',label:'tLabel',trail:'tTrail'}[f];
+  if(f==='rotate') autoRotate=!autoRotate;
+  const id = {grid:'tGrid',link:'tLink',label:'tLabel',rotate:'tRotate'}[f];
   document.getElementById(id).classList.toggle('on');
 }
 
