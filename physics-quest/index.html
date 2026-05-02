@@ -1430,12 +1430,10 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
   }
 
   /* ── LANDSCAPE PANEL LAYOUT (Phase 1) ── */
-  /* #game becomes a 2-panel container: main content panel + right sidebar panel */
-  #game{ background: var(--bg); padding: var(--ls-gap); padding-right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2); }
-  .ls-sidebar{ display:flex !important; }
-  /* Main content panel — clearly framed, scrollable if content overflows */
+  /* Default landscape (any screen except home): full-bleed main panel, no sidebar */
+  #game{ background: var(--bg); padding: var(--ls-gap); }
   .scr{
-    inset: var(--ls-gap) calc(var(--ls-sidebar-w) + var(--ls-gap) * 2) var(--ls-gap) var(--ls-gap) !important;
+    inset: var(--ls-gap) !important;
     border-radius: 14px;
     border: 1px solid var(--border);
     background: linear-gradient(180deg, rgba(10,16,32,.55), rgba(15,26,46,.65));
@@ -1448,9 +1446,19 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
   .scr::-webkit-scrollbar-track{ background:transparent; }
   .scr::-webkit-scrollbar-thumb{ background:rgba(56,189,248,.25); border-radius:3px; }
   .scr::-webkit-scrollbar-thumb:hover{ background:rgba(56,189,248,.45); }
-  /* Floating top-right buttons sit INSIDE main panel area */
-  #homeBtn, #muteBtn{ right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2 + 10px) !important; top: calc(var(--ls-gap) + 10px) !important; }
-  #syncPill{ right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2 + 100px) !important; top: calc(var(--ls-gap) + 14px) !important; }
+  /* Mute btn: HOME ONLY in landscape */
+  #muteBtn{ display:none !important; }
+  #homeBtn{ right: calc(var(--ls-gap) + 10px) !important; top: calc(var(--ls-gap) + 10px) !important; }
+  #syncPill{ right: calc(var(--ls-gap) + 100px) !important; top: calc(var(--ls-gap) + 14px) !important; }
+  /* HOME only: sidebar visible + main panel makes room */
+  #game.on-home{ padding-right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2); }
+  #game.on-home .scr{
+    inset: var(--ls-gap) calc(var(--ls-sidebar-w) + var(--ls-gap) * 2) var(--ls-gap) var(--ls-gap) !important;
+  }
+  #game.on-home .ls-sidebar{ display:flex !important; }
+  #game.on-home #muteBtn{ display:flex !important; right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2 + 10px) !important; top: calc(var(--ls-gap) + 10px) !important; }
+  #game.on-home #homeBtn{ right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2 + 55px) !important; }
+  #game.on-home #syncPill{ right: calc(var(--ls-sidebar-w) + var(--ls-gap) * 2 + 100px) !important; }
 }
 /* Hide sidebar in battle for max focus */
 #game.in-battle{ padding:0 !important; background:var(--bg) !important; }
@@ -7718,7 +7726,11 @@ function showScreen(name){
   if(homeBtn) homeBtn.classList.toggle('hidden', name === 'home');
   // Hide landscape sidebar during battle for max focus
   const gameEl = document.getElementById('game');
-  if(gameEl) gameEl.classList.toggle('in-battle', name === 'battle');
+  if(gameEl){
+    gameEl.classList.toggle('in-battle', name === 'battle');
+    // Sidebar + mute btn only on home
+    gameEl.classList.toggle('on-home', name === 'home');
+  }
   updateHud();
   // Re-evaluate soft auth prompt visibility (only shows on home, after Lv 5)
   if(name === 'home' && typeof maybeShowSoftPrompt === 'function') maybeShowSoftPrompt();
@@ -7941,6 +7953,14 @@ window.addEventListener('load', ()=>{
     : 'REGION 1.1 · TIER 1 · LEGEND · ข้อสอบแข่ง';
   renderStages();
   updateHud();
+  // Sync #game classes to whichever screen is currently .on (initial load skips showScreen)
+  const onScr = document.querySelector('.scr.on');
+  const gEl = document.getElementById('game');
+  if(onScr && gEl){
+    const id = onScr.id.replace('screen-','');
+    gEl.classList.toggle('on-home', id === 'home');
+    gEl.classList.toggle('in-battle', id === 'battle');
+  }
 });
 </script>
 </body>
