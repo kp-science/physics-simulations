@@ -2488,16 +2488,31 @@ window.addEventListener('beforeunload', ()=>{ if(currentUser && cloudSaveTimer) 
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden && currentUser && cloudSaveTimer) pushCloudSave('hidden'); });
 
 // ── Sign-in / Sign-up handlers ──
-// Mobile (any OS) + Safari → redirect-based (popups blocked / ITP issues).
-// Desktop Chrome/Edge/Firefox → popup (smoother UX, no full page reload).
-function shouldUseRedirectAuth(){
-  const ua = navigator.userAgent;
-  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+// Strategy decision per browser (works around different OAuth quirks):
+//
+//   • iOS Safari proper → POPUP wins:
+//       redirect drops auth state due to ITP cross-domain cookie blocking
+//       (kp-science.github.io ↔ firebaseapp.com handler), but popup keeps
+//       same window context → ITP sees first-party.
+//
+//   • Mobile Chrome (CriOS / Chrome on Android) → REDIRECT wins:
+//       popup never opens / hangs (COOP isolation, popup blocker default).
+//
+//   • Desktop everything → POPUP (smooth UX, no page reload).
+function detectAuthStrategy(){
+  const ua = navigator.userAgent || '';
   const isIOS = /iphone|ipad|ipod/i.test(ua);
   const isAndroid = /android/i.test(ua);
-  // Treat any touch-primary mobile device as redirect-required
-  const isMobile = isIOS || isAndroid || /mobile/i.test(ua);
-  return isSafari || isIOS || isAndroid || isMobile;
+  const isCriOS = /CriOS/i.test(ua);          // Chrome on iOS
+  const isFxiOS = /FxiOS/i.test(ua);          // Firefox on iOS
+  const isEdgeiOS = /EdgiOS/i.test(ua);
+  const isChromeAndroid = isAndroid && /Chrome/i.test(ua);
+  const isMobileChromium = isCriOS || isFxiOS || isEdgeiOS || isChromeAndroid;
+  const isPureSafariIOS = isIOS && !isMobileChromium;
+  // Mobile Chromium browsers struggle with popup → use redirect.
+  if(isMobileChromium) return 'redirect';
+  // Pure iOS Safari and all desktop browsers → popup.
+  return 'popup';
 }
 
 // Detect in-app browsers (LINE/Facebook/Messenger/etc.) that block OAuth
@@ -2518,21 +2533,22 @@ async function signInWithGoogle(){
   }
   const provider = new PQ_FB.GoogleAuthProvider();
   const errEl = document.getElementById('authError');
-  // Try POPUP first on all platforms.
-  // iOS Safari: redirect causes ITP to drop auth state on cross-domain return
-  // (kp-science.github.io ↔ physics-quest-21336.firebaseapp.com handler), so
-  // user comes back not logged in. Popup keeps everything in the same window
-  // context and survives ITP. Modern iOS Safari (16+) allows OAuth popups
-  // when triggered by direct user gesture (the Login button click).
+  const strategy = detectAuthStrategy();
   try{
-    if(errEl) errEl.textContent = 'กำลังเปิดหน้า Google...';
-    await PQ_FB.signInWithPopup(PQ_FB.auth, provider);
-    closeAuthModal();
+    if(strategy === 'redirect'){
+      if(errEl) errEl.textContent = 'กำลังเปลี่ยนหน้าไป Google...';
+      await PQ_FB.signInWithRedirect(PQ_FB.auth, provider);
+      // browser navigates away; nothing below runs until return
+    } else {
+      if(errEl) errEl.textContent = 'กำลังเปิดหน้า Google...';
+      await PQ_FB.signInWithPopup(PQ_FB.auth, provider);
+      closeAuthModal();
+    }
   }catch(e){
-    console.error('[google-signin] popup failed', e);
+    console.error('[google-signin]', strategy, 'failed', e);
     const code = e.code || '';
-    // Popup blocked → fall back to redirect (will round-trip but better than nothing)
-    if(code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment'){
+    // popup blocked → fall back to redirect
+    if(strategy === 'popup' && (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment')){
       try{
         if(errEl) errEl.textContent = 'popup ถูกบล็อก — ใช้ redirect แทน...';
         await PQ_FB.signInWithRedirect(PQ_FB.auth, provider);
@@ -2542,7 +2558,6 @@ async function signInWithGoogle(){
         toast(msg);
       }
     } else if(code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request'){
-      // user dismissed — silent
       if(errEl) errEl.textContent = '';
     } else {
       const msg = friendlyAuthError(e) + ` [${code || e.name || 'error'}]`;
