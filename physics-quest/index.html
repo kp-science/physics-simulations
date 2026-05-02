@@ -4475,7 +4475,7 @@ const STAT_HELP = {
   dex: { icon:'🎯', name:'DEX · ความแม่นยำ', color:'#fbbf24', body:`<b>กรอกคำตอบเลขใกล้เคียงก็ผ่าน</b> margin ±(2 + DEX×0.1)%<br>DEX 5→±2.5% · 50→±7% · 99→±11.9%<br><br><b>Partial Credit (block answers):</b> DEX 20+ ผิดเล็กน้อย = 30% dmg · 50+ = 50% · 80+ = 70% + บอกตำแหน่งผิด<br><br><b>วิธีใช้:</b> ถ้ากลัวพิมพ์เลขผิด หรือเล่นโจทย์ block ให้ลง DEX` },
   int: { icon:'🧠', name:'INT · MP + Boss Preview', color:'#a78bfa', body:`<b>Max MP = 30 + INT×2 + Lv</b> · MP regen +(1+INT×0.05) ต่อข้อถูก<br>ลด MP cost ของ skill: −(INT×0.5%)<br><br><b>Boss Step Preview:</b> INT 30+ เห็น step ถัดไป · 60+ เห็นทุก step · 90+ เห็น parameter range<br><br><b>วิธีใช้:</b> สาย skill spam หรือนักวางแผนสู้บอส` },
   agi: { icon:'⚡', name:'AGI · เวลา + ต้านทาน', color:'#34d399', body:`<b>Bonus timer +0.5s/แต้ม</b> (cap +20s ที่ AGI 40)<br>Confusion Resist: AGI×1% หลีก debuff "สับสน"<br>Map walking speed +AGI% · mob detection radius +AGI px<br><br><b>วิธีใช้:</b> สำหรับเด็กที่กลัว timer หมด — คิดช้าแต่ถูก` },
-  luk: { icon:'🍀', name:'LUK · โชคดรอป', color:'#fb923c', body:`<b>Drop rate scaling:</b> +0.5% ต่อแต้ม (LUK 50 → +25%)<br>Base drop เริ่มต้น 20% — LUK ดันให้ขึ้น<br><br><b>วิธีใช้:</b> สาย collector — อยากเก็บการ์ดครบ ลง LUK ก่อน<br><br><i>หมายเหตุ: ใช้การ์ดช่วย → drop ลด 50% · First-time-correct → +20%</i>` }
+  luk: { icon:'🍀', name:'LUK · โชคดรอป', color:'#fb923c', body:`<b>① Drop Rate:</b> +0.5%/แต้ม (LUK 50 → +25%)<br>Base drop เริ่ม 20% — LUK ดันให้ขึ้น<br><br><b>② Lucky Strike (multi-drop):</b> เมื่อดรอปสำเร็จ ลุ้นได้การ์ดเพิ่ม! แต่ละชั้น = LUK×0.3% (ครึ่งลงทุกชั้น cap +3 ใบ)<br>LUK 50 → ชั้น 1: 15% · ชั้น 2: 7.5% · ชั้น 3: 3.75%<br><br><b>วิธีใช้:</b> สาย collector — ตี mob 1 ตัวอาจได้ 2-4 ใบรวด<br><br><i>หมายเหตุ: ใช้การ์ดช่วย → drop ลด 50% · First-time-correct → +20%</i>` }
 };
 function showStatHelp(key){
   const h = STAT_HELP[key]; if(!h) return;
@@ -5353,13 +5353,26 @@ function processVictory(){
   dropChance *= elemMul;                                    // element synergy
 
   let drop = null;
-  if(Math.random() < dropChance){
-    // Hard Mode: R+ drop rate × 1.5 (10% → 15%)
+  let extraDrops = [];
+  const rollOneDrop = () => {
     const rChance = isHardMode ? 0.15 : 0.10;
     const isR = Math.random() < rChance;
     const pool = CARDS.filter(c => c.rarity === (isR ? 'R' : 'N'));
-    drop = pool[Math.floor(Math.random()*pool.length)];
-    if(drop) player.inventory[drop.id] = (player.inventory[drop.id] || 0) + 1;
+    const card = pool[Math.floor(Math.random()*pool.length)];
+    if(card) player.inventory[card.id] = (player.inventory[card.id] || 0) + 1;
+    return card;
+  };
+  if(Math.random() < dropChance){
+    drop = rollOneDrop();
+    // LUK extra-drop chain (Lucky Strike) — only triggers if main drop succeeded
+    // Each roll: chance = LUK × 0.3%, halved on each successive success (anti-runaway), cap +3 extras
+    let extraChance = (player.luk || 5) * 0.003;
+    for(let i = 0; i < 3 && drop; i++){
+      if(Math.random() >= extraChance) break;
+      const extra = rollOneDrop();
+      if(extra) extraDrops.push(extra);
+      extraChance *= 0.5;
+    }
   }
 
   // kills
@@ -5433,9 +5446,13 @@ function processVictory(){
   // ── Render drops (TCG card style, reveal animation) ──
   let dropHtml = '';
   if(drop){
+    const extraLabel = extraDrops.length ? ` <span style="color:var(--green);">+${extraDrops.length} 🍀 LUCKY</span>` : '';
     dropHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-      <div style="font-size:0.66rem;letter-spacing:1.5px;color:var(--gold);font-family:'Share Tech Mono',monospace;">★ DROP</div>
-      ${renderCard(drop, {size:'medium', extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${drop.id}')`})}
+      <div style="font-size:0.66rem;letter-spacing:1.5px;color:var(--gold);font-family:'Share Tech Mono',monospace;">★ DROP${extraLabel}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+        ${renderCard(drop, {size:'medium', extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${drop.id}')`})}
+        ${extraDrops.map(d=>renderCard(d, {size:'medium', extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${d.id}')`})).join('')}
+      </div>
     </div>`;
   }
   if(bonusDrop){
