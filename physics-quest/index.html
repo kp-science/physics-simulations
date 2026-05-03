@@ -5602,26 +5602,43 @@ function getOrInitStageBucket(regionId, stageId, poolSize){
 }
 
 function pickStageQuestion(substage){
-  // Phase 2 (legend) → queue-based, infinite respawn
+  // Phase 2 (legend) → queue-based, infinite respawn (but still avoid duplicates on screen)
   if(substage.mode !== 'general'){
     if(!substage.queue || substage.queue.length === 0){
       substage.queue = shuffleArray(substage.pool.slice());
     }
+    const onScreen = new Set((substage.mobs || []).map(m => m.q && m.q.id).filter(Boolean));
+    // Try to pop a question not currently displayed; if exhausted, accept any
+    for(let i = substage.queue.length - 1; i >= 0; i--){
+      if(!onScreen.has(substage.queue[i].id)){
+        return substage.queue.splice(i, 1)[0];
+      }
+    }
     return substage.queue.pop();
   }
-  // Phase 1 (general) → bucket-aware
+  // Phase 1 (general) → bucket-aware + on-screen exclusion
   const bucket = getOrInitStageBucket(player.currentRegion, substage.id, substage.pool.length);
   const correctSet = new Set(bucket.correctBucket);
   const wrongSet = new Set(bucket.wrongBucket);
-  const unanswered = substage.pool.filter(q => !correctSet.has(q.id) && !wrongSet.has(q.id));
+  const onScreen = new Set((substage.mobs || []).map(m => m.q && m.q.id).filter(Boolean));
+  // unanswered (not in either bucket and not currently displayed)
+  const unanswered = substage.pool.filter(q =>
+    !correctSet.has(q.id) && !wrongSet.has(q.id) && !onScreen.has(q.id));
   if(unanswered.length > 0){
     return unanswered[Math.floor(Math.random()*unanswered.length)];
   }
+  // First pass exhausted — pull from wrongBucket (also exclude displayed ones)
+  const wrongAvail = bucket.wrongBucket.filter(qid => !onScreen.has(qid));
+  if(wrongAvail.length > 0){
+    const qid = wrongAvail[Math.floor(Math.random()*wrongAvail.length)];
+    return substage.pool.find(q => q.id === qid) || substage.pool[0];
+  }
+  // Fallback: all in correctBucket, or all wrongBucket entries are on-screen.
+  // Pick any wrong-bucket question (allow re-display) or a random pool entry.
   if(bucket.wrongBucket.length > 0){
     const qid = bucket.wrongBucket[Math.floor(Math.random()*bucket.wrongBucket.length)];
     return substage.pool.find(q => q.id === qid) || substage.pool[0];
   }
-  // All correct — stage cleared. Defensive: return random for visual continuity.
   return substage.pool[Math.floor(Math.random()*substage.pool.length)];
 }
 
@@ -6122,7 +6139,7 @@ function spawnSubstageMob(){
   // Bucket-aware selection (general mode) or queue (legend infinite respawn)
   const q = pickStageQuestion(currentSubstage);
   if(!q){ return; }
-  const qIdx = QUESTIONS.indexOf(q);
+  const qIdx = QUESTIONS.indexOf(q); // -1 for Stage B (lives in QUESTIONS_STAGE_B)
 
   const el = document.createElement('div');
   el.className = 'mob spawning';
@@ -6154,7 +6171,7 @@ function spawnSubstageMob(){
   el.style.top = y+'px';
   el.setAttribute('data-type', mob.id);
   el.innerHTML = `${getMobArt(mob)}<span class="mob-lv">Lv.${lv}</span><span class="el-mob el-badge" style="--el-color:${ELEMENTS[mob.element].color};--el-glow:${ELEMENTS[mob.element].glow};">${ELEMENTS[mob.element].greek}</span>`;
-  const data = {el, mob, lv, qIdx, stageMode:currentSubstage.mode, stageId:currentSubstage.id, isLegend:currentSubstage.mode==='legend'};
+  const data = {el, mob, lv, q, qIdx, stageMode:currentSubstage.mode, stageId:currentSubstage.id, isLegend:currentSubstage.mode==='legend'};
   el.onclick = () => enterBattle(data);
   area.appendChild(el);
   currentSubstage.mobs.push(data);
@@ -7271,7 +7288,8 @@ function updateHud(){
 let bState = null; // {mob, lv, q, timer, timerInterval, ans, hintsUsed, locked, twoStepIdx}
 
 function enterBattle(mobData){
-  const q = QUESTIONS[mobData.qIdx];
+  // Prefer mobData.q (works for any pool, e.g., Stage B); fall back to QUESTIONS lookup
+  const q = mobData.q || QUESTIONS[mobData.qIdx];
   const buffs = getActiveBuffs();
   // 🔗 Connect: combo-carry across mobs when next q's formula matches recent history
   if(q && q.formula && getInnateRank('connect') > 0){
@@ -8327,6 +8345,7 @@ function useReroll(){
   const newQ = others[Math.floor(Math.random()*others.length)];
   bState.q = newQ;
   bState.mobData.qIdx = QUESTIONS.indexOf(newQ);
+  bState.mobData.q = newQ; // keep mob's q in sync (works for Stage B too)
   bState.ans = null; bState.hintsUsed = 0; bState.twoStepIdx = 0;
   document.getElementById('bQId').textContent = `Q · ${newQ.id} · ${newQ.title}`;
   document.getElementById('bQTxt').innerHTML = newQ.statement;
@@ -8392,6 +8411,7 @@ function useRerollCard(){
   const newQ = others[Math.floor(Math.random()*others.length)];
   bState.q = newQ;
   bState.mobData.qIdx = QUESTIONS.indexOf(newQ);
+  bState.mobData.q = newQ; // keep mob's q in sync (works for Stage B too)
   bState.ans = null; bState.hintsUsed = 0; bState.twoStepIdx = 0;
   bState.choiceCutApplied = false; bState.cutKeys = null; // re-roll choiceCut on new q
   document.getElementById('bQId').textContent = `Q · ${newQ.id} · ${newQ.title}`;
