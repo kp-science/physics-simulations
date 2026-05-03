@@ -2829,6 +2829,9 @@ window.PQ_FB = {
 window.dispatchEvent(new CustomEvent('pq-firebase-ready'));
 </script>
 
+<!-- Stage B question pool (162 questions, loaded as global window.QUESTIONS_STAGE_B) -->
+<script src="stage-b-questions.js"></script>
+
 <script>
 'use strict';
 
@@ -6048,10 +6051,12 @@ function renderStages(){
 }
 
 function getQuestionPoolForStage(mode, stageId){
-  // Per teacher (2026-05): all 74 imported questions live in Stage A only.
-  // Stages B/C/D = empty (teacher will fill later with their own pools).
-  // Both general + legend modes use the same Stage A pool (legend just adds Hard Mode modifiers).
+  // Stage A = QUESTIONS (74 imported, ตัวแปรเวกเตอร์/สเกลาร์ + ระยะทาง/กระจัด)
+  // Stage B = QUESTIONS_STAGE_B (162 imported, ดึงตัวแปร + เลือกสูตร + ทิศ + กราฟ)
+  // Stages C/D = ยังว่าง รอครูเพิ่ม
+  // Both general + legend modes use the same pool (legend adds Hard Mode modifiers).
   if(stageId === 'a') return QUESTIONS;
+  if(stageId === 'b') return (typeof window !== 'undefined' && window.QUESTIONS_STAGE_B) ? window.QUESTIONS_STAGE_B : [];
   return [];
 }
 
@@ -7323,8 +7328,9 @@ function renderAnswerInput(q){
     const wrap = document.createElement('div');
     wrap.className = 'b-choices';
     // ── Choice Cut card ability (apply once per question, persists on re-render) ──
+    // Skip on noReveal questions (Stage B concept) — cutting wrong choice trivializes a 4-option concept question.
     let cutKeys = new Set();
-    if(bState){
+    if(bState && !(q && q.noReveal)){
       if(!bState.choiceCutApplied){
         const cut = (getActiveBuffs().choiceCut || 0) + (bState.connectChoiceCut || 0);
         if(cut > 0){
@@ -8284,6 +8290,8 @@ function useReroll(){
 }
 function useSee50(){
   if(!bState || bState.locked) return;
+  // Block on noReveal questions (Stage B concept questions where seeing 50% trivializes the answer)
+  if(bState.q && bState.q.noReveal){ toast('🚫 สกิลนี้ใช้ไม่ได้ในด่านฝึกแนวคิด'); return; }
   if(!spendSkillMp(30)) return;
   const q = bState.q;
   let msg = '';
