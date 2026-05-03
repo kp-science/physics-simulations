@@ -8,6 +8,7 @@ rules_version = '2';
 //   /users/{uid}           — per-user save (cloud sync)
 //   /system/announcement   — public marquee (read-only for clients)
 //   /duels/{code}          — PVP duel rooms (1-on-1, real-time)
+//   /questionStats/{qid}   — cross-player aggregate (read: admin only · write: any authed)
 // ═══════════════════════════════════════════════
 
 service cloud.firestore {
@@ -79,6 +80,23 @@ service cloud.firestore {
 
       allow delete: if isSignedIn()
         && resource.data.createdBy == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════
+    // QUESTION STATS — cross-player aggregate
+    //   - read: admin only (komanepapato@gmail.com)
+    //   - write: any authed user, schema-validated counter fields
+    //     (used to track per-question difficulty across all players)
+    // ═══════════════════════════════════════════
+    match /questionStats/{qid} {
+      allow read: if isSignedIn()
+        && request.auth.token.email == 'komanepapato@gmail.com';
+      allow write: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['totalAttempts','totalCorrect','firstTryAttempts','firstTryCorrect','updatedAt'])
+        && request.resource.data.totalAttempts is number
+        && request.resource.data.totalCorrect is number
+        && request.resource.data.firstTryAttempts is number
+        && request.resource.data.firstTryCorrect is number;
     }
 
     // ── Default deny everything else ─────────────

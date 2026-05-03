@@ -2799,7 +2799,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
-  onSnapshot
+  onSnapshot, increment, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -2822,7 +2822,7 @@ window.PQ_FB = {
   createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
   updateProfile, deleteUser, onAuthStateChanged,
   doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp,
-  onSnapshot
+  onSnapshot, increment, collection, getDocs
 };
 
 // Notify the classic script when SDK is ready
@@ -5638,6 +5638,10 @@ function recordStageBucketAnswer(substage, qid, isCorrect){
     player.qStatsTotals.firstTryAttempts++;
     if(isCorrect) player.qStatsTotals.firstTryCorrect++;
   }
+  // ── Cross-player aggregate (fire-and-forget, only if signed in) ──
+  if(typeof bumpQuestionAggregate === 'function'){
+    bumpQuestionAggregate(qid, isCorrect, isFirstAttempt);
+  }
 
   // ── Stage bucket (phase 1 only) ──
   if(!substage || substage.mode !== 'general') return;
@@ -5724,6 +5728,24 @@ function isAdmin(){
   try{
     return typeof currentUser !== 'undefined' && currentUser && currentUser.email === ADMIN_EMAIL;
   }catch(e){ return false; }
+}
+
+// ── Cross-player aggregate: write to /questionStats/{qid} (Firestore increment) ──
+async function bumpQuestionAggregate(qid, isCorrect, isFirstAttempt){
+  try{
+    if(!qid || !PQ_FB || !PQ_FB.db) return;
+    if(typeof currentUser === 'undefined' || !currentUser) return; // need auth
+    const ref = PQ_FB.doc(PQ_FB.db, 'questionStats', qid);
+    const inc = PQ_FB.increment;
+    const payload = {
+      totalAttempts: inc(1),
+      totalCorrect: inc(isCorrect ? 1 : 0),
+      firstTryAttempts: inc(isFirstAttempt ? 1 : 0),
+      firstTryCorrect: inc(isFirstAttempt && isCorrect ? 1 : 0),
+      updatedAt: PQ_FB.serverTimestamp()
+    };
+    await PQ_FB.setDoc(ref, payload, { merge: true });
+  }catch(e){ /* silent — local stats still recorded */ }
 }
 
 function refreshAdminAccess(){
@@ -5853,11 +5875,77 @@ function openAdminStats(){
         <div style="color:var(--gold);font-size:0.92rem;margin-bottom:6px;">📝 รายข้อ (เรียงจากยากที่สุดบน — first-try ต่ำสุด)</div>
         ${qTbl}
       </div>
-      <div style="text-align:right;">
-        <a href="${csvB64}" download="qstats.csv" style="display:inline-block;background:var(--purple);color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:0.82rem;font-weight:700;">⬇️ Export CSV</a>
+      <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+        <button onclick="loadCrossPlayerStats()" style="background:var(--accent);color:#000;border:0;padding:7px 14px;border-radius:6px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;">🌐 โหลดสถิติทุกผู้เล่น (Firestore)</button>
+        <a href="${csvB64}" download="qstats-mine.csv" style="display:inline-block;background:var(--purple);color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:0.82rem;font-weight:700;">⬇️ Export CSV (ของฉัน)</a>
       </div>
+      <div id="adminCrossPlayerArea" style="margin-top:14px;"></div>
     </div>`;
   (document.getElementById('game') || document.body).appendChild(modal);
+}
+
+async function loadCrossPlayerStats(){
+  if(!isAdmin()){ toast('🔒 เฉพาะ admin'); return; }
+  if(!PQ_FB || !PQ_FB.db || !PQ_FB.collection || !PQ_FB.getDocs){ toast('❌ Firebase ยังไม่พร้อม'); return; }
+  const area = document.getElementById('adminCrossPlayerArea');
+  if(!area) return;
+  area.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:14px;">☁️ กำลังโหลดจาก Firestore...</div>';
+  try{
+    const snap = await PQ_FB.getDocs(PQ_FB.collection(PQ_FB.db, 'questionStats'));
+    const rows = [];
+    snap.forEach(doc=>{
+      const d = doc.data();
+      const ftPct = d.firstTryAttempts > 0 ? Math.round(d.firstTryCorrect/d.firstTryAttempts*1000)/10 : 0;
+      const totalPct = d.totalAttempts > 0 ? Math.round(d.totalCorrect/d.totalAttempts*1000)/10 : 0;
+      rows.push({qid:doc.id, ...d, ftPct, totalPct});
+    });
+    rows.sort((a,b)=>{
+      const av = a.firstTryAttempts > 0 ? a.ftPct : 9999;
+      const bv = b.firstTryAttempts > 0 ? b.ftPct : 9999;
+      return av - bv;
+    });
+    if(rows.length === 0){
+      area.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:14px;">— ยังไม่มีข้อมูลในระบบ (ต้องมีผู้เล่นตอบโจทย์อย่างน้อย 1 ครั้ง)</div>';
+      return;
+    }
+    const totalAttempts = rows.reduce((a,r)=>a+(r.totalAttempts||0),0);
+    const totalFirstTry = rows.reduce((a,r)=>a+(r.firstTryAttempts||0),0);
+    const totalFirstCorrect = rows.reduce((a,r)=>a+(r.firstTryCorrect||0),0);
+    const overallFt = totalFirstTry > 0 ? Math.round(totalFirstCorrect/totalFirstTry*1000)/10 : 0;
+    const tbl = `
+      <div style="background:var(--panel2);border:1px solid var(--accent);border-radius:8px;padding:10px;margin-bottom:10px;font-size:0.83rem;">
+        <div style="color:var(--accent);font-weight:700;margin-bottom:4px;">🌐 รวมจากทุกผู้เล่น</div>
+        <div style="color:var(--text);">ครอบคลุม ${rows.length} ข้อ · ตอบทั้งหมด ${totalAttempts} ครั้ง · first-try ${totalFirstCorrect}/${totalFirstTry} (${overallFt}%)</div>
+      </div>
+      <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+          <thead style="background:var(--panel2);position:sticky;top:0;">
+            <tr>
+              <th style="text-align:left;padding:6px 8px;color:var(--accent);">QID</th>
+              <th style="padding:6px 8px;color:var(--accent);">First-try %</th>
+              <th style="padding:6px 8px;color:var(--accent);">Total %</th>
+              <th style="padding:6px 8px;color:var(--accent);">Attempts</th>
+            </tr>
+          </thead>
+          <tbody>${rows.map(r=>{
+            const ftColor = r.firstTryAttempts === 0 ? 'var(--muted)' : (r.ftPct >= 80 ? 'var(--green)' : r.ftPct >= 50 ? 'var(--gold)' : 'var(--red)');
+            return `<tr style="border-top:1px solid var(--border);">
+              <td style="padding:5px 8px;font-family:monospace;color:var(--text);">${r.qid}</td>
+              <td style="padding:5px 8px;text-align:center;color:${ftColor};font-weight:700;">${r.firstTryAttempts === 0 ? '—' : r.ftPct + '%'} <span style="color:var(--muted);font-weight:400;">(${r.firstTryCorrect||0}/${r.firstTryAttempts||0})</span></td>
+              <td style="padding:5px 8px;text-align:center;color:var(--text);">${r.totalCorrect||0}/${r.totalAttempts||0} (${r.totalPct}%)</td>
+              <td style="padding:5px 8px;text-align:center;color:var(--muted);">${r.totalAttempts||0}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+    // Build CSV for cross-player
+    const csv = 'qid,totalAttempts,totalCorrect,firstTryAttempts,firstTryCorrect,firstTryPct,totalPct\n' +
+      rows.map(r=>`${r.qid},${r.totalAttempts||0},${r.totalCorrect||0},${r.firstTryAttempts||0},${r.firstTryCorrect||0},${r.ftPct},${r.totalPct}`).join('\n');
+    const csvB64 = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    area.innerHTML = tbl + `<div style="text-align:right;margin-top:8px;"><a href="${csvB64}" download="qstats-all-players.csv" style="display:inline-block;background:var(--purple);color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:0.82rem;font-weight:700;">⬇️ Export CSV (ทุกผู้เล่น)</a></div>`;
+  }catch(e){
+    area.innerHTML = `<div style="color:var(--red);font-size:0.85rem;padding:10px;background:rgba(248,113,113,.08);border:1px solid var(--red);border-radius:6px;">❌ โหลดไม่สำเร็จ: ${e.message || e}<br><span style="color:var(--muted);font-size:0.78rem;">(ตรวจสอบ firestore.rules ว่า admin email อ่าน /questionStats ได้)</span></div>`;
+  }
 }
 
 // ═══════════════════════════════════════════════
