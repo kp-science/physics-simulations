@@ -652,6 +652,8 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .b-skill-btn.disabled{opacity:.4;cursor:not-allowed;}
 .b-skill-btn .ic{font-size:1rem;}
 .b-skill-btn .mp{font-family:'Share Tech Mono',monospace;color:var(--purple);font-size:0.66rem;}
+.b-skill-btn.b-potion-btn{background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(251,191,36,.10));border:1px solid var(--green);}
+.b-skill-btn.b-potion-btn .mp{color:var(--gold);background:rgba(251,191,36,.12);padding:1px 6px;border-radius:5px;}
 .b-skill-btn.active-pulse{animation:skill-pulse 1.4s ease-out;}
 @keyframes skill-pulse{0%{box-shadow:0 0 0 rgba(167,139,250,.6);}40%{box-shadow:0 0 24px rgba(167,139,250,.8);}100%{box-shadow:0 0 0 rgba(167,139,250,0);}}
 .b-freeze-overlay{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(56,189,248,.25),transparent 70%);animation:freeze-fade 3s ease-out forwards;}
@@ -8235,15 +8237,62 @@ function renderBattleSkillBar(){
     {id:'mp_dilation', fn:'useDilation()', ic:'🌟', name:'Time Dilation', mp:50}
   ];
   const learned = skills.filter(s => getSkillRank(s.id) > 0);
-  if(learned.length === 0){ bar.innerHTML = ''; return; }
   const costRed = getSkillPassives().skillCostRed;
-  bar.innerHTML = learned.map(s => {
-    const finalMp = Math.round(s.mp * (1 - costRed));
-    const can = player.mp >= finalMp;
-    return `<button class="b-skill-btn ${can?'':'disabled'}" onclick="${s.fn}" ${can?'':'disabled'}>
-      <span class="ic">${s.ic}</span><span>${s.name}</span><span class="mp">${finalMp} MP</span>
-    </button>`;
-  }).join('');
+  let html = '';
+  if(learned.length){
+    html += learned.map(s => {
+      const finalMp = Math.round(s.mp * (1 - costRed));
+      const can = player.mp >= finalMp;
+      return `<button class="b-skill-btn ${can?'':'disabled'}" onclick="${s.fn}" ${can?'':'disabled'}>
+        <span class="ic">${s.ic}</span><span>${s.name}</span><span class="mp">${finalMp} MP</span>
+      </button>`;
+    }).join('');
+  }
+  // Battle potions — usable mid-battle, only show if player owns any
+  if(typeof POTION_DEFS !== 'undefined' && player.inventory){
+    const potionOrder = ['potion_mana_s','potion_mana_m','potion_time_s','potion_time_m','potion_time_l','potion_focus'];
+    const owned = potionOrder.filter(id => (player.inventory[id]||0) > 0);
+    if(owned.length){
+      html += owned.map(id => {
+        const p = POTION_DEFS[id];
+        const count = player.inventory[id];
+        return `<button class="b-skill-btn b-potion-btn" onclick="useBattlePotion('${id}')">
+          <span class="ic">${p.icon}</span><span>${p.name.replace('Potion ','').replace('Mana ','MP-').replace('Time ','TP-').replace('Elixir','')}</span><span class="mp">×${count}</span>
+        </button>`;
+      }).join('');
+    }
+  }
+  bar.innerHTML = html;
+}
+
+function useBattlePotion(id){
+  if(!bState || bState.locked) return;
+  if(!player.inventory || !player.inventory[id] || player.inventory[id] <= 0){ toast('ไม่มีไอเทมนี้'); return; }
+  const def = (typeof POTION_DEFS !== 'undefined') ? POTION_DEFS[id] : null;
+  if(!def) return;
+  // Apply mid-battle effect
+  if(id === 'potion_mana_s' || id === 'potion_mana_m'){
+    const max = getMaxMp();
+    if(player.mp >= max){ toast('MP เต็มแล้ว'); return; }
+    const gain = id === 'potion_mana_s' ? 20 : 50;
+    player.mp = Math.min(max, player.mp + gain);
+  } else if(id === 'potion_time_s' || id === 'potion_time_m' || id === 'potion_time_l'){
+    const sec = id === 'potion_time_s' ? 10 : (id === 'potion_time_m' ? 30 : 60);
+    bState.timer = (bState.timer || 0) + sec;
+    bState.timerMax = (bState.timerMax || 0) + sec;
+  } else if(id === 'potion_focus'){
+    if(bState.dilationActive){ toast('Timer ×1.5 ทำงานอยู่แล้ว'); return; }
+    bState.dilationActive = true;
+    bState.timer = (bState.timer || 0) * 1.5;
+    bState.timerMax = (bState.timerMax || 0) * 1.5;
+  }
+  player.inventory[id]--;
+  if(player.inventory[id] <= 0) delete player.inventory[id];
+  saveGame();
+  if(typeof playSfx === 'function'){ try{ playSfx('skill'); }catch(e){} }
+  toast(`✨ ใช้ ${def.name}`);
+  renderBattleSkillBar();
+  updateHud();
 }
 function spendSkillMp(baseCost){
   const finalMp = Math.round(baseCost * (1 - getSkillPassives().skillCostRed));
