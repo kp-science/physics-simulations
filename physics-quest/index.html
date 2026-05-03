@@ -7918,7 +7918,16 @@ function processVictory(){
   // card XP bonus + element multiplier + hard-mode penalty
   const buffs = getActiveBuffs();
   const xpMul = mul * (1 + (buffs.xpBonus || 0)) * elemMul * hardXpMul;
-  const xpGain = Math.max(0, Math.round(baseXp * xpMul));
+  let xpGain = Math.max(0, Math.round(baseXp * xpMul));
+  // ── Region level cap (general mode only) ──
+  // ถ้าเลเวลผู้เล่นเกิน mobLvMax ของ region ปัจจุบันแล้ว → XP = 0 (drops ยังปกติ)
+  // ป้องกันการฟาร์มแมพเดิมจน level เต็ม push ให้ไป Region ถัดไป
+  const _curRegion = (typeof REGIONS !== 'undefined') ? REGIONS[player.currentRegion] : null;
+  let outleveled = false;
+  if(_curRegion && !isHardMode && player.lv > _curRegion.mobLvMax){
+    xpGain = 0;
+    outleveled = true;
+  }
   player.xp += xpGain;
 
   // KC (Knowledge Crystal) — solid 5 per kill (KC unaffected by hard mode)
@@ -8024,11 +8033,13 @@ function processVictory(){
   if(stageJustCleared){
     const stage = getStagesFor(player.currentRegion, bState.mobData.stageMode).find(s=>s.id===bState.mobData.stageId);
     subMsg = `🎉 ผ่าน${stage.name}! ปลดล็อคด่านถัดไป`;
+  } else if(outleveled){
+    subMsg = `🚫 เลเวลเกินขีด Region (mob ≤ Lv ${_curRegion.mobLvMax}) — ของดรอปยังได้ปกติ ไป Region ถัดไปเพื่อรับ XP เต็ม`;
   }
   document.getElementById('rSub').textContent = subMsg;
   const rXpEl = document.getElementById('rXp');
   rXpEl.textContent = `+${xpGain}`;
-  rXpEl.style.color = ''; // reset red from prior wrong battle
+  rXpEl.style.color = outleveled ? 'var(--muted)' : ''; // gray out when capped
   document.getElementById('rKc').textContent = `+${kcGain}`;
   document.getElementById('rCombo').textContent = `×${player.combo}`;
 
