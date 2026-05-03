@@ -4533,14 +4533,19 @@ if(!player.stageBuckets) player.stageBuckets = {}; // {'1.1-a': {correctBucket:[
 if(!player.stickers) player.stickers = []; // ['1.1-a', '1.1-b', ...]
 if(!player.qStats) player.qStats = {}; // {qid: {attempts, firstTry:0|1|null, totalCorrect, wrong}} — admin tracking
 if(!player.qStatsTotals) player.qStatsTotals = {firstTryCorrect:0, firstTryAttempts:0, totalAttempts:0, totalCorrect:0};
+// ── ทนทาน (vit) streak tracking (2026-05-04) ──
+// player.correctStreak — จำนวนถูกต่อกันปัจจุบัน (รีเซ็ตเมื่อตอบผิด)
+// player.streakHistogram[N] — นับครั้งที่จบ streak ขนาด N (สำหรับโชว์ %)
+if(player.correctStreak === undefined) player.correctStreak = 0;
+if(!player.streakHistogram) player.streakHistogram = {};
 // Cleanup deprecated innate (mnd/wis/foc/grt removed 2026-05-03)
 ['mnd','wis','foc','grt'].forEach(k=>{ if(player.innate && player.innate[k]!==undefined) delete player.innate[k]; if(player.innateProgress && player.innateProgress[k]!==undefined) delete player.innateProgress[k]; });
 delete player.grtRetriesLeft; delete player.grtCurStageKey;
 
 const INNATE = {
   vit: { name:'ทนทาน', icon:'🛡️', color:'#f87171',
-    desc:'ลด XP penalty เมื่อตอบผิด · เก่งขึ้นจากการลุกขึ้นใหม่',
-    track:'ตอบผิดแล้วกลับมาตอบถูกในข้อถัดไป (recovery)',
+    desc:'ลด XP penalty เมื่อตอบผิด · เก่งขึ้นทั้งจากการลุกขึ้นใหม่ และตอบถูกต่อเนื่อง',
+    track:'(1) ตอบผิด → ตอบถูกข้อถัดไป = +1 vit · (2) ตอบถูกติดกันแล้วผิด — ยิ่งยาวยิ่งได้เยอะ (2 ติด=+1, 3 ติด=+2, 4 ติด=+3, ...)',
     ranks:[10,30,60,100,150],
     effectAt:r => r ? `−${r*10}% XP penalty` : '—' },
   review: { name:'ทบทวน', icon:'📓', color:'#38bdf8',
@@ -6719,6 +6724,18 @@ function showStatHelp(key){
 }
 window.showStatHelp = showStatHelp;
 
+function getStreakStats(){
+  const h = player.streakHistogram || {};
+  const total = Object.values(h).reduce((a,b)=>a+b, 0);
+  if(total === 0) return {total:0, rows:[]};
+  const lengths = Object.keys(h).map(Number).sort((a,b)=>a-b);
+  const rows = lengths.map(L => ({
+    length: L, count: h[L],
+    percent: Math.round((h[L]/total)*1000)/10
+  }));
+  return {total, rows};
+}
+
 function showInnateHelp(key){
   const def = INNATE[key]; if(!def) return;
   const unlocked = isInnateUnlocked(key);
@@ -6754,6 +6771,27 @@ function showInnateHelp(key){
     ${!unlocked ? `<div style="font-size:0.78rem;color:var(--gold);background:rgba(251,191,36,.08);padding:8px 10px;border-radius:6px;border:1px solid rgba(251,191,36,.3);margin-bottom:8px;">🔒 ปลดล็อคที่ <b>Lv.${unlockLv}</b> (ตอนนี้ Lv.${player.lv}) — เลเวลแรกๆ โจทย์ง่าย ไม่จำเป็นต้องใช้สกิลนี้</div>` : ''}
     <div style="font-size:0.74rem;color:var(--accent);background:rgba(56,189,248,.06);padding:6px 8px;border-radius:6px;border:1px solid rgba(56,189,248,.2);">▸ ปลดจาก: ${def.track}</div>
     ${next ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--muted);">ความคืบหน้า Lv.${r+1}: <b style="color:${def.color};">${prog}/${next}</b></div>` : `<div style="margin-top:8px;font-size:0.74rem;color:var(--gold);font-weight:700;">★ MAX RANK ★</div>`}
+    ${key === 'vit' ? (function(){
+      const s = getStreakStats();
+      const cur = player.correctStreak || 0;
+      let h = `<div style="margin-top:10px;padding:8px 10px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.25);border-radius:6px;">
+        <div style="font-size:0.74rem;color:#f87171;font-weight:700;margin-bottom:4px;">📊 สถิติ streak ของคุณ</div>
+        <div style="font-size:0.72rem;color:var(--text);">streak ปัจจุบัน: <b style="color:${cur>=2?'var(--green)':'var(--text)'};">${cur}</b> ติด</div>`;
+      if(s.total === 0){
+        h += `<div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">— ยังไม่มี streak ที่จบ (ตอบผิดเพื่อบันทึก)</div>`;
+      } else {
+        h += `<div style="font-size:0.7rem;color:var(--muted);margin-top:6px;">รวม ${s.total} streak ที่จบแล้ว — กระจายตามความยาว:</div>`;
+        h += s.rows.map(r => {
+          const w = Math.min(100, r.percent);
+          return `<div style="display:flex;align-items:center;gap:6px;font-size:0.7rem;margin-top:3px;">
+            <span style="min-width:50px;color:var(--text);">${r.length} ติด</span>
+            <div style="flex:1;height:8px;background:rgba(0,0,0,.3);border-radius:4px;overflow:hidden;"><div style="width:${w}%;height:100%;background:#f87171;"></div></div>
+            <span style="min-width:60px;text-align:right;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:0.65rem;">${r.percent}% (${r.count})</span>
+          </div>`;
+        }).join('');
+      }
+      h += `</div>`; return h;
+    })() : ''}
     ${rankList}
   </div>`;
 }
@@ -7696,8 +7734,12 @@ function onCorrect(){
     recordStageBucketAnswer(currentSubstage, bState.q.id, true);
   }
   // ── Innate trackers ──
-  // VIT: recovery (correct after wrong)
+  // VIT path 1: recovery (correct after wrong) → +1 vit
   if(player.lastAnsWrong){ bumpInnate('vit'); player.lastAnsWrong = false; }
+  // VIT path 2: streak counter (build up, awarded when streak breaks)
+  if(!bState.isSandbox && !bState.isDuel){
+    player.correctStreak = (player.correctStreak || 0) + 1;
+  }
   // ── Daily quest tracking ──
   if(typeof trackDaily === 'function'){
     trackDaily('correctToday', 1);
@@ -7761,6 +7803,17 @@ function onWrong(){
   // ── Stage bucket: record wrong (skip sandbox/duel) ──
   if(currentSubstage && bState && bState.q && bState.q.id && !bState.isSandbox && !bState.isDuel){
     recordStageBucketAnswer(currentSubstage, bState.q.id, false);
+  }
+  // ── VIT path 2: streak just broke — record histogram + bump vit by (length-1) ──
+  if(!bState.isSandbox && !bState.isDuel){
+    const len = player.correctStreak || 0;
+    if(len > 0){
+      if(!player.streakHistogram) player.streakHistogram = {};
+      player.streakHistogram[len] = (player.streakHistogram[len] || 0) + 1;
+      const vitGain = Math.max(0, len - 1);
+      if(vitGain > 0) bumpInnate('vit', vitGain);
+    }
+    player.correctStreak = 0;
   }
   // 🧱 Recover: track failed qid this map (for recovery tracking on next correct)
   if(currentSubstage && bState.q && !player.failedThisMap.includes(bState.q.id)){
