@@ -4550,9 +4550,9 @@ const INNATE = {
     effectAt:r => r ? `−${r*10}% XP penalty` : '—' },
   review: { name:'ทบทวน', icon:'📓', color:'#38bdf8',
     desc:'สมุดสะสมโจทย์ — เลือกข้อสำคัญมาทบทวน + ฝึกซ้ำใน sandbox',
-    track:'กดปุ่ม "📌 บันทึก" บนหน้า result เพื่อเก็บโจทย์เข้าสมุด',
-    ranks:[5,15,30,60,120],
-    effectAt:r => r ? `สมุด ${r} ข้อ${r>=3?' + sandbox':''}${r>=4?' + สรุปสถิติ':''}${r>=5?' + export PDF':''}` : 'สมุด 0 ข้อ' },
+    track:'กดปุ่ม "📌 บันทึก" บนหน้า result · บันทึกครั้งแรกปลด rank 1 (สมุด 1 ข้อ) จากนั้นยิ่งบันทึกมากยิ่งเก็บได้มาก',
+    ranks:[1,5,15,30,60],
+    effectAt:r => r ? `สมุด ${r} ข้อ${r>=3?' + sandbox':''}${r>=4?' + สรุปสถิติ':''}${r>=5?' + export PDF':''}` : 'สมุด 0 ข้อ · บันทึกครั้งแรก = ปลด' },
   recover: { name:'แก้จากผิด', icon:'🧱', color:'#fb923c',
     desc:'เปิดฮินต์หลังตอบผิด — แก้สำเร็จได้ XP คูณ + ครั้งแรกที่ผิดในแมพไม่โดน penalty',
     track:'ผิด → ใช้ฮินต์ → ตอบถูก ในแมพเดียว (cleared เมื่อออกแมพ)',
@@ -4617,13 +4617,16 @@ function isBookStatsUnlocked(){ return getInnateRank('review') >= 4; }
 function isBookExportUnlocked(){ return getInnateRank('review') >= 5; }
 function saveQuestionToBook(qid, wasCorrect, mark){
   const cap = getBookCapacity();
-  if(cap <= 0){ toast('📓 ยังไม่ปลด ทบทวน · ผ่านการบันทึกข้อสอบเข้าระบบก่อน'); return false; }
+  const rank = getInnateRank('review');
   // already in book?
   if(player.book.some(b => b.qid === qid)){ toast('โจทย์นี้มีในสมุดแล้ว'); return false; }
-  if(player.book.length >= cap){ toast(`สมุดเต็ม (${cap}/${cap}) · ต้องลบข้อเก่าก่อน`); return false; }
+  // First-ever save kickstarter: rank 0 + book empty → allow (this save will trigger rank-up to 1)
+  const isFirstUnlock = rank === 0 && player.book.length === 0;
+  if(!isFirstUnlock && cap <= 0){ toast('📓 ทบทวนยังไม่ปลด · บันทึกข้อแรกเพื่อปลด rank 1'); return false; }
+  if(!isFirstUnlock && player.book.length >= cap){ toast(`สมุดเต็ม (${cap}/${cap}) · ต้องลบข้อเก่าก่อน`); return false; }
   player.book.push({ qid, wasCorrect: !!wasCorrect, mark: mark || (wasCorrect?'green':'red'), savedAt: Date.now() });
   bumpInnate('review');
-  toast('📓 บันทึกเข้าสมุดแล้ว');
+  toast(isFirstUnlock ? '🎉 ปลด ทบทวน Rank 1 · สมุดเปิดแล้ว!' : '📓 บันทึกเข้าสมุดแล้ว');
   saveGame();
   if(typeof refreshBookBadge === 'function') refreshBookBadge();
   return true;
@@ -4706,15 +4709,22 @@ function renderResultInnateActions(wasCorrect){
   }
   // 📓 Save to book: on victory or even on wrong (let player save tough ones)
   const cap = getBookCapacity();
-  if(cap > 0){
+  const reviewRank = getInnateRank('review');
+  const showSave = cap > 0 || (reviewRank === 0 && player.book.length === 0); // show kickstarter at rank 0
+  if(showSave){
     const already = player.book.some(b => b.qid === q.id);
-    const full = player.book.length >= cap;
+    const full = cap > 0 && player.book.length >= cap;
+    const isKickstarter = reviewRank === 0 && player.book.length === 0;
     let label;
     if(already) label = '📓 มีในสมุดแล้ว';
     else if(full) label = `📓 สมุดเต็ม (${player.book.length}/${cap})`;
+    else if(isKickstarter) label = '🎁 บันทึกข้อนี้ — ปลด ทบทวน Rank 1';
     else label = `📌 บันทึกเข้าสมุด (${player.book.length}/${cap})`;
     const disabled = already || full;
-    html += `<button class="result-cta" style="background:${disabled?'rgba(56,189,248,.12)':'linear-gradient(135deg,#0a1020,#0f1a2e)'};border:1px solid var(--accent);color:${disabled?'var(--muted)':'var(--accent)'};font-size:0.86rem;padding:10px;${disabled?'opacity:.6;cursor:not-allowed;':''}" ${disabled?'disabled':`onclick="bookSaveCurrent(${wasCorrect?1:0})"`}>${label}</button>`;
+    const bgStyle = isKickstarter
+      ? 'background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(56,189,248,.10));border:1px dashed var(--gold);color:var(--gold);'
+      : `background:${disabled?'rgba(56,189,248,.12)':'linear-gradient(135deg,#0a1020,#0f1a2e)'};border:1px solid var(--accent);color:${disabled?'var(--muted)':'var(--accent)'};`;
+    html += `<button class="result-cta" style="${bgStyle}font-size:0.86rem;padding:10px;${disabled?'opacity:.6;cursor:not-allowed;':''}" ${disabled?'disabled':`onclick="bookSaveCurrent(${wasCorrect?1:0})"`}>${label}</button>`;
   }
   host.innerHTML = html;
 }
