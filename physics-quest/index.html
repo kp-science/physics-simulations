@@ -2077,6 +2077,15 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
           <button class="icon-btn" onclick="openPvp()" title="ดวลกับเพื่อน">🆚</button>
           <span class="icon-label">ดวล</span>
         </div>
+        <div class="icon-btn-wrap">
+          <button class="icon-btn" onclick="openStickers()" title="สติกเกอร์ที่สะสม">🏷️</button>
+          <span class="icon-badge" id="iconBadgeStickers" style="display:none;">0</span>
+          <span class="icon-label">สติกเกอร์</span>
+        </div>
+        <div class="icon-btn-wrap" id="adminIconWrap" style="display:none;">
+          <button class="icon-btn" onclick="openAdminStats()" title="Admin: สถิติคำตอบ">📊</button>
+          <span class="icon-label">Admin</span>
+        </div>
       </div>
     </div>
 
@@ -3316,6 +3325,8 @@ function updateAuthUi(){
     btn.onclick = openAuthModal;
     toggleProfileMenu(false);
   }
+  if(typeof refreshAdminAccess === 'function') refreshAdminAccess();
+  if(typeof refreshStickerBadge === 'function') refreshStickerBadge();
   maybeShowSoftPrompt();
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -4512,6 +4523,11 @@ if(!player.failedThisMap) player.failedThisMap = []; // recover — qids failed 
 if(player.recoverHintsThisMap === undefined) player.recoverHintsThisMap = 0;
 if(player.recoverFreeMissesUsed === undefined) player.recoverFreeMissesUsed = 0;
 if(!player.formulaHistory) player.formulaHistory = []; // connect — last 3 correct formulas (cross-mob)
+// ── Stage bucket system (2026-05-03) — per-stage 2-bucket progress, sticker rewards ──
+if(!player.stageBuckets) player.stageBuckets = {}; // {'1.1-a': {correctBucket:[], wrongBucket:[], firstTryCorrect:[], attempts:{}, poolSize, bonusClaimed, clearClaimed}}
+if(!player.stickers) player.stickers = []; // ['1.1-a', '1.1-b', ...]
+if(!player.qStats) player.qStats = {}; // {qid: {attempts, firstTry:0|1|null, totalCorrect, wrong}} — admin tracking
+if(!player.qStatsTotals) player.qStatsTotals = {firstTryCorrect:0, firstTryAttempts:0, totalAttempts:0, totalCorrect:0};
 // Cleanup deprecated innate (mnd/wis/foc/grt removed 2026-05-03)
 ['mnd','wis','foc','grt'].forEach(k=>{ if(player.innate && player.innate[k]!==undefined) delete player.innate[k]; if(player.innateProgress && player.innateProgress[k]!==undefined) delete player.innateProgress[k]; });
 delete player.grtRetriesLeft; delete player.grtCurStageKey;
@@ -5554,6 +5570,296 @@ function resetGame(){
   location.reload();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// STAGE BUCKET SYSTEM (2026-05-03)
+// Phase 1 General: 2-bucket model (correct/wrong) — student retries wrong-bucket
+//   until cleared. 80% threshold = MC+KC bonus · 100% = sticker + bonus.
+// Phase 2 Legend (Hard Mode): keeps queue-based infinite respawn.
+// ═══════════════════════════════════════════════════════════════
+const ADMIN_EMAIL = 'komanepapato@gmail.com';
+const BUCKET_BONUS_THRESHOLD = 0.80;
+
+function bucketKey(regionId, stageId){ return `${regionId}-${stageId}`; }
+
+function getOrInitStageBucket(regionId, stageId, poolSize){
+  const k = bucketKey(regionId, stageId);
+  if(!player.stageBuckets) player.stageBuckets = {};
+  if(!player.stageBuckets[k]){
+    player.stageBuckets[k] = {
+      correctBucket: [], wrongBucket: [], firstTryCorrect: [],
+      attempts: {}, poolSize: poolSize,
+      bonusClaimed: false, clearClaimed: false
+    };
+  }
+  // keep poolSize in sync if pool grows (teacher adds questions)
+  if(player.stageBuckets[k].poolSize !== poolSize) player.stageBuckets[k].poolSize = poolSize;
+  return player.stageBuckets[k];
+}
+
+function pickStageQuestion(substage){
+  // Phase 2 (legend) → queue-based, infinite respawn
+  if(substage.mode !== 'general'){
+    if(!substage.queue || substage.queue.length === 0){
+      substage.queue = shuffleArray(substage.pool.slice());
+    }
+    return substage.queue.pop();
+  }
+  // Phase 1 (general) → bucket-aware
+  const bucket = getOrInitStageBucket(player.currentRegion, substage.id, substage.pool.length);
+  const correctSet = new Set(bucket.correctBucket);
+  const wrongSet = new Set(bucket.wrongBucket);
+  const unanswered = substage.pool.filter(q => !correctSet.has(q.id) && !wrongSet.has(q.id));
+  if(unanswered.length > 0){
+    return unanswered[Math.floor(Math.random()*unanswered.length)];
+  }
+  if(bucket.wrongBucket.length > 0){
+    const qid = bucket.wrongBucket[Math.floor(Math.random()*bucket.wrongBucket.length)];
+    return substage.pool.find(q => q.id === qid) || substage.pool[0];
+  }
+  // All correct — stage cleared. Defensive: return random for visual continuity.
+  return substage.pool[Math.floor(Math.random()*substage.pool.length)];
+}
+
+function recordStageBucketAnswer(substage, qid, isCorrect){
+  if(!qid) return;
+  // ── Global qStats (for admin) ──
+  if(!player.qStats) player.qStats = {};
+  if(!player.qStats[qid]) player.qStats[qid] = {attempts:0, firstTry:null, totalCorrect:0, wrong:0};
+  const qs = player.qStats[qid];
+  const isFirstAttempt = qs.attempts === 0;
+  qs.attempts++;
+  if(isCorrect) qs.totalCorrect++; else qs.wrong++;
+  if(isFirstAttempt) qs.firstTry = isCorrect ? 1 : 0;
+
+  if(!player.qStatsTotals) player.qStatsTotals = {firstTryCorrect:0, firstTryAttempts:0, totalAttempts:0, totalCorrect:0};
+  player.qStatsTotals.totalAttempts++;
+  if(isCorrect) player.qStatsTotals.totalCorrect++;
+  if(isFirstAttempt){
+    player.qStatsTotals.firstTryAttempts++;
+    if(isCorrect) player.qStatsTotals.firstTryCorrect++;
+  }
+
+  // ── Stage bucket (phase 1 only) ──
+  if(!substage || substage.mode !== 'general') return;
+  const bucket = getOrInitStageBucket(player.currentRegion, substage.id, substage.pool.length);
+  const inWrong = bucket.wrongBucket.indexOf(qid);
+  const inCorrect = bucket.correctBucket.indexOf(qid);
+
+  if(isCorrect){
+    if(inWrong >= 0) bucket.wrongBucket.splice(inWrong, 1);
+    if(inCorrect < 0) bucket.correctBucket.push(qid);
+    if(isFirstAttempt && !bucket.firstTryCorrect.includes(qid)){
+      bucket.firstTryCorrect.push(qid);
+    }
+  } else {
+    if(inCorrect < 0 && inWrong < 0){
+      bucket.wrongBucket.push(qid);
+    }
+  }
+  bucket.attempts[qid] = (bucket.attempts[qid] || 0) + 1;
+
+  checkStageBucketThresholds(player.currentRegion, substage.id, bucket);
+}
+
+function checkStageBucketThresholds(regionId, stageId, bucket){
+  const correctCount = bucket.correctBucket.length;
+  const pct = bucket.poolSize > 0 ? (correctCount / bucket.poolSize) : 0;
+
+  if(pct >= BUCKET_BONUS_THRESHOLD && !bucket.bonusClaimed){
+    bucket.bonusClaimed = true;
+    player.mc = (player.mc||0) + 50;
+    player.kc = (player.kc||0) + 200;
+    saveGame();
+    setTimeout(()=>showStageBucketModal('bonus', regionId, stageId, correctCount, bucket.poolSize, 50, 200), 1700);
+  }
+  if(pct >= 1.0 && !bucket.clearClaimed){
+    bucket.clearClaimed = true;
+    player.mc = (player.mc||0) + 100;
+    const stickerId = `${regionId}-${stageId}`;
+    if(!player.stickers) player.stickers = [];
+    if(!player.stickers.includes(stickerId)) player.stickers.push(stickerId);
+    saveGame();
+    setTimeout(()=>showStageBucketModal('clear', regionId, stageId, correctCount, bucket.poolSize, 100, 0), 2200);
+  }
+}
+
+function showStageBucketModal(kind, regionId, stageId, correctCount, poolSize, mcGain, kcGain){
+  const region = (typeof REGIONS !== 'undefined' && REGIONS[regionId]) ? REGIONS[regionId] : {name:regionId};
+  const isBonus = kind === 'bonus';
+  let modal = document.getElementById('stageBucketModal');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'stageBucketModal';
+  modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.94);z-index:10001;display:flex;align-items:center;justify-content:center;padding:18px;';
+  modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+  const title = isBonus ? '🎉 80% สำเร็จ!' : '🏆 เคลียร์ด่านสมบูรณ์!';
+  const subtitle = isBonus
+    ? `คุณตอบถูก ${correctCount}/${poolSize} ข้อแล้ว — ทำต่อให้ครบเพื่อรับสติกเกอร์!`
+    : `คุณตอบถูกครบทุก ${poolSize} ข้อ — รับสติกเกอร์ "${region.name} · ด่าน ${stageId.toUpperCase()}"!`;
+  const stickerHTML = isBonus ? '' : `
+    <div style="margin:14px 0;padding:18px 14px;background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(167,139,250,.10));border:2px dashed var(--gold);border-radius:14px;text-align:center;">
+      <div style="font-size:3.2rem;line-height:1;margin-bottom:6px;">🏷️</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.95rem;color:var(--gold);font-weight:700;">${region.name}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:var(--text);margin-top:4px;">STAGE ${stageId.toUpperCase()} CLEARED</div>
+    </div>`;
+  const rewardHTML = `
+    <div style="display:flex;gap:10px;justify-content:center;margin:10px 0;flex-wrap:wrap;">
+      ${mcGain > 0 ? `<div style="padding:8px 14px;background:rgba(167,139,250,.12);border:1px solid var(--purple);border-radius:8px;color:var(--purple);font-weight:700;">💎 +${mcGain} MC</div>` : ''}
+      ${kcGain > 0 ? `<div style="padding:8px 14px;background:rgba(56,189,248,.12);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-weight:700;">🔹 +${kcGain} KC</div>` : ''}
+    </div>`;
+  modal.innerHTML = `
+    <div style="background:var(--panel);border:2px solid ${isBonus?'var(--accent)':'var(--gold)'};border-radius:14px;padding:22px 18px;max-width:340px;width:100%;text-align:center;box-shadow:0 0 40px rgba(251,191,36,.25);">
+      <div style="font-family:'Cinzel',serif;font-size:1.2rem;color:${isBonus?'var(--accent)':'var(--gold)'};margin-bottom:8px;">${title}</div>
+      <div style="color:var(--text);font-size:0.88rem;line-height:1.55;margin-bottom:8px;">${subtitle}</div>
+      ${stickerHTML}
+      ${rewardHTML}
+      <button onclick="document.getElementById('stageBucketModal').remove()" style="margin-top:10px;background:${isBonus?'var(--accent)':'var(--gold)'};color:#000;border:0;padding:9px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;">ตกลง</button>
+    </div>`;
+  (document.getElementById('game') || document.body).appendChild(modal);
+  if(typeof playSfx === 'function'){ try{ playSfx(isBonus ? 'levelUp' : 'correct'); }catch(e){} }
+  if(typeof shake === 'function'){ try{ shake(isBonus ? 'med' : 'heavy'); }catch(e){} }
+}
+
+function isAdmin(){
+  try{
+    return typeof currentUser !== 'undefined' && currentUser && currentUser.email === ADMIN_EMAIL;
+  }catch(e){ return false; }
+}
+
+function refreshAdminAccess(){
+  const wrap = document.getElementById('adminIconWrap');
+  if(wrap) wrap.style.display = isAdmin() ? '' : 'none';
+}
+
+function refreshStickerBadge(){
+  const b = document.getElementById('iconBadgeStickers');
+  if(!b) return;
+  const n = (player.stickers || []).length;
+  if(n > 0){ b.style.display = 'inline-block'; b.textContent = n; } else { b.style.display = 'none'; }
+}
+
+function openStickers(){
+  let modal = document.getElementById('stickersModal');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'stickersModal';
+  modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.94);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:18px 12px;overflow-y:auto;';
+  modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+  // Build sticker grid: all known region/stage combos, locked = grey, unlocked = colored
+  const owned = new Set(player.stickers || []);
+  const allSlots = [];
+  if(typeof REGIONS !== 'undefined'){
+    Object.keys(REGIONS).forEach(rid => {
+      ['a','b','c','d'].forEach(sid => allSlots.push({rid, sid, key:`${rid}-${sid}`}));
+    });
+  }
+  // fallback if REGIONS missing: just list owned
+  if(allSlots.length === 0){
+    (player.stickers||[]).forEach(k => { const [rid,sid]=k.split('-'); allSlots.push({rid,sid,key:k}); });
+  }
+  const cards = allSlots.map(s => {
+    const has = owned.has(s.key);
+    const region = (typeof REGIONS !== 'undefined' && REGIONS[s.rid]) ? REGIONS[s.rid] : {name:s.rid};
+    const bg = has
+      ? 'background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(167,139,250,.10));border:2px dashed var(--gold);'
+      : 'background:rgba(20,30,55,.5);border:2px dashed var(--border);opacity:.45;filter:grayscale(.7);';
+    return `<div style="${bg}border-radius:12px;padding:14px 10px;text-align:center;min-width:130px;">
+      <div style="font-size:2.4rem;line-height:1;margin-bottom:5px;">${has?'🏷️':'🔒'}</div>
+      <div style="font-family:'Cinzel',serif;font-size:0.78rem;color:${has?'var(--gold)':'var(--muted)'};font-weight:700;">${region.name}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--text);margin-top:3px;">STAGE ${s.sid.toUpperCase()}</div>
+    </div>`;
+  }).join('');
+  modal.innerHTML = `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;max-width:520px;width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--gold);">🏷️ สติกเกอร์ที่สะสม</div>
+        <button onclick="document.getElementById('stickersModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:6px;cursor:pointer;font-family:inherit;">✕</button>
+      </div>
+      <div style="color:var(--muted);font-size:0.82rem;margin-bottom:14px;">เคลียร์ด่าน 100% เพื่อรับสติกเกอร์ · มี ${owned.size} / ${allSlots.length} ดวง</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">${cards || '<div style="color:var(--muted);">ยังไม่มีสติกเกอร์ — เริ่มเคลียร์ด่านได้เลย!</div>'}</div>
+    </div>`;
+  (document.getElementById('game') || document.body).appendChild(modal);
+}
+
+function openAdminStats(){
+  if(!isAdmin()){ toast('🔒 เฉพาะ admin'); return; }
+  let modal = document.getElementById('adminStatsModal');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'adminStatsModal';
+  modal.style.cssText = 'position:absolute;inset:0;background:rgba(4,6,13,.96);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:14px 8px;overflow-y:auto;';
+  modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+
+  const t = player.qStatsTotals || {firstTryCorrect:0, firstTryAttempts:0, totalAttempts:0, totalCorrect:0};
+  const ftPct = t.firstTryAttempts > 0 ? Math.round((t.firstTryCorrect/t.firstTryAttempts)*1000)/10 : 0;
+  const allPct = t.totalAttempts > 0 ? Math.round((t.totalCorrect/t.totalAttempts)*1000)/10 : 0;
+
+  // Per-stage bucket summary
+  const stageBlocks = Object.entries(player.stageBuckets || {}).map(([k, b])=>{
+    const correctN = b.correctBucket.length, wrongN = b.wrongBucket.length, ftN = b.firstTryCorrect.length;
+    const correctPct = b.poolSize>0 ? Math.round(correctN/b.poolSize*1000)/10 : 0;
+    const ftStagePct = b.poolSize>0 ? Math.round(ftN/b.poolSize*1000)/10 : 0;
+    return `<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:6px;font-size:0.84rem;">
+      <div style="color:var(--accent);font-weight:700;">${k.toUpperCase()}</div>
+      <div style="color:var(--text);margin-top:3px;">✅ ${correctN}/${b.poolSize} (${correctPct}%) · ❌ ${wrongN} · 🥇 first-try ${ftN}/${b.poolSize} (${ftStagePct}%)</div>
+      <div style="color:var(--muted);font-size:0.75rem;margin-top:2px;">bonus 80%: ${b.bonusClaimed?'✅':'—'} · clear 100%: ${b.clearClaimed?'✅':'—'}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);">— ยังไม่มีสถิติ</div>';
+
+  // Per-question stats — sort by % first-try correct ascending (hardest first)
+  const qRows = Object.entries(player.qStats || {})
+    .map(([qid, qs])=>({qid, ...qs, ftPct: qs.firstTry === null ? null : qs.firstTry*100, totalPct: qs.attempts>0 ? Math.round(qs.totalCorrect/qs.attempts*1000)/10 : 0}))
+    .sort((a,b)=>{
+      // hardest = lowest first-try (null treated as 0)
+      const av = a.ftPct === null ? -1 : a.ftPct;
+      const bv = b.ftPct === null ? -1 : b.ftPct;
+      return av - bv;
+    });
+  const qTbl = qRows.length === 0 ? '<div style="color:var(--muted);">—</div>' :
+    `<div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+        <thead style="background:var(--panel2);position:sticky;top:0;">
+          <tr><th style="text-align:left;padding:6px 8px;color:var(--accent);">QID</th><th style="padding:6px 8px;color:var(--accent);">First-try</th><th style="padding:6px 8px;color:var(--accent);">Total</th><th style="padding:6px 8px;color:var(--accent);">Attempts</th></tr>
+        </thead>
+        <tbody>${qRows.map(r=>`<tr style="border-top:1px solid var(--border);">
+          <td style="padding:5px 8px;font-family:monospace;color:var(--text);">${r.qid}</td>
+          <td style="padding:5px 8px;text-align:center;color:${r.firstTry===1?'var(--green)':r.firstTry===0?'var(--red)':'var(--muted)'};">${r.firstTry===null?'—':(r.firstTry===1?'✅':'❌')}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--text);">${r.totalCorrect}/${r.attempts} (${r.totalPct}%)</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--muted);">${r.attempts}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+
+  // CSV export
+  const csv = 'qid,attempts,firstTry,totalCorrect,wrong\n' + qRows.map(r=>`${r.qid},${r.attempts},${r.firstTry===null?'':r.firstTry},${r.totalCorrect},${r.wrong}`).join('\n');
+  const csvB64 = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+
+  modal.innerHTML = `
+    <div style="background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:18px;max-width:560px;width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-family:'Cinzel',serif;font-size:1.15rem;color:var(--accent);">📊 Admin · สถิติคำตอบ</div>
+        <button onclick="document.getElementById('adminStatsModal').remove()" style="background:transparent;border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:6px;cursor:pointer;font-family:inherit;">✕</button>
+      </div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:11px;margin-bottom:14px;font-size:0.85rem;">
+        <div style="color:var(--gold);font-weight:700;margin-bottom:5px;">ภาพรวม</div>
+        <div style="color:var(--text);">รวมทั้งหมด: ${t.totalCorrect}/${t.totalAttempts} ตอบถูก (${allPct}%)</div>
+        <div style="color:var(--text);">ตอบครั้งแรก: ${t.firstTryCorrect}/${t.firstTryAttempts} (${ftPct}%)</div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="color:var(--gold);font-size:0.92rem;margin-bottom:6px;">📚 ความก้าวหน้าแต่ละด่าน</div>
+        ${stageBlocks}
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="color:var(--gold);font-size:0.92rem;margin-bottom:6px;">📝 รายข้อ (เรียงจากยากที่สุดบน — first-try ต่ำสุด)</div>
+        ${qTbl}
+      </div>
+      <div style="text-align:right;">
+        <a href="${csvB64}" download="qstats.csv" style="display:inline-block;background:var(--purple);color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-size:0.82rem;font-weight:700;">⬇️ Export CSV</a>
+      </div>
+    </div>`;
+  (document.getElementById('game') || document.body).appendChild(modal);
+}
+
 // ═══════════════════════════════════════════════
 // STAGE RENDERING (constellation map)
 // ═══════════════════════════════════════════════
@@ -5718,11 +6024,9 @@ function spawnSubstageMob(){
   const stageMobLv = currentSubstage.stage.mobLv;
   // small variance ±1 around stage's mob level
   const lv = Math.max(1, stageMobLv + (Math.random()<0.5 ? 0 : (Math.random()<0.5?-1:1)));
-  // Sampling-without-replacement: pop from shuffled queue; reshuffle when empty
-  if(!currentSubstage.queue || currentSubstage.queue.length === 0){
-    currentSubstage.queue = shuffleArray(currentSubstage.pool.slice());
-  }
-  const q = currentSubstage.queue.pop();
+  // Bucket-aware selection (general mode) or queue (legend infinite respawn)
+  const q = pickStageQuestion(currentSubstage);
+  if(!q){ return; }
   const qIdx = QUESTIONS.indexOf(q);
 
   const el = document.createElement('div');
@@ -6756,6 +7060,8 @@ function closePull(){ document.getElementById('pullResult').classList.remove('sh
 
 function updateHud(){
   if(typeof refreshBookBadge==='function') refreshBookBadge();
+  if(typeof refreshStickerBadge==='function') refreshStickerBadge();
+  if(typeof refreshAdminAccess==='function') refreshAdminAccess();
   const need = xpForLv(player.lv);
   const xpPct = Math.min(100, player.xp/need*100);
   const invCount = Object.values(player.inventory).reduce((a,b)=>a+b,0);
@@ -6802,12 +7108,24 @@ function updateHud(){
   setW('ssStXpFill', xpPct + '%');
   set('ssKc', player.kc);
   if(currentSubstage){
-    const key = currentSubstage.mode+'-'+currentSubstage.id;
-    const kills = player.stageKills[key] || 0;
-    const stageTarget = getSubstageTarget();
-    const killPct = Math.min(100, kills/stageTarget*100);
-    setW('ssPhaseFill', killPct+'%');
-    set('ssPhaseTxt', `${Math.min(kills,stageTarget)}/${stageTarget}`);
+    if(currentSubstage.mode === 'general'){
+      // Phase 1: bucket-aware progress
+      const bk = getOrInitStageBucket(player.currentRegion, currentSubstage.id, currentSubstage.pool.length);
+      const correctN = bk.correctBucket.length;
+      const wrongN = bk.wrongBucket.length;
+      const total = bk.poolSize || currentSubstage.pool.length;
+      const pct = total > 0 ? Math.min(100, (correctN/total)*100) : 0;
+      setW('ssPhaseFill', pct+'%');
+      set('ssPhaseTxt', `✅ ${correctN}/${total}${wrongN>0?` · ❌ ${wrongN}`:''}`);
+    } else {
+      // Phase 2 (legend Hard Mode): keep kills counter
+      const key = currentSubstage.mode+'-'+currentSubstage.id;
+      const kills = player.stageKills[key] || 0;
+      const stageTarget = getSubstageTarget();
+      const killPct = Math.min(100, kills/stageTarget*100);
+      setW('ssPhaseFill', killPct+'%');
+      set('ssPhaseTxt', `${Math.min(kills,stageTarget)}/${stageTarget}`);
+    }
   }
 
   // Home screen HUD (new mockup layout)
@@ -7259,6 +7577,10 @@ function onCorrect(){
   if(player.combo % 5 === 0 && player.combo > 0){
     bigCombo(player.combo);
   }
+  // ── Stage bucket: record correct (skip sandbox/duel) ──
+  if(currentSubstage && bState && bState.q && bState.q.id && !bState.isSandbox && !bState.isDuel){
+    recordStageBucketAnswer(currentSubstage, bState.q.id, true);
+  }
   // ── Innate trackers ──
   // VIT: recovery (correct after wrong)
   if(player.lastAnsWrong){ bumpInnate('vit'); player.lastAnsWrong = false; }
@@ -7287,6 +7609,9 @@ function showXpPenaltyToast(amount){
 // On wrong/timeout: question goes BACK into queue (eligible to spawn again later) + mob escapes.
 // On correct: question stays popped from queue (won't repeat until full pool consumed).
 function requeueCurrentQuestion(){
+  // In general mode, the bucket system handles requeue (qid stays in wrongBucket).
+  // In legend (Hard Mode), keep queue-based requeue for infinite respawn.
+  if(currentSubstage && currentSubstage.mode === 'general') return;
   if(currentSubstage && bState && bState.q && currentSubstage.queue){
     currentSubstage.queue.push(bState.q);
     shuffleArray(currentSubstage.queue);
@@ -7319,6 +7644,10 @@ function onWrong(){
     });
   }
   player.combo = 0;
+  // ── Stage bucket: record wrong (skip sandbox/duel) ──
+  if(currentSubstage && bState && bState.q && bState.q.id && !bState.isSandbox && !bState.isDuel){
+    recordStageBucketAnswer(currentSubstage, bState.q.id, false);
+  }
   // 🧱 Recover: track failed qid this map (for recovery tracking on next correct)
   if(currentSubstage && bState.q && !player.failedThisMap.includes(bState.q.id)){
     player.failedThisMap.push(bState.q.id);
