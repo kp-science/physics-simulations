@@ -4763,6 +4763,7 @@ function renderResultInnateActions(wasCorrect){
 }
 // Re-enter same question with the next hint revealed
 function recoverRetry(){
+  if(typeof cancelResultAutoReturn === 'function') cancelResultAutoReturn();
   const q = bState && bState.q; if(!q) return;
   const cap = getRecoverHintCapacity();
   const used = player.recoverHintsThisMap || 0;
@@ -4793,6 +4794,7 @@ function recoverRetry(){
 }
 window.recoverRetry = recoverRetry;
 function bookSaveCurrent(wasCorrect){
+  if(typeof cancelResultAutoReturn === 'function') cancelResultAutoReturn();
   const q = bState && bState.q; if(!q) return;
   if(saveQuestionToBook(q.id, !!wasCorrect)){
     renderResultInnateActions(wasCorrect);
@@ -8003,6 +8005,7 @@ function onWrong(){
     document.getElementById('rDrop').innerHTML = '';
     renderResultInnateActions(false);
     showScreen('result');
+    scheduleResultAutoReturn(2800);
     saveGame();
     updateHud();
   }, 1600);
@@ -8045,6 +8048,7 @@ function timeOut(){
     document.getElementById('rDrop').innerHTML = '';
     renderResultInnateActions(false);
     showScreen('result');
+    scheduleResultAutoReturn(2800);
     saveGame();
     updateHud();
   }, 1600);
@@ -8298,6 +8302,12 @@ function processVictory(){
   }
 
   showScreen('result');
+  // Auto-bounce delay: longer when there's a drop or stage clear (let player see + read)
+  // shorter on plain victory. Level up celebration adds visible time too.
+  const hasDrop = !!document.getElementById('rDrop')?.innerHTML;
+  const stageClear = document.getElementById('rTitle')?.textContent === 'STAGE CLEARED!';
+  const baseDelay = stageClear ? 4500 : (hasDrop ? 3600 : 2800);
+  scheduleResultAutoReturn(leveledUp ? baseDelay + 1200 : baseDelay);
 
   if(leveledUp){
     setTimeout(()=>{
@@ -8311,7 +8321,26 @@ function processVictory(){
   updateHud();
 }
 
+// ── Auto-bounce: result screen returns to map automatically after delay ──
+// Per teacher policy 2026-05-04: original UX was auto-return, not manual click
+// User can still click the CTA button to advance immediately, or interact with
+// innate actions (recover/save) which cancels the timer.
+let _resultAutoTimer = null;
+function scheduleResultAutoReturn(delayMs){
+  cancelResultAutoReturn();
+  _resultAutoTimer = setTimeout(()=>{
+    _resultAutoTimer = null;
+    // Only auto-return if user is still on result screen
+    const cur = document.querySelector('.scr.on');
+    if(cur && cur.id === 'screen-result') returnToMap();
+  }, delayMs || 2800);
+}
+function cancelResultAutoReturn(){
+  if(_resultAutoTimer){ clearTimeout(_resultAutoTimer); _resultAutoTimer = null; }
+}
+
 function returnToMap(){
+  cancelResultAutoReturn();
   document.getElementById('rTitle').classList.remove('fail');
   // refresh legend tab lock state
   const lTab = document.getElementById('tab-legend');
