@@ -5611,58 +5611,10 @@ function getSubstageTarget(){
 const SUBSTAGE_TARGET = SUBSTAGE_TARGET_BASE;
 let currentSubstage = null; // {mode, id, mobs:[]}
 
-function xpForLv(lv){ return 100 + (lv-1)*50; }
-
-// ═══════════════════════════════════════════════
-// STAGE XP CAP (per teacher policy 2026-05-04)
-// ═══════════════════════════════════════════════
-// แต่ละด่านในแต่ละ Region capped ที่ 1 ระดับ — ตี 60% ของ pool = ขึ้น Lv 1 ระดับพอดี
-// ตีต่อหลังถึง cap → XP ไม่ขึ้น/ไม่ลง · drops ปกติ → push ผู้เล่นไปด่านถัดไป
-const STAGE_LV_TARGET = {
-  '1.1-a': 2,  // Stage A 60% mobs → ขึ้นเป็น Lv 2
-  '1.1-b': 3,  // Stage B 60% → Lv 3
-  '1.1-c': 4,  // Stage C 60% → Lv 4
-  '1.1-d': 5,  // Stage D 60% → Lv 5
-  // Region 1.2-1.6 + throne ยังไม่กำหนด → ใช้ legacy formula
-};
-const STAGE_60PCT_RATE = 0.6;
-function getStageMobCount(regionId, stageId){
-  if(regionId === '1.1'){
-    if(stageId === 'a') return (typeof QUESTIONS !== 'undefined' && QUESTIONS) ? QUESTIONS.length : 74;
-    if(stageId === 'b') return (window.QUESTIONS_STAGE_B || []).length || 162;
-    if(stageId === 'c') return (window.QUESTIONS_STAGE_C || []).length || 174;
-    if(stageId === 'd') return (window.QUESTIONS_STAGE_D || []).length || 100;
-  }
-  return 50;  // fallback
-}
-function getStageXpDelta(regionId, stageId){
-  const k = (regionId||'') + '-' + (stageId||'');
-  const targetLv = STAGE_LV_TARGET[k];
-  if(!targetLv) return Infinity;  // no cap → legacy stages farm freely
-  return xpForLv(targetLv - 1);   // XP needed for (targetLv-1) → targetLv
-}
-function getStageXpPerMob(regionId, stageId){
-  const delta = getStageXpDelta(regionId, stageId);
-  if(delta === Infinity) return null;
-  return delta / (getStageMobCount(regionId, stageId) * STAGE_60PCT_RATE);
-}
-function getStageXpEarned(regionId, stageId){
-  const k = (regionId||'') + '-' + (stageId||'');
-  return (player.stageXp && player.stageXp[k]) || 0;
-}
-function addStageXp(regionId, stageId, amount){
-  if(!player.stageXp) player.stageXp = {};
-  const k = (regionId||'') + '-' + (stageId||'');
-  player.stageXp[k] = (player.stageXp[k] || 0) + amount;
-}
-function getStageXpRemaining(regionId, stageId){
-  const delta = getStageXpDelta(regionId, stageId);
-  if(delta === Infinity) return Infinity;
-  return Math.max(0, delta - getStageXpEarned(regionId, stageId));
-}
-function isStageXpCapped(regionId, stageId){
-  return getStageXpRemaining(regionId, stageId) === 0;
-}
+// XP curve tuned for 30-50 first-time mobs/level (teacher policy 2026-05-04 Option X)
+// Lv 1→2: 600 XP · 2→3: 700 · 3→4: 800 · 4→5: 900 · etc.
+// Combined with baseXp = 4 + mobLv and ×3 first-time bonus → ~38-40 mobs per level in Region 1.1
+function xpForLv(lv){ return 600 + (lv-1)*100; }
 function saveGame(){ try{localStorage.setItem(SAVE_KEY,JSON.stringify(player));}catch(e){} }
 function loadGame(){
   try{
@@ -6376,12 +6328,6 @@ function calcWrongXpPenalty(){
 function applyXpPenalty(){
   const pen = calcWrongXpPenalty();
   if(pen <= 0) return 0;
-  // ── Stage cap freeze: if stage XP cap reached, no penalty either (frozen) ──
-  if(currentSubstage){
-    const _r = player.currentRegion || currentSubstage.regionId;
-    const _s = currentSubstage.id;
-    if(isStageXpCapped(_r, _s)) return 0;
-  }
   // Floor at 0, NEVER level down
   const actual = Math.min(pen, player.xp);
   player.xp -= actual;
@@ -7331,25 +7277,10 @@ function updateHud(){
   set('ssStLv', player.lv);
   const mpRound = Math.round((player.mp||0)*10)/10;
   set('ssStMp', `${mpRound}/${maxMp}`);
-  // ── Stage XP cap display: when current stage has cap, show stage XP progress ──
-  let xpDisplay = `${Math.floor(player.xp)}/${need}`;
-  let xpFillPct = xpPct;
-  if(currentSubstage){
-    const _r = player.currentRegion;
-    const _s = currentSubstage.id;
-    const stageDelta = getStageXpDelta(_r, _s);
-    if(stageDelta !== Infinity && currentSubstage.mode === 'general'){
-      const earned = getStageXpEarned(_r, _s);
-      const targetLv = STAGE_LV_TARGET[_r+'-'+_s];
-      const earnedDisp = Math.floor(earned*10)/10;
-      xpDisplay = `${earnedDisp}/${stageDelta} → Lv${targetLv}`;
-      xpFillPct = Math.min(100, earned/stageDelta*100);
-    }
-  }
-  set('ssStXp', xpDisplay);
+  set('ssStXp', `${player.xp}/${need}`);
   set('ssStCombo', `×${player.combo||0}`);
   setW('ssStMpFill', Math.min(100, (player.mp||0)/maxMp*100) + '%');
-  setW('ssStXpFill', xpFillPct + '%');
+  setW('ssStXpFill', xpPct + '%');
   set('ssKc', player.kc);
   if(currentSubstage){
     if(currentSubstage.mode === 'general'){
@@ -8116,12 +8047,9 @@ function processVictory(){
   // Hoist outcome flags to top (avoid TDZ when referenced earlier in render)
   let stageJustCleared = false;
   let bonusDrop = null;
-  // XP — stage-rate calibrated for "60% mobs killed = 1 level up" (Region 1.1)
-  // Falls back to legacy `4 + mobLv` for unconfigured stages (legend mode + future regions)
-  const _regionId = player.currentRegion || (currentSubstage && currentSubstage.regionId);
-  const _stageId = bState.mobData.stageId || (currentSubstage && currentSubstage.id);
-  const _stageRate = getStageXpPerMob(_regionId, _stageId);
-  const baseXp = (_stageRate !== null) ? _stageRate : (4 + (bState.mobData.lv || 1));
+  // XP scales with mob level. xpForLv tuned for ~38-40 first-time mobs per level
+  // Lv1 mob = 5 base, ×3 first-time = 15 XP/mob → ~40 mobs to xpForLv(1)=600
+  const baseXp = 4 + (bState.mobData.lv || 1);
   const diff = player.lv - bState.mobData.lv;
   let mul = 1;
   if(diff > 20) mul = 0;
@@ -8178,31 +8106,17 @@ function processVictory(){
   // card XP bonus + element multiplier + hard-mode penalty
   const buffs = getActiveBuffs();
   const xpMul = mul * (1 + (buffs.xpBonus || 0)) * elemMul * hardXpMul;
-  let xpGain = Math.max(0, baseXp * xpMul);
-  // ── Stage XP cap (per-stage 60% kill = 1 level) ──
-  let stageCapped = false;
-  if(STAGE_LV_TARGET[(_regionId||'')+'-'+(_stageId||'')] && !isHardMode){
-    const remaining = getStageXpRemaining(_regionId, _stageId);
-    if(remaining <= 0){ xpGain = 0; stageCapped = true; }
-    else if(xpGain > remaining){ xpGain = remaining; stageCapped = true; }
-  }
+  let xpGain = Math.max(0, Math.round(baseXp * xpMul));
   // ── Region level cap (general mode only) ──
   // ถ้าเลเวลผู้เล่นเกิน mobLvMax ของ region ปัจจุบันแล้ว → XP = 0 (drops ยังปกติ)
+  // ป้องกันการฟาร์มแมพเดิมจน level เต็ม push ให้ไป Region ถัดไป
   const _curRegion = (typeof REGIONS !== 'undefined') ? REGIONS[player.currentRegion] : null;
   let outleveled = false;
   if(_curRegion && !isHardMode && player.lv > _curRegion.mobLvMax){
     xpGain = 0;
     outleveled = true;
   }
-  // Round display to 1 decimal place; store float internally for accurate cap
-  xpGain = Math.round(xpGain * 100) / 100;
   player.xp += xpGain;
-  if(_stageRate !== null && !isHardMode){
-    addStageXp(_regionId, _stageId, xpGain);
-  }
-  if(stageCapped && xpGain === 0 && !outleveled){
-    setTimeout(()=>toast(`🚫 ด่านนี้เต็ม XP แล้ว (Lv ${STAGE_LV_TARGET[(_regionId||'')+'-'+(_stageId||'')]} cap) — ลองด่านถัดไป`), 1700);
-  }
 
   // KC (Knowledge Crystal) — solid 5 per kill (KC unaffected by hard mode)
   const kcGain = bState.hintsUsed > 0 ? 3 : 5;
