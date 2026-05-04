@@ -8099,9 +8099,16 @@ const FILL_TOKEN_BANK = [
   'ทางทิศเหนือ','ทางทิศใต้','ทางทิศตะวันออก','ทางทิศตะวันตก','ขึ้น','ลง',
   'm/s²','m/s','m','s','kg','N','J'
 ];
+// Normalize fill answers — Stage A/C use q.accept[]; Stage B uses q.correct (may be number)
+function getFillAcceptList(q){
+  if(Array.isArray(q.accept) && q.accept.length) return q.accept.map(a => String(a));
+  if(q.correct !== undefined && q.correct !== null) return [String(q.correct)];
+  return [];
+}
 function buildFillTokens(q){
-  const accepted = new Set((q.accept||[]).map(a => a.toLowerCase().trim()));
-  const correct = (q.accept && q.accept[0]) || '';
+  const acceptArr = getFillAcceptList(q);
+  const accepted = new Set(acceptArr.map(a => a.toLowerCase().trim()));
+  const correct = acceptArr[0] || '';
   const pool = FILL_TOKEN_BANK.filter(t => !accepted.has(t.toLowerCase().trim()));
   const decoys = [];
   const poolCopy = pool.slice();
@@ -8140,7 +8147,7 @@ function checkAnswer(q, ans){
   if(q.type==='fill'){
     if(typeof ans !== 'string') return false;
     const norm = (s)=>s.toLowerCase().trim().replace(/\s+/g,'').replace(/[\/\-]/g,'');
-    const target = (q.accept || []).map(norm);
+    const target = getFillAcceptList(q).map(norm);
     const userNorm = norm(ans);
     if(target.includes(userNorm)) return true;
     // ── Tolerance: card buff + DEX margin skill passive (combined) ──
