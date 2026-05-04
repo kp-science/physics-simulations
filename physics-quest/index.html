@@ -5168,6 +5168,23 @@ function refreshBookBadge(){
   bdg.style.display = '';
 }
 
+// Lookup question across all stage pools (A=QUESTIONS, B/C/D = window.QUESTIONS_STAGE_*)
+function findQuestionAnyPool(qid){
+  if(!qid) return null;
+  const pools = [
+    (typeof QUESTIONS !== 'undefined') ? QUESTIONS : null,
+    (typeof window !== 'undefined') ? window.QUESTIONS_STAGE_B : null,
+    (typeof window !== 'undefined') ? window.QUESTIONS_STAGE_C : null,
+    (typeof window !== 'undefined') ? window.QUESTIONS_STAGE_D : null,
+  ];
+  for(const pool of pools){
+    if(!pool) continue;
+    const found = pool.find(x => x && x.id === qid);
+    if(found) return found;
+  }
+  return null;
+}
+
 // ── 📓 Book modal ──
 function openBook(){
   const cap = getBookCapacity();
@@ -5184,7 +5201,7 @@ function openBook(){
   const statsOn = isBookStatsUnlocked();
   const exportOn = isBookExportUnlocked();
   const items = player.book.map((b, idx) => {
-    const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+    const q = findQuestionAnyPool(b.qid);
     const stmt = q ? (q.statement || '').replace(/<[^>]+>/g,' ').slice(0,90) : `(โจทย์ ${b.qid} ไม่พบ)`;
     const markColor = b.mark === 'green' ? '#34d399' : (b.mark === 'yellow' ? '#fbbf24' : '#f87171');
     const markIcon = b.mark === 'green' ? '🟢' : (b.mark === 'yellow' ? '🟡' : '🔴');
@@ -5237,7 +5254,7 @@ function bookRemove(idx){
 function bookReplay(idx){
   if(!isBookSandboxUnlocked()){ toast('Sandbox ปลดที่ Rank 3'); return; }
   const b = player.book[idx]; if(!b) return;
-  const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+  const q = findQuestionAnyPool(b.qid);
   if(!q){ toast('ไม่พบโจทย์'); return; }
   document.getElementById('bookModal')?.remove();
   // Sandbox: enter battle but flagged sandbox (no XP/MP/timer cost)
@@ -5245,7 +5262,7 @@ function bookReplay(idx){
 }
 function bookExportText(){
   const lines = player.book.map((b,i)=>{
-    const q = (typeof QUESTIONS!=='undefined' ? QUESTIONS : []).find(x => x.id === b.qid);
+    const q = findQuestionAnyPool(b.qid);
     const stmt = q ? (q.statement || '').replace(/<[^>]+>/g,' ') : `(${b.qid})`;
     const ans = q ? (q.correct !== undefined ? q.correct : '—') : '—';
     return `${i+1}. [${b.mark}] ${b.qid}\n   ${stmt}\n   เฉลย: ${ans}`;
