@@ -47,13 +47,13 @@
   const F_TAG = ['kinematics-c'];
   function M(id, statement, choices, correct, hints, figure){
     const arr = choices.map((t,i) => ({key:String.fromCharCode(65+i), text:t}));
-    const q = {id, group:'C', type:'mcq', statement, choices:arr, correct, hints, formula_tags:F_TAG};
+    const q = {id, group:'C', noReveal:true, type:'mcq', statement, choices:arr, correct, hints, formula_tags:F_TAG};
     if(figure) q.figure = figure;
     q.title = statement.replace(/<[^>]+>/g,'').slice(0,50);
     return q;
   }
   function F(id, statement, accept, hints, figure){
-    const q = {id, group:'C', type:'fill', statement, accept, hints, formula_tags:F_TAG};
+    const q = {id, group:'C', noReveal:true, type:'fill', statement, accept, hints, formula_tags:F_TAG};
     if(figure) q.figure = figure;
     q.title = statement.replace(/<[^>]+>/g,'').slice(0,50);
     return q;

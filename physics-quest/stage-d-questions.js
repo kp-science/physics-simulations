@@ -40,13 +40,13 @@
   const F_TAG = ['kinematics-d'];
   function M(id, statement, choices, correct, hints, figure){
     const arr = choices.map((t,i) => ({key:String.fromCharCode(65+i), text:t}));
-    const q = {id, group:'D', type:'mcq', statement, choices:arr, correct, hints, formula_tags:F_TAG};
+    const q = {id, group:'D', noReveal:true, type:'mcq', statement, choices:arr, correct, hints, formula_tags:F_TAG};
     if(figure) q.figure = figure;
     q.title = statement.replace(/<[^>]+>/g,'').slice(0,50);
     return q;
   }
   function MATCH(id, statement, pairs, options, hints){
-    return {id, group:'D', type:'match', statement, pairs, options, hints, formula_tags:F_TAG, title:statement.slice(0,50)};
+    return {id, group:'D', noReveal:true, type:'match', statement, pairs, options, hints, formula_tags:F_TAG, title:statement.slice(0,50)};
   }
 
   const Q = [
