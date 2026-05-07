@@ -4911,8 +4911,8 @@ const REGIONS = {
     mobLvMin:6, mobLvMax:12, tier:2, emoji:'🌲',
     desc:'F=ma, แรงเสียดทาน, แรงดึง, action-reaction',
     monsters:'ลังหนัก · มวลผูกเชือก · มวลบนเอียง · จรวด · ลูกตุ้ม · ลิฟต์',
-    drops:'การ์ด N/R/SR (นิวตัน apprentice line)',
-    x:72, y:74, theme:'forces', unlocked:false, ready:false,
+    drops:'การ์ด N/R/SR (ฮุค line · spring sims)',
+    x:72, y:74, theme:'forces', unlocked:false, ready:true,
     stages: {
       general: [
         { id:'a', name:'ด่าน A · รู้เขารู้เรา',     mobLv:6, label:'รู้เขารู้เรา',      emoji:'📦', x:22, y:82 },
@@ -6542,6 +6542,8 @@ function isStageUnlocked(modeId, stageId){
 }
 
 function isLegendUnlocked(){
+  // Admin (ครูเจ้าของเกม) เปิด Legend ได้ทันทีเพื่อ preview
+  if(typeof isAdmin === 'function' && isAdmin()) return true;
   return STAGES.general.every(s => player.completed.includes('general-'+s.id));
 }
 
@@ -9250,7 +9252,9 @@ function enterAdventure(){
 }
 
 function enterWorld(worldNum){
-  if(worldNum !== 1){ toast('🔒 World ' + worldNum + ' · Coming Soon'); return; }
+  const adm = (typeof isAdmin === 'function' && isAdmin());
+  if(worldNum !== 1 && !adm){ toast('🔒 World ' + worldNum + ' · Coming Soon'); return; }
+  if(worldNum !== 1 && adm){ toast('👑 Admin preview · World ' + worldNum + ' ยังไม่มีเนื้อหา'); return; }
   renderRegionMap();
   showScreen('region');
 }
@@ -9298,19 +9302,20 @@ function renderRegionMap(){
 
 function selectRegion(regionId){
   const r = REGIONS[regionId]; if(!r) return;
+  const adm = (typeof isAdmin === 'function' && isAdmin());
   const unlocked = isRegionUnlocked(regionId);
-  const ready = r.ready;
+  const ready = r.ready || adm;   // admin ผ่านได้แม้ ready=false (preview empty regions)
   const panel = document.getElementById('regionInfoPanel');
-  const lockMsg = !unlocked ? '🔒 ผ่าน Region ก่อนหน้าก่อน' : (!ready ? '📝 Region นี้ยังไม่มีเนื้อหา · รอครูเพิ่ม' : null);
+  const lockMsg = !unlocked ? '🔒 ผ่าน Region ก่อนหน้าก่อน' : (!r.ready ? (adm ? '👑 Admin preview · ยังไม่มีเนื้อหา' : '📝 Region นี้ยังไม่มีเนื้อหา · รอครูเพิ่ม') : null);
   panel.innerHTML = `
     <h3>${r.emoji} Region ${r.id} · ${r.name}</h3>
     <div class="rip-meta">${r.name_en.toUpperCase()} · TIER ${r.tier} · LV ${r.mobLvMin}–${r.mobLvMax}</div>
     <div class="rip-line"><span class="lbl">DESC</span>${r.desc}</div>
     <div class="rip-line"><span class="lbl">MOBS</span>${r.monsters}</div>
     <div class="rip-line"><span class="lbl">DROPS</span>${r.drops}</div>
-    ${lockMsg ? `<div class="rip-line" style="color:var(--red);margin-top:8px;font-size:0.74rem;">${lockMsg}</div>` : ''}
+    ${lockMsg ? `<div class="rip-line" style="color:${adm && !r.ready ? 'var(--gold)' : 'var(--red)'};margin-top:8px;font-size:0.74rem;">${lockMsg}</div>` : ''}
     <div class="rip-actions">
-      <button class="rip-enter" onclick="enterRegion('${regionId}')" ${(!unlocked||!ready)?'disabled':''}>${(!unlocked||!ready) ? '🔒 ปิด' : '⚔ เข้า Region'}</button>
+      <button class="rip-enter" onclick="enterRegion('${regionId}')" ${(!unlocked||!ready)?'disabled':''}>${(!unlocked||!ready) ? '🔒 ปิด' : (adm && !r.ready ? '👑 Preview' : '⚔ เข้า Region')}</button>
       <button class="rip-close" onclick="document.getElementById('regionInfoPanel').style.display='none'">✕</button>
     </div>
   `;
@@ -9319,8 +9324,10 @@ function selectRegion(regionId){
 
 function enterRegion(regionId){
   const r = REGIONS[regionId]; if(!r) return;
+  const adm = (typeof isAdmin === 'function' && isAdmin());
   if(!isRegionUnlocked(regionId)){ toast('🔒 ผ่าน Region ก่อนหน้าก่อน'); return; }
-  if(!r.ready){ toast('📝 Region นี้ยังไม่มีเนื้อหา · รอครูเพิ่ม'); return; }
+  if(!r.ready && !adm){ toast('📝 Region นี้ยังไม่มีเนื้อหา · รอครูเพิ่ม'); return; }
+  if(!r.ready && adm){ toast('👑 Admin preview · Region นี้ยังไม่มีเนื้อหา'); }
   player.currentRegion = regionId;
   saveGame();
   // refresh legend tab lock state when entering
