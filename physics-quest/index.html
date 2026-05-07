@@ -4522,7 +4522,8 @@ function _round1(n){ return Math.round(n*10)/10; }
 const SIM_TEMPLATES = {
   drop_from_height: {
     title:'ปล่อยจากตึก',
-    sample: () => ({ h: _pick([20, 45, 80, 125]), g: 10 }),
+    // generator: pick integer t (2-7s) → h = ½gt² ลงตัว · v = gt ลงตัว
+    sample: () => { const t = _pick([2,3,4,5,6,7]); return { h: 0.5*10*t*t, g: 10 }; },
     statement: v => `เด็กคนหนึ่งยืนบนระเบียงตึกสูง <b>${v.h} เมตร</b> เขาปล่อยลูกบอลจากหยุดนิ่ง (ใช้ <b>g = ${v.g} m/s²</b> · ละผลของอากาศ) จงคำนวณ <b>เวลาที่ลูกบอลตกถึงพื้น</b> และ <b>ความเร็วขณะกระทบพื้น</b>`,
     figure: v => `<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="10" width="40" height="130" fill="#1f2937" stroke="#fbbf24" stroke-width="1.5"/><rect x="22" y="20" width="10" height="10" fill="#38bdf8" opacity="0.5"/><rect x="38" y="20" width="10" height="10" fill="#38bdf8" opacity="0.5"/><rect x="22" y="40" width="10" height="10" fill="#38bdf8" opacity="0.5"/><rect x="38" y="40" width="10" height="10" fill="#38bdf8" opacity="0.5"/><rect x="22" y="60" width="10" height="10" fill="#38bdf8" opacity="0.5"/><rect x="38" y="60" width="10" height="10" fill="#38bdf8" opacity="0.5"/><line x1="60" y1="20" x2="220" y2="20" stroke="#34d399" stroke-width="0.6" stroke-dasharray="3,3"/><text x="65" y="16" fill="#34d399" font-size="9" font-family="monospace">ระเบียง</text><circle cx="80" cy="20" r="6" fill="#fbbf24" stroke="#fff" stroke-width="1"/><line x1="80" y1="30" x2="80" y2="138" stroke="#f87171" stroke-width="1.2" stroke-dasharray="4,3"/><polygon points="80,140 75,132 85,132" fill="#f87171"/><line x1="60" y1="140" x2="220" y2="140" stroke="#fff" stroke-width="2"/><text x="100" y="80" fill="#fbbf24" font-size="11" font-weight="700" font-family="monospace">h = ${v.h} m</text><text x="100" y="95" fill="#8aa0c0" font-size="9">u = 0 (ปล่อย)</text><text x="100" y="110" fill="#f87171" font-size="9">↓ a = g</text><text x="60" y="153" fill="#34d399" font-size="9">พื้น</text></svg>`,
     inputs: [
@@ -4533,7 +4534,8 @@ const SIM_TEMPLATES = {
   },
   throw_up: {
     title:'ขว้างขึ้น',
-    sample: () => ({ u: _pick([10, 20, 30]), g: 10 }),
+    // generator: u ∈ multiples of 10 (5 cases) → h_max = u²/(2g), t_total = 2u/g ลงตัว
+    sample: () => ({ u: _pick([10, 20, 30, 40, 50]), g: 10 }),
     statement: v => `นักกีฬาขว้างหินขึ้นในแนวดิ่งจากระดับพื้นด้วยความเร็วต้น <b>${v.u} m/s</b> (g = ${v.g} · ละแรงต้านอากาศ) จงคำนวณ <b>ความสูงสูงสุด</b> ที่หินขึ้นไปได้และ <b>เวลาทั้งหมด</b> ที่อยู่ในอากาศก่อนกลับสู่ระดับเดิม`,
     figure: v => `<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg"><line x1="20" y1="140" x2="220" y2="140" stroke="#fff" stroke-width="2"/><path d="M 30 140 Q 120 10 210 140" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="5,3"/><circle cx="120" cy="20" r="6" fill="#fbbf24" stroke="#fff" stroke-width="1"/><line x1="30" y1="140" x2="30" y2="125" stroke="#34d399" stroke-width="2"/><polygon points="30,118 25,128 35,128" fill="#34d399"/><text x="38" y="132" fill="#34d399" font-size="10" font-weight="700">u = ${v.u} m/s</text><line x1="120" y1="20" x2="120" y2="40" stroke="#3d5470" stroke-width="0.8" stroke-dasharray="3,3"/><text x="125" y="20" fill="#fbbf24" font-size="9">v = 0 (จุดสูงสุด)</text><line x1="135" y1="80" x2="220" y2="80" stroke="#3d5470" stroke-width="0.5" stroke-dasharray="2,2"/><text x="170" y="76" fill="#8aa0c0" font-size="8">h_max = ?</text></svg>`,
     inputs: [
@@ -4671,7 +4673,21 @@ const SIM_TEMPLATES = {
   },
   rolling_accel: {
     title:'กลิ้งเร่งคงที่',
-    sample: () => ({ u: _pick([2, 4, 6, 8]), a: _pick([1, 2, 3]), t: _pick([2, 3, 4, 5]) }),
+    // generator: u/a/t พิจารณาคู่กัน → s = ut + ½at² และ v = u+at เป็นจำนวนเต็มหรือ .5
+    sample: () => {
+      const half = (n) => Math.abs(n*2 - Math.round(n*2)) < 0.001;
+      for(let tries=0; tries<100; tries++){
+        const u = _pick([0, 2, 3, 4, 5, 6, 8, 10]);
+        const a = _pick([1, 2, 3, 4]);
+        const t = _pick([2, 3, 4, 5, 6]);
+        const s = u*t + 0.5*a*t*t;
+        const v = u + a*t;
+        if(!half(s)) continue;
+        if(s < 8 || s > 120) continue;
+        return { u, a, t };
+      }
+      return { u:4, a:2, t:3 };
+    },
     statement: v => `รถทดลองคันหนึ่งกำลังเคลื่อนที่ด้วยความเร็วต้น <b>u = ${v.u} m/s</b> บนพื้นเรียบ มีความเร่งคงที่ <b>a = ${v.a} m/s²</b> ในทิศเดียวกับการเคลื่อนที่ หลังจาก <b>t = ${v.t} วินาที</b> จงหา <b>ระยะทาง</b>และ<b>ความเร็วปลาย</b>ของรถ`,
     figure: v => `<svg viewBox="0 0 240 110" xmlns="http://www.w3.org/2000/svg"><line x1="20" y1="80" x2="220" y2="80" stroke="#fff" stroke-width="1.5"/><rect x="30" y="60" width="22" height="14" rx="3" fill="#f87171" stroke="#fff" stroke-width="1"/><circle cx="34" cy="78" r="3" fill="#1f2937"/><circle cx="48" cy="78" r="3" fill="#1f2937"/><line x1="55" y1="67" x2="100" y2="67" stroke="#34d399" stroke-width="2"/><polygon points="105,67 95,62 95,72" fill="#34d399"/><text x="60" y="60" fill="#34d399" font-size="10">u = ${v.u}</text><text x="60" y="100" fill="#8aa0c0" font-size="9" font-family="monospace">เริ่มต้น</text><rect x="170" y="60" width="22" height="14" rx="3" fill="#fbbf24" stroke="#fff" stroke-width="1"/><circle cx="174" cy="78" r="3" fill="#1f2937"/><circle cx="188" cy="78" r="3" fill="#1f2937"/><line x1="195" y1="67" x2="218" y2="67" stroke="#fbbf24" stroke-width="2.5"/><polygon points="222,67 212,62 212,72" fill="#fbbf24"/><text x="170" y="55" fill="#fbbf24" font-size="9">v = ?</text><text x="160" y="100" fill="#8aa0c0" font-size="9" font-family="monospace">หลัง t=${v.t} s</text><line x1="55" y1="92" x2="195" y2="92" stroke="#a78bfa" stroke-width="1"/><polygon points="55,92 60,89 60,95" fill="#a78bfa"/><polygon points="195,92 190,89 190,95" fill="#a78bfa"/><text x="115" y="105" fill="#a78bfa" font-size="9">s = ?</text><text x="100" y="22" fill="#fbbf24" font-size="10" font-weight="700">a = ${v.a} m/s² →</text></svg>`,
     inputs: [
