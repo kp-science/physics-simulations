@@ -8265,8 +8265,19 @@ function getFillAcceptList(q){
 }
 function buildFillTokens(q){
   const acceptArr = getFillAcceptList(q);
-  const accepted = new Set(acceptArr.map(a => a.toLowerCase().trim()));
   const correct = acceptArr[0] || '';
+  const correctTrim = String(correct).trim();
+  const correctNum = parseFloat(correctTrim);
+
+  // ── Numeric path: build numeric decoys ── (Region 1.2+ fill = ตัวเลข)
+  // Detects: starts with digit/sign and parses as finite number
+  if(isFinite(correctNum) && /^[-+]?\d/.test(correctTrim)){
+    const decoys = buildNumericDecoys(correctNum);
+    return shuffleArray([formatNum(correctNum), ...decoys.slice(0,3)]);
+  }
+
+  // ── Word path: use token bank (Region 1.1 Stage A/B/C: directions, units, scalar/vector) ──
+  const accepted = new Set(acceptArr.map(a => String(a).toLowerCase().trim()));
   const pool = FILL_TOKEN_BANK.filter(t => !accepted.has(t.toLowerCase().trim()));
   const decoys = [];
   const poolCopy = pool.slice();
@@ -8274,7 +8285,52 @@ function buildFillTokens(q){
     const idx = Math.floor(Math.random()*poolCopy.length);
     decoys.push(poolCopy.splice(idx,1)[0]);
   }
-  return shuffleArray([correct, ...decoys]);
+  return shuffleArray([String(correct), ...decoys]);
+}
+
+// Format number for display (strip trailing zeros · keep up to 2 decimals)
+function formatNum(n){
+  const r = Math.round(n*100)/100;
+  return Number.isInteger(r) ? String(r) : String(r);
+}
+
+// Build numeric decoys = plausible wrong answers based on common student errors
+function buildNumericDecoys(n){
+  const cands = new Set();
+  const add = (v) => {
+    if(!isFinite(v)) return;
+    const r = Math.round(v*100)/100;
+    if(r === n) return;
+    if(r === 0 && n !== 0) return;     // avoid 0 unless correct is 0
+    cands.add(r);
+  };
+  const abs = Math.abs(n);
+
+  // Common multiplicative errors (forgot ½, double-counted, used wrong angle)
+  if(abs >= 0.4) add(n/2);
+  add(n*2);
+  if(abs > 1){
+    add(n*1.5);
+    add(n*0.75);
+  }
+
+  // Additive offsets (off-by-one types · bigger offsets for bigger numbers)
+  const step = abs >= 50 ? 10 : abs >= 10 ? 5 : abs >= 2 ? 2 : abs >= 0.5 ? 0.5 : 0.1;
+  add(n + step);
+  add(n - step);
+  add(n + 2*step);
+
+  // Sign flip if magnitude is meaningful (skip for small / zero)
+  if(abs >= 3) add(-n);
+
+  // Convert to string + filter ≤ 0 if correct > 0 (negative answer rarely makes sense for forces/distances)
+  let arr = Array.from(cands);
+  if(n > 0) arr = arr.filter(v => v > 0);
+  arr = arr.map(formatNum);
+  // Dedup (formatNum may collapse 5 and 5.0)
+  arr = Array.from(new Set(arr));
+  shuffleArray(arr);
+  return arr;
 }
 // Fisher-Yates shuffle (mutates + returns)
 function shuffleArray(arr){
