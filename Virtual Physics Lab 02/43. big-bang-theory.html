@@ -201,8 +201,13 @@ footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:.75rem;b
           <button class="btn btn-primary" onclick="ex1.play()">▶ ปล่อยอัตโนมัติ</button>
           <button class="btn btn-ghost" onclick="ex1.pause()">⏸ หยุด</button>
           <button class="btn btn-ghost" onclick="ex1.reset()">↻ รีเซ็ต</button>
-          <button class="btn btn-success" onclick="ex1.snapshot()">📸 จับภาพ ณ เวลานี้</button>
-          <span class="info">ลาก slider เวลาเพื่อสำรวจ 15 ยุคของเอกภพ</span>
+          <button class="btn btn-success" onclick="ex1.snapshot()">📸 จับภาพ</button>
+          <span class="info">ลาก slider เวลา · คลิกปุ่ม 🔬 ดูโครงสร้างอนุภาค</span>
+        </div>
+        <div class="toolbar" id="zoomBar" style="background:#0d1422;padding:6px 12px">
+          <span style="color:var(--muted);font-size:.78rem">🔬 ซูมโครงสร้าง :</span>
+          <span id="zoomBtns"></span>
+          <button class="btn btn-ghost" onclick="ex1.unzoom()" id="unzoomBtn" style="display:none">✕ ออกจากซูม</button>
         </div>
         <canvas id="cv1" width="700" height="430"></canvas>
         <div style="padding:10px 12px;background:#0a1224;border-top:1px solid var(--border)">
@@ -798,34 +803,734 @@ const ex1 = (function(){
     updateReadouts();
   }
 
-  // particle visuals — different by era
-  let _pp = [];
-  function initParticles(era){
-    _pp = [];
-    const N = 60;
-    const colors = era[5];
-    for(let i=0;i<N;i++){
-      _pp.push({
-        x: Math.random()*cv.clientWidth,
-        y: 100 + Math.random()*(cv.clientHeight-200),
-        vx: (Math.random()-0.5)*1.5,
-        vy: (Math.random()-0.5)*1.5,
-        r: 2+Math.random()*3,
-        c: era[5]
-      });
+  /* ============================================================
+     PARTICLE LIBRARY — atoms, hadrons, leptons, bosons
+     ============================================================ */
+  const QCOL = {u:'#fbbf24', d:'#60a5fa', s:'#34d399', c:'#f87171'};
+
+  function drawWavy(c, x1,y1,x2,y2, amp, freq, color){
+    const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+    const nx=-dy/len, ny=dx/len;
+    c.strokeStyle=color; c.lineWidth=1.2;
+    c.beginPath();
+    for(let i=0;i<=20;i++){
+      const t=i/20, px=x1+dx*t, py=y1+dy*t;
+      const off=Math.sin(t*Math.PI*freq)*amp;
+      const rx=px+nx*off, ry=py+ny*off;
+      if(i===0) c.moveTo(rx,ry); else c.lineTo(rx,ry);
+    }
+    c.stroke();
+  }
+
+  function drawQuark(c, x,y, r, flavor, anti){
+    c.fillStyle = QCOL[flavor]||'#fff';
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2);
+    if(anti){ c.lineWidth=2; c.strokeStyle=c.fillStyle; c.stroke(); }
+    else c.fill();
+    c.fillStyle = anti ? QCOL[flavor] : '#0a0e1a';
+    c.font = 'bold '+Math.round(r*1.3)+'px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(flavor, x, y);
+    if(anti){
+      c.strokeStyle=QCOL[flavor]; c.lineWidth=1;
+      c.beginPath(); c.moveTo(x-r*.55, y-r*.55); c.lineTo(x+r*.55, y-r*.55); c.stroke();
+    }
+    c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+
+  function drawGluon(c, x,y, r){
+    c.strokeStyle='#a78bfa'; c.lineWidth=1.5;
+    c.beginPath();
+    for(let i=0;i<=12;i++){
+      const a=i/12*Math.PI*4;
+      const rad=r*(0.8+0.2*Math.sin(a*2));
+      const px=x+Math.cos(a)*rad, py=y+Math.sin(a)*rad;
+      if(i===0) c.moveTo(px,py); else c.lineTo(px,py);
+    }
+    c.stroke();
+    c.fillStyle='#a78bfa'; c.font='bold 9px "Share Tech Mono"';
+    c.textAlign='center'; c.fillText('g', x, y+3); c.textAlign='start';
+  }
+
+  function drawHadron(c, x,y, scale, flavors, label, ringColor){
+    // 3-quark baryon: triangle with gluon binding
+    const r = 5*scale;
+    const off = 8*scale;
+    const pts = [
+      [x, y-off, flavors[0]],
+      [x-off*0.866, y+off*0.5, flavors[1]],
+      [x+off*0.866, y+off*0.5, flavors[2]]
+    ];
+    // gluon strings
+    for(let i=0;i<3;i++){
+      const a=pts[i], b=pts[(i+1)%3];
+      drawWavy(c, a[0],a[1], b[0],b[1], 2*scale, 4, '#a78bfa88');
+    }
+    // boundary
+    c.strokeStyle=ringColor; c.lineWidth=1.5; c.setLineDash([3,2]);
+    c.beginPath(); c.arc(x,y, off+r+1, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    // quarks
+    for(const p of pts) drawQuark(c, p[0],p[1], r, p[2], false);
+    // label
+    if(label && scale>=1.4){
+      c.fillStyle=ringColor; c.font='bold '+Math.round(8*scale)+'px Sarabun';
+      c.textAlign='center';
+      c.fillText(label, x, y+off+r+12*scale);
+      c.textAlign='start';
     }
   }
+
+  function drawProton(c, x,y, s=1){ drawHadron(c, x,y, s, ['u','u','d'], s>=1.4?'p⁺':null, '#fbbf24'); }
+  function drawNeutron(c, x,y, s=1){ drawHadron(c, x,y, s, ['u','d','d'], s>=1.4?'n⁰':null, '#a78bfa'); }
+  function drawPion(c, x,y, s=1){
+    // qq̄ meson: 2 small balls
+    const r=4*s;
+    drawQuark(c, x-5*s, y, r, 'u', false);
+    drawQuark(c, x+5*s, y, r, 'd', true);
+    c.strokeStyle='#f472b6'; c.setLineDash([2,2]); c.lineWidth=1;
+    c.beginPath(); c.ellipse(x,y, 11*s, 6*s, 0, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+  }
+
+  function drawElectron(c, x,y, r=4, anti=false){
+    c.fillStyle = anti?'#f87171':'#3b82f6';
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff'; c.font='bold '+Math.round(r*1.3)+'px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(anti?'+':'−', x, y);
+    c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+
+  function drawNeutrino(c, x,y, r=3){
+    c.fillStyle='#94a3b8'; c.globalAlpha=0.7;
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.globalAlpha=1;
+    c.fillStyle='#cbd5e1'; c.font='bold 7px "Share Tech Mono"';
+    c.fillText('ν', x-3, y+2);
+  }
+
+  function drawPhoton(c, x,y, len=18, angle=0){
+    const x2=x+Math.cos(angle)*len, y2=y+Math.sin(angle)*len;
+    drawWavy(c, x,y, x2,y2, 2.5, 5, '#fde047');
+    // arrow head
+    c.fillStyle='#fde047';
+    c.beginPath();
+    c.moveTo(x2,y2);
+    c.lineTo(x2-Math.cos(angle-0.4)*4, y2-Math.sin(angle-0.4)*4);
+    c.lineTo(x2-Math.cos(angle+0.4)*4, y2-Math.sin(angle+0.4)*4);
+    c.closePath(); c.fill();
+  }
+
+  function drawXBoson(c, x,y, r=10){
+    const g = c.createRadialGradient(x,y,1, x,y,r);
+    g.addColorStop(0,'#f472b6'); g.addColorStop(1,'#7c3aed');
+    c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff'; c.font='bold 10px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('X', x, y);
+    c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+
+  function drawWZBoson(c, x,y, label, color){
+    c.fillStyle=color;
+    c.beginPath(); c.arc(x,y,7,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff'; c.font='bold 8px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(label, x, y);
+    c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+
+  function drawHiggs(c, x,y, r=9){
+    c.fillStyle='#fde047';
+    c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.strokeStyle='#fbbf24'; c.lineWidth=2; c.stroke();
+    c.fillStyle='#0a0e1a'; c.font='bold 9px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('H⁰', x, y);
+    c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+
+  function drawDeuterium(c, x,y, s=1){
+    // 1p + 1n bound
+    drawProton(c, x-7*s, y, s*0.85);
+    drawNeutron(c, x+7*s, y, s*0.85);
+    c.strokeStyle='#34d399'; c.lineWidth=1.2; c.setLineDash([2,2]);
+    c.beginPath(); c.ellipse(x,y, 18*s, 10*s, 0, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    if(s>=1.4){c.fillStyle='#34d399'; c.font='bold '+Math.round(8*s)+'px Sarabun';
+      c.textAlign='center'; c.fillText('²H (deuterium)', x, y+18*s); c.textAlign='start';}
+  }
+
+  function drawHelium4(c, x,y, s=1){
+    // 2p + 2n
+    drawProton(c, x-6*s, y-6*s, s*0.7);
+    drawProton(c, x+6*s, y-6*s, s*0.7);
+    drawNeutron(c, x-6*s, y+6*s, s*0.7);
+    drawNeutron(c, x+6*s, y+6*s, s*0.7);
+    c.strokeStyle='#34d399'; c.lineWidth=1.5; c.setLineDash([2,2]);
+    c.beginPath(); c.arc(x,y, 16*s, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    if(s>=1.4){c.fillStyle='#34d399'; c.font='bold '+Math.round(9*s)+'px Sarabun';
+      c.textAlign='center'; c.fillText('⁴He nucleus', x, y+22*s); c.textAlign='start';}
+  }
+
+  function drawHAtom(c, x,y, s=1){
+    // proton nucleus + electron orbit
+    drawProton(c, x, y, s*0.6);
+    c.strokeStyle='#3b82f677'; c.lineWidth=1; c.setLineDash([2,3]);
+    c.beginPath(); c.arc(x,y, 14*s, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    const a = (Date.now()/300)%(Math.PI*2);
+    drawElectron(c, x+Math.cos(a)*14*s, y+Math.sin(a)*14*s, 3*s);
+    if(s>=1.4){c.fillStyle='#fbbf24'; c.font='bold '+Math.round(9*s)+'px Sarabun';
+      c.textAlign='center'; c.fillText('Hydrogen (H)', x, y+22*s); c.textAlign='start';}
+  }
+
+  function drawHeAtom(c, x,y, s=1){
+    drawHelium4(c, x,y, s*0.5);
+    c.strokeStyle='#34d39977'; c.lineWidth=1; c.setLineDash([2,3]);
+    c.beginPath(); c.arc(x,y, 16*s, 0, Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    const a = (Date.now()/300)%(Math.PI*2);
+    drawElectron(c, x+Math.cos(a)*16*s, y+Math.sin(a)*16*s, 3*s);
+    drawElectron(c, x+Math.cos(a+Math.PI)*16*s, y+Math.sin(a+Math.PI)*16*s, 3*s);
+    if(s>=1.4){c.fillStyle='#34d399'; c.font='bold '+Math.round(9*s)+'px Sarabun';
+      c.textAlign='center'; c.fillText('Helium (He)', x, y+24*s); c.textAlign='start';}
+  }
+
+  function drawStar(c, x,y, r=8, color='#fde047'){
+    const g = c.createRadialGradient(x,y,1, x,y,r*2);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4, color); g.addColorStop(1,'transparent');
+    c.fillStyle=g; c.beginPath(); c.arc(x,y, r*2, 0, Math.PI*2); c.fill();
+  }
+
+  function drawGalaxy(c, x,y, r=18){
+    c.save();
+    c.translate(x,y);
+    c.rotate((Date.now()/2000)%(Math.PI*2));
+    for(let arm=0; arm<3; arm++){
+      c.rotate(Math.PI*2/3);
+      c.strokeStyle='#fbbf24aa'; c.lineWidth=2;
+      c.beginPath();
+      for(let t=0; t<=1; t+=0.05){
+        const ang = t*Math.PI*2.5;
+        const rad = t*r;
+        const px = Math.cos(ang)*rad, py = Math.sin(ang)*rad;
+        if(t===0) c.moveTo(px,py); else c.lineTo(px,py);
+      }
+      c.stroke();
+    }
+    c.fillStyle='#fff';
+    c.beginPath(); c.arc(0,0,3,0,Math.PI*2); c.fill();
+    c.restore();
+  }
+
+  /* ============================================================
+     ERA-SPECIFIC PARTICLE SPAWNING
+     ============================================================ */
+  let _particles = [];
+  let _zoomMode = null;  // null | 'quark' | 'proton' | 'neutron' | 'pion' | 'deuterium' | 'helium' | 'hatom' | 'heatom' | 'photon' | 'xboson' | 'higgs'
   let _lastEraIdx = -1;
+
+  function rndPos(w, h){
+    return { x: 30+Math.random()*(w-60), y: 90+Math.random()*(h-200) };
+  }
+  function rndVel(s=1){ return { vx:(Math.random()-0.5)*s, vy:(Math.random()-0.5)*s }; }
+
+  function spawnEra(era, w, h){
+    _particles = [];
+    const name = era[2];
+    const add = (type, n, opts={})=>{
+      for(let i=0;i<n;i++){
+        const p = rndPos(w,h), v = rndVel(opts.spd||1.2);
+        _particles.push({type, x:p.x, y:p.y, vx:v.vx, vy:v.vy, ...opts});
+      }
+    };
+
+    if(name==='Singularity' || name==='Planck era'){
+      add('mystery', 18, {spd:0.6});
+    } else if(name==='Inflation era'){
+      add('inflaton', 12, {spd:3});
+    } else if(name==='Quark era'){
+      // free quarks + antiquarks + gluons + photons
+      for(let i=0;i<10;i++){const p=rndPos(w,h),v=rndVel(2);
+        _particles.push({type:'quark', flavor:['u','d','s'][i%3], anti:false, x:p.x,y:p.y,vx:v.vx,vy:v.vy,r:5});}
+      for(let i=0;i<8;i++){const p=rndPos(w,h),v=rndVel(2);
+        _particles.push({type:'quark', flavor:['u','d'][i%2], anti:true, x:p.x,y:p.y,vx:v.vx,vy:v.vy,r:5});}
+      add('gluon', 6, {spd:1.5, r:5});
+      add('photon', 6, {spd:2, len:14});
+    } else if(name==='Electroweak split'){
+      add('xboson', 6, {spd:0.8, r:11});
+      add('wboson', 4, {spd:1.2});
+      add('zboson', 3, {spd:1.2});
+      add('higgs', 3, {spd:0.6, r:9});
+      add('photon', 8, {spd:2, len:15});
+    } else if(name==='Hadron era'){
+      add('proton', 6, {spd:1.3, s:1});
+      add('neutron', 5, {spd:1.3, s:1});
+      add('pion', 4, {spd:1.5, s:1});
+      add('photon', 8, {spd:2, len:14});
+    } else if(name==='Lepton era'){
+      add('proton', 4, {spd:1, s:1});
+      add('neutron', 3, {spd:1, s:1});
+      add('electron', 8, {spd:1.6});
+      add('positron', 4, {spd:1.6});
+      add('neutrino', 12, {spd:2.5});
+      add('photon', 6, {spd:2, len:14});
+    } else if(name==='Nucleosynthesis'){
+      add('proton', 7, {spd:1.1, s:1});
+      add('neutron', 2, {spd:1.1, s:1});
+      add('deuterium', 3, {spd:0.9, s:1});
+      add('helium4', 4, {spd:0.9, s:1});
+      add('photon', 7, {spd:2, len:14});
+    } else if(name==='Opaque era (plasma)'){
+      add('proton', 5, {spd:1.4, s:0.85});
+      add('helium4', 3, {spd:1.2, s:0.85});
+      add('electron', 8, {spd:2.2});
+      // bouncing photons
+      for(let i=0;i<14;i++){const p=rndPos(w,h);
+        _particles.push({type:'photon_bounce', x:p.x,y:p.y,
+          vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3, len:14});}
+    } else if(name==='Recombination'){
+      add('hatom', 7, {spd:0.6, s:1});
+      add('heatom', 3, {spd:0.6, s:1});
+      // CMB photons escaping outward
+      for(let i=0;i<12;i++){
+        const ang = Math.random()*Math.PI*2;
+        const sp = 2.5;
+        _particles.push({type:'photon', x:w/2,y:h/2-30,
+          vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp, len:14});
+      }
+    } else if(name==='Dark Ages'){
+      add('hatom', 12, {spd:0.4, s:0.85});
+      add('heatom', 5, {spd:0.4, s:0.85});
+    } else if(name==='First stars (Pop III)'){
+      add('star', 5, {spd:0.2, r:8});
+      add('hatom', 8, {spd:0.5, s:0.7});
+    } else if(name==='Galaxy formation'){
+      add('galaxy', 7, {spd:0.3, r:18});
+      add('star', 4, {spd:0.3, r:5});
+    } else if(name==='Solar system era'){
+      add('galaxy', 5, {spd:0.2, r:14});
+      add('starsystem', 4, {spd:0.3, r:10});
+    } else if(name==='Present day'){
+      add('galaxy', 8, {spd:0.2, r:16});
+      add('cmb_grain', 80, {spd:0});
+    }
+  }
+
+  function drawOne(c, p){
+    switch(p.type){
+      case 'mystery':
+        c.fillStyle='#fde68a'; c.globalAlpha=0.7;
+        c.beginPath(); c.arc(p.x,p.y,4,0,Math.PI*2); c.fill();
+        c.globalAlpha=1;
+        c.fillStyle='#fff'; c.font='bold 9px "Share Tech Mono"';
+        c.textAlign='center'; c.fillText('?', p.x, p.y+3); c.textAlign='start';
+        break;
+      case 'inflaton':
+        c.strokeStyle='#fbbf24'; c.lineWidth=2;
+        c.beginPath(); c.moveTo(p.x,p.y);
+        c.lineTo(p.x+p.vx*5, p.y+p.vy*5); c.stroke();
+        break;
+      case 'quark':
+        drawQuark(c, p.x,p.y, p.r, p.flavor, p.anti); break;
+      case 'gluon':
+        drawGluon(c, p.x,p.y, p.r); break;
+      case 'photon':
+      case 'photon_bounce':
+        drawPhoton(c, p.x,p.y, p.len, Math.atan2(p.vy,p.vx)); break;
+      case 'xboson': drawXBoson(c, p.x,p.y, p.r); break;
+      case 'wboson': drawWZBoson(c, p.x,p.y, 'W±', '#06b6d4'); break;
+      case 'zboson': drawWZBoson(c, p.x,p.y, 'Z⁰', '#0ea5e9'); break;
+      case 'higgs': drawHiggs(c, p.x,p.y, p.r); break;
+      case 'proton': drawProton(c, p.x,p.y, p.s); break;
+      case 'neutron': drawNeutron(c, p.x,p.y, p.s); break;
+      case 'pion': drawPion(c, p.x,p.y, p.s); break;
+      case 'electron': drawElectron(c, p.x,p.y, 4); break;
+      case 'positron': drawElectron(c, p.x,p.y, 4, true); break;
+      case 'neutrino': drawNeutrino(c, p.x,p.y); break;
+      case 'deuterium': drawDeuterium(c, p.x,p.y, p.s); break;
+      case 'helium4': drawHelium4(c, p.x,p.y, p.s); break;
+      case 'hatom': drawHAtom(c, p.x,p.y, p.s); break;
+      case 'heatom': drawHeAtom(c, p.x,p.y, p.s); break;
+      case 'star':
+      case 'starsystem':
+        drawStar(c, p.x,p.y, p.r);
+        if(p.type==='starsystem'){
+          c.strokeStyle='#94a3b888'; c.setLineDash([2,2]);
+          c.beginPath(); c.arc(p.x,p.y, p.r*1.8, 0, Math.PI*2); c.stroke();
+          c.setLineDash([]);
+          const a=(Date.now()/700)%(Math.PI*2);
+          c.fillStyle='#3b82f6';
+          c.beginPath(); c.arc(p.x+Math.cos(a)*p.r*1.8, p.y+Math.sin(a)*p.r*1.8, 2,0,Math.PI*2); c.fill();
+        }
+        break;
+      case 'galaxy': drawGalaxy(c, p.x,p.y, p.r); break;
+      case 'cmb_grain':
+        c.fillStyle = `hsl(${30+Math.random()*30}, 40%, ${30+Math.random()*30}%)`;
+        c.fillRect(p.x, p.y, 3, 3);
+        break;
+    }
+  }
+
   function drawParticles(c, w, h, era){
     const idx = ERAS.indexOf(era);
-    if(idx !== _lastEraIdx){ initParticles(era); _lastEraIdx = idx; }
-    for(const p of _pp){
+    if(idx !== _lastEraIdx){ spawnEra(era, w, h); _lastEraIdx = idx; updateZoomBar(era); }
+    if(_zoomMode){ drawZoom(c, w, h, _zoomMode); return; }
+    for(const p of _particles){
+      // motion
       p.x += p.vx; p.y += p.vy;
-      if(p.x<10||p.x>w-10) p.vx*=-1;
-      if(p.y<70||p.y>h-100) p.vy*=-1;
-      c.fillStyle = p.c;
-      c.beginPath(); c.arc(p.x, p.y, p.r, 0, Math.PI*2); c.fill();
+      if(p.x<20||p.x>w-20) p.vx*=-1;
+      if(p.y<80||p.y>h-110) p.vy*=-1;
+      drawOne(c, p);
     }
+  }
+
+  /* ============================================================
+     BUILD-LAB RECIPES — drag-and-drop composites
+     ============================================================ */
+  const COMPOSITE_TYPES = ['proton','neutron','pion','deuterium','helium','hatom','heatom'];
+
+  const RECIPES = {
+    proton: {
+      title:'🧱 สร้าง โปรตอน (p⁺)',
+      hint:'ลากควาร์ก 3 ตัวเข้าช่อง → สูตร u + u + d (ประจุ +1)',
+      palette:['u','d','ub','db'], slotCount:3,
+      check(items){
+        const u=items.filter(x=>x==='u').length;
+        const d=items.filter(x=>x==='d').length;
+        const a=items.filter(x=>x==='ub'||x==='db').length;
+        if(a>0) return {ok:false, msg:'❌ baryon ใช้ควาร์ก 3 ตัวเท่านั้น (ห้ามใช้ antiquark)'};
+        if(u===2&&d===1) return {ok:true, name:'p⁺', msg:'✅ ถูกต้อง! 2u + 1d = โปรตอน · ประจุ = +2/3 +2/3 −1/3 = +1', drawAs:'proton'};
+        if(u===1&&d===2) return {ok:false, msg:'❌ คุณได้ "นิวตรอน" (udd) ไม่ใช่โปรตอน · ลองใหม่'};
+        if(u===3) return {ok:false, msg:'❌ uuu ไม่เสถียร · โปรตอนต้องเป็น uud'};
+        if(d===3) return {ok:false, msg:'❌ ddd ไม่เสถียร · โปรตอนต้องเป็น uud'};
+        return {ok:false, msg:'❌ โปรตอนต้องประกอบด้วย u 2 ตัว + d 1 ตัว'};
+      }
+    },
+    neutron: {
+      title:'🧱 สร้าง นิวตรอน (n⁰)',
+      hint:'ลากควาร์ก 3 ตัวเข้าช่อง → สูตร u + d + d (ประจุ 0)',
+      palette:['u','d','ub','db'], slotCount:3,
+      check(items){
+        const u=items.filter(x=>x==='u').length;
+        const d=items.filter(x=>x==='d').length;
+        const a=items.filter(x=>x==='ub'||x==='db').length;
+        if(a>0) return {ok:false, msg:'❌ baryon ใช้ควาร์ก 3 ตัวเท่านั้น (ห้ามใช้ antiquark)'};
+        if(u===1&&d===2) return {ok:true, name:'n⁰', msg:'✅ ถูกต้อง! 1u + 2d = นิวตรอน · ประจุ = +2/3 −1/3 −1/3 = 0', drawAs:'neutron'};
+        if(u===2&&d===1) return {ok:false, msg:'❌ คุณได้ "โปรตอน" (uud) ไม่ใช่นิวตรอน · ลองใหม่'};
+        return {ok:false, msg:'❌ นิวตรอนต้องประกอบด้วย u 1 ตัว + d 2 ตัว'};
+      }
+    },
+    pion: {
+      title:'🧱 สร้าง ไพออน (π)',
+      hint:'meson = ควาร์ก + แอนติควาร์ก (เลือก 2 ตัว)',
+      palette:['u','d','ub','db'], slotCount:2,
+      check(items){
+        const set = items.slice().sort().join(',');
+        if(set==='u,db') return {ok:true, name:'π⁺', msg:'✅ π⁺ = u + d̄ (ประจุ +1)', drawAs:'pion'};
+        if(set==='d,ub') return {ok:true, name:'π⁻', msg:'✅ π⁻ = ū + d (ประจุ −1)', drawAs:'pion'};
+        if(set==='u,ub') return {ok:true, name:'π⁰', msg:'✅ π⁰ = (uū+dd̄)/√2 (ประจุ 0)', drawAs:'pion'};
+        if(set==='d,db') return {ok:true, name:'π⁰', msg:'✅ π⁰ component = dd̄ (ประจุ 0)', drawAs:'pion'};
+        return {ok:false, msg:'❌ meson ต้องเป็น quark + antiquark (เลือก u/d 1 ตัวกับ ū/d̄ 1 ตัว)'};
+      }
+    },
+    deuterium: {
+      title:'🧱 สร้าง ดิวเทอเรียม (²H)',
+      hint:'รวม 1 โปรตอน + 1 นิวตรอน → นิวเคลียสตัวแรกของ BBN',
+      palette:['p','n'], slotCount:2,
+      check(items){
+        const p=items.filter(x=>x==='p').length, n=items.filter(x=>x==='n').length;
+        if(p===1&&n===1) return {ok:true, name:'²H', msg:'✅ ²H = p + n · พลังงานยึดเหนี่ยว 2.22 MeV', drawAs:'deuterium'};
+        if(p===2) return {ok:false, msg:'❌ pp ไม่เสถียร (diproton ไม่มีในธรรมชาติ)'};
+        if(n===2) return {ok:false, msg:'❌ nn ไม่เสถียร (dineutron ไม่มี)'};
+        return {ok:false, msg:'❌ ดิวเทอเรียมต้องเป็น 1p + 1n'};
+      }
+    },
+    helium: {
+      title:'🧱 สร้าง ฮีเลียม-4 (⁴He · alpha)',
+      hint:'รวม 2 โปรตอน + 2 นิวตรอน',
+      palette:['p','n'], slotCount:4,
+      check(items){
+        const p=items.filter(x=>x==='p').length, n=items.filter(x=>x==='n').length;
+        if(p===2&&n===2) return {ok:true, name:'⁴He', msg:'✅ ⁴He = 2p + 2n · BE/A = 7.07 MeV (เสถียรมาก)', drawAs:'helium4'};
+        if(p===2&&n===1) return {ok:false, msg:'⚠️ ³He = 2p + 1n (เสถียรแต่หายาก) · ⁴He ต้อง 2n'};
+        if(p===1&&n===2) return {ok:false, msg:'⚠️ ³H (tritium) = 1p + 2n · ⁴He ต้อง 2p'};
+        return {ok:false, msg:'❌ ⁴He ต้องเป็น 2p + 2n'};
+      }
+    },
+    hatom: {
+      title:'🧱 สร้าง อะตอมไฮโดรเจน (H)',
+      hint:'นิวเคลียส (p) + อิเล็กตรอน (e⁻) ที่ Recombination',
+      palette:['p','e'], slotCount:2,
+      check(items){
+        const p=items.filter(x=>x==='p').length, e=items.filter(x=>x==='e').length;
+        if(p===1&&e===1) return {ok:true, name:'H', msg:'✅ H = p⁺ + e⁻ · เกิดที่ t ≈ 380,000 ปี (T = 3000 K)', drawAs:'hatom'};
+        if(p===1&&e===0) return {ok:false, msg:'❌ มีแต่นิวเคลียส ยังไม่ใช่อะตอม · ต้องการ e⁻'};
+        return {ok:false, msg:'❌ H ต้องเป็น 1p + 1e⁻'};
+      }
+    },
+    heatom: {
+      title:'🧱 สร้าง อะตอมฮีเลียม (He)',
+      hint:'นิวเคลียส ⁴He + 2 อิเล็กตรอน (เต็ม K shell)',
+      palette:['He','e'], slotCount:3,
+      check(items){
+        const he=items.filter(x=>x==='He').length, e=items.filter(x=>x==='e').length;
+        if(he===1&&e===2) return {ok:true, name:'He', msg:'✅ He = ⁴He + 2e⁻ · K shell เต็ม → noble gas', drawAs:'heatom'};
+        if(he===1&&e===1) return {ok:false, msg:'⚠️ He⁺ ion (มีประจุ +1) · ต้องการ e⁻ อีก 1 ตัว'};
+        return {ok:false, msg:'❌ He ต้องเป็น 1×⁴He + 2×e⁻'};
+      }
+    }
+  };
+
+  const PAL_LABEL = {u:'u', d:'d', ub:'ū', db:'d̄', p:'p⁺', n:'n⁰', e:'e⁻', He:'⁴He'};
+
+  let _build = { recipe:null, type:null, placed:[], dragging:null, feedback:null,
+                 paletteRects:[], slotRects:[], resetRect:null };
+
+  function resetBuild(type){
+    _build.type = type;
+    _build.recipe = RECIPES[type] || null;
+    _build.placed = [];
+    _build.feedback = null;
+    _build.dragging = null;
+  }
+
+  function drawPalIcon(c, x, y, type, scale=1){
+    if(['u','d','s','c'].includes(type)) drawQuark(c, x, y, 18*scale, type, false);
+    else if(['ub','db','sb'].includes(type)) drawQuark(c, x, y, 18*scale, type[0], true);
+    else if(type==='p') drawProton(c, x, y, 1.6*scale);
+    else if(type==='n') drawNeutron(c, x, y, 1.6*scale);
+    else if(type==='e') drawElectron(c, x, y, 9*scale);
+    else if(type==='He') drawHelium4(c, x, y, 1.1*scale);
+  }
+
+  function drawBuildLab(c, w, h, type){
+    const r = _build.recipe;
+    // dark bg
+    c.fillStyle='rgba(6,9,15,0.95)';
+    c.fillRect(0,0,w,h);
+    // header
+    c.fillStyle='#fbbf24'; c.font='bold 16px Sarabun'; c.textAlign='center';
+    c.fillText(r.title, w/2, 30);
+    c.fillStyle='#cbd5e1'; c.font='12px Sarabun';
+    c.fillText(r.hint, w/2, 50);
+    c.textAlign='start';
+
+    // palette (left strip)
+    _build.paletteRects = [];
+    const palX = 14, palY = 80;
+    const itemW = 78, itemH = 60;
+    r.palette.forEach((pt, i) => {
+      const x = palX, y = palY + i*(itemH+8);
+      c.fillStyle='#0f172a';
+      c.strokeStyle = (_build.dragging&&_build.dragging.type===pt)?'#34d399':'#fb923c';
+      c.lineWidth=2;
+      c.fillRect(x,y,itemW,itemH);
+      c.strokeRect(x,y,itemW,itemH);
+      drawPalIcon(c, x+itemW/2-8, y+itemH/2, pt, 0.85);
+      c.fillStyle='#cbd5e1'; c.font='bold 12px "Share Tech Mono"'; c.textAlign='left';
+      c.fillText(PAL_LABEL[pt]||pt, x+itemW-22, y+itemH/2+4);
+      c.fillStyle='#94a3b8'; c.font='9px Sarabun'; c.textAlign='center';
+      c.fillText('คลิก/ลาก', x+itemW/2, y+itemH-4);
+      c.textAlign='start';
+      _build.paletteRects.push({x,y,w:itemW,h:itemH,type:pt});
+    });
+
+    // build slots
+    _build.slotRects = [];
+    const cx = w*0.58, cy = h*0.45;
+    const slotR = 32;
+    const radius = r.slotCount<=2 ? 50 : 60;
+    for(let i=0;i<r.slotCount;i++){
+      const ang = (i/r.slotCount)*Math.PI*2 - Math.PI/2;
+      const sx = r.slotCount===1 ? cx : cx + Math.cos(ang)*radius;
+      const sy = r.slotCount===1 ? cy : cy + Math.sin(ang)*radius;
+      const filled = _build.placed[i];
+      c.strokeStyle = filled ? '#34d399' : '#475569';
+      c.lineWidth = 2;
+      c.setLineDash(filled?[]:[4,3]);
+      c.beginPath(); c.arc(sx, sy, slotR, 0, Math.PI*2); c.stroke();
+      c.setLineDash([]);
+      if(filled) drawPalIcon(c, sx, sy, filled, 0.95);
+      else {
+        c.fillStyle='#475569'; c.font='12px Sarabun'; c.textAlign='center';
+        c.fillText('ช่อง '+(i+1), sx, sy+4); c.textAlign='start';
+      }
+      _build.slotRects.push({x:sx, y:sy, r:slotR, idx:i});
+    }
+
+    // outer binding ring once full
+    const allFilled = _build.placed.filter(x=>x).length === r.slotCount;
+    if(allFilled){
+      c.strokeStyle = _build.feedback&&_build.feedback.ok ? '#34d399' : '#f87171';
+      c.lineWidth=2.5; c.setLineDash([4,3]);
+      c.beginPath(); c.arc(cx, cy, radius+slotR+8, 0, Math.PI*2); c.stroke();
+      c.setLineDash([]);
+      // success: also show resulting particle big
+      if(_build.feedback&&_build.feedback.ok&&_build.feedback.drawAs){
+        c.fillStyle='rgba(52,211,153,0.08)';
+        c.beginPath(); c.arc(cx,cy, radius+slotR+8, 0, Math.PI*2); c.fill();
+      }
+    }
+
+    // reset button
+    const rb = {x:w-110, y:80, w:96, h:34};
+    c.fillStyle='#152033';
+    c.strokeStyle='#fb923c'; c.lineWidth=1.5;
+    c.fillRect(rb.x, rb.y, rb.w, rb.h);
+    c.strokeRect(rb.x, rb.y, rb.w, rb.h);
+    c.fillStyle='#fb923c'; c.font='bold 12px Sarabun'; c.textAlign='center';
+    c.fillText('🔄 รีเซ็ต', rb.x+rb.w/2, rb.y+22);
+    c.textAlign='start';
+    _build.resetRect = rb;
+
+    // feedback box — bottom-center but ABOVE timeline (timeline at h-90..h-65)
+    if(_build.feedback){
+      const ok = _build.feedback.ok;
+      const fx = 110, fw = w-230, fh = 44, fy = h-150;
+      c.fillStyle = ok ? 'rgba(26,51,32,0.96)' : 'rgba(58,26,26,0.96)';
+      c.fillRect(fx, fy, fw, fh);
+      c.strokeStyle = ok ? '#34d399' : '#f87171';
+      c.lineWidth=2;
+      c.strokeRect(fx, fy, fw, fh);
+      c.fillStyle = ok ? '#34d399' : '#f87171';
+      c.font='bold 12px Sarabun';
+      const msg = _build.feedback.msg;
+      const maxW = fw-20;
+      let line='', y=fy+18;
+      msg.split(' ').forEach(word=>{
+        const test = line+word+' ';
+        if(c.measureText(test).width > maxW){
+          c.fillText(line, fx+10, y);
+          line = word+' '; y+=14;
+        } else line=test;
+      });
+      if(line) c.fillText(line, fx+10, y);
+    }
+
+    // dragging ghost
+    if(_build.dragging){
+      c.globalAlpha=0.85;
+      drawPalIcon(c, _build.dragging.x, _build.dragging.y, _build.dragging.type, 0.9);
+      c.globalAlpha=1;
+    }
+  }
+
+  /* ============================================================
+     ZOOM MODE — dispatcher
+     ============================================================ */
+  function drawZoom(c, w, h, type){
+    if(COMPOSITE_TYPES.includes(type)){ drawBuildLab(c, w, h, type); return; }
+    // dark backdrop covering whole upper area + dim timeline
+    c.fillStyle='rgba(6,9,15,0.92)';
+    c.fillRect(0, 0, w, h);
+    const cx=w/2, cy=h*0.5;
+
+    let info = {title:'', sub:'', notes:[]};
+    c.save();
+
+    if(type==='quark'){
+      // 3 quarks in row showing flavors + anti
+      drawQuark(c, cx-90, cy, 28, 'u', false);
+      drawQuark(c, cx,    cy, 28, 'd', false);
+      drawQuark(c, cx+90, cy, 28, 'u', true);
+      info = {title:'ควาร์ก (Quark)', sub:'อนุภาคมูลฐานสร้างโปรตอน/นิวตรอน',
+        notes:['• u (up) ประจุ +2/3 e','• d (down) ประจุ −1/3 e',
+          '• ū (anti-up) ประจุ −2/3 e','• ที่ T > 10¹³ K ควาร์กเป็นอิสระ (quark-gluon plasma)']};
+    } else if(type==='proton'){
+      drawProton(c, cx, cy, 4);
+      info = {title:'โปรตอน (Proton, p⁺)', sub:'baryon = uud · ประจุ +1 e',
+        notes:['• ประกอบจากควาร์ก u + u + d','• กลือออน (g) สีม่วงคือกาวยึด',
+          '• มวล 938.3 MeV/c²','• เกิดจากการรวมตัวของควาร์ก ที่ t ≈ 10⁻⁶ s']};
+    } else if(type==='neutron'){
+      drawNeutron(c, cx, cy, 4);
+      info = {title:'นิวตรอน (Neutron, n⁰)', sub:'baryon = udd · ประจุเป็นกลาง',
+        notes:['• ประกอบจากควาร์ก u + d + d','• สลายตัวอิสระใน 880 s → p + e⁻ + ν̄',
+          '• มวล 939.6 MeV/c² (หนักกว่า p เล็กน้อย)','• สำคัญใน BBN เพื่อสร้าง He']};
+    } else if(type==='pion'){
+      drawPion(c, cx, cy, 4);
+      info = {title:'ไพออน (Pion, π)', sub:'meson = qq̄',
+        notes:['• π⁺ = ud̄ · π⁻ = ūd · π⁰ = (uū+dd̄)/√2',
+          '• มวล ~140 MeV/c²','• สลายตัวเร็ว (10⁻⁸ s)','• พบในยุค Hadron']};
+    } else if(type==='deuterium'){
+      drawDeuterium(c, cx, cy, 4);
+      info = {title:'ดิวเทอเรียม (²H)', sub:'p + n bound',
+        notes:['• นิวเคลียสแรกที่เกิดใน BBN','• พลังงานยึดเหนี่ยว 2.22 MeV',
+          '• หากไม่มี deuterium → He เกิดไม่ได้','• "deuterium bottleneck" ที่ T ≈ 10⁹ K']};
+    } else if(type==='helium'){
+      drawHelium4(c, cx, cy, 4);
+      info = {title:'ฮีเลียม-4 (⁴He)', sub:'2p + 2n · "alpha particle"',
+        notes:['• เสถียรมาก (BE/A = 7.07 MeV)','• ผลผลิตหลักของ BBN',
+          '• สัดส่วน 25% ของมวลสสารปกติ','• Y = 2(n/p)/(1+n/p) ≈ 0.25']};
+    } else if(type==='hatom'){
+      drawHAtom(c, cx, cy, 4);
+      info = {title:'อะตอมไฮโดรเจน (H)', sub:'p⁺ + e⁻ orbiting',
+        notes:['• เกิดที่ t ≈ 380,000 ปี (Recombination)','• T = 3000 K, e⁻ จับ p⁺',
+          '• โฟตอนหลุดอิสระ → CMB','• 75% ของสสารปกติในเอกภพ']};
+    } else if(type==='heatom'){
+      drawHeAtom(c, cx, cy, 4);
+      info = {title:'อะตอมฮีเลียม (He)', sub:'⁴He nucleus + 2e⁻',
+        notes:['• เกิดเช่นกันที่ Recombination','• อิเล็กตรอน 2 ตัว เต็ม shell K',
+          '• 24-25% ของสสารปกติ (จาก BBN)']};
+    } else if(type==='photon'){
+      drawPhoton(c, cx-60, cy, 120, 0);
+      info = {title:'โฟตอน (Photon, γ)', sub:'ตัวพาแรงแม่เหล็กไฟฟ้า',
+        notes:['• ไม่มีมวล · ความเร็วแสง c = 3×10⁸ m/s','• ในยุค Opaque ติดอยู่กับ plasma',
+          '• หลุดอิสระตอน Recombination → CMB','• วันนี้เห็นเป็นไมโครเวฟ T = 2.725 K']};
+    } else if(type==='xboson'){
+      drawXBoson(c, cx, cy, 30);
+      info = {title:'X-boson', sub:'GUT boson · มวล ~10¹⁵ GeV',
+        notes:['• มวลพันล้านเท่าโปรตอน','• ตัวพา Grand Unified Force',
+          '• สลายตัวที่ t ≈ 10⁻¹² s → matter-antimatter asymmetry',
+          '• สร้างสสารส่วนเกิน 1 ส่วนต่อพันล้าน']};
+    } else if(type==='higgs'){
+      drawHiggs(c, cx, cy, 30);
+      info = {title:'ฮิกส์โบซอน (Higgs, H⁰)', sub:'ตัวให้มวลกับอนุภาค',
+        notes:['• มวล 125 GeV/c²','• พิสูจน์ที่ LHC ปี 2012, ยืนยัน 2013',
+          '• อนุภาคเดินผ่าน Higgs field → ได้มวล','• ทำนายโดย Peter Higgs (1964)']};
+    }
+
+    // info box — top left with semi-bg
+    const ix=20, iy=20;
+    const lines = info.notes.length;
+    const ih = 48 + lines*16;
+    c.fillStyle='rgba(15,23,42,0.92)';
+    c.fillRect(ix-4, iy-4, Math.min(w-32, 460), ih);
+    c.strokeStyle='#fbbf24'; c.lineWidth=1;
+    c.strokeRect(ix-4, iy-4, Math.min(w-32, 460), ih);
+    c.fillStyle='#fbbf24'; c.font='bold 15px Sarabun';
+    c.fillText(info.title, ix+4, iy+14);
+    c.fillStyle='#cbd5e1'; c.font='11px Sarabun';
+    c.fillText(info.sub, ix+4, iy+30);
+    c.fillStyle='#e2e8f0'; c.font='11px Sarabun';
+    info.notes.forEach((n,i)=>{ c.fillText(n, ix+4, iy+48+i*15); });
+    c.restore();
+  }
+
+  /* ============================================================
+     ZOOM BAR — sub-buttons by era
+     ============================================================ */
+  const ZOOM_BY_ERA = {
+    'Quark era': [['quark','ควาร์ก'],['photon','โฟตอน']],
+    'Electroweak split': [['xboson','X-boson'],['higgs','Higgs'],['photon','โฟตอน']],
+    'Hadron era': [['proton','โปรตอน'],['neutron','นิวตรอน'],['pion','ไพออน'],['quark','ควาร์ก']],
+    'Lepton era': [['proton','โปรตอน'],['neutron','นิวตรอน'],['photon','โฟตอน']],
+    'Nucleosynthesis': [['deuterium','²H'],['helium','⁴He'],['proton','โปรตอน'],['neutron','นิวตรอน']],
+    'Opaque era (plasma)': [['proton','โปรตอน'],['photon','โฟตอน']],
+    'Recombination': [['hatom','H atom'],['heatom','He atom'],['photon','CMB photon']],
+    'Dark Ages': [['hatom','H atom'],['heatom','He atom']],
+  };
+
+  function updateZoomBar(era){
+    const btns = ZOOM_BY_ERA[era[2]] || [];
+    const host = document.getElementById('zoomBtns');
+    if(!host) return;
+    host.innerHTML = btns.map(b=>`<button class="btn btn-ghost" style="margin:0 3px" onclick="ex1.zoom('${b[0]}')">🔬 ${b[1]}</button>`).join('');
+    if(btns.length===0) host.innerHTML = '<span style="color:var(--muted);font-size:.75rem;font-style:italic">— ยุคนี้ไม่มีอนุภาคให้ซูม —</span>';
+    document.getElementById('unzoomBtn').style.display = _zoomMode?'':'none';
   }
 
   function updateReadouts(){
@@ -854,12 +1559,87 @@ const ex1 = (function(){
     draw, init(){
       bindSlider('sl-logt','vi-logt',(v)=>{ logt=v; draw(); });
       draw();
+      // continuous render for particle motion / orbits
+      (function tick(){
+        if(CURRENT_EXP===1) draw();
+        requestAnimationFrame(tick);
+      })();
+      // build-lab drag-drop handlers
+      function getXY(e){
+        const r = cv.getBoundingClientRect();
+        const cx = e.clientX!=null?e.clientX:(e.touches&&e.touches[0]?e.touches[0].clientX:0);
+        const cy = e.clientY!=null?e.clientY:(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        // map to internal coord (canvas may be DPR-scaled but events use CSS pixels)
+        return { mx: (cx-r.left)*(cv.clientWidth/r.width), my:(cy-r.top)*(cv.clientHeight/r.height) };
+      }
+      function nextEmptySlot(){
+        for(let i=0;i<_build.slotRects.length;i++) if(!_build.placed[i]) return i;
+        return -1;
+      }
+      function placeAt(idx, type){
+        if(idx<0 || _build.placed[idx]) return;
+        _build.placed[idx] = type;
+        if(_build.placed.filter(x=>x).length === _build.recipe.slotCount){
+          _build.feedback = _build.recipe.check(_build.placed.filter(x=>x));
+        }
+      }
+      function down(e){
+        if(!_zoomMode || !_build.recipe) return;
+        const {mx,my} = getXY(e);
+        // reset button
+        const rb = _build.resetRect;
+        if(rb && mx>=rb.x&&mx<=rb.x+rb.w&&my>=rb.y&&my<=rb.y+rb.h){
+          _build.placed=[]; _build.feedback=null; return;
+        }
+        // palette pick
+        for(const p of _build.paletteRects){
+          if(mx>=p.x&&mx<=p.x+p.w&&my>=p.y&&my<=p.y+p.h){
+            _build.dragging = {type:p.type, x:mx, y:my, startX:mx, startY:my};
+            return;
+          }
+        }
+      }
+      function move(e){
+        if(!_build.dragging) return;
+        const {mx,my} = getXY(e);
+        _build.dragging.x = mx; _build.dragging.y = my;
+      }
+      function up(e){
+        if(!_build.dragging) return;
+        const {mx,my} = getXY(e);
+        const drag = _build.dragging;
+        // dropped on a slot?
+        let placed = false;
+        for(const s of _build.slotRects){
+          if(Math.hypot(mx-s.x, my-s.y) < s.r+8){
+            placeAt(s.idx, drag.type);
+            placed=true; break;
+          }
+        }
+        // click without significant drag → place at next empty
+        if(!placed){
+          const dx = mx-drag.startX, dy = my-drag.startY;
+          if(Math.hypot(dx,dy) < 6) placeAt(nextEmptySlot(), drag.type);
+        }
+        _build.dragging = null;
+      }
+      cv.addEventListener('mousedown', down);
+      cv.addEventListener('mousemove', move);
+      cv.addEventListener('mouseup', up);
+      cv.addEventListener('mouseleave', ()=>{ _build.dragging=null; });
+      cv.addEventListener('touchstart', e=>{ if(_zoomMode&&_build.recipe){e.preventDefault(); down(e.touches[0]);} }, {passive:false});
+      cv.addEventListener('touchmove', e=>{ if(_build.dragging){e.preventDefault(); move(e.touches[0]);} }, {passive:false});
+      cv.addEventListener('touchend', e=>{ if(_build.dragging){e.preventDefault(); up(e.changedTouches[0]);} }, {passive:false});
     },
     play(){ if(logt>=17.6) logt=-43; playing=true; lastTs=null; animId=requestAnimationFrame(loop); },
     pause(){ playing=false; cancelAnimationFrame(animId); },
     reset(){ playing=false; cancelAnimationFrame(animId); logt=-43;
       document.getElementById('sl-logt').value=-43; document.getElementById('vi-logt').value=-43; draw(); },
     snapshot(){ this.record(); },
+    zoom(type){ _zoomMode = type; if(COMPOSITE_TYPES.includes(type)) resetBuild(type);
+      document.getElementById('unzoomBtn').style.display=''; draw(); },
+    unzoom(){ _zoomMode = null; _build.recipe=null;
+      document.getElementById('unzoomBtn').style.display='none'; draw(); },
     record(){
       const T = tempAt(logt);
       const era = eraAt(logt);
