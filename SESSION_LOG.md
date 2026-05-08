@@ -656,3 +656,46 @@ match /settings/{docId} {
 - การ์ด simulation ทั้งหมดมี responsive layout (`@media max-width:900px → flex-direction:column`)
 - หน้าทฤษฎีใช้ class `.law` block พร้อม fbox สูตรแบบ monospace ให้น่าจดจำ
 - ทดสอบ live ใน preview panel ทุกไฟล์ระหว่าง dev — ไม่มี console error สังเกตได้
+
+---
+
+## [2026-05-09] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 43 (VPL02) — ทฤษฎีบิกแบง (Big Bang Theory)** ตามภาพอ้างอิง 2 หน้า "The Big Bang"
+- 3 tabs: Simulation / วิธีการทดลอง+บันทึกผล / ทฤษฎี
+- **4 การทดลองย่อย** (sub-nav):
+  1. **ไทม์ไลน์เอกภพ (15 ยุค)** — slider log₁₀(t) จาก −43 ถึง +17.6 · แสดง era + T(t) + scale a(t) + อนุภาคเด่น · animation particle ตามยุค · timeline bar 15 segments + marker · ปุ่ม play/pause/reset/snapshot
+  2. **กฎฮับเบิล** — 8 กาแล็กซี่กระจายรอบ Earth · คลิก → spectrum Hα 656.28 nm + redshift · plot d-v + linear fit → H₀ → อายุเอกภพ (×0.96 ΛCDM correction)
+  3. **BBN** — slider T_freeze (0.5–1.5 MeV) + τ wait (0–500 s) · อนุภาค p/n/He animation 3 phase (freeze→decay→fusion) · Y = 2(n/p)/(1+n/p) · เปรียบเทียบกับ 25%
+  4. **CMB Blackbody** — slider T (1–10 K) · เส้น Planck ส้ม + 12 จุดข้อมูล COBE/FIRAS ขาว · SSE + %error vs 2.725 K · Wien ν_peak = 58.79T GHz
+- **Manual mode (default)** + Auto mode + Hint toggle (💡)
+- ทุกการทดลองมี: ตารางบันทึก + บันทึกแถว + autoFill + clear + Export CSV
+- Tab ทฤษฎี: 5 canvas visualization
+  - thCv1: log T vs log t (จุดสำคัญ 6 era marker)
+  - thCv2: Hubble's Law (8 data points + slope line)
+  - thCv3: BBN flow 3 boxes (freeze 1/6 → decay 1/7 → fusion 25%)
+  - thCv4: CMB Planck curves 3 ค่า (T=2.5/2.725/3.0 K)
+  - thCv5: Pie chart 4.6/23/72.4% + composition breakdown
+- Tab วิธีการทดลอง: 4 สเต็ปการ์ด + warning + checklist
+- รัน `python3 _admin/protect_new_file.py` ✅ inject GA/TOPBAR/MOBILE/WATERMARK/FIREBASE_CDN/KP_AUTH/ACCESS_GUARD ครบ
+- Sync `kp-auth.js` (vpl02.labs += 'lab-43') และ `_admin/admin.html` (VLAB_SERIES + LAB_LIST entry "Lab 43 (ทฤษฎีบิกแบง)")
+- Verified ในเบราว์เซอร์: เปิดได้ปกติ · ทั้ง 4 sub-exp render ครบ · slider sync · CSV export ใช้งานได้
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/43. big-bang-theory.html` — สร้างใหม่ (~1500 บรรทัด)
+- `kp-auth.js` — เพิ่ม `'lab-43'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-43'` ใน VLAB_SERIES.vpl02 + LAB_LIST entry
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 43 ใน `index.html` / `library.html` / `virtual-physics-lab-02.html` (ต้องสร้าง canvas preview animation ด้วย)
+- ยังไม่ได้ push git
+- รอ user: ต้องการเพิ่ม Part 1 (POE) หรือ Part 3 (แบบฝึกหัด) ไหม?
+
+### หมายเหตุ
+- Physics ที่อ้างอิงตรงจากภาพ: T=2.725 K · Inflation 10²⁷ · 75% H + 25% He · 4.6/23/72.4% · 13.7 Gy · matter-antimatter 1ppb · X-bosons 10⁻¹² s
+- T(t) ≈ 1.5×10¹⁰/√t สำหรับ radiation era (0 < log t < 13.08), matter era ใช้ a∝t^(2/3) → T∝t^(-2/3)
+- BBN: n/p_freeze = exp(−1.293/T_f) · decay factor exp(−τ/880s) · Y = 2(n/p)/(1+n/p)
+- CMB Planck: B(ν,T) = (2hν³/c²)/(exp(hν/kT)−1), ν_peak = 5.879×10¹⁰·T Hz
+- VPL01 มี lab-43 (SHM04) อยู่แล้ว — access string `vlab:vpl01:lab-43` กับ `vlab:vpl02:lab-43` แยกกันตาม schema v4 ไม่ชนกัน
+- Color theme: orange (#fb923c) astronomy + yellow heat + green matter + purple quantum
