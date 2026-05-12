@@ -1919,132 +1919,275 @@ const ex2 = (function(){
     }
   }
 
+  /* ============================================================
+     NEW LAYOUT — 3 zones: spectrum (top), d-v plot (mid), galaxy strip (bottom)
+     ============================================================ */
+  let _galRects = []; // clickable galaxy thumbnails
+
   function draw(){
     fitDpr();
     const w = cv.clientWidth, h = cv.clientHeight;
     ctx.clearRect(0,0,w,h);
-    // starfield bg
-    ctx.fillStyle = '#06090f';
-    ctx.fillRect(0,0,w,h);
-    for(let i=0;i<200;i++){
-      const sx = (i*97)%w, sy = (i*53)%h;
-      ctx.fillStyle = 'rgba(255,255,255,'+(0.1+0.4*Math.random())+')';
-      ctx.fillRect(sx, sy, 1, 1);
-    }
-    // earth at center
-    ctx.fillStyle = '#38bdf8';
-    ctx.beginPath(); ctx.arc(w/2, h/2, 6, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#94a3b8';
-    ctx.font='10px Sarabun';
-    ctx.fillText('🌍 Earth (observer)', w/2-40, h/2+18);
+    ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
 
-    // galaxies
-    galaxies.forEach((g,i)=>{
-      ctx.fillStyle = g.color;
-      ctx.beginPath(); ctx.arc(g.x, g.y, g.size, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = (i===selected)?'#fbbf24':'rgba(255,255,255,0.3)';
-      ctx.lineWidth = (i===selected)?2.5:1;
+    // Zone heights
+    const pad = 10;
+    const stripH = 70;   // bottom galaxy picker
+    const gap = 8;
+    const upper = h - stripH - pad*2 - gap;
+    const specH = Math.round(upper*0.40);
+    const plotH = upper - specH;
+
+    drawSpectrumBig(pad, pad, w-pad*2, specH);
+    drawPlotBig(pad, pad+specH+gap, w-pad*2, plotH);
+    drawGalaxyStrip(pad, h-stripH-pad, w-pad*2, stripH);
+  }
+
+  function drawSpectrumBig(x, y, w, h){
+    // panel bg
+    ctx.fillStyle='rgba(15,23,42,0.6)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x,y,w,h);
+
+    // title
+    ctx.fillStyle='#fb923c'; ctx.font='bold 13px Sarabun';
+    ctx.fillText('① สเปกตรัมของกาแล็กซี — เลื่อนหาเส้น Hα (เปรียบเทียบสีแดง=ค่าเดิม กับ สีเหลือง=ที่วัดได้)', x+10, y+18);
+
+    if(selected<0){
+      ctx.fillStyle='#64748b'; ctx.font='14px Sarabun'; ctx.textAlign='center';
+      ctx.fillText('← เลือกกาแล็กซีด้านล่างก่อน', x+w/2, y+h/2);
+      ctx.textAlign='start'; return;
+    }
+
+    const g = galaxies[selected];
+    // wavelength axis 580-820 nm (zoom near Hα)
+    const wl0 = 580, wl1 = 820;
+    const ax = x+50, ay = y+30, aw = w-70, ah = h-70;
+    function wlx(wl){ return ax + (wl-wl0)/(wl1-wl0)*aw; }
+
+    // rainbow gradient
+    const grad = ctx.createLinearGradient(ax, 0, ax+aw, 0);
+    grad.addColorStop(0,'#facc15');  grad.addColorStop(.3,'#fb923c');
+    grad.addColorStop(.55,'#ef4444');grad.addColorStop(.85,'#7f1d1d');
+    grad.addColorStop(1,'#1f1235');
+    ctx.fillStyle = grad;
+    ctx.fillRect(ax, ay+ah-26, aw, 26);
+    ctx.strokeStyle='#475569'; ctx.lineWidth=1;
+    ctx.strokeRect(ax, ay+ah-26, aw, 26);
+
+    // tick marks
+    ctx.fillStyle='#94a3b8'; ctx.font='10px "Share Tech Mono"';
+    for(let wl=600; wl<=800; wl+=20){
+      const tx = wlx(wl);
+      ctx.fillRect(tx, ay+ah, 1, 4);
+      ctx.fillText(wl, tx-10, ay+ah+15);
+    }
+    ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun';
+    ctx.fillText('λ (nm)', ax+aw-30, ay+ah+30);
+
+    // rest Hα (red dashed)
+    const xR = wlx(LAMBDA_REST);
+    ctx.strokeStyle='#fca5a5'; ctx.setLineDash([5,3]); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(xR, ay); ctx.lineTo(xR, ay+ah-26); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#fca5a5'; ctx.font='bold 11px "Share Tech Mono"';
+    ctx.fillText('λ_rest = 656.28 nm (Hα)', xR-50, ay+10);
+
+    // observed (yellow solid)
+    const xO = wlx(g.lobs);
+    ctx.strokeStyle='#fde047'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(xO, ay); ctx.lineTo(xO, ay+ah-26); ctx.stroke();
+    ctx.fillStyle='#fde047'; ctx.font='bold 13px "Share Tech Mono"';
+    ctx.fillText('λ_obs = '+g.lobs.toFixed(2)+' nm', xO+6, ay+30);
+
+    // shift arrow
+    if(xO > xR+4){
+      ctx.strokeStyle='#34d399'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(xR+4, ay+ah-40); ctx.lineTo(xO-4, ay+ah-40);
+      ctx.lineTo(xO-10, ay+ah-44); ctx.moveTo(xO-4, ay+ah-40); ctx.lineTo(xO-10, ay+ah-36);
       ctx.stroke();
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font='10px "Share Tech Mono"';
-      ctx.fillText(g.id+' · '+g.d+' Mpc', g.x+g.size+4, g.y+3);
+      ctx.fillStyle='#34d399'; ctx.font='bold 11px Sarabun';
+      const shift = g.lobs - LAMBDA_REST;
+      ctx.fillText('Δλ = '+shift.toFixed(2)+' nm (redshift)', (xR+xO)/2-50, ay+ah-46);
+    }
+
+    // calc box at right
+    const cbX = ax+aw-200, cbY = ay+38;
+    ctx.fillStyle='rgba(15,23,42,0.95)';
+    ctx.fillRect(cbX, cbY, 190, 50);
+    ctx.strokeStyle='#fb923c'; ctx.strokeRect(cbX, cbY, 190, 50);
+    ctx.fillStyle='#cbd5e1'; ctx.font='11px "Share Tech Mono"';
+    ctx.fillText('z = Δλ/λ_rest = '+g.z.toFixed(5), cbX+8, cbY+18);
+    ctx.fillText('v = c·z = '+g.v.toFixed(0)+' km/s', cbX+8, cbY+36);
+  }
+
+  function drawPlotBig(x, y, w, h){
+    ctx.fillStyle='rgba(15,23,42,0.6)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x,y,w,h);
+
+    ctx.fillStyle='#fb923c'; ctx.font='bold 13px Sarabun';
+    ctx.fillText('② กราฟ d ↔ v (ฮับเบิล) — บันทึกหลายกาแล็กซี แล้วฟิตเส้นตรงเพื่อหา H₀', x+10, y+18);
+
+    const padL=50, padR=180, padT=30, padB=28;
+    const ax = x+padL, ay = y+padT;
+    const aw = w-padL-padR, ah = h-padT-padB;
+    const dmax=1100, vmax=85000;
+
+    // grid
+    ctx.strokeStyle='#1e293b'; ctx.lineWidth=1;
+    for(let i=0;i<=10;i++){
+      const gx = ax + i*aw/10;
+      ctx.beginPath(); ctx.moveTo(gx, ay); ctx.lineTo(gx, ay+ah); ctx.stroke();
+    }
+    for(let i=0;i<=5;i++){
+      const gy = ay + i*ah/5;
+      ctx.beginPath(); ctx.moveTo(ax, gy); ctx.lineTo(ax+aw, gy); ctx.stroke();
+    }
+    // axes
+    ctx.strokeStyle='#475569'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ax, ay+ah); ctx.lineTo(ax+aw, ay+ah);
+    ctx.moveTo(ax, ay); ctx.lineTo(ax, ay+ah); ctx.stroke();
+    // labels
+    ctx.fillStyle='#94a3b8'; ctx.font='10px "Share Tech Mono"';
+    for(let i=0;i<=10;i++){
+      const dd = i*100;
+      ctx.fillText(dd, ax+i*aw/10-10, ay+ah+14);
+    }
+    for(let i=0;i<=5;i++){
+      const vv = i*17;
+      ctx.fillText(vv+'k', ax-32, ay+ah-i*ah/5+3);
+    }
+    ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun';
+    ctx.fillText('d (Mpc)', ax+aw-50, ay+ah+24);
+    ctx.save(); ctx.translate(x+18, ay+ah/2+30); ctx.rotate(-Math.PI/2);
+    ctx.fillText('v (km/s)', 0, 0); ctx.restore();
+
+    // points
+    const recCount = records.length;
+    records.forEach((r,i)=>{
+      const px = ax + (r.d/dmax)*aw;
+      const py = ay+ah - (r.v/vmax)*ah;
+      ctx.fillStyle='#34d399';
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#0a0e1a'; ctx.lineWidth=1; ctx.stroke();
     });
 
-    // mini d-v plot bottom-right
-    drawDVPlot(w, h);
-
-    // selected spectrum top-left
-    if(selected>=0) drawSpectrum(galaxies[selected]);
-  }
-
-  function drawSpectrum(g){
-    const w = cv.clientWidth;
-    const padX = 14, padY = 14;
-    const sw = 270, sh = 70;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(padX, padY, sw, sh);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.strokeRect(padX, padY, sw, sh);
-    // gradient rainbow
-    const grad = ctx.createLinearGradient(padX, 0, padX+sw, 0);
-    grad.addColorStop(0,'#7c3aed'); grad.addColorStop(.25,'#3b82f6');
-    grad.addColorStop(.45,'#10b981'); grad.addColorStop(.65,'#fde047');
-    grad.addColorStop(.85,'#fb923c'); grad.addColorStop(1,'#dc2626');
-    ctx.fillStyle = grad;
-    ctx.fillRect(padX+5, padY+30, sw-10, 20);
-    // rest line (Hα at 656.28 nm)
-    const wl0 = 400, wl1 = 750;
-    function wlx(wl){ return padX+5+(wl-wl0)/(wl1-wl0)*(sw-10); }
-    ctx.strokeStyle='#cbd5e1'; ctx.setLineDash([3,2]);
-    ctx.beginPath(); ctx.moveTo(wlx(LAMBDA_REST), padY+25); ctx.lineTo(wlx(LAMBDA_REST), padY+55); ctx.stroke();
-    // observed line
-    ctx.setLineDash([]);
-    ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(wlx(g.lobs), padY+22); ctx.lineTo(wlx(g.lobs), padY+58); ctx.stroke();
-
-    ctx.fillStyle='#e2e8f0'; ctx.font='10px "Share Tech Mono"';
-    ctx.fillText('Spectrum '+g.id+' · Hα', padX+6, padY+14);
-    ctx.fillStyle='#fbbf24';
-    ctx.fillText('λ_obs = '+g.lobs.toFixed(2)+' nm', padX+sw-130, padY+66);
-  }
-
-  function drawDVPlot(w,h){
-    const px = w-280, py = 10, pw = 270, ph = 160;
-    ctx.fillStyle='rgba(0,0,0,0.75)';
-    ctx.fillRect(px,py,pw,ph);
-    ctx.strokeStyle='rgba(255,255,255,0.25)';
-    ctx.strokeRect(px,py,pw,ph);
-    ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun';
-    ctx.fillText('กราฟ d (Mpc) ↔ v (km/s)', px+8, py+13);
-
-    // axes
-    const x0=px+30, y0=py+ph-20, ax=pw-40, ay=ph-30;
-    ctx.strokeStyle='#475569'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0+ax,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y0-ay); ctx.stroke();
-    // points (recorded)
-    const dmax=1000, vmax=80000;
-    for(const r of records){
-      const x = x0 + (r.d/dmax)*ax;
-      const y = y0 - (r.v/vmax)*ay;
-      ctx.fillStyle='#34d399';
-      ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
-    }
     // fit line
     if(fitH0){
-      ctx.strokeStyle='#fb923c'; ctx.lineWidth=2;
+      ctx.strokeStyle='#fb923c'; ctx.lineWidth=2.5;
       ctx.beginPath();
-      const v0=0, v1=fitH0*dmax;
-      ctx.moveTo(x0,y0);
-      ctx.lineTo(x0+ax, y0 - (v1/vmax)*ay);
+      ctx.moveTo(ax, ay+ah);
+      ctx.lineTo(ax+aw, ay+ah - (fitH0*dmax/vmax)*ah);
       ctx.stroke();
-      ctx.fillStyle='#fb923c'; ctx.font='10px "Share Tech Mono"';
-      ctx.fillText('slope = '+fitH0.toFixed(1)+' km/s/Mpc', px+50, py+ph-4);
     }
-    // labels
-    ctx.fillStyle='#94a3b8'; ctx.font='9px "Share Tech Mono"';
-    ctx.fillText('0', x0-4, y0+10);
-    ctx.fillText('1000', x0+ax-12, y0+10);
-    ctx.save(); ctx.translate(px+8, y0); ctx.rotate(-Math.PI/2);
-    ctx.fillText('80k', 0, 0); ctx.restore();
+
+    // result box on right
+    const rbX = x+w-padR+10, rbY = ay;
+    ctx.fillStyle='rgba(15,23,42,0.95)';
+    ctx.fillRect(rbX, rbY, padR-20, ah);
+    ctx.strokeStyle='#fb923c'; ctx.lineWidth=1.5;
+    ctx.strokeRect(rbX, rbY, padR-20, ah);
+    ctx.fillStyle='#fb923c'; ctx.font='bold 11px Sarabun';
+    ctx.fillText('ผลการฟิต', rbX+8, rbY+18);
+    ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun';
+    ctx.fillText('จุดที่บันทึก : '+recCount, rbX+8, rbY+38);
+    if(fitH0){
+      ctx.fillStyle='#34d399'; ctx.font='bold 13px "Share Tech Mono"';
+      ctx.fillText('H₀ = '+fitH0.toFixed(1), rbX+8, rbY+62);
+      ctx.fillStyle='#cbd5e1'; ctx.font='9px Sarabun';
+      ctx.fillText('km/s/Mpc', rbX+8, rbY+76);
+      // age
+      const age = (1/fitH0)*3.0857e19/(365.25*86400)/1e9*0.96;
+      ctx.fillStyle='#fb923c'; ctx.font='bold 13px "Share Tech Mono"';
+      ctx.fillText('อายุ = '+age.toFixed(1), rbX+8, rbY+100);
+      ctx.fillStyle='#cbd5e1'; ctx.font='9px Sarabun';
+      ctx.fillText('พันล้านปี', rbX+8, rbY+114);
+      // err
+      const err = Math.abs(fitH0-H0_TRUE)/H0_TRUE*100;
+      ctx.fillStyle = err<5?'#34d399':err<15?'#facc15':'#f87171';
+      ctx.font='10px "Share Tech Mono"';
+      ctx.fillText('%error : '+err.toFixed(1)+'%', rbX+8, rbY+138);
+    } else {
+      ctx.fillStyle='#64748b'; ctx.font='10px Sarabun';
+      ctx.fillText('กด "Fit" เพื่อ', rbX+8, rbY+60);
+      ctx.fillText('หา H₀', rbX+8, rbY+76);
+    }
+  }
+
+  function drawGalaxyStrip(x, y, w, h){
+    _galRects = [];
+    ctx.fillStyle='rgba(15,23,42,0.6)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle='#fb923c'; ctx.font='bold 11px Sarabun';
+    ctx.fillText('③ เลือกกาแล็กซี (8 ดวง · เรียงตามระยะใกล้→ไกล)', x+10, y+14);
+
+    const n = galaxies.length;
+    const cellW = (w-20)/n;
+    const cellY = y+22, cellH = h-30;
+    for(let i=0;i<n;i++){
+      const g = galaxies[i];
+      const cx = x+10 + i*cellW;
+      const isSel = (i===selected);
+      const isRecorded = records.some(r=>r.d===g.d);
+      ctx.fillStyle = isSel ? '#3b1d0a' : '#0f172a';
+      ctx.fillRect(cx+2, cellY, cellW-4, cellH);
+      ctx.strokeStyle = isSel ? '#fb923c' : isRecorded ? '#34d399' : '#475569';
+      ctx.lineWidth = isSel?2.5:1.5;
+      ctx.strokeRect(cx+2, cellY, cellW-4, cellH);
+      // galaxy icon (inline mini-spiral)
+      ctx.save();
+      ctx.translate(cx+cellW/2, cellY+18);
+      for(let a=0; a<3; a++){
+        ctx.rotate(Math.PI*2/3);
+        ctx.strokeStyle = g.color || '#fbbf24';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for(let t=0;t<=1;t+=0.1){
+          const ang=t*Math.PI*2; const r=t*10;
+          if(t===0) ctx.moveTo(Math.cos(ang)*r, Math.sin(ang)*r);
+          else ctx.lineTo(Math.cos(ang)*r, Math.sin(ang)*r);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      // label
+      ctx.fillStyle = isSel?'#fb923c':'#e2e8f0';
+      ctx.font='bold 10px "Share Tech Mono"'; ctx.textAlign='center';
+      ctx.fillText(g.id, cx+cellW/2, cellY+38);
+      ctx.fillStyle = '#94a3b8'; ctx.font='9px Sarabun';
+      ctx.fillText(g.d+' Mpc', cx+cellW/2, cellY+cellH-4);
+      // recorded badge
+      if(isRecorded){
+        ctx.fillStyle='#34d399';
+        ctx.beginPath(); ctx.arc(cx+cellW-10, cellY+8, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#0a0e1a'; ctx.font='bold 8px "Share Tech Mono"';
+        ctx.fillText('✓', cx+cellW-10, cellY+11);
+      }
+      ctx.textAlign='start';
+      _galRects.push({x:cx+2, y:cellY, w:cellW-4, h:cellH, idx:i});
+    }
   }
 
   function clickHandler(e){
     const rect = cv.getBoundingClientRect();
-    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
-    let best=-1, bd=999;
-    galaxies.forEach((g,i)=>{
-      const d = Math.hypot(mx-g.x, my-g.y);
-      if(d<g.size+6 && d<bd){ bd=d; best=i; }
-    });
-    if(best>=0){
-      selected = best;
-      const g = galaxies[best];
-      document.getElementById('o2-id').textContent = g.id;
-      document.getElementById('o2-d').textContent = g.d;
-      document.getElementById('o2-lobs').textContent = g.lobs.toFixed(3)+' nm';
-      document.getElementById('o2-z').textContent = g.z.toFixed(5);
-      document.getElementById('o2-v').textContent = g.v.toFixed(0)+' km/s';
-      draw();
+    const mx = (e.clientX-rect.left)*(cv.clientWidth/rect.width);
+    const my = (e.clientY-rect.top)*(cv.clientHeight/rect.height);
+    for(const g of _galRects){
+      if(mx>=g.x && mx<=g.x+g.w && my>=g.y && my<=g.y+g.h){
+        selected = g.idx;
+        const G = galaxies[selected];
+        document.getElementById('o2-id').textContent = G.id;
+        document.getElementById('o2-d').textContent = G.d;
+        document.getElementById('o2-lobs').textContent = G.lobs.toFixed(3)+' nm';
+        document.getElementById('o2-z').textContent = G.z.toFixed(5);
+        document.getElementById('o2-v').textContent = G.v.toFixed(0)+' km/s';
+        draw();
+        return;
+      }
     }
   }
 
@@ -2198,58 +2341,191 @@ const ex3 = (function(){
     }
   }
 
+  /* ============================================================
+     COMIC-STRIP LAYOUT — 3 frames + result bar
+     ============================================================ */
+  function drawP(c, x, y, r){
+    c.fillStyle='#fbbf24'; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.fillStyle='#0a0e1a'; c.font='bold '+Math.round(r*0.9)+'px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('p', x, y); c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+  function drawN(c, x, y, r){
+    c.fillStyle='#a78bfa'; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+    c.fillStyle='#0a0e1a'; c.font='bold '+Math.round(r*0.9)+'px "Share Tech Mono"';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('n', x, y); c.textAlign='start'; c.textBaseline='alphabetic';
+  }
+  function drawHe(c, x, y, r){
+    // 2p + 2n cluster
+    drawP(c, x-r*0.45, y-r*0.45, r*0.55);
+    drawP(c, x+r*0.45, y-r*0.45, r*0.55);
+    drawN(c, x-r*0.45, y+r*0.45, r*0.55);
+    drawN(c, x+r*0.45, y+r*0.45, r*0.55);
+    c.strokeStyle='#34d399'; c.lineWidth=2; c.setLineDash([3,2]);
+    c.beginPath(); c.arc(x,y,r+2,0,Math.PI*2); c.stroke();
+    c.setLineDash([]);
+    c.fillStyle='#34d399'; c.font='bold 9px "Share Tech Mono"';
+    c.textAlign='center';
+    c.fillText('He', x, y+r+12); c.textAlign='start';
+  }
+
+  function distributeInBox(n, x, y, w, h){
+    // grid positions inside box
+    if(n<=0) return [];
+    const cols = Math.ceil(Math.sqrt(n * w/h));
+    const rows = Math.ceil(n/cols);
+    const cellW = w/(cols+0.5), cellH = h/(rows+0.5);
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const r = Math.floor(i/cols), c = i%cols;
+      pts.push({x: x+cellW*(c+0.7), y: y+cellH*(r+0.7)});
+    }
+    return pts;
+  }
+
+  function drawFrameBox(x, y, w, h, color, idx, title, subtitle){
+    ctx.fillStyle='rgba(15,23,42,0.85)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    ctx.strokeRect(x,y,w,h);
+    // header bar
+    ctx.fillStyle=color;
+    ctx.fillRect(x, y, w, 30);
+    ctx.fillStyle='#0a0e1a'; ctx.font='bold 13px Sarabun'; ctx.textAlign='left';
+    ctx.fillText('Frame '+idx+' · '+title, x+10, y+20);
+    ctx.textAlign='start';
+    // subtitle
+    ctx.fillStyle='#cbd5e1'; ctx.font='11px "Share Tech Mono"';
+    ctx.fillText(subtitle, x+10, y+48);
+  }
+
   function draw(){
     fitDpr();
     const w=cv.clientWidth,h=cv.clientHeight;
     ctx.clearRect(0,0,w,h);
-    // bg
-    const T_K = Tf*1.16e10; // MeV → K (1 MeV = 1.16e10 K)
-    const heat = Math.min(1, T_K/1e10);
-    const grad = ctx.createLinearGradient(0,0,0,h);
-    grad.addColorStop(0, `rgba(${Math.round(220*heat+30)},${Math.round(80*heat+20)},20,0.5)`);
-    grad.addColorStop(1, 'rgba(6,9,15,0.95)');
-    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
 
-    // particles
-    for(const p of particles){
-      if(p.type==='_') continue;
-      let c='#fbbf24', lbl='p';
-      if(p.type==='n'){c='#a78bfa'; lbl='n';}
-      if(p.type==='He'){c='#34d399'; lbl='He';}
-      ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(p.x,p.y, p.type==='He'?8:4.5, 0, Math.PI*2); ctx.fill();
-      if(p.type==='He'){
-        ctx.fillStyle='#0a0e1a'; ctx.font='bold 8px "Share Tech Mono"';
-        ctx.fillText('He', p.x-7, p.y+3);
-      }
-    }
-    // overlay info
     const r = calc(Tf, tau);
-    ctx.fillStyle='#0a1224dd';
-    ctx.fillRect(8,8,260,68);
-    ctx.strokeStyle='#1e293b'; ctx.strokeRect(8,8,260,68);
-    ctx.fillStyle='#fbbf24'; ctx.font='bold 12px Sarabun';
-    ctx.fillText('Phase: '+phase.toUpperCase(), 16, 26);
-    ctx.font='11px "Share Tech Mono"'; ctx.fillStyle='#e2e8f0';
-    ctx.fillText('T_f = '+Tf.toFixed(2)+' MeV ('+(T_K/1e9).toFixed(1)+'×10⁹ K)', 16, 44);
-    ctx.fillText('n/p (BBN) = '+r.np_after.toFixed(4), 16, 60);
-    ctx.fillStyle='#34d399'; ctx.font='bold 12px "Share Tech Mono"';
-    ctx.fillText('Y(He) = '+(r.Y*100).toFixed(2)+' %', 16, 76);
 
-    // legend
-    ctx.fillStyle='rgba(0,0,0,0.6)';
-    ctx.fillRect(w-150,8,142,72);
-    ctx.strokeRect(w-150,8,142,72);
-    ctx.fillStyle='#fbbf24'; ctx.beginPath(); ctx.arc(w-138,22,5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e2e8f0'; ctx.font='10px Sarabun';
-    ctx.fillText('proton (p⁺)', w-128, 25);
-    ctx.fillStyle='#a78bfa'; ctx.beginPath(); ctx.arc(w-138,42,5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e2e8f0';
-    ctx.fillText('neutron (n⁰)', w-128, 45);
-    ctx.fillStyle='#34d399'; ctx.beginPath(); ctx.arc(w-138,62,7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#0a0e1a'; ctx.font='bold 7px "Share Tech Mono"'; ctx.fillText('He', w-144, 64);
-    ctx.fillStyle='#e2e8f0'; ctx.font='10px Sarabun';
-    ctx.fillText('Helium-4', w-128, 65);
+    // 3 frames in top 65%
+    const pad=10, gap=6;
+    const fw = (w-pad*2-gap*2)/3;
+    const fh = h*0.62;
+    const fy = pad;
+
+    // ---- FRAME 1: equilibrium (T≈1 MeV, t≈1s, n/p ≈ 1) ----
+    {
+      const fx = pad;
+      drawFrameBox(fx, fy, fw, fh, '#fbbf24', 1,
+        'ดุลย์เคมี', 'T ≈ 1 MeV · t ≈ 1 s · n/p ≈ 1');
+      const innerY = fy+60, innerH = fh-100;
+      const pts1 = distributeInBox(12, fx+10, innerY, fw-20, innerH/2-4);
+      const pts2 = distributeInBox(12, fx+10, innerY+innerH/2+4, fw-20, innerH/2-4);
+      pts1.forEach(p=>drawP(ctx, p.x, p.y, 9));
+      pts2.forEach(p=>drawN(ctx, p.x, p.y, 9));
+      // ratio readout
+      ctx.fillStyle='#e2e8f0'; ctx.font='bold 12px "Share Tech Mono"';
+      ctx.textAlign='center';
+      ctx.fillText('n/p = 12/12 = 1.00', fx+fw/2, fy+fh-10);
+      ctx.textAlign='start';
+    }
+
+    // ---- FRAME 2: freeze-out at T_f (current slider) ----
+    {
+      const fx = pad+fw+gap;
+      drawFrameBox(fx, fy, fw, fh, '#a78bfa', 2,
+        'Freeze-out', 'T = '+Tf.toFixed(2)+' MeV · n/p = e^(−1.293/T_f)');
+      const innerY = fy+60, innerH = fh-100;
+      // Show 12 p and proportional n based on np_freeze
+      const nP = 12;
+      const nN = Math.max(1, Math.round(nP * r.np_freeze));
+      const ptsP = distributeInBox(nP, fx+10, innerY, fw-20, innerH*0.55);
+      const ptsN = distributeInBox(nN, fx+10, innerY+innerH*0.55+4, fw-20, innerH*0.4);
+      ptsP.forEach(p=>drawP(ctx, p.x, p.y, 9));
+      ptsN.forEach(p=>drawN(ctx, p.x, p.y, 9));
+      ctx.fillStyle='#e2e8f0'; ctx.font='bold 12px "Share Tech Mono"';
+      ctx.textAlign='center';
+      ctx.fillText('n/p = '+nN+'/'+nP+' = '+r.np_freeze.toFixed(3), fx+fw/2, fy+fh-10);
+      ctx.textAlign='start';
+    }
+
+    // ---- FRAME 3: fusion (final composition) ----
+    {
+      const fx = pad+fw*2+gap*2;
+      drawFrameBox(fx, fy, fw, fh, '#34d399', 3,
+        'Fusion (BBN)', 'T < 0.1 MeV · τ wait = '+tau+' s');
+      const innerY = fy+60, innerH = fh-100;
+      // Compute He clusters and free p from mass fraction Y:
+      //   Y = mass_He / total = (4 * N_He) / (4*N_He + N_H_free)
+      //   Pick total baryon mass M, then N_He = Y*M/4, N_H = (1-Y)*M
+      const M = 32; // total nucleons for nice visual count
+      const nHe = Math.max(0, Math.round(r.Y * M / 4));
+      const freeP = Math.max(0, M - nHe*4);
+      // Show He clusters at top, free p's below
+      const heRow = distributeInBox(nHe, fx+10, innerY, fw-20, innerH*0.45);
+      const pRow  = distributeInBox(freeP, fx+10, innerY+innerH*0.5, fw-20, innerH*0.5);
+      heRow.forEach(p=>drawHe(ctx, p.x, p.y, 14));
+      pRow.forEach(p=>drawP(ctx, p.x, p.y, 9));
+      ctx.fillStyle='#34d399'; ctx.font='bold 12px "Share Tech Mono"';
+      ctx.textAlign='center';
+      ctx.fillText('Y(He) = '+(r.Y*100).toFixed(1)+'%', fx+fw/2, fy+fh-10);
+      ctx.textAlign='start';
+    }
+
+    // ---- BOTTOM RESULT STRIP: n/p bar + H/He pie ----
+    const by = fy+fh+10, bh = h-by-10;
+    // bar (left half)
+    const barX = pad, barY = by+8, barW = w*0.55, barH = bh-16;
+    ctx.fillStyle='rgba(15,23,42,0.85)';
+    ctx.fillRect(barX, by, barW, bh);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(barX, by, barW, bh);
+    ctx.fillStyle='#fb923c'; ctx.font='bold 12px Sarabun';
+    ctx.fillText('สัดส่วนสุดท้าย (มวล) :  H = '+(100-r.Y*100).toFixed(1)+'%   ·   He = '+(r.Y*100).toFixed(1)+'%', barX+10, by+18);
+    // ratio bar: yellow (H) + green (He)
+    const innerBarY = by+30, innerBarH = bh-44;
+    const hFrac = 1 - r.Y;
+    ctx.fillStyle='#fbbf24';
+    ctx.fillRect(barX+10, innerBarY, (barW-20)*hFrac, innerBarH);
+    ctx.fillStyle='#34d399';
+    ctx.fillRect(barX+10+(barW-20)*hFrac, innerBarY, (barW-20)*r.Y, innerBarH);
+    // markers at 75/25
+    const x75 = barX+10+(barW-20)*0.75;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.setLineDash([3,2]);
+    ctx.beginPath(); ctx.moveTo(x75, innerBarY-3); ctx.lineTo(x75, innerBarY+innerBarH+3); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#fff'; ctx.font='bold 10px "Share Tech Mono"';
+    ctx.fillText('ค่าจริง 75/25', x75-30, innerBarY+innerBarH+18);
+    // labels on bar
+    ctx.fillStyle='#0a0e1a'; ctx.font='bold 12px "Share Tech Mono"'; ctx.textAlign='center';
+    if(hFrac>0.1) ctx.fillText('H '+(hFrac*100).toFixed(0)+'%', barX+10+(barW-20)*hFrac/2, innerBarY+innerBarH/2+4);
+    if(r.Y>0.05) ctx.fillText('He '+(r.Y*100).toFixed(0)+'%', barX+10+(barW-20)*(hFrac+r.Y/2), innerBarY+innerBarH/2+4);
+    ctx.textAlign='start';
+
+    // pie chart (right)
+    const cx = barX+barW+(w-barW-barX-pad)/2, cy = by+bh/2;
+    const R = Math.min(bh*0.45, 50);
+    // H slice
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R, -Math.PI/2, -Math.PI/2 + 2*Math.PI*hFrac);
+    ctx.closePath(); ctx.fill();
+    // He slice
+    ctx.fillStyle='#34d399';
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R, -Math.PI/2 + 2*Math.PI*hFrac, -Math.PI*1.5);
+    ctx.closePath(); ctx.fill();
+    // border
+    ctx.strokeStyle='#0a0e1a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+    // %error
+    const err = Math.abs(r.Y*100 - 25);
+    ctx.fillStyle = err<3?'#34d399':err<8?'#facc15':'#f87171';
+    ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+    ctx.fillText(err<3?'✅ ตรงค่าจริง':err<8?'⚠ ใกล้เคียง':'❌ คลาดเคลื่อนมาก', cx, cy+R+18);
+    ctx.font='10px "Share Tech Mono"';
+    ctx.fillText('|ΔY| = '+err.toFixed(1)+'%', cx, cy+R+32);
+    ctx.textAlign='start';
   }
 
   function updateReadouts(){
@@ -2359,112 +2635,214 @@ const ex4 = (function(){
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  function draw(){
-    fitDpr();
-    const w=cv.clientWidth,h=cv.clientHeight;
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
+  /* ============================================================
+     NEW LAYOUT — sky map (top) + blackbody fit (bottom) + success indicator
+     ============================================================ */
+  // Pre-compute a stable noise grid for the sky map
+  const _skyNoise = [];
+  for(let i=0;i<500;i++){
+    _skyNoise.push({
+      x: Math.random()*2-1,
+      y: Math.random()*2-1,
+      r: 4 + Math.random()*16,
+      v: Math.random()*2-1  // +/- fluctuation
+    });
+  }
 
-    // axes
-    const padL=60, padR=20, padT=30, padB=50;
-    const aw=w-padL-padR, ah=h-padT-padB;
-    const x0=padL, y0=h-padB;
-    // determine y-scale based on max of either curve or data
+  function drawSkyMap(x, y, w, h, T){
+    // Mollweide-style ellipse
+    const cx = x+w/2, cy = y+h/2;
+    const rx = w/2-16, ry = h/2-16;
+    // bg panel
+    ctx.fillStyle='rgba(15,23,42,0.6)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x,y,w,h);
+    // title
+    ctx.fillStyle='#fb923c'; ctx.font='bold 13px Sarabun';
+    ctx.fillText('🛰️ ภาพ CMB ที่ Planck Satellite วัดได้ (Mollweide projection)', x+10, y+18);
+
+    // clip to ellipse, draw colored grain
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.clip();
+    // base fill
+    ctx.fillStyle = T>2.8 ? '#fbbf24' : T<2.65 ? '#3b82f6' : '#0f4a6e';
+    ctx.fillRect(x, y, w, h);
+    // grain
+    for(const g of _skyNoise){
+      const gx = cx + g.x*rx*0.95;
+      const gy = cy + g.y*ry*0.95;
+      // Hue depends on T and noise: at T=2.725 K → blue/yellow speckle (real CMB)
+      const dev = (T - T_TRUE_CMB);
+      const v = g.v + dev*4;  // exaggerate deviation
+      let hue, sat=70, lum=45;
+      if(v>0.5){ hue=50; lum=60; }       // hot — yellow
+      else if(v<-0.5){ hue=210; lum=35; } // cold — blue
+      else { hue = 200 + v*30; lum = 45 + v*8; }
+      ctx.fillStyle = `hsl(${hue}, ${sat}%, ${lum}%)`;
+      ctx.beginPath(); ctx.arc(gx, gy, g.r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+    // ellipse outline
+    ctx.strokeStyle='#475569'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.stroke();
+
+    // T readout big — center on ellipse
+    const ok = Math.abs(T-T_TRUE_CMB)/T_TRUE_CMB < 0.02;
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.fillRect(cx-90, cy-22, 180, 44);
+    ctx.strokeStyle = ok?'#34d399':'#fb923c';
+    ctx.lineWidth=2; ctx.strokeRect(cx-90, cy-22, 180, 44);
+    ctx.fillStyle = ok?'#34d399':'#fb923c';
+    ctx.font='bold 11px Sarabun'; ctx.textAlign='center';
+    ctx.fillText('อุณหภูมิคุณเลือก', cx, cy-6);
+    ctx.font='bold 18px "Share Tech Mono"';
+    ctx.fillText('T = '+T.toFixed(3)+' K', cx, cy+14);
+    ctx.textAlign='start';
+
+    // explanation right side
+    ctx.fillStyle='#94a3b8'; ctx.font='10px Sarabun'; ctx.textAlign='right';
+    const lines = [
+      'จุดเหลือง = ร้อนกว่าค่าเฉลี่ย',
+      'จุดน้ำเงิน = เย็นกว่าค่าเฉลี่ย',
+      'ความผันผวน ~10⁻⁵ K'
+    ];
+    lines.forEach((l,i)=>ctx.fillText(l, x+w-12, y+h-30+i*12));
+    ctx.textAlign='start';
+  }
+
+  function drawFitGraph(x, y, w, h, T){
+    ctx.fillStyle='rgba(15,23,42,0.6)';
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle='#fb923c'; ctx.font='bold 13px Sarabun';
+    ctx.fillText('📈 Blackbody Spectrum — เลื่อน slider T จนเส้นส้มทับจุด COBE/Planck (สีขาว)', x+10, y+18);
+
+    const padL=50, padR=170, padT=30, padB=42;
+    const ax = x+padL, ay = y+padT;
+    const aw = w-padL-padR, ah = h-padT-padB;
+    const x0=ax, y0=ay+ah;
+
     const maxData = Math.max(...dataI);
-    const maxCurve = planck(160*(2.725/T), T) * (T/2.725); // peak of current curve
+    const maxCurve = planck(160*(2.725/T), T) * (T/2.725);
     const ymax = Math.max(maxData, maxCurve)*1.15;
 
-    // grid + axis
+    // grid
     ctx.strokeStyle='#1e293b'; ctx.lineWidth=1;
-    ctx.beginPath();
     for(let i=0;i<=5;i++){
-      const y = y0 - i*ah/5;
-      ctx.moveTo(x0,y); ctx.lineTo(x0+aw,y);
+      const gy = y0 - i*ah/5;
+      ctx.beginPath(); ctx.moveTo(x0,gy); ctx.lineTo(x0+aw,gy); ctx.stroke();
     }
     for(let i=0;i<=6;i++){
-      const x = x0 + i*aw/6;
-      ctx.moveTo(x,y0); ctx.lineTo(x,padT);
+      const gx = x0 + i*aw/6;
+      ctx.beginPath(); ctx.moveTo(gx,y0); ctx.lineTo(gx,ay); ctx.stroke();
     }
-    ctx.stroke();
+    // axes
     ctx.strokeStyle='#475569'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x0+aw,y0);
-    ctx.moveTo(x0,padT); ctx.lineTo(x0,y0); ctx.stroke();
-
+    ctx.moveTo(x0,ay); ctx.lineTo(x0,y0); ctx.stroke();
     ctx.fillStyle='#94a3b8'; ctx.font='10px "Share Tech Mono"';
-    for(let i=0;i<=6;i++){
-      const f = i*100;
-      const x = x0 + i*aw/6;
-      ctx.fillText(f, x-8, y0+14);
-    }
-    ctx.fillStyle='#94a3b8'; ctx.font='11px Sarabun';
+    for(let i=0;i<=6;i++) ctx.fillText(i*100, x0+i*aw/6-8, y0+14);
+    ctx.fillStyle='#cbd5e1'; ctx.font='11px Sarabun';
     ctx.fillText('ν (GHz)', x0+aw/2-20, y0+30);
-    ctx.save(); ctx.translate(20, padT+ah/2); ctx.rotate(-Math.PI/2);
+    ctx.save(); ctx.translate(x+18, ay+ah/2); ctx.rotate(-Math.PI/2);
     ctx.fillText('Intensity (arb.)', 0, 0); ctx.restore();
-    ctx.fillStyle='#fb923c'; ctx.font='bold 12px Sarabun';
-    ctx.fillText('Cosmic Microwave Background — Planck Spectrum', x0, 22);
 
-    // Planck curve at slider T
+    // Planck curve
     ctx.strokeStyle='#fb923c'; ctx.lineWidth=2.5;
     ctx.beginPath();
     let first=true;
-    for(let f=10;f<=600;f+=2){
+    for(let f=10; f<=600; f+=2){
       const I = planck(f,T);
-      const x = x0 + (f/600)*aw;
-      const y = y0 - (I/ymax)*ah;
-      if(first){ctx.moveTo(x,y); first=false;} else ctx.lineTo(x,y);
+      const px = x0 + (f/600)*aw;
+      const py = y0 - (I/ymax)*ah;
+      if(first){ctx.moveTo(px,py); first=false;} else ctx.lineTo(px,py);
     }
     ctx.stroke();
 
     // data points
-    let sse = 0;
+    let sse=0;
     for(let i=0;i<dataF.length;i++){
-      const f = dataF[i], I = dataI[i];
-      const x = x0 + (f/600)*aw;
-      const y = y0 - (I/ymax)*ah;
+      const f=dataF[i], I=dataI[i];
+      const px = x0+(f/600)*aw;
+      const py = y0-(I/ymax)*ah;
       ctx.fillStyle='#fff';
-      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2); ctx.fill();
       ctx.strokeStyle='#1e293b'; ctx.lineWidth=1; ctx.stroke();
-      // residual
-      const Imod = planck(f,T);
-      const e = (I-Imod)/Math.max(...dataI);
+      const Im = planck(f,T);
+      const e = (I-Im)/Math.max(...dataI);
       sse += e*e;
     }
     sse = Math.sqrt(sse/dataF.length);
 
     // peak marker
-    const fp = HZ_PER_K_PEAK*T/1e9; // GHz
+    const fp = HZ_PER_K_PEAK*T/1e9;
     const xp = x0 + (fp/600)*aw;
     const Ip = planck(fp,T);
     const yp = y0 - (Ip/ymax)*ah;
     ctx.strokeStyle='#fbbf24'; ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(xp,padT); ctx.lineTo(xp,y0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xp,ay); ctx.lineTo(xp,y0); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle='#fbbf24'; ctx.beginPath(); ctx.arc(xp,yp,4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath(); ctx.arc(xp,yp,4,0,Math.PI*2); ctx.fill();
     ctx.font='10px "Share Tech Mono"';
-    ctx.fillText('ν_peak = '+fp.toFixed(0)+' GHz', xp+5, padT+12);
+    ctx.fillText('ν_peak '+fp.toFixed(0)+' GHz', xp+6, ay+14);
 
-    // legend
-    ctx.fillStyle='rgba(0,0,0,0.7)';
-    ctx.fillRect(x0+aw-180, padT+5, 175, 50);
-    ctx.strokeStyle='#1e293b'; ctx.strokeRect(x0+aw-180, padT+5, 175, 50);
-    ctx.strokeStyle='#fb923c'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(x0+aw-170, padT+18); ctx.lineTo(x0+aw-150, padT+18); ctx.stroke();
-    ctx.fillStyle='#e2e8f0'; ctx.font='10px Sarabun';
-    ctx.fillText('Your fit (T='+T.toFixed(3)+' K)', x0+aw-145, padT+22);
-    ctx.fillStyle='#fff';
-    ctx.beginPath(); ctx.arc(x0+aw-160, padT+38, 3, 0, Math.PI*2); ctx.fill();
-    ctx.fillText('COBE/Planck data', x0+aw-145, padT+42);
+    // result box on right
+    const rbX = x+w-padR+10, rbY = ay;
+    ctx.fillStyle='rgba(15,23,42,0.95)';
+    ctx.fillRect(rbX, rbY, padR-20, ah);
+    const ok = Math.abs(T-T_TRUE_CMB)<0.05;
+    ctx.strokeStyle = ok?'#34d399':'#fb923c'; ctx.lineWidth=2;
+    ctx.strokeRect(rbX, rbY, padR-20, ah);
+    ctx.fillStyle='#fb923c'; ctx.font='bold 11px Sarabun';
+    ctx.fillText('ผลการวัด', rbX+8, rbY+18);
+    ctx.fillStyle='#cbd5e1'; ctx.font='10px Sarabun';
+    ctx.fillText('T (slider)', rbX+8, rbY+36);
+    ctx.fillStyle='#34d399'; ctx.font='bold 14px "Share Tech Mono"';
+    ctx.fillText(T.toFixed(3)+' K', rbX+8, rbY+54);
+    ctx.fillStyle='#cbd5e1'; ctx.font='10px Sarabun';
+    ctx.fillText('ν_peak', rbX+8, rbY+74);
+    ctx.fillStyle='#fbbf24'; ctx.font='bold 12px "Share Tech Mono"';
+    ctx.fillText(fp.toFixed(1)+' GHz', rbX+8, rbY+90);
+    ctx.fillStyle='#cbd5e1'; ctx.font='10px Sarabun';
+    ctx.fillText('SSE', rbX+8, rbY+108);
+    ctx.fillStyle='#fbbf24'; ctx.font='bold 12px "Share Tech Mono"';
+    ctx.fillText(sse.toFixed(4), rbX+8, rbY+124);
 
-    // update readouts
+    // success badge at bottom
+    const err = Math.abs(T-T_TRUE_CMB)/T_TRUE_CMB*100;
+    ctx.fillStyle = err<2?'#34d399':err<8?'#facc15':'#f87171';
+    ctx.font='bold 12px Sarabun'; ctx.textAlign='center';
+    if(err<2){
+      ctx.fillText('✅ ฟิตได้!', rbX+(padR-20)/2, rbY+ah-22);
+      ctx.font='10px "Share Tech Mono"';
+      ctx.fillText('T_จริง = 2.725 K', rbX+(padR-20)/2, rbY+ah-8);
+    } else {
+      ctx.fillText(err.toFixed(1)+'% off', rbX+(padR-20)/2, rbY+ah-18);
+    }
+    ctx.textAlign='start';
+
+    // update readouts (DOM)
     document.getElementById('o4-t').textContent = T.toFixed(3)+' K';
     document.getElementById('o4-fp').textContent = fp.toFixed(2)+' GHz';
-    const lp = 0.2898/T*1e3; // mm = 2.898e-3/T meters → mm
+    const lp = 0.2898/T*1e3;
     document.getElementById('o4-lp').textContent = lp.toFixed(3)+' mm';
     document.getElementById('o4-sse').textContent = sse.toFixed(4);
-    const err = Math.abs(T-T_TRUE_CMB)/T_TRUE_CMB*100;
     const eel = document.getElementById('o4-err');
     eel.textContent = err.toFixed(2)+' %';
     eel.className = 'v '+(err<2?'err-good':err<8?'err-warn':'err-bad');
+  }
+
+  function draw(){
+    fitDpr();
+    const w=cv.clientWidth, h=cv.clientHeight;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
+    const pad=10, gap=8;
+    const skyH = Math.round((h-pad*2-gap)*0.36);
+    const plotH = (h-pad*2-gap) - skyH;
+    drawSkyMap(pad, pad, w-pad*2, skyH, T);
+    drawFitGraph(pad, pad+skyH+gap, w-pad*2, plotH, T);
   }
 
   function renderTable(){
