@@ -957,3 +957,88 @@ match /settings/{docId} {
 - Calculate flow ใช้ `state.partialL` schema ใหม่: `{f, L1, L2?}` — ถ้า L2 undefined = ขั้น 2 รอ; ถ้ามี = ขั้น 3 รอ calculate
 - Challenge mode auto-exit หลัง calculate → fSel re-enable, hide ??? readout
 - Verdict colors ใช้เกณฑ์เดียวกันใน Challenge result และ table error column
+
+---
+
+## [2026-05-13] — เครื่อง: ที่ทำงาน
+
+### ทำอะไรไปบ้าง — Lab 43 ทฤษฎีบิกแบง (Big Bang Theory) · VPL02 · ครบจบ
+
+**สร้างใหม่ + 3 รอบ redesign จากฟีดแบ็คผู้ใช้:**
+
+**รอบที่ 1 — โครงสร้างพื้นฐาน (commit f18c4f7 / ab22f4c)**
+- ไฟล์: `Virtual Physics Lab 02/43. big-bang-theory.html` (~106 KB)
+- 3 Tabs: Simulation / วิธีการทดลอง · บันทึกผล / ทฤษฎี
+- 4 sub-experiments:
+  1. ไทม์ไลน์เอกภพ (15 era → 6 tier ตามตารางหนังสือ)
+  2. กฎฮับเบิล (8 กาแล็กซี · spectrum Hα → z → v → H₀ → อายุ)
+  3. BBN (n/p freeze + decay → Y(He))
+  4. CMB Blackbody (Wien · Planck spectrum fit)
+- รัน `protect_new_file.py` ✅ (GA, topbar, watermark, firebase, KP auth, access guard)
+- Sync `kp-auth.js` (vpl02.labs += 'lab-43') และ `_admin/admin.html` (VLAB_SERIES + LAB_LIST)
+
+**รอบที่ 2 — เพิ่ม Build Lab drag-drop (commit ab22f4c)**
+- จากเดิมแค่ดูภาพ → ทำเป็นโหมด "ลากควาร์ก/อนุภาคเข้าช่อง" 7 recipes:
+  - proton (u+u+d), neutron (u+d+d), pion (qq̄)
+  - deuterium (p+n), helium-4 (2p+2n)
+  - H atom (p+e⁻), He atom (⁴He+2e⁻)
+- ตรวจคำตอบ + feedback อัจฉริยะ (ใส่ udd ตอนถาม proton → "นี่คือนิวตรอน ไม่ใช่โปรตอน")
+- Drag/click จาก palette ลง slot · auto-check เมื่อ slot ครบ · reset ปุ่ม
+
+**รอบที่ 3 — Simplify Exp 1 จาก "ดูยาก" (commit 06ee10b)**
+- เปลี่ยน log slider (−43 ถึง +17.6) → **6 ปุ่มยุค** (Tier 1-6 ตามตารางหนังสือ)
+- เปลี่ยนอนุภาคบินไปมา → **กริดการ์ด 13 อนุภาค** ใหญ่ ✓/×/· status
+  - ✓ มี (เขียว) · × หายไป (แดง) · · ยังไม่เกิด (เทา)
+  - คลิกการ์ดที่ buildable → เข้า Build Lab โดยตรง
+- Banner ตามสี tier + story 1 ประโยค · Stepper 6 ขั้นคลิกได้
+
+**รอบที่ 4 — Redesign tabs 2-4 (commit 30b5769)**
+- **Tab 2 Hubble**: spectrum/plot จาก inset เล็กๆ → 2 panel เต็มความกว้าง
+  - Top: spectrum (rainbow + λ_rest dashed + λ_obs solid + Δλ arrow + z/v calc box)
+  - Mid: d-v plot ใหญ่ + fit line + H₀ + อายุเอกภพ + %error
+  - Bottom strip: 8 thumbnail กาแล็กซีคลิกเลือก (✓ badge เมื่อบันทึก)
+- **Tab 3 BBN**: random particles → **comic strip 3 ฉาก**
+  - Frame 1: ดุลย์เคมี (12p + 12n, n/p=1)
+  - Frame 2: Freeze-out (n/p drops to e^(−1.293/T_f))
+  - Frame 3: Fusion (He clusters + free p, computed from mass fraction Y)
+  - Bottom: H/He bar chart + pie + reference marker 75/25
+- **Tab 4 CMB**: graph อย่างเดียว → **Mollweide sky map + Blackbody fit**
+  - Top: ellipse projection · จุดน้ำเงิน/เหลือง เปลี่ยนตาม T · readout T ใหญ่กลางวงรี
+  - ที่ T≈2.725 K → สี speckle เหมือน Planck satellite จริง
+  - Bottom: blackbody curve + COBE/Planck data + success indicator "✅ ฟิตได้!"
+
+**🐛 Bug fix รอบสุดท้าย (commit d21a6b9)**
+- ปัญหา: Tab 4 slider ไม่ตอบสนอง — เลื่อนแล้วไม่มีอะไรเกิดขึ้น
+- Root cause: ex3.init() throw error ที่ `arc radius -13` เพราะตอน DOMContentLoaded canvas ของแต่ละ tab ที่ซ่อนอยู่มี `clientWidth=0` → ตำแหน่งคำนวณเป็นลบ → exception → init sequence ขาด → ex4 listener ไม่ถูก attach
+- แก้:
+  - ex3.draw + ex4.draw มี guard `if(w<200||h<200) return;`
+  - try/catch รอบ ex*.init() ใน DOMContentLoaded — failure ไม่กระทบลำดับถัดไป
+  - Refactor ex4 slider เป็น setT() helper + direct event listener
+
+### นำเข้าเว็บไซต์ (วันนี้ — commit หลัง d21a6b9)
+- **virtual-physics-lab-02.html**: เพิ่ม section ใหม่ "🌌 ดาราศาสตร์ · จักรวาลวิทยา" + การ์ด Lab 43 (orange accent #fb923c)
+- **library.html**: เพิ่ม lib-item Exp 43 ต่อจาก Exp 41 · เปลี่ยน count VPL02 จาก 13 → 14 files · เพิ่ม "Cosmology" ใน category subtitle
+- **index.html**: เพิ่มการ์ด Lab 43 ในส่วน VPL02 ต่อจาก Exp 41 · CTA "ดูทั้ง 15 การทดลอง →"
+- **Canvas preview animation** `vpl2-bigbang` (singularity ส้ม + 3 expanding rings + 6 รวมตาวจักรวาลกาแล็กซีถอยห่างพร้อม redshift hue) เพิ่มทั้งใน virtual-physics-lab-02.html และ index.html
+- **Admin**: lab-43 อยู่ใน VLAB_SERIES.vpl02 + LAB_LIST `{id:'lab-43',label:'Lab 43 (ทฤษฎีบิกแบง)'}` (จาก commit ก่อนหน้า)
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/43. big-bang-theory.html` — สร้างใหม่ + 4 รอบ redesign (~107 KB · ~3200 บรรทัด)
+- `kp-auth.js` — เพิ่ม `'lab-43'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-43'` ใน VLAB_SERIES + LAB_LIST entry
+- `virtual-physics-lab-02.html` — section ดาราศาสตร์ใหม่ + preview function `vpl2-bigbang`
+- `library.html` — lib-item Exp 43 + count + subtitle
+- `index.html` — การ์ด Lab 43 + preview function `vpl2-bigbang`
+- `SESSION_LOG.md` — entry นี้
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- พิจารณาเพิ่ม Part 1 (POE tab) หรือ Part 3 (แบบฝึกหัด tab) ถ้าผู้ใช้ต้องการ
+- Lab 42 (เวอร์เนียร์·ไมโครมิเตอร์ใน VPL02) ยังไม่มีการ์ดในหน้าแคตาล็อก — รอเพิ่มภายหลัง
+
+### หมายเหตุ
+- Physics ที่อ้างอิงตรงจากภาพ "The Big Bang" ของผู้ใช้: T=2.725 K · Inflation ×10²⁷ · H 75% / He 25% · 4.6/23/72.4% · 13.7 Gy · matter-antimatter 1ppb · X-bosons 10⁻¹² s
+- ตารางอนุภาคต่อยุค (Tier 1-6) ใช้ตามตารางหนังสือเรียนที่ผู้ใช้ส่งมา
+- BBN formulas: n/p_freeze = exp(−1.293/T_f) · decay × exp(−τ/880s) · Y = 2(n/p)/(1+n/p)
+- CMB: B(ν,T) = (2hν³/c²)/(exp(hν/kT)−1) · ν_peak = 5.879×10¹⁰·T Hz · Wien
+- VPL01 มี lab-43 (SHM04) อยู่แล้ว — access string vlab:vpl01:lab-43 vs vlab:vpl02:lab-43 แยกกันตาม schema v4 ไม่ชนกัน
+- Workflow แบ่ง main directory ↔ worktree — ทุกครั้งหลัง edit ต้อง cp ไฟล์ไปยัง worktree เพื่อให้ preview server เห็น (server รันจาก worktree)
