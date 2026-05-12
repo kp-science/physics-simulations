@@ -699,3 +699,261 @@ match /settings/{docId} {
 - CMB Planck: B(ν,T) = (2hν³/c²)/(exp(hν/kT)−1), ν_peak = 5.879×10¹⁰·T Hz
 - VPL01 มี lab-43 (SHM04) อยู่แล้ว — access string `vlab:vpl01:lab-43` กับ `vlab:vpl02:lab-43` แยกกันตาม schema v4 ไม่ชนกัน
 - Color theme: orange (#fb923c) astronomy + yellow heat + green matter + purple quantum
+
+---
+
+## [2026-05-10] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- 🚀 **Region 1.3.1 เนินยิงไกล (โพรเจกไตล์) Stage A LIVE** — 80 ข้อ concept-only
+- เลือกทาง B (แยก 1.3 เป็น 3 sub-region: 1.3.1 projectile / 1.3.2 วงกลม / 1.3.3 SHM)
+- 7 หมวด: A1 นิยาม(10) · A2 แยกแกน x-y ⭐(14) · A3 a_x=0,a_y=g(10) · A4 จุดสูงสุด ⚠(12) · A5 symmetry(10) · A6 มุมยิง complementary(14) · A7 ยิงแนวระดับจากที่สูง(10)
+- 5 SVG: PARABOLA, VEL_DECOMP, ANGLE_COMP, HORIZONTAL_LAUNCH, MAX_HEIGHT
+- ใช้ g=10 m/s² · ตัด air resistance ตามนโยบายครู
+- Wire engine: script tag + REGIONS['1.3'] (rename เนินยิงไกล) + 3 mobs (ลูกปืนใหญ่/ลูกธนู/ลูกบาส) + getQuestionPoolForStage routing R131_A
+- Region 1.3 ready:true · Stage A only · B/C/D toast "ยังไม่มีข้อสอบ"
+- ครู review pass: แก้ P004 (free fall ≠ projectile · True→False) + P007 (เปลี่ยนจาก meta question เป็นโจทย์ตัวอย่าง projectile ในอุดมคติ)
+
+### ไฟล์ที่แก้
+- `physics-quest/region-1-3-1-stage-a-questions.js` — สร้างใหม่ 392 บรรทัด · 80 ข้อ
+- `physics-quest/index.html` — script tag + REGIONS['1.3'] stages + 3 mobs + getQuestionPoolForStage
+- `Games/engine/region-1-3-1-stage-a-questions.js` — sync source
+- `Games/engine/physics-quest.html` — sync engine
+- `Games/content/region-1-3-1/region-1-3-1-A-preview.html` — preview ครูใช้ review
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- **รอครูตรวจเนื้อหา 80 ข้อ** ในเบราว์เซอร์จริง (เปิด region 1.3 → Stage A)
+- Region 1.3.1 Stage B/C/D · Region 1.3.2 วงกลม · Region 1.3.3 SHM
+- Mini-boss กาลิเลโอ Throw (1.3.1) — projectile sim arena (Galileo Throw)
+- protect_new_file.py: ไฟล์ JS ไม่ต้อง protect · preview HTML ใน Games/ ไม่ขึ้น Pages
+
+### หมายเหตุ
+- 1.3 ตอนนี้ scope แค่ projectile (1.3.1) — circular/SHM จะแยกเป็น sub-region ทีหลัง (ตาม decision ทาง B)
+- ลูกธนู monkey-and-hunter ใช้เป็นโจทย์ใน P022 (classic Galilean independence)
+- misconception killer ใหญ่สุดคือ A4 (จุดสูงสุด) — vᵧ=0 แต่ vₓ≠0, a≠0, KE≠0
+- complementary angles (A6) — sin(2θ) = sin(180°−2θ) → 30°↔60° / 20°↔70° R เท่ากัน
+
+---
+
+## [2026-05-10 ต่อ] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- 🚀 **Region 1.3.2 เนินวงเวียน (วงกลม) Stage A LIVE** — 80 ข้อ concept-only
+- ครูส่งชีท "การเคลื่อนที่แบบวงกลม" 31 หน้ามาเป็น reference → align โจทย์กับ 13 รูปแบบในชีท
+- 7 หมวด: A1 UCM+ทิศ v(10) · A2 ทิศ a/F_c ⭐(12) · A3 สูตร a_c,F_c(10) · A4 ω,T,f,v=ωR(12) · A5 ผันผัน(10) · A6 13 Pattern ⭐(16) · A7 ความเข้าใจลึก(10)
+- 7 SVG: UCM_VECTORS, CONICAL, VERTICAL_LOOP, BANKED, ROTOR, ORBIT, HILL_VALLEY
+- A6 cover 13 รูปแบบ: แกว่งราบ(T) · กรวย(T sinα) · vertical loop top(T+W)/bottom(T−W) · จานหมุน(f_s) · บนเนิน(W−N) · ในร่อง(N−W) · ถนนราบ(f_s) · banked(N sinθ) · มอเตอร์ไซค์(tanθ=v²/rg) · rotor(N) · ในกรวย(N comp) · ดาวเทียม(F_grav) · แกว่งจุดต่ำสุด(T−W)
+- ตัด "centrifugal force" misconception ออกตามนโยบายครู (ครูไม่สอนคำนี้)
+- Wire engine: script tag + REGIONS['1.3.2'] (เนินวงเวียน · ready:true) + REGION_ORDER + 3 mobs (ดาวเทียม/จานหมุน/รถบนทางโค้ง) + getQuestionPoolForStage routing R132_A
+- คงไว้ pattern "1.3 = parent projectile + 1.3.2 = circular sub-region แยก"
+
+### ไฟล์ที่แก้
+- `physics-quest/region-1-3-2-stage-a-questions.js` — สร้างใหม่ 80 ข้อ
+- `physics-quest/index.html` — script tag + REGIONS['1.3.2'] + REGION_ORDER + 3 mobs + getQuestionPoolForStage
+- `Games/engine/region-1-3-2-stage-a-questions.js` — sync
+- `Games/engine/physics-quest.html` — sync
+- `Games/content/region-1-3-2/region-1-3-2-A-preview.html` — preview ครูใช้ review
+- `KP-HQ/workboard-data.js` — todo + done
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- รอครูตรวจ 80 ข้อ
+- Region 1.3.1 Stage B/C/D · Region 1.3.2 Stage B/C/D · Region 1.3.3 SHM
+- Mini-boss กาลิเลโอ Throw (1.3.1) · เคปเลอร์ (1.3.2) · ฮอยเกนส์ (1.3.3)
+
+### หมายเหตุ
+- A6 16 ข้อกระจาย: แกว่งราบ(1) · กรวย(1) · vloop top(1) · vloop bottom(1) · จานหมุน(1) · บนเนิน(1) · ในร่อง(1) · ถนนราบ(1) · banked(1) · มอเตอร์ไซค์(1) · rotor(1) · ดาวเทียม(1) · vloop side(1) · แกว่งจุดต่ำสุด(1) · ในกรวย(1) · CHK รวม(1)
+- ใน A7 มี v_min ที่จุดบนของ vertical loop = √(gR) (เตรียมพื้นให้ Stage C/D คำนวณ)
+- commit cc61df3 · live ที่ kp-science.github.io/physics-simulations/physics-quest/
+
+---
+
+## [2026-05-11] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- 🚀 **Region 1.3.3 เนินสปริง (SHM) Stage A LIVE** — 70 ข้อ concept-only
+- ครูเลือก A1-A6 เท่านั้น (ตัด A7 — ดังนั้นรวม 70 ไม่ใช่ 80)
+- 6 หมวด: A1 นิยาม SHM(10) · A2 A,T,f,ω,phase(10) · A3 a=−ω²x ⭐(12) · A4 x,v,a cycle ⭐(12) · A5 SHM↔UCM projection(10) · A6 Spring+Pendulum T(16)
+- 5 SVG: SHM_SPRING (3 ตำแหน่ง) · SHM_PENDULUM (L+θ) · SHM_PROJECTION (UCM↔SHM) · SHM_XT (sinusoidal graph) · SHM_VAX (extreme vs equilibrium)
+- ตัด damped/forced SHM (advanced ม.ปลาย-ป.ตรี)
+- Wire engine: script tag + REGIONS['1.3.3'] (เนินสปริง · ready:true) + REGION_ORDER + 3 mobs (มวลผูกสปริง 🪀 / ลูกตุ้มแกว่ง ⏰ / ลูกบอลในชาม 🥣) + getQuestionPoolForStage routing R133_A
+- 🏆 **Region 1.3 ครบ 3 sub-region (Plan B):** 1.3.1 (80) + 1.3.2 (80) + 1.3.3 (70) = 230 ข้อ concept
+
+### ไฟล์ที่แก้
+- `physics-quest/region-1-3-3-stage-a-questions.js` — สร้างใหม่ 70 ข้อ
+- `physics-quest/index.html` — script tag + REGIONS['1.3.3'] + REGION_ORDER + 3 mobs + getQuestionPoolForStage
+- `Games/engine/region-1-3-3-stage-a-questions.js` — sync
+- `Games/engine/physics-quest.html` — sync
+- `Games/content/region-1-3-3/region-1-3-3-A-preview.html` — preview ครูใช้ review
+- `KP-HQ/workboard-data.js` — todo + done
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- รอครูตรวจ 70 ข้อ Stage A SHM
+- Stage B/C/D ของ 1.3.1 + 1.3.2 + 1.3.3 (ใส่ตัวเลข + คำนวณ)
+- Mini-boss กาลิเลโอ Throw (1.3.1) · เคปเลอร์ (1.3.2) · ฮอยเกนส์ (1.3.3)
+- Boss Newton Throne (รอ mini-boss × 6 region · ตอนนี้ 2/6)
+
+### หมายเหตุ
+- 1.3.3 ตัด A7 ตามคำสั่งครู — ลด 80→70 ไม่ปรับสัดส่วนกลับ
+- หัวใจของ SHM: a=−ω²x · ที่สมดุล v=max,a=0 · ที่ extremes v=0,a=max
+- Spring T ไม่ขึ้น g · Pendulum T ไม่ขึ้น m,A (มุมเล็ก)
+- commit 407026c · live ที่ kp-science.github.io/physics-simulations/physics-quest/
+
+---
+
+## [2026-05-11 ต่อ] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- 🚀 **Region 1.3.1 Stage B "ใช้สูตรไหน" LIVE** — 80 ข้อ apply
+- pattern เดียวกับ 1.2 Stage B (169 ข้อ) — "ดึงตัวแปร + เลือกสูตร + ดูทิศ" ยังไม่คำนวณลึก
+- 7 หมวด: B1 ดึงตัวแปร vₓ₀ vᵧ₀(15) + B2 เลือกสูตรเวลา(12) + B3 H(12) + B4 R(12) + B5 ยิงแนวระดับจาก h(15) + B6 จุดสูงสุด(8) + B7 ทิศ + แตกความเร็ว(6)
+- MCQ ~50 + FILL ~30 · noReveal:true (บล็อก See50% + choiceCut)
+- 3 SVG: LAUNCH (มุม θ + v₀) · PARABOLA_RH (R, H labeled) · HCLIFF (yiing แนวระดับจากหน้าผา)
+- ตัวเลขลงตัว: sin37°=0.6, cos37°=0.8 · sin53°=0.8, cos53°=0.6 · sin45°=cos45°=1/√2
+- Wire engine: script tag + REGIONS['1.3'] stage B label "apply · vₓ vᵧ t H R" + getQuestionPoolForStage routing
+
+### ไฟล์ที่แก้
+- `physics-quest/region-1-3-1-stage-b-questions.js` — สร้างใหม่ 80 ข้อ
+- `physics-quest/index.html` — script tag + stage B label + getQuestionPoolForStage
+- `Games/engine/region-1-3-1-stage-b-questions.js` — sync
+- `Games/engine/physics-quest.html` — sync
+- `Games/content/region-1-3-1/region-1-3-1-B-preview.html` — preview
+- `KP-HQ/workboard-data.js` — todo + done
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- รอครูตรวจ 80 ข้อ Stage B 1.3.1
+- Stage C (calc) + D (critical events) ของ 1.3.1
+- Stage B/C/D ของ 1.3.2 + 1.3.3
+- Mini-boss กาลิเลโอ Throw / เคปเลอร์ / ฮอยเกนส์
+
+### หมายเหตุ
+- Region 1.3.1 ตอนนี้: A (80 concept) + B (80 apply) = 160 ข้อ
+- Stage B mob lv 12 (ตามตาราง STAGES) — เด็กผ่าน Stage A (mob lv 10) มาแล้ว
+- เลข ID: A = R131P001-080 · B = R131P081-160 (ต่อเนื่อง)
+- commit a3b57ba
+
+---
+
+## [2026-05-11 ปิด Stage B ทั้ง 3 sub] — เครื่องที่บ้าน
+
+### ทำอะไรไปบ้าง
+- 🚀 **Region 1.3.3 (SHM) Stage B LIVE** — 70 ข้อ apply
+- 6 หมวด: B1 ω,T,f,v_max,a_max(10) · B2 a=−ω²x,v(10) · B3 ผันผัน(10) · B4 x,v,a,KE,PE ⭐(15) · B5 Spring T calc(15) · B6 Pendulum T calc(10)
+- 4 SVG ใส่ตั้งแต่แรก: SPRING (3 ตำแหน่ง) · PEND (L+θ) · VAX (extreme vs equilibrium) · XT (sinusoidal)
+- รอบเดียวกัน — เพิ่ม SVG ในไฟล์อื่น (รอบ 2: 76 figures total)
+  · 1.3.1A: P017, P040, P074 → +3 (รวม 8)
+  · 1.3.1B: P083, P096, P102, P109, P120, P121, P123, P132, P133, P135, P138, P139, P140 → +13 (รวม 16)
+  · 1.3.2A: C015, C018, C058, C061 → +4 (รวม 11)
+  · 1.3.2B: C118, C119, C120, C122, C124, C125, C126, C127, C128, C130, C131, C132, C134, C142, C145, C147, C148, C149, C150, C154, C155, C156 → +22 (รวม 24)
+  · 1.3.3A: S009, S025, S028, S033, S034, S036, S057, S058, S061, S062, S063, S064, S065 → +13 (รวม 17)
+
+### ไฟล์ที่แก้
+- `physics-quest/region-1-3-3-stage-b-questions.js` — สร้างใหม่ 70 ข้อ
+- `physics-quest/region-1-3-{1,2}-stage-{a,b}-questions.js` — เพิ่ม SVG
+- `physics-quest/region-1-3-3-stage-a-questions.js` — เพิ่ม SVG
+- `physics-quest/index.html` — script tag + stage B label + getQuestionPoolForStage
+- Sync ทั้งหมดไป Games/engine/ และ Games/content/region-1-3-3/region-1-3-3-B-preview.html
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- รอครูตรวจ Stage B SHM 70 ข้อ
+- Stage C/D ของทั้ง 3 sub (1.3.1, 1.3.2, 1.3.3)
+- Mini-boss กาลิเลโอ Throw / เคปเลอร์ / ฮอยเกนส์
+- Boss Newton Throne (รอ mini-boss × 6)
+
+### หมายเหตุ
+- 🏆 Region 1.3 (Plan B) ครบ A+B ทั้งสาม sub: 460 ข้อ (160+160+140)
+- World 1 progress: 2 full region (1.1, 1.2) + 3 sub-region with A+B (1.3.1-1.3.3)
+- รวม SVG ในทั้ง 5 ไฟล์: 76+8 = 84 ข้อมีภาพประกอบ
+- ทำงานวันนี้รวม 7 commits: 407026c → a3b57ba → 63911d2 → 4d0b36a → 8828d1a → d666907 → 925ac32
+
+## [2026-05-13] — เครื่องที่ทำงาน
+
+### ทำอะไรไปบ้าง
+- สร้าง **Lab 44 (VPL02) — Standing Waves of Sound in an Air Column (คลื่นนิ่งของเสียงในหลอดอากาศ)** ตามภาพอ้างอิงจากใบกิจกรรม "B. Standing Waves of Sound in an Air Column"
+- ใช้สกิล `physics-simulation-builder` · 3 tabs: 🎬 Simulation / 🧪 วิธีการทดลอง+บันทึกผล / 📐 ทฤษฎี+อธิบาย
+- **Web Audio API จริง** — Oscillator (sine) + bandpass filter + gain envelope; ปุ่ม "🔔 เคาะส้อมเสียง" (decay ~3 sec), ปุ่ม "🎵 ต่อเนื่อง"; gain modulated by `loudnessAtL(L, λ)` = Gaussian peaks ที่ L_n=(2n-1)λ/4 (sigma 2.5 cm)
+- เลือกส้อมเสียง 8 ความถี่: 256, 288, 320, 341.3, 384, 426.7, 480, 512 Hz (ค่าเริ่ม 384 Hz)
+- Temperature slider 0–40 °C → v = 331.4 + 0.6·T m/s แสดง live; λ ทฤษฎี = v/f
+- **Drag interaction บน canvas**: mousedown + drag เปลี่ยน `tubeBottomDepth` (-0.05 ถึง 0.49 m) → L = 0.50 - max(0, depth); รองรับ touch + mouse wheel (shift = fine 1 mm step)
+- **Manual mode** (default) — ผู้ใช้ลากหลอด, ฟังเสียงดังสุด, กด "💾 บันทึก L ตอนนี้" บันทึก L₁; ครั้งที่ 2 ระบบคำนวณ λ = 2(L₂−L₁), v = f·λ ใส่ตารางอัตโนมัติ
+- **Auto Scan mode** — เลื่อนหลอดอัตโนมัติ 6 cm/s, peak-detection ผ่าน 12-sample sliding window, เก็บ 2 ยอดที่ห่างกัน > λ/4
+- **Hint toggle 💡** — แสดงเส้นประสีเหลือง + label `n=1 · L=0.224 m` ฯลฯ ทุกตำแหน่งเรโซแนนซ์บน canvas
+- **Loudness bar** — gradient blue→cyan→green→yellow→red แสดง 0–100%, ข้อความ "🔊 ดังที่สุด (resonance!)" เมื่อ > 0.85
+- **Canvas visualization** — กระบอกแก้ว + น้ำ (เห็น ripple meniscus) + หลอดพลาสติก + ส้อมเสียง (มี jiggle animation ขณะสั่น) + standing wave envelope (sin(kx) จากผิวน้ำขึ้นไป) + ไม้บรรทัด cm scale
+- **ตารางบันทึก** — Trial / f / L₁ / L₂ / λ / v ลบรายตัวได้, partial row โชว์เมื่อรอ L₂; summary v_avg + %error vs v(T) ทฤษฎี; Export CSV
+- **Tab วิธีการทดลอง** — 6 step cards ครบครัน: เตรียมอุปกรณ์ · ตั้งค่า · Manual Mode · Auto Mode · ตัวอย่างผล (จากภาพอ้างอิงจริง: 512 Hz/L₁=0.152/L₂=0.481/λ=0.658/v=336.9 และ 384 Hz/L₁=0.210/L₂=0.664/λ=0.908/v=348.7) · วิเคราะห์
+- **Tab ทฤษฎี** — 5 sections: closed-end pipe + 4 harmonic mini-canvases (n=1..4, แสดง sin((2n-1)π/2·t) + envelope + node/antinode dots) · v=fλ + thCv1 standing wave full visual · v vs T graph (thCv2) + current temp marker · End correction · Loudness vs L curve (thCv3) + resonance lines
+- รัน `python3 _admin/protect_new_file.py "Virtual Physics Lab 02/44. standing-waves-air-column.html"` ✅ inject GA/TOPBAR/MOBILE/WATERMARK/FIREBASE_CDN/KP_AUTH/ACCESS_GUARD ครบ
+- Sync admin: เพิ่ม `'lab-44'` ใน `kp-auth.js` VLAB_SERIES.vpl02.labs + `_admin/admin.html` VLAB_SERIES.vpl02.labs + LAB_LIST entry `{id:'lab-44',label:'Lab 44 (คลื่นนิ่งเสียงในหลอด)'}`
+- Verified ใน preview: ทั้ง 3 tabs render สมบูรณ์ · canvas ไม่มี artifact · readouts sync ถูกต้อง (f=384, L=0.450, λ=0.897, v=344.6) · ไม่มี console error
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/44. standing-waves-air-column.html` — สร้างใหม่ (~1100 บรรทัดก่อน protect, ~1400 หลัง protect)
+- `kp-auth.js` — เพิ่ม `'lab-44'` ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม `'lab-44'` ใน VLAB_SERIES.vpl02 + LAB_LIST entry
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 44 ใน `index.html` / `library.html` / `virtual-physics-lab-02.html` (catalog page) — ต้องสร้าง canvas preview animation
+- ยังไม่ได้ push git
+- ยังเหลือ Demo Astronomy 13 ไฟล์จากครั้งก่อน ที่ยังไม่เพิ่มใน `demo-astronomy.html` catalog / index featured / library
+
+### หมายเหตุ
+- Physics ตรงจากภาพ: λ = 2(L₂ − L₁) (ระยะระหว่าง antinode = λ/2) · v(T) = 331.4 + 0.6T · Sample calc 0.658 m จาก 512 Hz/L₁=0.152/L₂=0.481 ✓
+- Closed-end pipe modes: L_n = (2n-1)·λ/4, n=1,2,3,... — น้ำเป็น displacement node (ปลายปิด) · ปากหลอดเป็น displacement antinode (ปลายเปิด)
+- End correction e ≈ 0.6r — ถูกอธิบายในแท็บทฤษฎีว่าทำไมต้องวัด 2 ตำแหน่ง (เพื่อตัด e ออก)
+- Color theme: คลื่น/เสียง — purple #818cf8 (--accent) + cyan #38bdf8 (--accent2) ตามมาตรฐาน physics-simulation-builder
+- Loudness sigma 2.5 cm ให้ peak มี FWHM ~6 cm — ค่าจริงในห้องเรียนคาดว่าใกล้เคียงนี้
+- Preview server (รัน python3 -m http.server 8765) อยู่ใน worktree `relaxed-lalande-cbb510` — ต้อง cp ไฟล์ไปที่นั่นเพื่อให้ preview เห็น
+
+## [2026-05-13 ต่อ] — เครื่องที่ทำงาน · ปรับ Lab 44 ตาม feedback ครู
+
+### ทำอะไรไปบ้าง (รอบ refinement)
+หลังจากสร้าง Lab 44 รอบแรก ครูได้ feedback หลายจุด → iterate 6 รอบ:
+
+**รอบ 1 — Layout fix**
+- ป้าย L ตกขอบ canvas เมื่อหลอดอยู่ลึก → wrap เป็น pill + clamp Y position + leader line
+- เพิ่ม **คาลิปเปอร์ดิจิทัล** 📐 — 2 ขา (▲ + ▼) draggable วัดระยะ Δ + คำนวณ λ=2Δ realtime
+- Auto-snap ตำแหน่งเมื่อเปิด toggle ครั้งแรก ให้เห็นทันทีในขอบเขต canvas
+
+**รอบ 2 — Geometry overhaul**
+- ขนาด canvas ผิด (1405×878 จาก stretching) ทำให้ scale ใหญ่เกิน → cap canvas-box height = 620px
+- รื้อ worldY model ใหม่: water surface ตรึงใกล้ก้น canvas, air zone ครองพื้นที่บน → เห็น tube + air column ครบ
+
+**รอบ 3 — Real-physics tube + 3 features**
+- ขยาย tubeLenM 0.50 → **1.10 m** เพื่อรับประกัน ≥2 เรโซแนนซ์สำหรับทุกความถี่ 256–512 Hz
+- เพิ่ม guard ใน randomFreq: filter f ≥ 3v/(4·tubeLenM)
+- เพิ่ม toggle 〰️ "แสดงภาพคลื่นในหลอด" (default on)
+- **ก้นบีกเกอร์เปิด** — ลบ ellipse base, ผนังลงสุดขอบ canvas, น้ำใช้ linear gradient ลงไปขอบ canvas → ท่อจมหายไปใต้ canvas เป็นธรรมชาติ
+- ขยายไม้บรรทัด 0–110 cm ตาม tubeLenM
+
+**รอบ 4 — Challenge Mode**
+- ปุ่ม **🎲 สุ่มความถี่ (Challenge Mode)** — สุ่ม f, ซ่อนจาก UI (`???`), disable select
+- หลังบันทึก L₁,L₂ → คำนวณ f_วัด = v(T)/λ → เปรียบเทียบกับ f จริง → error %
+- การ์ดผลลัพธ์ "🎯 ผลการ Challenge" 3 กล่อง: คุณวัดได้ / ค่าจริง / Error + verdict 4 ระดับ (🏆 <2% / ✅ <5% / 👍 <10% / ⚠️ ≥10%)
+
+**รอบ 5 — แก้เสียงหายตอนกดบันทึก**
+- ลบทุก `alert()` / `confirm()` (เพราะบล็อก JS thread → envelope `exp(-t/1.4)` ของส้อมเสียงดีเคย์จนหมด)
+- ใช้ `flashHint()` แสดงข้อความ inline ไม่บล็อก audio context
+- เพิ่ม **Step Indicator UI**: 2 ขั้นชัด (1/2 → 2/2) + dynamic button label + "↺ ยกเลิก L₁" + คำใบ้ตำแหน่ง λ/2
+
+**รอบ 6 — 3-Step calculate flow + table comparison**
+- เปลี่ยนเป็น 3 ขั้น: บันทึก L₁ → บันทึก L₂ → กด **🧮 คำนวณ** (ไม่คำนวณอัตโนมัติแล้ว)
+- ปุ่มเปลี่ยน state ตามขั้น (ซ่อน rec, แสดง calc เมื่อพร้อม)
+- ตารางบันทึก redesign per-cell 2-line:
+  - **f (Hz)**: `มาตรฐาน: 384` (ฟ้า) / `วัด: 383.7` (เขียว) | Challenge mode: `🎲 สุ่ม:` แทน
+  - **λ (m)**: `มาตรฐาน: 0.897` / `วัด: 0.898`
+  - **error**: `f: 0.07%` / `λ: 0.07%` สีตามระดับ (เขียว/ฟ้า/เหลือง/แดง)
+- CSV export 12 คอลัมน์: f_actual, f_measured, error_f, lambda_standard, lambda_measured, error_lambda, L1, L2, T, v_theory, mode
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/44. standing-waves-air-column.html` — refactor หลายรอบตาม feedback
+- (kp-auth.js + _admin/admin.html — แก้ครั้งแรกแล้ว ไม่แก้เพิ่ม)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 44 ใน catalog page (`virtual-physics-lab-02.html`) + index Featured + library
+- Demo Astronomy 13 ไฟล์จาก session ก่อนหน้า ยังไม่ขึ้น demo-astronomy.html
+
+### หมายเหตุ
+- Web Audio: oscillator + bandpass filter + gain envelope; gain modulated by `loudnessAtL(L,λ)` Gaussian (sigma 2.5 cm)
+- Calculate flow ใช้ `state.partialL` schema ใหม่: `{f, L1, L2?}` — ถ้า L2 undefined = ขั้น 2 รอ; ถ้ามี = ขั้น 3 รอ calculate
+- Challenge mode auto-exit หลัง calculate → fSel re-enable, hide ??? readout
+- Verdict colors ใช้เกณฑ์เดียวกันใน Challenge result และ table error column

@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 44 — คลื่นนิ่งของเสียงในหลอดอากาศ | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;
+  --accent:#818cf8;--accent2:#38bdf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;
+  --text:#e2e8f0;--muted:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:2rem}
+header h1{font-size:1.2rem;font-weight:700;color:var(--accent)}
+header p{font-size:0.82rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#1e3a5f;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
+
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:0.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ====== Simulation Layout ====== */
+.sim-wrap{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;padding:14px;max-width:1400px;margin:0 auto}
+@media (max-width:980px){.sim-wrap{grid-template-columns:1fr}}
+.canvas-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;height:620px;max-height:calc(100vh - 180px);min-height:480px}
+#simCanvas{display:block;width:100%;height:100%;cursor:grab;background:radial-gradient(circle at 30% 20%,#101a2c 0%,#06090f 75%)}
+#simCanvas.dragging{cursor:grabbing}
+.canvas-overlay-top{position:absolute;top:8px;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;pointer-events:none}
+.read-pill{background:rgba(15,23,42,0.78);border:1px solid var(--border);border-radius:10px;padding:5px 11px;font-size:.78rem;color:var(--muted);backdrop-filter:blur(4px)}
+.read-pill strong{color:var(--accent2);font-family:'Share Tech Mono',monospace;font-size:.92rem;margin-left:4px}
+.loud-bar-wrap{position:absolute;left:10px;bottom:10px;width:200px;background:rgba(15,23,42,.78);border:1px solid var(--border);border-radius:10px;padding:8px 10px;backdrop-filter:blur(4px)}
+.loud-bar-wrap label{font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px}
+.loud-bar{height:10px;border-radius:5px;background:#0f172a;overflow:hidden;border:1px solid var(--border)}
+.loud-bar>div{height:100%;width:0;background:linear-gradient(90deg,#0d47a1,#38bdf8,#34d399,#fbbf24,#ef4444);transition:width .08s linear}
+
+/* ====== Side Panel ====== */
+.side{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 13px}
+.card h3{color:var(--accent);font-size:.86rem;margin-bottom:8px;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+.card h3 .ic{font-size:1rem}
+.mode-row{display:flex;gap:6px}
+.mode-btn{flex:1;padding:7px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:700;transition:.15s}
+.mode-btn:hover{border-color:var(--accent)}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+.row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.row label{font-size:.78rem;color:var(--muted);flex:1}
+.row select,.row input[type=number]{background:var(--panel2);border:1.5px solid var(--accent2);border-radius:6px;color:var(--accent3);font-weight:700;font-size:.85rem;padding:3px 8px;font-family:inherit}
+.row select{min-width:90px}
+.row input[type=number]{width:64px;text-align:center;-moz-appearance:textfield}
+.row input[type=number]::-webkit-outer-spin-button,.row input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.sl-label{font-size:.78rem;color:var(--muted);min-width:80px;flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:.72rem;color:var(--muted);min-width:22px;flex-shrink:0}
+.val-input{width:54px;padding:2px 6px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.82rem;text-align:center;-moz-appearance:textfield;flex-shrink:0;font-family:inherit}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:7px 12px;border:none;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:700;font-size:.78rem;transition:.15s}
+.btn-strike{background:#b45309;color:#fff;flex:1;min-width:130px}
+.btn-strike:hover{background:#d97706}
+.btn-strike.on{background:#dc2626}
+.btn-rec{background:#0d47a1;color:#fff;flex:1}
+.btn-rec:hover{background:#1565c0}
+.btn-auto{background:#15803d;color:#fff;flex:1}
+.btn-auto:hover{background:#16a34a}
+.btn-auto.running{background:#dc2626}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-csv{background:var(--accent3);color:#062a17;flex:1}
+.btn-clear{background:#475569;color:#fff}
+
+/* hint toggle */
+.hint-toggle{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted);cursor:pointer;user-select:none}
+.hint-toggle input{accent-color:var(--accent4)}
+
+/* Table */
+.tbl-wrap{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+table.dt{width:100%;border-collapse:collapse;font-size:.78rem}
+table.dt th,table.dt td{padding:5px 7px;border-bottom:1px solid var(--border);text-align:center}
+table.dt th{background:#0f172a;color:var(--accent);font-weight:700;position:sticky;top:0;z-index:1}
+table.dt td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+table.dt tr.partial{background:rgba(251,146,60,0.08)}
+.del-x{background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:.95rem;padding:0 4px}
+.del-x:hover{color:#fff}
+
+/* summary */
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.8rem}
+.sum>div{background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:5px 8px}
+.sum label{color:var(--muted);font-size:.72rem;display:block}
+.sum strong{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+
+/* Hint message */
+.hint-msg{background:rgba(251,146,60,.1);border:1px solid var(--accent4);border-radius:8px;padding:8px 11px;font-size:.78rem;color:#fdba74;line-height:1.5}
+.hint-msg.hidden{display:none}
+
+/* ====== Method tab ====== */
+.method-wrap{max-width:980px;margin:0 auto;padding:18px;display:grid;gap:14px}
+.step-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.step-card .step-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.step-num{background:var(--accent);color:#0a0e1a;font-weight:700;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.95rem}
+.step-card h4{color:var(--accent2);font-size:1rem}
+.step-card p,.step-card li{font-size:.88rem;line-height:1.65;color:var(--text)}
+.step-card ul,.step-card ol{margin-left:22px;margin-top:6px}
+.step-card .tip{background:rgba(56,189,248,.08);border-left:3px solid var(--accent2);padding:8px 12px;margin-top:8px;border-radius:0 8px 8px 0;font-size:.84rem;color:#bae6fd}
+.step-card .warn{background:rgba(251,146,60,.08);border-left:3px solid var(--accent4);padding:8px 12px;margin-top:8px;border-radius:0 8px 8px 0;font-size:.84rem;color:#fdba74}
+.tbl-example{width:100%;border-collapse:collapse;margin-top:10px;font-size:.82rem}
+.tbl-example th,.tbl-example td{border:1px solid var(--border);padding:5px 8px;text-align:center}
+.tbl-example th{background:#0f172a;color:var(--accent)}
+.tbl-example td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+
+/* ====== Theory tab ====== */
+.theory-wrap{max-width:1100px;margin:0 auto;padding:18px;display:grid;gap:14px}
+.th-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px}
+.th-card h4{color:var(--accent);font-size:1.05rem;margin-bottom:10px}
+.th-card p{font-size:.9rem;line-height:1.75;color:var(--text);margin-bottom:8px}
+.th-card .fbox{background:var(--panel2);border:1px dashed var(--accent);border-radius:8px;padding:9px 14px;margin:9px 0;display:inline-block;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem}
+.th-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.th-row{grid-template-columns:1fr}}
+.th-canvas-wrap{background:#0a0e1a;border:1px solid var(--border);border-radius:8px;padding:6px}
+.th-canvas-wrap canvas{display:block;width:100%;height:auto}
+.harmonic-list{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+@media (max-width:640px){.harmonic-list{grid-template-columns:repeat(2,1fr)}}
+.harm-cell{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.harm-cell canvas{display:block;margin:0 auto;background:#06090f;border-radius:4px}
+.harm-cell .label{font-size:.78rem;color:var(--accent2);margin-top:4px;font-weight:700}
+.harm-cell .formula{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.75rem}
+
+footer{padding:14px 20px;text-align:center;font-size:.78rem;color:var(--muted);border-top:1px solid var(--border);margin-top:16px}
+footer a{color:var(--accent);text-decoration:none}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body data-access="vlab:vpl02:lab-44">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <span class="icon">🎵</span>
+  <div>
+    <h1>Lab 44 — คลื่นนิ่งของเสียงในหลอดอากาศ</h1>
+    <p>Standing Waves of Sound in an Air Column · ใช้ส้อมเสียงและหลอดในกระบอกน้ำหาความเร็วเสียง</p>
+  </div>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('method',this)">🧪 วิธีการทดลอง &amp; บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี &amp; อธิบาย</button>
+</nav>
+
+<!-- ============ TAB 1: SIMULATION ============ -->
+<section id="tab-sim" class="tab-section active">
+<div class="sim-wrap">
+  <div class="canvas-box">
+    <canvas id="simCanvas"></canvas>
+    <div class="canvas-overlay-top">
+      <div class="read-pill">L (อากาศเหนือน้ำ): <strong id="ro-L">0.000</strong> m</div>
+      <div class="read-pill">f: <strong id="ro-f">384</strong> Hz</div>
+      <div class="read-pill">λ ทฤษฎี: <strong id="ro-lam">0.897</strong> m</div>
+    </div>
+    <div class="loud-bar-wrap">
+      <label>ความดังที่ได้ยิน (loudness)</label>
+      <div class="loud-bar"><div id="loudFill"></div></div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:3px">
+        <span id="loudStatus">— ยังไม่ได้ตี —</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="side">
+
+    <div class="card">
+      <h3><span class="ic">⚙️</span>โหมดบันทึก</h3>
+      <div class="mode-row">
+        <button class="mode-btn active" id="m-manual" onclick="setMode('manual')">✋ Manual (วัดเอง)</button>
+        <button class="mode-btn" id="m-auto" onclick="setMode('auto')">🤖 Auto Scan</button>
+      </div>
+      <label class="hint-toggle" style="margin-top:8px">
+        <input type="checkbox" id="hintChk" onchange="toggleHint()"> 💡 แสดง hint (เส้นเรโซแนนซ์)
+      </label>
+      <label class="hint-toggle" style="margin-top:6px">
+        <input type="checkbox" id="calChk" onchange="toggleCaliper()"> 📐 คาลิปเปอร์ดิจิทัล (ลากขาเขียวบน canvas)
+      </label>
+      <label class="hint-toggle" style="margin-top:6px">
+        <input type="checkbox" id="waveChk" checked onchange="toggleWave()"> 〰️ แสดงภาพคลื่นในหลอด
+      </label>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🎚️</span>ตั้งค่าการทดลอง</h3>
+      <div class="row">
+        <label>ส้อมเสียง (f):</label>
+        <select id="fSel" onchange="onFreqChange()">
+          <option value="256">256 Hz (C₄ บน)</option>
+          <option value="288">288 Hz (D₄)</option>
+          <option value="320">320 Hz (E₄)</option>
+          <option value="341.3">341.3 Hz (F₄)</option>
+          <option value="384" selected>384 Hz (G₄)</option>
+          <option value="426.7">426.7 Hz (A₄)</option>
+          <option value="480">480 Hz (B₄)</option>
+          <option value="512">512 Hz (C₅)</option>
+        </select>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">อุณหภูมิ</span>
+        <input class="sl-range" type="range" id="sl-T" min="0" max="40" step="0.5" value="22">
+        <input class="val-input" type="number" id="vi-T" min="0" max="40" step="0.5" value="22">
+        <span class="sl-unit">°C</span>
+      </div>
+      <div class="sl-row">
+        <span class="sl-label">ความดังเบส</span>
+        <input class="sl-range" type="range" id="sl-vol" min="0" max="100" step="1" value="55">
+        <input class="val-input" type="number" id="vi-vol" min="0" max="100" step="1" value="55">
+        <span class="sl-unit">%</span>
+      </div>
+      <div class="btnrow" style="margin-top:6px">
+        <button class="btn btn-strike" id="strikeBtn" onclick="toggleStrike()">🔔 เคาะส้อมเสียง</button>
+        <button class="btn btn-ghost" onclick="continuousMode()" id="contBtn">🎵 ต่อเนื่อง</button>
+      </div>
+      <button class="btn btn-ghost" id="randBtn" onclick="randomFreq()" style="width:100%;margin-top:6px;font-size:.78rem;border-color:#fb923c;color:#fb923c">🎲 สุ่มความถี่ (Challenge Mode)</button>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">
+        v<sub>เสียง</sub> = 331.4 + 0.6·T = <span id="ro-v" class="mono" style="color:var(--accent3)">344.6</span> m/s
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📋</span>ขั้นตอน (Manual)</h3>
+      <ol style="margin-left:18px;font-size:.78rem;color:var(--muted);line-height:1.7">
+        <li>เลือกความถี่ส้อมเสียง</li>
+        <li>กด "เคาะส้อมเสียง" หรือ "ต่อเนื่อง"</li>
+        <li>ลาก/เลื่อนหลอดในกระบอกน้ำขึ้น-ลง (กดลากบน canvas)</li>
+        <li>ฟังเสียงดังสุด → กด "บันทึก L"</li>
+        <li>หาเรโซแนนซ์ที่ 2 → บันทึกอีกครั้ง</li>
+        <li>โปรแกรมจะคำนวณ λ = 2(L₂−L₁) และ v = fλ ให้</li>
+      </ol>
+      <div id="stepHint" style="font-size:.78rem;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.55"></div>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="btn btn-rec" id="recBtn" onclick="recordCurrentL()">💾 บันทึก L₁</button>
+        <button class="btn" id="calcBtn" onclick="calculateRow()" style="display:none;background:#16a34a;color:#fff;flex:1;font-size:.82rem">🧮 คำนวณ λ, f, error</button>
+        <button class="btn btn-ghost" onclick="cancelPartial()" id="undoBtn" style="display:none">↺ ยกเลิก</button>
+        <button class="btn btn-auto" id="autoBtn" onclick="toggleAutoScan()">🤖 เริ่ม Auto Scan</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📊</span>ตารางบันทึก</h3>
+      <div class="tbl-wrap">
+        <table class="dt" id="dataTbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>f (Hz)<br><span style="font-weight:400;font-size:.7rem">จริง / วัด</span></th>
+              <th>λ (m)<br><span style="font-weight:400;font-size:.7rem">มาตรฐาน / วัด</span></th>
+              <th>L₁<br>(m)</th><th>L₂<br>(m)</th>
+              <th>error</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="dataBody">
+            <tr><td colspan="7" style="color:var(--muted);padding:14px;font-style:italic">ยังไม่มีข้อมูล — เริ่มบันทึก L ค่าแรกได้เลย</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sum" style="margin-top:8px">
+        <div><label>v เฉลี่ย (วัด)</label><strong id="sum-vavg" class="mono">— m/s</strong></div>
+        <div><label>%error vs v(T)</label><strong id="sum-err" class="mono">— %</strong></div>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="btn btn-csv" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="btn btn-clear" onclick="clearData()">🗑 Clear</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="challengeCard" style="border-color:#fb923c;background:linear-gradient(135deg,rgba(251,146,60,0.08),rgba(251,146,60,0.02))">
+      <h3 style="color:#fb923c"><span class="ic">🎯</span>ผลการ Challenge</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:.78rem;margin-bottom:8px">
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px">
+          <div style="color:var(--muted);font-size:.7rem">คุณวัดได้</div>
+          <strong id="cr-meas" class="mono" style="color:var(--accent3);font-size:1rem">— Hz</strong>
+        </div>
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px">
+          <div style="color:var(--muted);font-size:.7rem">ค่าจริง</div>
+          <strong id="cr-actual" class="mono" style="color:var(--accent2);font-size:1rem">— Hz</strong>
+        </div>
+        <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px">
+          <div style="color:var(--muted);font-size:.7rem">Error</div>
+          <strong id="cr-err" class="mono" style="color:#fb923c;font-size:1rem">— %</strong>
+        </div>
+      </div>
+      <div id="cr-verdict" style="text-align:center;padding:6px 8px;border-radius:6px;font-weight:700;font-size:.85rem"></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.5">
+        f<sub>วัด</sub> = v(T) / λ ; v(T) = 331.4 + 0.6·T ; λ = 2(L₂ − L₁)
+      </div>
+      <button class="btn btn-ghost" onclick="randomFreq()" style="width:100%;margin-top:8px;font-size:.78rem;border-color:#fb923c;color:#fb923c">🎲 สุ่มรอบใหม่</button>
+    </div>
+
+    <div class="card hint-msg hidden" id="hintBox">
+      💡 <strong>ตำแหน่งเรโซแนนซ์ (ในหลอดปลายปิดล่าง):</strong>
+      L<sub>n</sub> = (2n−1)·λ/4 → n=1: L=λ/4, n=2: L=3λ/4, n=3: L=5λ/4 ...
+      ระยะระหว่าง 2 ตำแหน่งติดกัน = <strong>λ/2</strong>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ============ TAB 2: METHOD ============ -->
+<section id="tab-method" class="tab-section">
+<div class="method-wrap">
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">1</span><h4>เตรียมอุปกรณ์</h4></div>
+    <p>ตามภาพอ้างอิงต้องเตรียม:</p>
+    <ul>
+      <li>หลอดพลาสติก (ยาว ≈ 0.5 m) เช่น หลอดเก็บไม้กอล์ฟ — ปลายเปิดทั้งสองข้าง</li>
+      <li>กระบอกแก้ว (ยาว ≈ 0.5 m) ปิดปลายข้างหนึ่ง <em>บรรจุน้ำ</em> สูงพอเหมาะ</li>
+      <li>ไม้บรรทัด/ตลับเมตร — วัดความยาวคอลัมน์อากาศ</li>
+      <li>ส้อมเสียง (tuning forks) ความถี่หลากหลายระหว่าง 256–512 Hz</li>
+    </ul>
+    <div class="tip">📝 ใน simulation นี้: หลอดแสดงด้วยรูปทรงกระบอกใส · ผิวน้ำคือปลายปิดด้านล่าง · ปลายเปิดด้านบนคือที่วางส้อมเสียง</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">2</span><h4>ตั้งค่าและเริ่มสั่นส้อมเสียง</h4></div>
+    <ol>
+      <li>เลือกความถี่ส้อมเสียงในเมนู (เริ่มที่ 512 Hz)</li>
+      <li>ปรับ <em>อุณหภูมิอากาศในห้อง</em> ให้ตรงกับสภาพจริง (15–30 °C)</li>
+      <li>กด <strong>"🔔 เคาะส้อมเสียง"</strong> — เสียงจะค่อย ๆ จางลงใน ~3 วินาที (เหมือนการเคาะจริง)</li>
+      <li>หรือใช้ <strong>"🎵 ต่อเนื่อง"</strong> เพื่อให้เสียงดังอยู่ตลอด (เหมาะกับการกวาดหาตำแหน่งเรโซแนนซ์)</li>
+    </ol>
+    <div class="warn">⚠️ หากใช้ส้อมเสียงจริง ต้องเคาะกับยางหรือลูกบอลยาง อย่าเคาะกับโต๊ะแข็งเพราะอาจทำให้ส้อมเสียงเสีย</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">3</span><h4>หาความยาวที่เสียงดังที่สุด (Manual Mode)</h4></div>
+    <ol>
+      <li><strong>ลากหลอด</strong>ขึ้น-ลงในกระบอกน้ำ — คลิกค้างบน canvas แล้วเลื่อนเมาส์</li>
+      <li>สังเกตแถบ <em>loudness</em> ที่มุมล่างซ้าย — เสียงดังที่สุดเมื่อแถบเต็มและเปลี่ยนเป็นสีแดง</li>
+      <li>เมื่อเสียงดังสุด กด <strong>"💾 บันทึก L ตอนนี้"</strong> — โปรแกรมจะบันทึกความยาวอากาศเหนือน้ำในช่อง <code>L₁</code></li>
+      <li>ลากหลอดต่อไปจนเจอตำแหน่ง <em>เรโซแนนซ์ถัดไป</em> (เสียงดังขึ้นอีกครั้ง) — บันทึกเป็น <code>L₂</code></li>
+      <li>โปรแกรมจะคำนวณ λ = 2(L₂ − L₁) และ v = f·λ อัตโนมัติ</li>
+      <li>เปลี่ยนความถี่ส้อมเสียงและทำซ้ำขั้นตอน 3–5 อย่างน้อย 2–3 ความถี่</li>
+    </ol>
+    <div class="tip">
+      📏 <strong>เหตุใดต้องวัด 2 ตำแหน่ง?</strong>
+      เพราะการวัด L<sub>1</sub> = λ/4 เพียงค่าเดียวมี <em>end-correction</em> (e ≈ 0.6r) ทำให้ค่าคลาดเคลื่อน
+      แต่การวัดผลต่าง L<sub>2</sub> − L<sub>1</sub> = λ/2 ทำให้ end-correction ตัดกัน
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">4</span><h4>โหมด Auto Scan</h4></div>
+    <p>หากนักเรียนต้องการเปรียบเทียบหรือตรวจสอบผลของตนเอง:</p>
+    <ol>
+      <li>กดปุ่ม <strong>"🤖 เริ่ม Auto Scan"</strong></li>
+      <li>โปรแกรมจะเลื่อนหลอดอย่างช้า ๆ จากบนลงล่าง พร้อมวัดความดังทุกตำแหน่ง</li>
+      <li>เมื่อพบจุดยอด (peak) ของความดัง 2 จุดแรก จะบันทึกใส่ตารางอัตโนมัติ</li>
+      <li>กด "🛑 หยุด Auto Scan" เพื่อหยุดกลางคัน</li>
+    </ol>
+    <div class="warn">⚠️ Auto Mode เหมาะใช้หลังนักเรียนทำ Manual Mode แล้ว — เพื่อเทียบความแม่นยำของการวัดของตัวเอง</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">5</span><h4>ตัวอย่างการบันทึกผล (จากภาพอ้างอิง)</h4></div>
+    <table class="tbl-example">
+      <tr><th>TRIAL</th><th>1</th><th>2</th></tr>
+      <tr><th>ความถี่ส้อมเสียง f (Hz)</th><td class="mono">512</td><td class="mono">384</td></tr>
+      <tr><th>L<sub>1</sub> — ความยาวคอลัมน์อากาศเมื่อเกิด antinode (m)</th><td class="mono">0.152</td><td class="mono">0.210</td></tr>
+      <tr><th>L<sub>2</sub> — antinode ถัดไป (m)</th><td class="mono">0.481</td><td class="mono">0.664</td></tr>
+      <tr><th>λ = 2(L₂ − L₁) (m)</th><td class="mono">0.658</td><td class="mono">0.908</td></tr>
+      <tr><th>v = f·λ (m/s)</th><td class="mono">336.9</td><td class="mono">348.7</td></tr>
+    </table>
+    <p style="margin-top:8px"><strong>การคำนวณตัวอย่าง:</strong></p>
+    <div class="fbox" style="background:var(--panel2);border:1px dashed var(--accent);padding:8px 14px;border-radius:8px;font-family:'Share Tech Mono',monospace;color:var(--accent3);display:inline-block;margin-top:4px">
+      λ = 2(0.481 − 0.152) = 0.658 m
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-head"><span class="step-num">6</span><h4>วิเคราะห์และอภิปรายผล</h4></div>
+    <ol>
+      <li>คำนวณค่า v เฉลี่ยจากการทดลองทุกรอบ</li>
+      <li>เปรียบเทียบกับค่าทฤษฎี v = 331.4 + 0.6·T(°C) (m/s) ที่อุณหภูมิห้อง</li>
+      <li>คำนวณ <strong>% error</strong> = |v<sub>วัด</sub> − v<sub>ทฤษฎี</sub>| / v<sub>ทฤษฎี</sub> × 100%</li>
+      <li>แหล่งของความคลาดเคลื่อน: end-correction, การฟังหูมนุษย์, ความถี่ส้อมเสียงไม่ตรงป้าย, สิ่งรบกวนรอบข้าง</li>
+    </ol>
+    <p style="margin-top:6px">📤 กดปุ่ม <strong>"📥 Export CSV"</strong> เพื่อบันทึกตารางลง Excel/Sheets ทำรายงาน</p>
+  </div>
+
+</div>
+</section>
+
+<!-- ============ TAB 3: THEORY ============ -->
+<section id="tab-theory" class="tab-section">
+<div class="theory-wrap">
+
+  <div class="th-card">
+    <h4>1. คลื่นนิ่งในหลอดปลายปิดข้างเดียว (Closed-end pipe)</h4>
+    <p>กระบอกในการทดลองนี้มี <strong>ผิวน้ำเป็นปลายปิด</strong> ด้านล่างและ <strong>ปลายเปิด</strong> ด้านบน เมื่อส้อมเสียงสั่นเหนือปากหลอด คลื่นเสียงจะเดินทางลงไปสะท้อนที่ผิวน้ำกลับขึ้นมาซ้อนทับกับคลื่นตกกระทบ เกิดเป็น <strong>คลื่นนิ่ง (standing wave)</strong></p>
+    <ul style="margin-left:22px;line-height:1.8;color:var(--text);font-size:.9rem">
+      <li><strong>ที่ผิวน้ำ (ปลายปิด):</strong> โมเลกุลอากาศเคลื่อนที่ไม่ได้ → <em>displacement node</em> (จุดบัพของการกระจัด) แต่เป็น <em>pressure antinode</em></li>
+      <li><strong>ที่ปากหลอด (ปลายเปิด):</strong> โมเลกุลอากาศสั่นได้เต็มที่ → <em>displacement antinode</em> (จุดปฏิบัพของการกระจัด)</li>
+      <li>เมื่อปากหลอดเป็น antinode พอดี → เกิดเรโซแนนซ์ (เสียงดังที่สุด)</li>
+    </ul>
+    <div class="th-row" style="margin-top:10px">
+      <div>
+        <p style="font-size:.88rem">ความยาวอากาศที่ทำให้เกิดเรโซแนนซ์:</p>
+        <div class="fbox">L<sub>n</sub> = (2n − 1) · λ/4,  n = 1, 2, 3, ...</div>
+        <p style="margin-top:6px"><strong>ระยะระหว่าง 2 ตำแหน่งเรโซแนนซ์ติดกัน:</strong></p>
+        <div class="fbox">ΔL = L<sub>n+1</sub> − L<sub>n</sub> = λ/2</div>
+        <p style="font-size:.85rem;margin-top:8px">→ จึงคำนวณ <strong>λ = 2·ΔL = 2(L₂ − L₁)</strong></p>
+      </div>
+      <div>
+        <div class="harmonic-list">
+          <div class="harm-cell">
+            <canvas id="hCv1" width="80" height="160"></canvas>
+            <div class="label">n=1</div>
+            <div class="formula">L = λ/4</div>
+          </div>
+          <div class="harm-cell">
+            <canvas id="hCv2" width="80" height="160"></canvas>
+            <div class="label">n=2</div>
+            <div class="formula">L = 3λ/4</div>
+          </div>
+          <div class="harm-cell">
+            <canvas id="hCv3" width="80" height="160"></canvas>
+            <div class="label">n=3</div>
+            <div class="formula">L = 5λ/4</div>
+          </div>
+          <div class="harm-cell">
+            <canvas id="hCv4" width="80" height="160"></canvas>
+            <div class="label">n=4</div>
+            <div class="formula">L = 7λ/4</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="th-card">
+    <h4>2. ความสัมพันธ์ v = f·λ</h4>
+    <p>คลื่นเสียงทุกชนิดเชื่อม <em>ความถี่</em> กับ <em>ความยาวคลื่น</em> ผ่านอัตราเร็วของเสียงในตัวกลาง:</p>
+    <div class="fbox">v = f · λ</div>
+    <p style="margin-top:8px"><strong>กราฟแสดงคลื่นนิ่ง</strong> (displacement amplitude vs ตำแหน่ง):</p>
+    <div class="th-canvas-wrap" style="margin-top:8px"><canvas id="thCv1" width="800" height="220"></canvas></div>
+    <p style="font-size:.83rem;color:var(--muted);margin-top:4px">เส้นทึบ: แอมพลิจูดของการกระจัด · เส้นประ: คลื่นเสียงในขณะหนึ่ง · จุดสีแดง: antinode · จุดสีเขียว: node</p>
+  </div>
+
+  <div class="th-card">
+    <h4>3. อัตราเร็วของเสียงในอากาศกับอุณหภูมิ</h4>
+    <p>อัตราเร็วของเสียงในอากาศแห้งขึ้นกับอุณหภูมิ (T เป็น °C):</p>
+    <div class="fbox">v(T) = 331.4 + 0.6·T  (m/s)</div>
+    <p style="font-size:.88rem;margin-top:6px">เช่น ที่ T = 22 °C: v ≈ 331.4 + 13.2 = <span class="mono" style="color:var(--accent3)">344.6 m/s</span></p>
+    <p style="font-size:.88rem">หรือสูตรที่แม่นกว่า (อุณหภูมิสัมบูรณ์ K): v = 331.4·√(T<sub>K</sub>/273.15)</p>
+    <div class="th-canvas-wrap" style="margin-top:8px"><canvas id="thCv2" width="800" height="200"></canvas></div>
+  </div>
+
+  <div class="th-card">
+    <h4>4. End Correction (e)</h4>
+    <p>จริง ๆ แล้ว antinode ของอากาศไม่ได้อยู่ตรงปากหลอดพอดี แต่อยู่เหนือปากเล็กน้อย เป็นระยะ:</p>
+    <div class="fbox">e ≈ 0.6 · r  (r = รัศมีหลอด)</div>
+    <p style="font-size:.88rem;margin-top:6px">ดังนั้นความยาวเรโซแนนซ์ตำแหน่งแรก L<sub>1</sub> + e = λ/4</p>
+    <p style="font-size:.88rem"><strong>เหตุผลที่ต้องวัด 2 ตำแหน่ง:</strong> เมื่อนำ L<sub>2</sub> − L<sub>1</sub> มาลบกัน end-correction e จะตัดออก ทำให้ค่า λ ที่ได้แม่นยำขึ้นมาก</p>
+    <div class="fbox" style="border-color:var(--accent3);color:var(--accent3)">
+      (L<sub>2</sub> + e) − (L<sub>1</sub> + e) = 3λ/4 − λ/4 = λ/2  ✓
+    </div>
+  </div>
+
+  <div class="th-card">
+    <h4>5. ทำไมเสียงจึงดังขึ้นที่ตำแหน่งเรโซแนนซ์?</h4>
+    <p>เมื่อความถี่ของส้อมเสียงตรงกับ <em>ความถี่ธรรมชาติ</em> ของหลอดอากาศ (resonant frequency) คลื่นที่สะท้อนกลับมาจะ <strong>เสริมกัน</strong> (constructive interference) อย่างต่อเนื่อง พลังงานสะสมในหลอดสูงขึ้น แอมพลิจูดของอากาศที่ปากหลอดเพิ่มขึ้นมาก → หูได้ยินเสียงดังขึ้น</p>
+    <p>ในทางตรงกันข้าม ถ้าความยาวหลอดไม่ตรงกับ (2n−1)λ/4 คลื่นที่สะท้อนกลับมาจะ <em>หักล้าง</em> กับคลื่นตกกระทบ → เสียงเบา</p>
+    <div class="th-canvas-wrap" style="margin-top:8px"><canvas id="thCv3" width="800" height="220"></canvas></div>
+    <p style="font-size:.83rem;color:var(--muted);margin-top:4px">กราฟ Loudness vs L: เห็นยอดสูงเป็นช่วงสม่ำเสมอทุก ๆ λ/2 — นี่คือสัญญาณบอกว่าระยะระหว่างยอด = λ/2</p>
+  </div>
+
+</div>
+</section>
+
+<footer>
+  KP Science simulation · Lab 44 — Standing Waves of Sound in an Air Column · ฝึกการวัดความเร็วเสียงในห้องเรียน
+</footer>
+
+<script>
+/* ============================================================
+ * Lab 44 — Standing Waves of Sound in an Air Column
+ * Web Audio: real tones at selected tuning-fork frequency.
+ * Closed-end pipe resonance: L_n = (2n-1)·λ/4 (ignoring small end-correction)
+ * ============================================================ */
+
+const $ = id => document.getElementById(id);
+
+/* ====== State ====== */
+const state = {
+  mode: 'manual',                  // 'manual' | 'auto'
+  freq: 384,                       // Hz
+  tempC: 22,                       // °C
+  volumePct: 55,                   // base volume slider
+  showHint: false,
+
+  // Tube geometry (real-world meters)
+  tubeLenM: 1.10,                  // total tube length 1.10 m → ensures ≥2 resonances for all 256–512 Hz freqs
+  tubeBottomDepth: 0.05,           // 0 m means tube bottom right at water surface, positive = below water
+  // Air column length L = (length of tube above water) = tubeLenM - max(0, tubeBottomDepth)
+  showWave: true,                  // toggle standing-wave overlay in tube
+
+  // Audio
+  audioCtx: null,
+  osc: null,
+  gainNode: null,
+  filterNode: null,
+  isPlaying: false,
+  continuous: false,
+  strikeEnvelope: null,            // timestamp for envelope start
+  baseToneGain: 0.0,               // current envelope multiplier
+  loudness: 0,                     // 0-1, modulated by resonance match
+
+  // Auto scan
+  autoRunning: false,
+  autoDir: -1,                     // start from top: tube_bottom_depth goes from -0.05 -> 0.45 (i.e. air column shrinks)
+  autoLastPeakL: null,
+  autoCollectedL: [],              // L values collected in current scan
+  autoLoudHistory: [],             // [{L, loud}] last few samples for peak detection
+
+  // Data
+  partialL: null,                  // first recorded L when waiting for 2nd
+  rows: [],                        // {f, L1, L2, lam, v}
+
+  // Drag
+  isDragging: false,
+  dragStartY: 0,
+  dragStartDepth: 0,
+
+  // Challenge Mode (blind frequency)
+  blindMode: false,
+  challengeF: null,
+
+  // Caliper
+  caliperOn: false,
+  caliperTopM: 0.40,        // meters above water surface
+  caliperBotM: 0.10,
+  caliperDragging: null,    // 'top' | 'bot' | null
+  caliperStartM: 0,
+
+  // Layout cache (set on each draw)
+  _layout: {cx:0, waterSurfaceY:0, scale:1, cylInnerW:110},
+};
+
+/* ====== Tab switching ====== */
+function showTab(name, btn){
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  $('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name === 'theory'){ drawTheory(); }
+}
+
+/* ====== Helpers ====== */
+function vSound(T){ return 331.4 + 0.6*T; }
+function lambdaOf(f, T){ return vSound(T)/f; }
+function airColumnLength(){ return Math.max(0, state.tubeLenM - Math.max(0, state.tubeBottomDepth)); }
+// resonance: L_n = (2n-1)*lambda/4
+function resonancePositions(lam){
+  const out=[];
+  for(let n=1;n<=10;n++){
+    const Ln = (2*n-1)*lam/4;
+    if(Ln > state.tubeLenM+0.001) break;
+    out.push({n, L: Ln});
+  }
+  return out;
+}
+function loudnessAtL(L, lam){
+  // closest resonance and distance
+  let minDist = 999;
+  for(let n=1;n<=10;n++){
+    const Ln = (2*n-1)*lam/4;
+    const d = Math.abs(L - Ln);
+    if(d < minDist) minDist = d;
+  }
+  // Sharpness: Q-like. sigma ~ 0.03 m (3 cm half-width is realistic for hearing peaks)
+  const sigma = 0.025;
+  return Math.exp(-(minDist*minDist)/(2*sigma*sigma));
+}
+
+/* ====== Audio ====== */
+function ensureAudio(){
+  if(state.audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  state.audioCtx = new AC();
+  state.osc = state.audioCtx.createOscillator();
+  state.osc.type = 'sine';
+  state.osc.frequency.value = state.freq;
+  state.filterNode = state.audioCtx.createBiquadFilter();
+  state.filterNode.type = 'bandpass';
+  state.filterNode.frequency.value = state.freq;
+  state.filterNode.Q.value = 1;
+  state.gainNode = state.audioCtx.createGain();
+  state.gainNode.gain.value = 0;
+  state.osc.connect(state.filterNode).connect(state.gainNode).connect(state.audioCtx.destination);
+  state.osc.start();
+  state.isPlaying = true;
+}
+function setFreqAudio(f){
+  if(!state.osc) return;
+  state.osc.frequency.setTargetAtTime(f, state.audioCtx.currentTime, 0.01);
+  state.filterNode.frequency.setTargetAtTime(f, state.audioCtx.currentTime, 0.01);
+}
+function updateGain(){
+  if(!state.gainNode) return;
+  const lam = lambdaOf(state.freq, state.tempC);
+  const L = airColumnLength();
+  const loud = loudnessAtL(L, lam);
+  state.loudness = loud;
+  // base envelope
+  let env = state.continuous ? 1.0 : state.baseToneGain;
+  // overtone-add for richness when resonating
+  const baseVol = state.volumePct/100;
+  const finalGain = baseVol * env * (0.12 + 0.88*loud);
+  state.gainNode.gain.setTargetAtTime(finalGain, state.audioCtx.currentTime, 0.03);
+}
+
+function toggleStrike(){
+  ensureAudio();
+  if(state.audioCtx.state === 'suspended') state.audioCtx.resume();
+  // strike = decaying envelope over 3 sec
+  state.continuous = false;
+  $('contBtn').classList.remove('on');
+  $('contBtn').style.background = '';
+  state.strikeEnvelope = performance.now();
+  state.baseToneGain = 1.0;
+  $('strikeBtn').classList.add('on');
+  $('strikeBtn').textContent = '🔔 กำลังสั่น...';
+  setTimeout(()=>{
+    $('strikeBtn').classList.remove('on');
+    $('strikeBtn').textContent = '🔔 เคาะส้อมเสียง';
+  }, 3500);
+}
+
+function continuousMode(){
+  ensureAudio();
+  if(state.audioCtx.state === 'suspended') state.audioCtx.resume();
+  state.continuous = !state.continuous;
+  const btn = $('contBtn');
+  if(state.continuous){
+    btn.style.background = 'var(--accent3)';
+    btn.style.color = '#0a0e1a';
+    btn.textContent = '🔇 หยุดต่อเนื่อง';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.textContent = '🎵 ต่อเนื่อง';
+    state.baseToneGain = 0;
+  }
+}
+
+function tickEnvelope(){
+  // decay strike envelope
+  if(state.strikeEnvelope && !state.continuous){
+    const elapsed = (performance.now() - state.strikeEnvelope)/1000;
+    state.baseToneGain = Math.max(0, Math.exp(-elapsed/1.4));
+    if(elapsed > 4) state.strikeEnvelope = null;
+  } else if(!state.continuous) {
+    state.baseToneGain = 0;
+  }
+  updateGain();
+  // Loud display
+  $('loudFill').style.width = (state.loudness*100).toFixed(0)+'%';
+  let status = '— เบา —';
+  if(state.loudness > 0.85) status = '🔊 ดังที่สุด (resonance!)';
+  else if(state.loudness > 0.55) status = '📣 ดังขึ้น';
+  else if(state.loudness > 0.25) status = '🔉 กลาง';
+  // mute display when no envelope
+  if(!state.continuous && state.baseToneGain < 0.05 && !state.autoRunning){
+    status = '— ยังไม่ได้ตี / เสียงหายแล้ว —';
+  }
+  $('loudStatus').textContent = status;
+}
+
+/* ====== Mode ====== */
+function setMode(m){
+  state.mode = m;
+  $('m-manual').classList.toggle('active', m==='manual');
+  $('m-auto').classList.toggle('active', m==='auto');
+  if(m==='auto'){
+    // start audio prepared
+    ensureAudio();
+  } else {
+    if(state.autoRunning) stopAutoScan();
+  }
+}
+
+function toggleHint(){
+  state.showHint = $('hintChk').checked;
+  $('hintBox').classList.toggle('hidden', !state.showHint);
+  draw();
+}
+function toggleCaliper(){
+  state.caliperOn = $('calChk').checked;
+  if(state.caliperOn){
+    const L = airColumnLength();
+    state.caliperTopM = Math.min(state.tubeLenM-0.05, Math.max(0.08, L > 0.05 ? L - 0.005 : 0.30));
+    state.caliperBotM = 0.00;
+  }
+  draw();
+}
+function toggleWave(){
+  state.showWave = $('waveChk').checked;
+  draw();
+}
+
+/* ====== Freq / Temp ====== */
+function onFreqChange(){
+  state.freq = parseFloat($('fSel').value);
+  if(state.osc) setFreqAudio(state.freq);
+  $('ro-f').textContent = state.freq;
+  updateReadouts();
+  draw();
+}
+
+/* ====== Challenge Mode ====== */
+function randomFreq(){
+  const list = [256, 288, 320, 341.3, 384, 426.7, 480, 512];
+  // Constraint: at least 2 resonance peaks must fit in tube
+  //   L_2 = 3λ/4 ≤ tubeLenM  →  λ ≤ 4·tubeLenM/3  →  f ≥ 3v/(4·tubeLenM)
+  const v = vSound(state.tempC);
+  const fMin = 3*v / (4*state.tubeLenM);
+  // exclude current + frequencies whose L_2 doesn't fit
+  const pool = list.filter(f => f !== state.challengeF && f >= fMin);
+  if(pool.length === 0){
+    alert('ไม่มีความถี่ที่ให้เรโซแนนซ์ครบ 2 จุดในขอบเขตหลอด · ลองปรับอุณหภูมิ');
+    return;
+  }
+  const f = pool[Math.floor(Math.random()*pool.length)];
+  state.freq = f;
+  state.challengeF = f;
+  state.blindMode = true;
+  if(state.osc) setFreqAudio(f);
+  $('fSel').value = f;
+  $('fSel').disabled = true;
+  $('fSel').style.opacity = '0.4';
+  $('ro-f').textContent = '🎲 ???';
+  $('ro-f').style.color = '#fb923c';
+  $('ro-lam').textContent = '???';
+  $('ro-lam').style.color = '#fb923c';
+  // reset partial recording
+  state.partialL = null;
+  renderTable();
+  $('challengeCard').classList.add('hidden');
+  $('randBtn').textContent = '🎲 สุ่มใหม่ (ค่าใหม่)';
+  $('randBtn').style.background = 'rgba(251,146,60,0.15)';
+  flashHint('🎲 สุ่มความถี่แล้ว — เคาะส้อมเสียง · หาเรโซแนนซ์ 2 จุด · ระบบจะเฉลย f', '#fb923c');
+}
+
+function exitBlindMode(){
+  state.blindMode = false;
+  $('fSel').disabled = false;
+  $('fSel').style.opacity = '';
+  $('ro-f').style.color = '';
+  $('ro-lam').style.color = '';
+  $('randBtn').style.background = '';
+  updateReadouts();
+}
+
+function showChallengeResult(fMeas, fActual, err){
+  $('cr-meas').textContent = fMeas.toFixed(1) + ' Hz';
+  $('cr-actual').textContent = fActual + ' Hz';
+  $('cr-err').textContent = err.toFixed(2) + ' %';
+  const v = $('cr-verdict');
+  if(err < 2){
+    v.textContent = '🏆 เยี่ยมมาก! แม่นยำระดับมืออาชีพ';
+    v.style.background = 'rgba(52,211,153,0.15)';
+    v.style.color = 'var(--accent3)';
+    v.style.border = '1px solid var(--accent3)';
+  } else if(err < 5){
+    v.textContent = '✅ ดีมาก! ผลใกล้เคียงค่าจริง';
+    v.style.background = 'rgba(56,189,248,0.15)';
+    v.style.color = 'var(--accent2)';
+    v.style.border = '1px solid var(--accent2)';
+  } else if(err < 10){
+    v.textContent = '👍 ใช้ได้ — ลองวัด L ให้ละเอียดขึ้นรอบหน้า';
+    v.style.background = 'rgba(251,191,36,0.15)';
+    v.style.color = '#fbbf24';
+    v.style.border = '1px solid #fbbf24';
+  } else {
+    v.textContent = '⚠️ คลาดเคลื่อนสูง — ตรวจตำแหน่ง L₁, L₂ อีกครั้ง';
+    v.style.background = 'rgba(239,68,68,0.15)';
+    v.style.color = '#f87171';
+    v.style.border = '1px solid #f87171';
+  }
+  $('challengeCard').classList.remove('hidden');
+  $('challengeCard').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function onTempChange(v){
+  state.tempC = parseFloat(v);
+  updateReadouts();
+  draw();
+}
+function updateReadouts(){
+  const L = airColumnLength();
+  $('ro-L').textContent = L.toFixed(3);
+  if(!state.blindMode){
+    $('ro-lam').textContent = lambdaOf(state.freq, state.tempC).toFixed(3);
+    $('ro-f').textContent = state.freq;
+  }
+  $('ro-v').textContent = vSound(state.tempC).toFixed(1);
+}
+
+/* ====== Recording ====== */
+function recordCurrentL(){
+  const L = airColumnLength();
+  if(L < 0.005){ flashHint('⚠️ ความยาวอากาศ ≈ 0 ไม่สามารถบันทึกได้', '#ef4444'); return; }
+  if(state.partialL === null){
+    // Step 1
+    state.partialL = {f: state.freq, L1: L};
+    renderTable();
+    flashHint('✅ บันทึก L₁ = '+L.toFixed(3)+' m แล้ว — เลื่อนหลอดต่อหาจุดเสียงดังถัดไป', 'var(--accent3)');
+  } else if(state.partialL.L2 === undefined){
+    // Step 2 — capture L2 but DON'T calculate yet
+    state.partialL.L2 = L;
+    renderTable();
+    flashHint('✅ บันทึก L₂ = '+L.toFixed(3)+' m แล้ว — กดปุ่ม "🧮 คำนวณ" เพื่อดูผลลัพธ์', '#fb923c');
+  }
+}
+
+function calculateRow(){
+  if(!state.partialL || state.partialL.L2 === undefined) return;
+  const fActual = state.blindMode ? state.challengeF : state.partialL.f;
+  const L1 = Math.min(state.partialL.L1, state.partialL.L2);
+  const L2 = Math.max(state.partialL.L1, state.partialL.L2);
+  const lamMeas = 2*(L2-L1);
+  if(lamMeas < 0.001){
+    flashHint('⚠️ L₁ และ L₂ เท่ากัน — λ ≈ 0 ไม่สามารถคำนวณได้', '#ef4444');
+    return;
+  }
+  const vTheo = vSound(state.tempC);
+  const lamStd = vTheo / fActual;
+  const fMeas = vTheo / lamMeas;
+  const errF = Math.abs(fMeas - fActual)/fActual * 100;
+  const errLam = Math.abs(lamMeas - lamStd)/lamStd * 100;
+  state.rows.push({
+    f: fActual, fMeasured: fMeas,
+    lam: lamMeas, lamStd: lamStd,
+    L1, L2,
+    errF, errLam,
+    v: fActual * lamMeas,
+    blind: state.blindMode,
+    T: state.tempC
+  });
+  const wasBlind = state.blindMode;
+  state.partialL = null;
+  renderTable();
+  if(wasBlind){
+    showChallengeResult(fMeas, fActual, errF);
+    exitBlindMode();
+  } else {
+    flashHint('🧮 คำนวณแล้ว · f_วัด='+fMeas.toFixed(1)+' Hz (Δ '+errF.toFixed(2)+'%) · λ_วัด='+lamMeas.toFixed(3)+' m (Δ '+errLam.toFixed(2)+'%)', 'var(--accent3)');
+  }
+}
+
+function renderTable(){
+  updateStepUI();
+  const tb = $('dataBody');
+  if(state.rows.length === 0 && !state.partialL){
+    tb.innerHTML = '<tr><td colspan="7" style="color:var(--muted);padding:14px;font-style:italic">ยังไม่มีข้อมูล — เริ่มบันทึก L ค่าแรกได้เลย</td></tr>';
+    updateSummary();
+    return;
+  }
+  let html = '';
+  const errColor = e => e<2?'var(--accent3)':e<5?'var(--accent2)':e<10?'#fbbf24':'#ef4444';
+  state.rows.forEach((r,i)=>{
+    const isBlind = !!r.blind;
+    const fLabel = isBlind ? '🎲 สุ่ม' : 'มาตรฐาน';
+    const fCell = `<div style="line-height:1.5;text-align:left">
+      <div style="color:var(--accent2);font-size:.7rem">${fLabel}: <strong class="mono">${r.f}</strong></div>
+      <div style="color:var(--accent3);font-size:.78rem">วัด: <strong class="mono">${r.fMeasured.toFixed(1)}</strong></div>
+    </div>`;
+    const lamCell = `<div style="line-height:1.5;text-align:left">
+      <div style="color:var(--accent2);font-size:.7rem">มาตรฐาน: <strong class="mono">${r.lamStd.toFixed(3)}</strong></div>
+      <div style="color:var(--accent3);font-size:.78rem">วัด: <strong class="mono">${r.lam.toFixed(3)}</strong></div>
+    </div>`;
+    const errCell = `<div style="line-height:1.5;text-align:left;font-size:.7rem">
+      <div>f: <strong class="mono" style="color:${errColor(r.errF)}">${r.errF.toFixed(2)}%</strong></div>
+      <div>λ: <strong class="mono" style="color:${errColor(r.errLam)}">${r.errLam.toFixed(2)}%</strong></div>
+    </div>`;
+    html += `<tr${isBlind?' style="background:rgba(251,146,60,0.06)"':''}>
+      <td>${i+1}${isBlind?'<br>🎲':''}</td>
+      <td>${fCell}</td>
+      <td>${lamCell}</td>
+      <td class="mono">${r.L1.toFixed(3)}</td>
+      <td class="mono">${r.L2.toFixed(3)}</td>
+      <td>${errCell}</td>
+      <td><button class="del-x" onclick="deleteRow(${i})">✕</button></td>
+    </tr>`;
+  });
+  if(state.partialL){
+    const fDisp = state.blindMode ? '🎲 ???' : state.partialL.f;
+    const L2disp = state.partialL.L2 !== undefined
+      ? `<span class="mono">${state.partialL.L2.toFixed(3)}</span>`
+      : '<span style="color:var(--accent4);font-style:italic">รอ...</span>';
+    const lamDisp = state.partialL.L2 !== undefined
+      ? '<span style="color:#16a34a;font-weight:700;font-size:.7rem">กด 🧮 คำนวณ</span>'
+      : '—';
+    html += `<tr class="partial">
+      <td>${state.rows.length+1}</td>
+      <td class="mono" style="color:#fb923c;font-size:.78rem">${fDisp}<br><span style="font-size:.65rem;color:var(--muted)">รอวัด</span></td>
+      <td>${lamDisp}</td>
+      <td class="mono">${state.partialL.L1.toFixed(3)}</td>
+      <td>${L2disp}</td>
+      <td>—</td>
+      <td><button class="del-x" onclick="cancelPartial()">✕</button></td>
+    </tr>`;
+  }
+  tb.innerHTML = html;
+  updateSummary();
+}
+function deleteRow(i){ state.rows.splice(i,1); renderTable(); }
+function cancelPartial(){ state.partialL = null; renderTable(); flashHint('↺ ยกเลิก L₁ แล้ว — เริ่มใหม่ที่ขั้นที่ 1', 'var(--muted)'); }
+function clearData(){
+  if(state.rows.length===0 && !state.partialL) return;
+  state.rows=[]; state.partialL=null; renderTable();
+  flashHint('🗑 ล้างข้อมูลทั้งหมดแล้ว', 'var(--muted)');
+}
+
+/* ====== Step UI helpers (no alert() — preserves Web Audio) ====== */
+function updateStepUI(){
+  const hint = $('stepHint'), rec = $('recBtn'), undo = $('undoBtn'), calc = $('calcBtn');
+  if(!hint || !rec) return;
+  if(state.partialL === null){
+    // Step 1
+    hint.innerHTML = '<span style="color:var(--accent3);font-weight:700">📍 ขั้นที่ 1/3:</span> เลื่อนหลอด (ลากบน canvas) หาตำแหน่ง<strong>เสียงดังที่สุด</strong> แล้วกด <em>"💾 บันทึก L₁"</em>';
+    rec.textContent = '💾 บันทึก L₁ (จุดที่ 1)';
+    rec.style.background = '#0d47a1';
+    rec.style.display = '';
+    if(undo) undo.style.display = 'none';
+    if(calc) calc.style.display = 'none';
+  } else if(state.partialL.L2 === undefined){
+    // Step 2
+    const lam = lambdaOf(state.freq, state.tempC);
+    const nextHigh = state.partialL.L1 + lam/2;
+    const nextLow = state.partialL.L1 - lam/2;
+    const hints = [];
+    if(nextHigh <= state.tubeLenM) hints.push('ขึ้น ~'+(nextHigh*100).toFixed(1)+' cm');
+    if(nextLow >= 0.01) hints.push('ลง ~'+(nextLow*100).toFixed(1)+' cm');
+    const hintText = state.blindMode ? '' : ' (คาดว่าอยู่ที่ '+hints.join(' หรือ ')+')';
+    hint.innerHTML = '<span style="color:#fb923c;font-weight:700">📍 ขั้นที่ 2/3:</span> ✅ L₁ = <strong>'+state.partialL.L1.toFixed(3)+' m</strong> · เลื่อนหลอด<strong>ต่อ</strong>หา<em>จุดดังถัดไป</em> (ขึ้น<u>หรือ</u>ลงก็ได้) แล้วกด <em>"💾 บันทึก L₂"</em>'+hintText;
+    rec.textContent = '💾 บันทึก L₂ (จุดที่ 2)';
+    rec.style.background = '#b45309';
+    rec.style.display = '';
+    if(undo) undo.style.display = '';
+    if(calc) calc.style.display = 'none';
+  } else {
+    // Step 3 — ready to calculate
+    hint.innerHTML = '<span style="color:#34d399;font-weight:700">📍 ขั้นที่ 3/3:</span> ✅ L₁ = <strong>'+state.partialL.L1.toFixed(3)+'</strong> m, L₂ = <strong>'+state.partialL.L2.toFixed(3)+'</strong> m · กดปุ่ม <em>"🧮 คำนวณ"</em> เพื่อหา λ, f, error';
+    rec.style.display = 'none';
+    if(undo) undo.style.display = '';
+    if(calc) calc.style.display = '';
+  }
+}
+
+let _hintTimer = null;
+function flashHint(msg, color){
+  const h = $('stepHint'); if(!h) return;
+  const prev = h.innerHTML;
+  h.innerHTML = '<span style="color:'+color+';font-weight:700">'+msg+'</span>';
+  h.style.borderColor = color;
+  clearTimeout(_hintTimer);
+  _hintTimer = setTimeout(()=>{
+    h.style.borderColor = '';
+    updateStepUI();
+  }, 1800);
+}
+function updateSummary(){
+  if(state.rows.length===0){
+    $('sum-vavg').textContent = '— m/s';
+    $('sum-err').textContent = '— %';
+    return;
+  }
+  const avg = state.rows.reduce((s,r)=>s+r.v,0)/state.rows.length;
+  const theo = vSound(state.tempC);
+  const err = Math.abs(avg-theo)/theo*100;
+  $('sum-vavg').textContent = avg.toFixed(1)+' m/s';
+  $('sum-err').textContent = err.toFixed(2)+' %';
+}
+
+function exportCSV(){
+  if(state.rows.length===0){ alert('ยังไม่มีข้อมูลให้ส่งออก'); return; }
+  const header = ['Trial','f_actual(Hz)','f_measured(Hz)','error_f(%)','lambda_standard(m)','lambda_measured(m)','error_lambda(%)','L1(m)','L2(m)','T(C)','v_theory(m/s)','mode'];
+  const lines = [header.join(',')];
+  const theo = vSound(state.tempC);
+  state.rows.forEach((r,i)=>{
+    const mode = r.blind ? 'challenge' : 'normal';
+    const lamStd = r.lamStd !== undefined ? r.lamStd : (theo/r.f);
+    const errF = r.errF !== undefined ? r.errF : Math.abs(r.fMeasured-r.f)/r.f*100;
+    const errLam = r.errLam !== undefined ? r.errLam : Math.abs(r.lam-lamStd)/lamStd*100;
+    lines.push([
+      i+1, r.f, r.fMeasured.toFixed(2), errF.toFixed(2),
+      lamStd.toFixed(4), r.lam.toFixed(4), errLam.toFixed(2),
+      r.L1.toFixed(3), r.L2.toFixed(3),
+      (r.T !== undefined ? r.T : state.tempC), theo.toFixed(1), mode
+    ].join(','));
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Lab44_StandingWaves_data.csv';
+  a.click();
+}
+
+/* ====== Auto Scan ====== */
+function toggleAutoScan(){
+  if(state.autoRunning) stopAutoScan();
+  else startAutoScan();
+}
+function startAutoScan(){
+  ensureAudio();
+  if(state.audioCtx.state === 'suspended') state.audioCtx.resume();
+  state.continuous = true; // keep tone alive
+  $('contBtn').style.background='var(--accent3)';
+  $('contBtn').style.color='#0a0e1a';
+  $('contBtn').textContent='🔇 หยุดต่อเนื่อง';
+  state.autoRunning = true;
+  state.autoLoudHistory = [];
+  state.autoCollectedL = [];
+  state.tubeBottomDepth = -0.05; // start with full air column
+  $('autoBtn').textContent = '🛑 หยุด Auto Scan';
+  $('autoBtn').classList.add('running');
+}
+function stopAutoScan(){
+  state.autoRunning = false;
+  $('autoBtn').textContent = '🤖 เริ่ม Auto Scan';
+  $('autoBtn').classList.remove('running');
+}
+function autoStep(dt){
+  // move tube deeper into water (air column shrinks)
+  const speed = 0.12; // m/sec
+  const maxDepth = state.tubeLenM - 0.05;
+  state.tubeBottomDepth = Math.min(maxDepth, state.tubeBottomDepth + speed*dt);
+  const L = airColumnLength();
+  const lam = lambdaOf(state.freq, state.tempC);
+  const loud = loudnessAtL(L, lam);
+  state.autoLoudHistory.push({L, loud});
+  if(state.autoLoudHistory.length > 12) state.autoLoudHistory.shift();
+  // peak detection: middle of last 5 samples is local max & loud>0.8
+  if(state.autoLoudHistory.length === 12){
+    const mid = state.autoLoudHistory[5];
+    let isPeak = mid.loud > 0.85;
+    for(let i=0;i<12;i++){
+      if(i===5) continue;
+      if(state.autoLoudHistory[i].loud > mid.loud) { isPeak=false; break; }
+    }
+    if(isPeak){
+      // ensure not duplicate
+      if(state.autoCollectedL.length === 0 || Math.abs(state.autoCollectedL[state.autoCollectedL.length-1] - mid.L) > lam/4){
+        state.autoCollectedL.push(mid.L);
+      }
+    }
+  }
+  if(state.autoCollectedL.length >= 2){
+    // commit a row
+    const arr = state.autoCollectedL.slice().sort((a,b)=>b-a); // descending (L1 was bigger because tube full; antinode largest first)
+    const L1 = Math.min(arr[0], arr[1]);
+    const L2 = Math.max(arr[0], arr[1]);
+    const lam2 = 2*(L2-L1);
+    const v = state.freq * lam2;
+    state.rows.push({f: state.freq, L1, L2, lam: lam2, v});
+    renderTable();
+    stopAutoScan();
+  }
+  if(state.tubeBottomDepth >= state.tubeLenM-0.06){
+    if(state.autoCollectedL.length < 2){
+      alert('Auto Scan ถึงปลายหลอดแล้ว แต่พบยอดเรโซแนนซ์เพียง '+state.autoCollectedL.length+' จุด · ลองความถี่สูงขึ้น');
+    }
+    stopAutoScan();
+  }
+}
+
+/* ====== Canvas ====== */
+const canvas = $('simCanvas');
+const ctx = canvas.getContext('2d');
+let lastTs = null;
+
+function resizeCanvas(){
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width = r.width;
+  canvas.height = r.height;
+  draw();
+}
+
+// Coordinate mapping: 1 meter in real world = ?? pixels
+// Vertical layout: water surface fixed near BOTTOM of canvas.
+// Most of canvas above water surface = air column (up to 50 cm tube).
+// A bit below water surface = visible water + cyl bottom.
+function getScale(){
+  // Need: tubeLenM above water + 0.12 m of water visible below + top/bottom padding (~50px)
+  const range = state.tubeLenM + 0.12;
+  const usable = canvas.height - 50;
+  return usable / range;
+}
+function waterSurfaceYpx(){
+  const scale = getScale();
+  return canvas.height - 25 - 0.12*scale;
+}
+// Helper: y-coordinate for meters ABOVE water surface (positive=above, negative=below)
+function yAboveWater(m){
+  return waterSurfaceYpx() - m * getScale();
+}
+
+function draw(){
+  if(!ctx) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const scale = getScale();
+  const cx = W/2;
+
+  // Background gradient is from CSS
+
+  // Draw glass cylinder (open bottom — extends off canvas downward)
+  const waterSurfaceY = waterSurfaceYpx();
+  const cylTopY = waterSurfaceY - 0.05*scale;   // 5 cm of cyl rim above water
+  const cylBotY = canvas.height + 20;           // off canvas (no visible bottom)
+  const cylInnerW = 110;
+  const cylWallW = 8;
+
+  // Cylinder body — only TWO vertical walls (no bottom; extends off canvas downward)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(165,200,230,0.45)';
+  ctx.lineWidth = 1.5;
+  // Left wall
+  ctx.beginPath();
+  ctx.moveTo(cx-cylInnerW/2-cylWallW, cylTopY);
+  ctx.lineTo(cx-cylInnerW/2-cylWallW, canvas.height);
+  ctx.stroke();
+  // Right wall
+  ctx.beginPath();
+  ctx.moveTo(cx+cylInnerW/2+cylWallW, cylTopY);
+  ctx.lineTo(cx+cylInnerW/2+cylWallW, canvas.height);
+  ctx.stroke();
+  // Top rim (small horizontal cap on each side)
+  ctx.beginPath();
+  ctx.moveTo(cx-cylInnerW/2-cylWallW-6, cylTopY);
+  ctx.lineTo(cx-cylInnerW/2, cylTopY);
+  ctx.moveTo(cx+cylInnerW/2, cylTopY);
+  ctx.lineTo(cx+cylInnerW/2+cylWallW+6, cylTopY);
+  ctx.stroke();
+  ctx.restore();
+
+  // Water — extends from surface to canvas bottom (no closed beaker base)
+  ctx.save();
+  // Gradient: dense at top, fades slightly toward bottom (suggests infinite depth)
+  const wgrad = ctx.createLinearGradient(0, waterSurfaceY, 0, canvas.height);
+  wgrad.addColorStop(0, 'rgba(59,130,246,0.32)');
+  wgrad.addColorStop(0.7, 'rgba(59,130,246,0.26)');
+  wgrad.addColorStop(1, 'rgba(59,130,246,0.20)');
+  ctx.fillStyle = wgrad;
+  ctx.fillRect(cx-cylInnerW/2, waterSurfaceY, cylInnerW, canvas.height-waterSurfaceY);
+  // Water meniscus ripples
+  ctx.strokeStyle = 'rgba(125,200,255,0.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx-cylInnerW/2, waterSurfaceY);
+  for(let x=-cylInnerW/2;x<=cylInnerW/2;x+=4){
+    ctx.lineTo(cx+x, waterSurfaceY + Math.sin((x+performance.now()/300)*0.4)*0.7);
+  }
+  ctx.stroke();
+  // "น้ำ" label — fixed near bottom of canvas (always visible)
+  ctx.fillStyle = '#7dd3fc';
+  ctx.font = '11px Sarabun';
+  ctx.fillText('น้ำ', cx+cylInnerW/2-22, canvas.height-8);
+  ctx.restore();
+
+  // Tube (plastic): inserted from top
+  // Tube top y = waterSurfaceY - (tubeLenM - tubeBottomDepth) * scale (so length above water = airColumnLength)
+  // Tube bottom y = waterSurfaceY + tubeBottomDepth * scale (below water if positive)
+  const tubeBotY = waterSurfaceY + state.tubeBottomDepth * scale;
+  const tubeTopY = tubeBotY - state.tubeLenM * scale;
+  const tubeW = 38;
+  const tubeWall = 3;
+
+  // Tube cylinder
+  ctx.save();
+  // Outer rect
+  ctx.fillStyle = 'rgba(200,210,225,0.10)';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.rect(cx-tubeW/2, tubeTopY, tubeW, tubeBotY-tubeTopY);
+  ctx.fill();
+  ctx.stroke();
+  // Inner air column highlighting
+  ctx.fillStyle = 'rgba(129,140,248,0.10)';
+  const airTopY = tubeTopY;
+  const airBotY = Math.min(tubeBotY, waterSurfaceY);
+  ctx.fillRect(cx-tubeW/2+tubeWall, airTopY+tubeWall, tubeW-2*tubeWall, airBotY-airTopY-tubeWall);
+  ctx.restore();
+
+  // Standing wave visualization inside air column (when sounding & toggle ON)
+  const L = airColumnLength();
+  const lam = lambdaOf(state.freq, state.tempC);
+  if(state.showWave && L > 0.005 && (state.baseToneGain>0.02 || state.continuous)){
+    drawStandingWave(cx, airTopY, airBotY, tubeW, L, lam);
+  }
+
+  // Tuning fork on top of tube
+  drawTuningFork(cx, tubeTopY, tubeW);
+
+  // Labels: air column length
+  drawAirColumnLabel(cx+tubeW/2+30, airTopY, airBotY, L);
+
+  // Ruler (right side, in cm)
+  drawRuler(cx+cylInnerW/2+50, waterSurfaceY, scale);
+
+  // Cache layout for mouse handlers
+  state._layout = {cx, waterSurfaceY, scale, cylInnerW};
+
+  // Caliper (digital)
+  if(state.caliperOn) drawCaliper(cx, waterSurfaceY, scale, cylInnerW);
+
+  // Hint: resonance lines
+  if(state.showHint){
+    drawResonanceHints(cx, waterSurfaceY, scale, lam, tubeW);
+  }
+
+  // Update overlays
+  updateReadouts();
+}
+
+function drawStandingWave(cx, yTop, yBot, tubeW, L, lam){
+  // standing wave from closed bottom (yBot, displacement=0) to open top (yTop, displacement antinode)
+  // y position: from yBot (node, x=0 in pipe coordinate) up to yTop (x=L)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(129,140,248,0.85)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  const phase = performance.now()/1000 * 2*Math.PI * 4; // visual
+  const amp = (tubeW/2 - 6) * (0.3 + 0.7*state.loudness);
+  const N = 60;
+  for(let i=0;i<=N;i++){
+    const t = i/N;
+    const x = t*L; // distance from closed end
+    // standing wave: sin(kx) modes; for closed-open: k=(2n-1)π/(2L) -- but visually show as sin(kx) where k = π/(2L) (fundamental) modulated by which n is closest
+    // simplest: use the current λ, k = 2π/λ. Closed-bottom: A(x) = sin(kx) — node at x=0, antinode where kx=π/2 (x=λ/4)
+    const k = 2*Math.PI/lam;
+    const A = Math.sin(k*x);
+    const yy = yBot - t*(yBot - yTop);
+    const xx = cx + A*amp*Math.sin(phase);
+    if(i===0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+  }
+  ctx.stroke();
+
+  // Envelope (dashed)
+  ctx.setLineDash([3,3]);
+  ctx.strokeStyle = 'rgba(244,114,182,0.45)';
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t = i/N;
+    const x = t*L;
+    const k = 2*Math.PI/lam;
+    const A = Math.sin(k*x);
+    const yy = yBot - t*(yBot - yTop);
+    const xx = cx + Math.abs(A)*amp;
+    if(i===0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+  }
+  ctx.stroke();
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t = i/N;
+    const x = t*L;
+    const k = 2*Math.PI/lam;
+    const A = Math.sin(k*x);
+    const yy = yBot - t*(yBot - yTop);
+    const xx = cx - Math.abs(A)*amp;
+    if(i===0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawTuningFork(cx, tubeTopY, tubeW){
+  ctx.save();
+  // base / stem
+  const stemH = 26;
+  const baseY = tubeTopY - 14;
+  ctx.fillStyle = '#cbd5e1';
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1;
+  // handle
+  ctx.fillRect(cx-3, baseY, 6, 12);
+  // fork base
+  ctx.fillRect(cx-22, baseY-6, 44, 8);
+  // tines
+  ctx.fillRect(cx-22, baseY-6-stemH, 6, stemH);
+  ctx.fillRect(cx+16, baseY-6-stemH, 6, stemH);
+  ctx.strokeRect(cx-22, baseY-6-stemH, 6, stemH);
+  ctx.strokeRect(cx+16, baseY-6-stemH, 6, stemH);
+
+  // vibration jiggle if playing
+  if(state.baseToneGain > 0.05 || state.continuous){
+    const j = Math.sin(performance.now()/30) * 1.5 * state.baseToneGain;
+    ctx.fillStyle = 'rgba(56,189,248,0.4)';
+    ctx.fillRect(cx-22+j, baseY-6-stemH, 6, stemH);
+    ctx.fillRect(cx+16-j, baseY-6-stemH, 6, stemH);
+  }
+
+  // Label
+  ctx.fillStyle = 'var(--text)';
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = 'bold 11px Sarabun';
+  ctx.textAlign = 'center';
+  ctx.fillText('🎵 ส้อมเสียง '+state.freq+' Hz', cx, baseY-6-stemH-6);
+  ctx.restore();
+}
+
+function drawAirColumnLabel(x, yTop, yBot, L){
+  ctx.save();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 1.2;
+  // bracket (clipped to visible area)
+  const visTop = Math.max(yTop, 40);
+  const visBot = Math.min(yBot, canvas.height-20);
+  if(visBot > visTop){
+    ctx.beginPath();
+    ctx.moveTo(x-4, visTop);
+    ctx.lineTo(x, visTop);
+    ctx.lineTo(x, visBot);
+    ctx.lineTo(x-4, visBot);
+    ctx.stroke();
+    // arrow indicators if bracket clipped
+    if(yTop < 40){
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath();
+      ctx.moveTo(x-2, 44); ctx.lineTo(x+2, 44); ctx.lineTo(x, 38); ctx.fill();
+    }
+    if(yBot > canvas.height-20){
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath();
+      ctx.moveTo(x-2, canvas.height-24); ctx.lineTo(x+2, canvas.height-24); ctx.lineTo(x, canvas.height-18); ctx.fill();
+    }
+  }
+  // Label pill — clamped to visible area
+  const trueMid = (yTop+yBot)/2;
+  const labelY = Math.max(50, Math.min(canvas.height-30, trueMid));
+  const text = 'L = '+L.toFixed(3)+' m';
+  const sub = '('+ (L*100).toFixed(1) +' cm)';
+  ctx.font = 'bold 12px Sarabun';
+  const tw = Math.max(ctx.measureText(text).width, 64);
+  // Leader line if clamped
+  if(Math.abs(labelY-trueMid) > 2 && trueMid >= 0 && trueMid <= canvas.height){
+    ctx.setLineDash([2,2]);
+    ctx.strokeStyle = 'rgba(56,189,248,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(x+2, Math.max(40, Math.min(canvas.height-20, trueMid)));
+    ctx.lineTo(x+10, labelY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // pill background
+  ctx.fillStyle = 'rgba(15,23,42,0.88)';
+  ctx.strokeStyle = 'rgba(56,189,248,0.55)';
+  ctx.lineWidth = 1;
+  const bx = x+6, by = labelY-11, bw = tw+12, bh = 30;
+  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 6); ctx.fill(); ctx.stroke(); }
+  else { ctx.fillRect(bx,by,bw,bh); ctx.strokeRect(bx,by,bw,bh); }
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText(text, bx+5, labelY+3);
+  ctx.font = '10px Sarabun';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(sub, bx+5, labelY+16);
+  ctx.restore();
+}
+
+/* ============ Digital Caliper ============ */
+function caliperHandleX(cx, cylInnerW){ return cx - cylInnerW/2 - 78; }
+function drawCaliper(cx, waterSurfaceY, scale, cylInnerW){
+  const yTop = waterSurfaceY - state.caliperTopM*scale;
+  const yBot = waterSurfaceY - state.caliperBotM*scale;
+  const y1 = Math.min(yTop, yBot);
+  const y2 = Math.max(yTop, yBot);
+  const xH = caliperHandleX(cx, cylInnerW);
+  const xR = cx + cylInnerW/2 + 18;
+  ctx.save();
+  // Body bar (caliper beam) — vertical
+  ctx.fillStyle = 'rgba(52,211,153,0.18)';
+  ctx.fillRect(xH+13, y1, 6, y2-y1);
+  // shaded measurement band
+  ctx.fillStyle = 'rgba(52,211,153,0.08)';
+  ctx.fillRect(xH+19, y1, xR-(xH+19), y2-y1);
+  // jaws (horizontal dashed lines)
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([7,4]);
+  ctx.beginPath();
+  ctx.moveTo(xH+19, yTop); ctx.lineTo(xR, yTop);
+  ctx.moveTo(xH+19, yBot); ctx.lineTo(xR, yBot);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Handles (draggable squares)
+  function drawHandle(y, isTop){
+    ctx.fillStyle = isTop ? '#34d399' : '#6ee7b7';
+    ctx.strokeStyle = '#0a0e1a';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(xH, y-10, 22, 20);
+    ctx.strokeRect(xH, y-10, 22, 20);
+    ctx.fillStyle = '#0a0e1a';
+    ctx.font = 'bold 11px Sarabun';
+    ctx.textAlign = 'center';
+    ctx.fillText(isTop?'▲':'▼', xH+11, y+4);
+    ctx.textAlign = 'left';
+  }
+  drawHandle(yTop, true);
+  drawHandle(yBot, false);
+  // Per-jaw readout (left of handle)
+  ctx.fillStyle = '#86efac';
+  ctx.font = 'bold 10px Share Tech Mono';
+  ctx.textAlign = 'right';
+  ctx.fillText(state.caliperTopM.toFixed(3)+' m', xH-4, yTop+3);
+  ctx.fillText(state.caliperBotM.toFixed(3)+' m', xH-4, yBot+3);
+  ctx.textAlign = 'left';
+  // Δ pill (right of cylinder)
+  const delta = Math.abs(state.caliperTopM - state.caliperBotM);
+  const midY = (y1+y2)/2;
+  const pillX = xR+4, pillY = Math.max(46, Math.min(canvas.height-58, midY-24));
+  ctx.fillStyle = 'rgba(15,23,42,0.9)';
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 1;
+  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(pillX, pillY, 132, 52, 7); ctx.fill(); ctx.stroke(); }
+  else { ctx.fillRect(pillX,pillY,132,52); ctx.strokeRect(pillX,pillY,132,52); }
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 13px Share Tech Mono';
+  ctx.fillText('Δ = '+(delta*100).toFixed(1)+' cm', pillX+8, pillY+15);
+  ctx.font = '10px Share Tech Mono';
+  ctx.fillStyle = '#86efac';
+  ctx.fillText('= '+delta.toFixed(3)+' m', pillX+8, pillY+30);
+  ctx.fillText('λ = 2Δ = '+(2*delta).toFixed(3)+' m', pillX+8, pillY+44);
+  ctx.restore();
+}
+
+/* hit-test caliper handles. returns 'top' | 'bot' | null */
+function caliperHit(mx, my){
+  if(!state.caliperOn) return null;
+  const {cx, waterSurfaceY, scale, cylInnerW} = state._layout;
+  const xH = caliperHandleX(cx, cylInnerW);
+  if(mx < xH-2 || mx > xH+24) return null;
+  const yTop = waterSurfaceY - state.caliperTopM*scale;
+  const yBot = waterSurfaceY - state.caliperBotM*scale;
+  if(Math.abs(my - yTop) < 14) return 'top';
+  if(Math.abs(my - yBot) < 14) return 'bot';
+  return null;
+}
+
+function drawRuler(x, surfaceY, scale){
+  ctx.save();
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Share Tech Mono';
+  // ruler 0 at water surface, going UP (positive up)
+  const maxCm = Math.ceil(state.tubeLenM*100);
+  for(let cm=0; cm<=maxCm; cm+=1){
+    const y = surfaceY - cm/100 * scale;
+    const long = (cm%10===0);
+    const mid = (cm%5===0);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (long?12:(mid?8:4)), y);
+    ctx.stroke();
+    if(long){
+      ctx.fillText(cm+'', x+15, y+3);
+    }
+  }
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('cm', x+15, surfaceY+12);
+  ctx.restore();
+}
+
+function drawResonanceHints(cx, surfaceY, scale, lam, tubeW){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+  ctx.fillStyle = 'rgba(251,191,36,0.9)';
+  ctx.setLineDash([4,3]);
+  ctx.lineWidth = 1;
+  ctx.font = '10px Share Tech Mono';
+  for(let n=1; n<=10; n++){
+    const Ln = (2*n-1)*lam/4;
+    if(Ln > state.tubeLenM+0.001) break;
+    const y = surfaceY - Ln*scale;
+    ctx.beginPath();
+    ctx.moveTo(cx-tubeW/2-8, y);
+    ctx.lineTo(cx-tubeW/2-50, y);
+    ctx.stroke();
+    ctx.fillText('n='+n+' · L='+Ln.toFixed(3)+'m', cx-tubeW/2-130, y+3);
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+/* ====== Mouse drag ====== */
+function _pointerDown(mx, my){
+  // priority: caliper handle > tube drag
+  const cHit = caliperHit(mx, my);
+  if(cHit){
+    state.caliperDragging = cHit;
+    state.dragStartY = my;
+    state.caliperStartM = (cHit==='top') ? state.caliperTopM : state.caliperBotM;
+    canvas.classList.add('dragging');
+    return;
+  }
+  state.isDragging = true;
+  state.dragStartY = my;
+  state.dragStartDepth = state.tubeBottomDepth;
+  canvas.classList.add('dragging');
+}
+function _pointerMove(mx, my){
+  if(state.caliperDragging){
+    const scale = state._layout.scale || getScale();
+    const dy = my - state.dragStartY;
+    // dy positive = moving down on screen = LESS meters above water (subtract)
+    const newM = Math.max(0, Math.min(state.tubeLenM, state.caliperStartM - dy/scale));
+    if(state.caliperDragging==='top') state.caliperTopM = newM;
+    else state.caliperBotM = newM;
+    draw();
+    return;
+  }
+  if(state.isDragging){
+    const dy = my - state.dragStartY;
+    const scale = getScale();
+    state.tubeBottomDepth = Math.max(-0.05, Math.min(state.tubeLenM-0.05, state.dragStartDepth + dy/scale));
+    draw();
+  }
+}
+function _pointerUp(){
+  state.isDragging = false;
+  state.caliperDragging = null;
+  canvas.classList.remove('dragging');
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  const r = canvas.getBoundingClientRect();
+  _pointerDown(e.clientX-r.left, e.clientY-r.top);
+});
+canvas.addEventListener('mousemove', (e) => {
+  const r = canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  // hover cursor hint
+  if(!state.isDragging && !state.caliperDragging){
+    canvas.style.cursor = caliperHit(mx,my) ? 'ns-resize' : 'grab';
+  }
+  _pointerMove(mx, my);
+});
+canvas.addEventListener('mouseup', _pointerUp);
+canvas.addEventListener('mouseleave', _pointerUp);
+// touch
+canvas.addEventListener('touchstart', (e) => {
+  const t = e.touches[0]; const r = canvas.getBoundingClientRect();
+  _pointerDown(t.clientX-r.left, t.clientY-r.top);
+  e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchmove', (e) => {
+  const t = e.touches[0]; const r = canvas.getBoundingClientRect();
+  _pointerMove(t.clientX-r.left, t.clientY-r.top);
+  e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchend', _pointerUp);
+
+// Mouse wheel fine adjust
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const step = (e.shiftKey?0.001:0.005) * (e.deltaY>0?1:-1);
+  state.tubeBottomDepth = Math.max(-0.05, Math.min(state.tubeLenM-0.05, state.tubeBottomDepth + step));
+  draw();
+}, {passive:false});
+
+/* ====== Main RAF loop ====== */
+function loop(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min((ts-lastTs)/1000, 0.05);
+  lastTs = ts;
+  if(state.autoRunning) autoStep(dt);
+  if(state.audioCtx) tickEnvelope();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ====== Theory canvases ====== */
+function drawHarmonic(canvasId, n){
+  const c = $(canvasId); if(!c) return;
+  const cx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  cx.clearRect(0,0,W,H);
+  // closed bottom
+  const pad = 14;
+  const yTop = pad, yBot = H-pad-12;
+  // tube outline
+  cx.strokeStyle = '#475569'; cx.lineWidth = 1.5;
+  cx.strokeRect(20, yTop, W-40, yBot-yTop);
+  // closed bottom indicator
+  cx.fillStyle = '#3b82f6';
+  cx.fillRect(20, yBot-4, W-40, 4);
+  // wave
+  cx.strokeStyle = '#818cf8'; cx.lineWidth = 1.6;
+  cx.beginPath();
+  const mid = W/2;
+  const amp = (W-46)/2 - 4;
+  // n harmonics: k = (2n-1)π/(2L); displacement A(x) = sin(kx) from closed end
+  for(let i=0;i<=80;i++){
+    const t = i/80;
+    const y = yBot - t*(yBot-yTop);
+    const A = Math.sin((2*n-1)*Math.PI/2 * t);
+    const x = mid + A*amp;
+    if(i===0) cx.moveTo(x,y); else cx.lineTo(x,y);
+  }
+  cx.stroke();
+  cx.setLineDash([2,2]); cx.strokeStyle = '#f472b6';
+  cx.beginPath();
+  for(let i=0;i<=80;i++){ const t=i/80; const y=yBot-t*(yBot-yTop); const A=Math.sin((2*n-1)*Math.PI/2*t); cx.beginPath?null:null; if(i===0)cx.moveTo(mid+Math.abs(A)*amp,y);else cx.lineTo(mid+Math.abs(A)*amp,y);}
+  cx.stroke();
+  cx.beginPath();
+  for(let i=0;i<=80;i++){ const t=i/80; const y=yBot-t*(yBot-yTop); const A=Math.sin((2*n-1)*Math.PI/2*t); if(i===0)cx.moveTo(mid-Math.abs(A)*amp,y);else cx.lineTo(mid-Math.abs(A)*amp,y);}
+  cx.stroke();
+  cx.setLineDash([]);
+  // mark node/antinode dots
+  for(let k=0;k<=2*n;k++){
+    const t = k/(2*n-1);
+    if(t>1) break;
+    const y = yBot - t*(yBot-yTop);
+    const A = Math.sin((2*n-1)*Math.PI/2 * t);
+    if(Math.abs(A)<0.01){
+      cx.fillStyle='#34d399'; cx.beginPath(); cx.arc(mid,y,3,0,7); cx.fill();
+    } else if(Math.abs(Math.abs(A)-1)<0.01){
+      cx.fillStyle='#f87171'; cx.beginPath(); cx.arc(mid,y,3,0,7); cx.fill();
+    }
+  }
+}
+
+function drawTheoryStanding(){
+  const c = $('thCv1'); if(!c) return;
+  // Make canvas crisp on retina
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth || 800;
+  c.width = w*dpr; c.height = 220*dpr;
+  c.style.height = '220px';
+  const cx = c.getContext('2d'); cx.scale(dpr,dpr);
+  const W = w, H = 220;
+  cx.clearRect(0,0,W,H);
+  // axes baseline (closed end at left, open at right)
+  const padL=50, padR=20, padT=20, padB=30;
+  const x0=padL, x1=W-padR; const yMid = (H-padT-padB)/2 + padT;
+  // tube
+  cx.strokeStyle = '#475569';
+  cx.strokeRect(x0, padT, x1-x0, H-padT-padB);
+  // closed end mark
+  cx.fillStyle = '#3b82f6';
+  cx.fillRect(x0-4, padT, 4, H-padT-padB);
+  cx.fillStyle = '#94a3b8';
+  cx.font='11px Sarabun'; cx.fillText('ปลายปิด (น้ำ)', x0-4, H-8);
+  cx.fillText('ปลายเปิด (ปาก)', x1-70, H-8);
+  // standing wave (third harmonic for richer visual)
+  const amp = (H-padT-padB)/2 - 6;
+  const L = x1-x0;
+  cx.strokeStyle = '#818cf8'; cx.lineWidth=2;
+  cx.beginPath();
+  for(let i=0;i<=200;i++){
+    const t = i/200;
+    const x = x0 + t*L;
+    const A = Math.sin(3*Math.PI/2 * t); // n=2 (3rd harmonic)
+    const y = yMid - A*amp;
+    if(i===0) cx.moveTo(x,y); else cx.lineTo(x,y);
+  }
+  cx.stroke();
+  // envelope dashed
+  cx.strokeStyle = 'rgba(244,114,182,0.6)'; cx.setLineDash([4,3]);
+  cx.beginPath();
+  for(let i=0;i<=200;i++){const t=i/200;const x=x0+t*L;const A=Math.sin(3*Math.PI/2*t);const y=yMid-Math.abs(A)*amp;if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);}
+  cx.stroke();
+  cx.beginPath();
+  for(let i=0;i<=200;i++){const t=i/200;const x=x0+t*L;const A=Math.sin(3*Math.PI/2*t);const y=yMid+Math.abs(A)*amp;if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);}
+  cx.stroke();
+  cx.setLineDash([]);
+  // nodes/antinodes
+  for(let i=0;i<=200;i++){
+    const t = i/200; const x = x0+t*L;
+    const A = Math.sin(3*Math.PI/2*t);
+    if(Math.abs(A)<0.005){ cx.fillStyle='#34d399'; cx.beginPath();cx.arc(x,yMid,5,0,7);cx.fill(); }
+  }
+  // antinodes (max |A|=1 at t=1/3 and t=1)
+  [1/3, 1].forEach(t=>{ const x=x0+t*L; cx.fillStyle='#f87171'; cx.beginPath(); cx.arc(x,yMid,5,0,7); cx.fill();});
+  // axis center line
+  cx.strokeStyle='rgba(148,163,184,0.3)'; cx.setLineDash([2,2]);
+  cx.beginPath(); cx.moveTo(x0,yMid); cx.lineTo(x1,yMid); cx.stroke();
+  cx.setLineDash([]);
+}
+
+function drawTheoryVT(){
+  const c = $('thCv2'); if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth || 800;
+  c.width = w*dpr; c.height = 200*dpr;
+  c.style.height = '200px';
+  const cx = c.getContext('2d'); cx.scale(dpr,dpr);
+  const W=w, H=200;
+  cx.clearRect(0,0,W,H);
+  const padL=60, padR=20, padT=18, padB=34;
+  const x0=padL, x1=W-padR;
+  const y0=H-padB, y1=padT;
+  // axes
+  cx.strokeStyle='#475569'; cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(x0,y0);cx.lineTo(x1,y0);cx.moveTo(x0,y0);cx.lineTo(x0,y1);cx.stroke();
+  // y range 320-360
+  function YY(v){ return y0 - (v-320)/(360-320)*(y0-y1); }
+  function XX(T){ return x0 + T/40*(x1-x0); }
+  // ticks
+  cx.fillStyle='#94a3b8'; cx.font='10px Share Tech Mono';
+  for(let T=0;T<=40;T+=10){ const x=XX(T); cx.strokeStyle='#334155'; cx.beginPath();cx.moveTo(x,y0);cx.lineTo(x,y0+4);cx.stroke(); cx.fillText(T+'°',x-6,y0+16);}
+  for(let v=320;v<=360;v+=10){ const y=YY(v); cx.strokeStyle='#334155'; cx.beginPath();cx.moveTo(x0,y);cx.lineTo(x0-4,y);cx.stroke(); cx.fillText(v+'',x0-30,y+3);}
+  cx.fillStyle='#94a3b8'; cx.font='11px Sarabun';
+  cx.fillText('T (°C)', (x0+x1)/2, H-6); cx.fillText('v (m/s)', 12, padT+2);
+  // line v = 331.4 + 0.6T
+  cx.strokeStyle='#818cf8'; cx.lineWidth=2; cx.beginPath();
+  for(let T=0;T<=40;T+=1){
+    const v = 331.4+0.6*T;
+    const x=XX(T), y=YY(v);
+    if(T===0)cx.moveTo(x,y); else cx.lineTo(x,y);
+  }
+  cx.stroke();
+  // current marker
+  const Tnow = state.tempC, vnow = vSound(Tnow);
+  cx.fillStyle='#fb923c';
+  cx.beginPath(); cx.arc(XX(Tnow),YY(vnow),5,0,7); cx.fill();
+  cx.fillStyle='#fdba74'; cx.font='bold 11px Share Tech Mono';
+  cx.fillText('T='+Tnow.toFixed(1)+'°C, v='+vnow.toFixed(1)+' m/s', XX(Tnow)+10, YY(vnow)-8);
+}
+
+function drawTheoryLoudVsL(){
+  const c = $('thCv3'); if(!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth || 800;
+  c.width = w*dpr; c.height = 220*dpr;
+  c.style.height = '220px';
+  const cx = c.getContext('2d'); cx.scale(dpr,dpr);
+  const W=w, H=220;
+  cx.clearRect(0,0,W,H);
+  const padL=60, padR=20, padT=18, padB=34;
+  const x0=padL, x1=W-padR; const y0=H-padB, y1=padT;
+  cx.strokeStyle='#475569';
+  cx.beginPath();cx.moveTo(x0,y0);cx.lineTo(x1,y0);cx.moveTo(x0,y0);cx.lineTo(x0,y1);cx.stroke();
+  const f = state.freq, T=state.tempC, lam=lambdaOf(f,T);
+  function XX(L){ return x0 + L/0.5*(x1-x0); }
+  function YY(v){ return y0 - v*(y0-y1); }
+  cx.fillStyle='#94a3b8'; cx.font='10px Share Tech Mono';
+  for(let L=0;L<=0.5;L+=0.05){ const x=XX(L); cx.strokeStyle='#334155'; cx.beginPath();cx.moveTo(x,y0);cx.lineTo(x,y0+4);cx.stroke(); cx.fillText((L*100).toFixed(0),x-6,y0+16);}
+  cx.font='11px Sarabun'; cx.fillText('L (cm)',(x0+x1)/2,H-6); cx.fillText('Loudness (สัมพัทธ์)', 8, padT-2);
+  cx.strokeStyle='#34d399'; cx.lineWidth=2; cx.beginPath();
+  for(let i=0;i<=400;i++){
+    const L = i/400 * 0.5;
+    const loud = loudnessAtL(L, lam);
+    const x=XX(L), y=YY(loud);
+    if(i===0)cx.moveTo(x,y); else cx.lineTo(x,y);
+  }
+  cx.stroke();
+  // mark resonance L values
+  for(let n=1;n<=10;n++){
+    const Ln = (2*n-1)*lam/4;
+    if(Ln>0.5) break;
+    const x = XX(Ln);
+    cx.strokeStyle='rgba(251,191,36,0.5)'; cx.setLineDash([3,3]);
+    cx.beginPath(); cx.moveTo(x,y0); cx.lineTo(x,y1); cx.stroke();
+    cx.setLineDash([]);
+    cx.fillStyle='#fbbf24'; cx.font='10px Share Tech Mono';
+    cx.fillText('n='+n, x-6, y1+12);
+  }
+  // f-label
+  cx.fillStyle='#94a3b8'; cx.font='11px Sarabun';
+  cx.fillText('ที่ f = '+f+' Hz, T = '+T.toFixed(1)+'°C, λ = '+lam.toFixed(3)+' m', x0+10, padT+12);
+}
+
+function drawTheory(){
+  drawHarmonic('hCv1', 1);
+  drawHarmonic('hCv2', 2);
+  drawHarmonic('hCv3', 3);
+  drawHarmonic('hCv4', 4);
+  drawTheoryStanding();
+  drawTheoryVT();
+  drawTheoryLoudVsL();
+}
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  if($('tab-theory').classList.contains('active')) drawTheory();
+});
+
+/* ====== DOMContentLoaded ====== */
+window.addEventListener('DOMContentLoaded', () => {
+  // Slider-input sync
+  const v2s = {'vi-T':'sl-T', 'vi-vol':'sl-vol'};
+  function syncVal(inp){
+    const sl = $(v2s[inp.id]); if(!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value)||0));
+    inp.value=v; sl.value=v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(v2s).forEach(([vi,si])=>{
+    const sl=$(si), inp=$(vi);
+    sl.addEventListener('input', ()=>{ inp.value=parseFloat(sl.value); if(si==='sl-T') onTempChange(sl.value); if(si==='sl-vol'){ state.volumePct=parseFloat(sl.value);} });
+    inp.addEventListener('blur', ()=>{ syncVal(inp); if(vi==='vi-T') onTempChange(inp.value); if(vi==='vi-vol'){state.volumePct=parseFloat(inp.value);} });
+    inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') inp.blur(); });
+  });
+
+  resizeCanvas();
+  updateReadouts();
+  updateStepUI();
+  draw();
+  requestAnimationFrame(loop);
+});
+</script>
+
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-44", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
