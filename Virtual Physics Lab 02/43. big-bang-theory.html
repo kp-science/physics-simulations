@@ -2403,6 +2403,7 @@ const ex3 = (function(){
   function draw(){
     fitDpr();
     const w=cv.clientWidth,h=cv.clientHeight;
+    if(w<200 || h<200){ updateReadouts(); return; } // skip when canvas hidden/tiny
     ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
 
@@ -2835,12 +2836,21 @@ const ex4 = (function(){
 
   function draw(){
     fitDpr();
-    const w=cv.clientWidth, h=cv.clientHeight;
+    const w=Math.max(60, cv.clientWidth), h=Math.max(60, cv.clientHeight);
     ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#06090f'; ctx.fillRect(0,0,w,h);
     const pad=10, gap=8;
-    const skyH = Math.round((h-pad*2-gap)*0.36);
-    const plotH = (h-pad*2-gap) - skyH;
+    const skyH = Math.max(40, Math.round((h-pad*2-gap)*0.36));
+    const plotH = Math.max(40, (h-pad*2-gap) - skyH);
+    // Skip if canvas too small (hidden tab)
+    if(w<200 || h<200){
+      // still update DOM readouts so values stay in sync
+      document.getElementById('o4-t').textContent = T.toFixed(3)+' K';
+      const fp = HZ_PER_K_PEAK*T/1e9;
+      document.getElementById('o4-fp').textContent = fp.toFixed(2)+' GHz';
+      document.getElementById('o4-lp').textContent = (0.2898/T*1e3).toFixed(3)+' mm';
+      return;
+    }
     drawSkyMap(pad, pad, w-pad*2, skyH, T);
     drawFitGraph(pad, pad+skyH+gap, w-pad*2, plotH, T);
   }
@@ -2854,18 +2864,34 @@ const ex4 = (function(){
     `).join('');
   }
 
+  function setT(v){
+    T = Math.max(1, Math.min(10, parseFloat(v)||5));
+    const sl = document.getElementById('sl-tcmb');
+    const vi = document.getElementById('vi-tcmb');
+    if(sl) sl.value = T;
+    if(vi) vi.value = T.toFixed(3);
+    draw();
+  }
+
   return {
     init(){
-      bindSlider('sl-tcmb','vi-tcmb', v=>{T=v; draw();});
+      const sl = document.getElementById('sl-tcmb');
+      const vi = document.getElementById('vi-tcmb');
+      if(sl){
+        sl.addEventListener('input', ()=> setT(sl.value));
+        sl.addEventListener('change', ()=> setT(sl.value));
+      }
+      if(vi){
+        vi.addEventListener('input', ()=> setT(vi.value));
+        vi.addEventListener('blur', ()=> setT(vi.value));
+        vi.addEventListener('keypress', e=>{ if(e.key==='Enter') vi.blur(); });
+      }
       draw();
     },
     draw,
-    fitNow(){ T=2.725;
-      document.getElementById('sl-tcmb').value=T;
-      document.getElementById('vi-tcmb').value=T.toFixed(3); draw(); },
-    reset(){ T=5;
-      document.getElementById('sl-tcmb').value=T;
-      document.getElementById('vi-tcmb').value=T; draw(); records.length=0; renderTable(); },
+    setT,
+    fitNow(){ setT(2.725); },
+    reset(){ setT(5); records.length=0; renderTable(); },
     record(){
       const fp = HZ_PER_K_PEAK*T/1e9;
       const lp = 0.2898/T*1e3;
@@ -3166,16 +3192,19 @@ function drawThComposition(){
    INIT
    ============================================================ */
 window.addEventListener('DOMContentLoaded', ()=>{
-  ex1.init();
-  ex2.init();
-  ex3.init();
-  ex4.init();
+  // each init wrapped so one failure doesn't break the others
+  try{ ex1.init(); }catch(e){ console.error('ex1.init failed:', e); }
+  try{ ex2.init(); }catch(e){ console.error('ex2.init failed:', e); }
+  try{ ex3.init(); }catch(e){ console.error('ex3.init failed:', e); }
+  try{ ex4.init(); }catch(e){ console.error('ex4.init failed:', e); }
   // resize
   window.addEventListener('resize', ()=>{
-    if(CURRENT_EXP===1) ex1.draw();
-    if(CURRENT_EXP===2) ex2.draw();
-    if(CURRENT_EXP===3) ex3.draw();
-    if(CURRENT_EXP===4) ex4.draw();
+    try{
+      if(CURRENT_EXP===1) ex1.draw();
+      if(CURRENT_EXP===2) ex2.draw();
+      if(CURRENT_EXP===3) ex3.draw();
+      if(CURRENT_EXP===4) ex4.draw();
+    }catch(e){ console.error('resize redraw failed:', e); }
   });
 });
 </script>
