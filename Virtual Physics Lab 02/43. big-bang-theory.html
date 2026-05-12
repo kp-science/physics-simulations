@@ -61,8 +61,8 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 /* layout */
 .exp-wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;padding:16px 20px}
 @media(max-width:980px){.exp-wrap{grid-template-columns:1fr}}
-.canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;min-height:380px;display:flex;flex-direction:column}
-canvas{display:block;width:100%;height:auto;background:radial-gradient(ellipse at center,#0c1428 0%,#06090f 100%)}
+.canvas-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+canvas{display:block;width:100%;aspect-ratio:700/430;background:radial-gradient(ellipse at center,#0c1428 0%,#06090f 100%)}
 .side{display:flex;flex-direction:column;gap:12px}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
 .card h3{font-size:.92rem;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px}
@@ -128,6 +128,15 @@ td input:focus{outline:none;border-color:var(--accent)}
 
 footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border);margin-top:20px}
 .toolbar{display:flex;gap:6px;align-items:center;padding:8px 12px;background:#0a1224;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tier-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d1422;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.tier-row-label{color:var(--muted);font-size:.82rem;flex-shrink:0}
+.tier-chips{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+.tier-chip{background:#152033;border:1.5px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;font-weight:600;line-height:1.3;text-align:center;transition:.15s;min-width:130px}
+.tier-chip .tc-num{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+.tier-chip .tc-time{display:block;font-family:'Share Tech Mono',monospace;color:var(--accent2);font-size:.74rem;margin-top:2px}
+.tier-chip:hover{border-color:var(--accent);color:var(--accent)}
+.tier-chip.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tier-chip.on .tc-num,.tier-chip.on .tc-time{color:#0a0e1a}
 .toolbar .info{color:var(--muted);font-size:.78rem;margin-left:auto}
 
 /* === KP Topbar === */
@@ -197,17 +206,19 @@ footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:.75rem;b
   <div class="exp-pane" id="exp1">
     <div class="exp-wrap">
       <div class="canvas-wrap">
-        <div class="toolbar">
-          <button class="btn btn-primary" onclick="ex1.play()">▶ ปล่อยอัตโนมัติ</button>
-          <button class="btn btn-ghost" onclick="ex1.pause()">⏸ หยุด</button>
-          <button class="btn btn-ghost" onclick="ex1.reset()">↻ รีเซ็ต</button>
-          <button class="btn btn-success" onclick="ex1.snapshot()">📸 จับภาพ</button>
-          <span class="info">ลาก slider เวลา · คลิกปุ่ม 🔬 ดูโครงสร้างอนุภาค</span>
+        <div class="tier-row">
+          <span class="tier-row-label">เลือกช่วงเวลา :</span>
+          <div class="tier-chips" id="tierChips"></div>
         </div>
-        <div class="toolbar" id="zoomBar" style="background:#0d1422;padding:6px 12px">
-          <span style="color:var(--muted);font-size:.78rem">🔬 ซูมโครงสร้าง :</span>
-          <span id="zoomBtns"></span>
-          <button class="btn btn-ghost" onclick="ex1.unzoom()" id="unzoomBtn" style="display:none">✕ ออกจากซูม</button>
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="ex1.play()">▶ ไล่ไทม์ไลน์</button>
+          <button class="btn btn-ghost" onclick="ex1.pause()">⏸ หยุด</button>
+          <button class="btn btn-ghost" onclick="ex1.reset()">↻ ย้อนต้น</button>
+          <button class="btn btn-success" onclick="ex1.snapshot()">📸 จับภาพ</button>
+          <span class="info">คลิกการ์ดอนุภาคที่มีไอคอน 🔬 เพื่อทดลองสร้าง</span>
+        </div>
+        <div class="toolbar" id="zoomBar" style="background:#0d1422;padding:6px 12px;display:none">
+          <button class="btn btn-ghost" onclick="ex1.unzoom()" id="unzoomBtn">✕ ออกจากโหมดสร้าง · กลับสู่กริด</button>
         </div>
         <canvas id="cv1" width="700" height="430"></canvas>
         <div style="padding:10px 12px;background:#0a1224;border-top:1px solid var(--border)">
@@ -732,80 +743,208 @@ const ex1 = (function(){
     if(w<10) w = (cv.parentElement && cv.parentElement.clientWidth) || 700;
     if(h<10) h = w * 430/700;
     cv.width = w * dpr; cv.height = h * dpr;
-    cv.style.height = h+'px';
+    cv.style.removeProperty('height');
     ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  /* ============================================================
+     SIMPLIFIED LAYOUT — 6 tiers, 13 particles in clear grid
+     ============================================================ */
+  const TIERS = [
+    {n:1, name:'ยุคต้นกำเนิด', range:'10⁻⁴³ – 10⁻³² s', tRange:'10³² – 10²⁷ K',
+     logMin:-43, logMax:-32, center:-37, color:'#fde68a',
+     story:'ทุกอนุภาคพื้นฐานเกิดเป็นคู่ — ควาร์ก/แอนติควาร์ก/อิเล็กตรอน/โพซิตรอน/นิวทริโน · ยังไม่มีโฟตอน'},
+    {n:2, name:'ยุคควาร์ก', range:'10⁻³² – 10⁻⁶ s', tRange:'10²⁷ – 10¹³ K',
+     logMin:-32, logMax:-6, center:-15, color:'#fbbf24',
+     story:'โฟตอนปรากฏแล้ว · ควาร์กยังเป็นอิสระ · เกิดความไม่สมดุลของสสาร/ปฏิสสาร'},
+    {n:3, name:'ยุคแฮดรอน', range:'10⁻⁶ s – 3 นาที', tRange:'10¹³ – 10⁹ K',
+     logMin:-6, logMax:2.255, center:-2, color:'#fb923c',
+     story:'ควาร์กรวมเป็น โปรตอน + นิวตรอน · ปฏิสสารส่วนใหญ่ถูกล้างไปแล้ว'},
+    {n:4, name:'ยุคสังเคราะห์นิวเคลียส', range:'3 นาที – 300,000 ปี', tRange:'10⁹ – 5,000 K',
+     logMin:2.255, logMax:12.98, center:7, color:'#a78bfa',
+     story:'p + n หลอมรวมเป็น นิวเคลียส He · สัดส่วน 75% H + 25% He · plasma หนาทึบ'},
+    {n:5, name:'ยุคโปร่งใส (Recombination)', range:'300,000 ปี – 1,000 ล้านปี', tRange:'5,000 – 100 K',
+     logMin:12.98, logMax:16.50, center:14.5, color:'#60a5fa',
+     story:'e⁻ จับนิวเคลียส → อะตอม H, He · โฟตอนหลุดอิสระ → CMB'},
+    {n:6, name:'ยุคปัจจุบัน', range:'1,000 – 13,800 ล้านปี', tRange:'100 – 2.73 K',
+     logMin:16.50, logMax:17.64, center:17.2, color:'#34d399',
+     story:'อะตอมรวมกันเป็น ดาว → กาแล็กซี · เอกภพเย็นลง · CMB อยู่ที่ 2.725 K'}
+  ];
+
+  function tierAt(lt){
+    for(const t of TIERS) if(lt>=t.logMin && lt<t.logMax) return t;
+    if(lt<TIERS[0].logMin) return TIERS[0];
+    return TIERS[TIERS.length-1];
+  }
+
+  // 13 particles + presence per tier (1-based). Built in textbook order.
+  const PGRID = [
+    {key:'quark',        label:'ควาร์ก',         eng:'q',    tiers:[1,2],         buildable:false},
+    {key:'aquark',       label:'แอนติควาร์ก',     eng:'q̄',    tiers:[1,2],         buildable:false},
+    {key:'electron',     label:'อิเล็กตรอน',      eng:'e⁻',   tiers:[1,2,3,4],     buildable:false},
+    {key:'positron',     label:'โพซิตรอน',        eng:'e⁺',   tiers:[1,2,3],       buildable:false},
+    {key:'neutrino',     label:'นิวทริโน',         eng:'ν',    tiers:[1,2,3,4,5,6], buildable:false},
+    {key:'antineutrino', label:'แอนตินิวทริโน',   eng:'ν̄',    tiers:[1,2,3],       buildable:false},
+    {key:'photon',       label:'โฟตอน',           eng:'γ',    tiers:[2,3,4,5,6],   buildable:false},
+    {key:'proton',       label:'โปรตอน',          eng:'p⁺',   tiers:[3,4],         buildable:true,  zoom:'proton'},
+    {key:'neutron',      label:'นิวตรอน',          eng:'n⁰',   tiers:[3,4],         buildable:true,  zoom:'neutron'},
+    {key:'helium_nuc',   label:'นิวเคลียส He',    eng:'⁴He',  tiers:[4],           buildable:true,  zoom:'helium'},
+    {key:'hatom',        label:'อะตอม H',         eng:'H',    tiers:[5],           buildable:true,  zoom:'hatom'},
+    {key:'heatom',       label:'อะตอม He',        eng:'He',   tiers:[5],           buildable:true,  zoom:'heatom'},
+    {key:'galaxy',       label:'กาแล็กซี',         eng:'',     tiers:[6],           buildable:false}
+  ];
+
+  function drawIconByKey(c, x,y, key, scale=1){
+    switch(key){
+      case 'quark':        drawQuark(c,x,y,16*scale,'u',false); break;
+      case 'aquark':       drawQuark(c,x,y,16*scale,'u',true);  break;
+      case 'electron':     drawElectron(c,x,y,10*scale,false);  break;
+      case 'positron':     drawElectron(c,x,y,10*scale,true);   break;
+      case 'neutrino':     drawNeutrino(c,x,y,7*scale,false);   break;
+      case 'antineutrino': drawNeutrino(c,x,y,7*scale,true);    break;
+      case 'photon':       drawPhoton(c,x-15*scale,y,30*scale,0); break;
+      case 'proton':       drawProton(c,x,y,scale*1.4); break;
+      case 'neutron':      drawNeutron(c,x,y,scale*1.4); break;
+      case 'helium_nuc':   drawHelium4(c,x,y,scale*0.9); break;
+      case 'hatom':        drawHAtom(c,x,y,scale*1.0); break;
+      case 'heatom':       drawHeAtom(c,x,y,scale*1.0); break;
+      case 'galaxy':       drawGalaxy(c,x,y,18*scale); break;
+    }
+  }
+
+  let _gridRects = []; // {x,y,w,h,key,zoom,clickable}
+
+  function drawCard(c, cardX, cardY, cardW, cardH, item, tier){
+    const status = item.tiers.includes(tier.n) ? 'present'
+                  : Math.min(...item.tiers) > tier.n ? 'future' : 'past';
+    const borderC = status==='present' ? '#34d399' : status==='future' ? '#475569' : '#fb7185';
+    const alpha   = status==='present' ? 1 : status==='future' ? 0.28 : 0.4;
+    // card body
+    c.fillStyle = status==='present' ? 'rgba(15,23,42,0.95)' : 'rgba(15,23,42,0.55)';
+    c.fillRect(cardX, cardY, cardW, cardH);
+    c.strokeStyle = borderC; c.lineWidth = 2;
+    c.strokeRect(cardX, cardY, cardW, cardH);
+    // icon
+    c.save(); c.globalAlpha = alpha;
+    drawIconByKey(c, cardX+cardW/2, cardY+cardH*0.38, item.key, 1.0);
+    c.restore();
+    // label
+    c.fillStyle = status==='present' ? '#e2e8f0' : 'rgba(148,163,184,0.6)';
+    c.font = 'bold 11px Sarabun'; c.textAlign='center';
+    c.fillText(item.label, cardX+cardW/2, cardY+cardH-20);
+    c.fillStyle = status==='present' ? '#94a3b8' : 'rgba(148,163,184,0.45)';
+    c.font = '9px "Share Tech Mono"';
+    c.fillText(item.eng, cardX+cardW/2, cardY+cardH-7);
+    c.textAlign='start';
+    // status badge top-right
+    const bx = cardX+cardW-14, by = cardY+8;
+    c.fillStyle = borderC;
+    c.beginPath(); c.arc(bx, by, 7, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#0a0e1a'; c.font='bold 10px "Share Tech Mono"'; c.textAlign='center';
+    c.fillText(status==='present'?'✓':status==='future'?'·':'×', bx, by+3);
+    c.textAlign='start';
+    // build hint
+    if(status==='present' && item.buildable){
+      c.fillStyle='rgba(251,146,60,0.18)';
+      c.fillRect(cardX, cardY+cardH-26, cardW, 14);
+      c.fillStyle='#fb923c'; c.font='bold 9px Sarabun'; c.textAlign='center';
+      c.fillText('🔬 คลิกเพื่อสร้าง', cardX+cardW/2, cardY+cardH-16);
+      c.textAlign='start';
+    }
+    _gridRects.push({x:cardX, y:cardY, w:cardW, h:cardH, key:item.key, zoom:item.zoom,
+                     clickable: status==='present' && item.buildable});
   }
 
   function draw(){
     fitDpr();
     const w = cv.clientWidth, h = cv.clientHeight;
     ctx.clearRect(0,0,w,h);
-    // bg radial: warmer when earlier
-    const era = eraAt(logt);
+    if(_zoomMode){ drawZoom(ctx, w, h, _zoomMode); return; }
+
+    const tier = tierAt(logt);
     const T = tempAt(logt);
 
-    // background gradient
-    const heat = Math.min(1, Math.log10(Math.max(T,2.7))/32);
-    const bg = ctx.createRadialGradient(w/2, h*0.55, 30, w/2, h*0.55, w*0.7);
-    bg.addColorStop(0, `rgba(${Math.round(255*heat)},${Math.round(180*heat)},${Math.round(80*(1-heat))},0.6)`);
-    bg.addColorStop(1, 'rgba(6,9,15,0.95)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0,0,w,h);
+    // soft tier-colored bg
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, tier.color+'22');
+    grad.addColorStop(1, 'rgba(6,9,15,0.95)');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
 
-    // particle visualization
-    drawParticles(ctx, w, h, era);
+    // banner — top strip
+    const bnH = 68;
+    ctx.fillStyle = 'rgba(15,23,42,0.85)';
+    ctx.fillRect(0,0,w,bnH);
+    ctx.strokeStyle = tier.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,bnH); ctx.lineTo(w,bnH); ctx.stroke();
+    // tier label
+    ctx.fillStyle = tier.color; ctx.font = 'bold 16px Sarabun';
+    ctx.fillText('ยุคที่ '+tier.n+' · '+tier.name, 16, 24);
+    ctx.fillStyle = '#cbd5e1'; ctx.font = '12px "Share Tech Mono"';
+    ctx.fillText('เวลา : '+tier.range+'    │    อุณหภูมิ : '+tier.tRange, 16, 44);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '11px Sarabun';
+    ctx.fillText(tier.story, 16, 60);
 
-    // timeline bar (bottom)
-    const barY = h - 90;
-    const barH = 22;
-    const padX = 30;
-    const barW = w - 60;
-    // segments
-    ctx.font = '10px Sarabun';
-    for(const e of ERAS){
-      const t1 = (e[0]+50)/(67.6); // map -50..17.6
-      const t2 = (e[1]+50)/(67.6);
-      const x1 = padX + t1*barW;
-      const x2 = padX + t2*barW;
-      ctx.fillStyle = e[5] + '88';
-      ctx.fillRect(x1, barY, x2-x1, barH);
-      ctx.strokeStyle = '#1e293b';
-      ctx.strokeRect(x1, barY, x2-x1, barH);
-    }
-    // current marker
-    const xM = padX + ((logt+50)/67.6)*barW;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(xM, barY-5); ctx.lineTo(xM, barY+barH+5); ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(xM, barY-5, 4, 0, Math.PI*2); ctx.fill();
-
-    // axis labels
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px "Share Tech Mono"';
-    const ticks = [-43,-36,-32,-12,-6,0,2.255,10,13.08,17.46];
-    for(const tk of ticks){
-      const x = padX + ((tk+50)/67.6)*barW;
-      ctx.fillRect(x, barY+barH, 1, 4);
-      ctx.fillText('10'+supScript(Math.round(tk)), x-12, barY+barH+16);
-    }
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 13px Sarabun';
-    ctx.fillText(era[2], padX, 24);
-    ctx.font = '11px "Share Tech Mono"';
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillText('t = 10'+supScript(logt.toFixed(1))+' s', padX, 42);
-    ctx.fillStyle = '#34d399';
-    ctx.fillText('T ≈ '+fmtSci(T,2)+' K', padX, 58);
-
-    // tag inflation "boom"
+    // mark "INFLATION" badge during tier 2 early
     if(logt>=-36 && logt<=-32){
-      ctx.fillStyle = '#fde68a';
-      ctx.font = 'bold 16px Sarabun';
-      ctx.fillText('💥 INFLATION ×10²⁷', w-220, 30);
+      ctx.fillStyle = '#fde68a'; ctx.font='bold 13px Sarabun';
+      ctx.fillText('💥 ขยายตัว ×10²⁷', w-160, 24);
+    }
+
+    // grid 4×4 (last row has 1 centered)
+    _gridRects = [];
+    const gPadX = 14, gPadTop = bnH+14, gPadBot = 50;
+    const cols = 4, rows = 4;
+    const gW = w - gPadX*2;
+    const gH = h - gPadTop - gPadBot;
+    const cardW = (gW - (cols-1)*8) / cols;
+    const cardH = (gH - (rows-1)*8) / rows;
+    for(let i=0;i<PGRID.length;i++){
+      const r = Math.floor(i/cols), col = i%cols;
+      let cx = gPadX + col*(cardW+8);
+      const cy = gPadTop + r*(cardH+8);
+      // last item (galaxy) centered
+      if(i===12){ cx = (w - cardW)/2; }
+      drawCard(ctx, cx, cy, cardW, cardH, PGRID[i], tier);
+    }
+
+    // 6-step stepper at bottom
+    const sY = h - 36, sH = 26;
+    const stepW = (w-40)/6;
+    for(let i=0;i<6;i++){
+      const t = TIERS[i];
+      const sx = 20 + i*stepW;
+      const on = (t.n === tier.n);
+      ctx.fillStyle = on ? t.color : 'rgba(30,41,59,0.7)';
+      ctx.fillRect(sx+2, sY, stepW-4, sH);
+      ctx.strokeStyle = on ? '#fff' : t.color+'66';
+      ctx.lineWidth = on?2:1;
+      ctx.strokeRect(sx+2, sY, stepW-4, sH);
+      ctx.fillStyle = on ? '#0a0e1a' : t.color;
+      ctx.font = on?'bold 11px Sarabun':'10px Sarabun';
+      ctx.textAlign='center';
+      ctx.fillText('ยุค '+t.n, sx+stepW/2, sY+17);
+      ctx.textAlign='start';
     }
 
     updateReadouts();
+    syncTierChip(tier);
+  }
+
+  function syncTierChip(tier){
+    const chips = document.querySelectorAll('#tierChips .tier-chip');
+    chips.forEach((c,i)=>c.classList.toggle('on', i===tier.n-1));
+  }
+
+  function renderTierChips(){
+    const host = document.getElementById('tierChips');
+    if(!host) return;
+    host.innerHTML = TIERS.map((t,i)=>`
+      <button class="tier-chip" onclick="ex1.gotoTier(${t.n})">
+        <span class="tc-num">ยุค ${t.n}</span>
+        ${t.name}
+        <span class="tc-time">${t.range}</span>
+      </button>
+    `).join('');
   }
 
   /* ============================================================
@@ -1557,7 +1696,7 @@ const ex1 = (function(){
     if(!host) return;
     host.innerHTML = btns.map(b=>`<button class="btn btn-ghost" style="margin:0 3px" onclick="ex1.zoom('${b[0]}')">🔬 ${b[1]}</button>`).join('');
     if(btns.length===0) host.innerHTML = '<span style="color:var(--muted);font-size:.75rem;font-style:italic">— ยุคนี้ไม่มีอนุภาคให้ซูม —</span>';
-    document.getElementById('unzoomBtn').style.display = _zoomMode?'':'none';
+    document.getElementById('zoomBar').style.display = _zoomMode?'':'none';
   }
 
   function updateReadouts(){
@@ -1584,6 +1723,7 @@ const ex1 = (function(){
 
   return {
     draw, init(){
+      renderTierChips();
       bindSlider('sl-logt','vi-logt',(v)=>{ logt=v; draw(); });
       draw();
       // continuous render for particle motion / orbits
@@ -1610,15 +1750,44 @@ const ex1 = (function(){
           _build.feedback = _build.recipe.check(_build.placed.filter(x=>x));
         }
       }
+      function setTier(n){
+        const t = TIERS[n-1]; if(!t) return;
+        logt = t.center;
+        document.getElementById('sl-logt').value = logt;
+        document.getElementById('vi-logt').value = logt.toFixed(1);
+        _zoomMode = null;
+        document.getElementById('zoomBar').style.display='none';
+        draw();
+      }
+      function enterZoom(type){
+        _zoomMode = type;
+        if(COMPOSITE_TYPES.includes(type)) resetBuild(type);
+        document.getElementById('zoomBar').style.display='';
+        draw();
+      }
       function down(e){
-        if(!_zoomMode || !_build.recipe) return;
         const {mx,my} = getXY(e);
-        // reset button
+        // 1) grid mode: click card or stepper
+        if(!_zoomMode){
+          const w = cv.clientWidth, h = cv.clientHeight;
+          const sY = h - 36, sH = 26;
+          if(my>=sY && my<=sY+sH){
+            const idx = Math.floor((mx-20)/((w-40)/6));
+            if(idx>=0 && idx<6){ setTier(idx+1); return; }
+          }
+          for(const g of _gridRects){
+            if(g.clickable && mx>=g.x && mx<=g.x+g.w && my>=g.y && my<=g.y+g.h){
+              enterZoom(g.zoom); return;
+            }
+          }
+          return;
+        }
+        // 2) build-lab mode
+        if(!_build.recipe) return;
         const rb = _build.resetRect;
         if(rb && mx>=rb.x&&mx<=rb.x+rb.w&&my>=rb.y&&my<=rb.y+rb.h){
           _build.placed=[]; _build.feedback=null; return;
         }
-        // palette pick
         for(const p of _build.paletteRects){
           if(mx>=p.x&&mx<=p.x+p.w&&my>=p.y&&my<=p.y+p.h){
             _build.dragging = {type:p.type, x:mx, y:my, startX:mx, startY:my};
@@ -1664,9 +1833,17 @@ const ex1 = (function(){
       document.getElementById('sl-logt').value=-43; document.getElementById('vi-logt').value=-43; draw(); },
     snapshot(){ this.record(); },
     zoom(type){ _zoomMode = type; if(COMPOSITE_TYPES.includes(type)) resetBuild(type);
-      document.getElementById('unzoomBtn').style.display=''; draw(); },
+      document.getElementById('zoomBar').style.display=''; draw(); },
     unzoom(){ _zoomMode = null; _build.recipe=null;
-      document.getElementById('unzoomBtn').style.display='none'; draw(); },
+      document.getElementById('zoomBar').style.display='none'; draw(); },
+    gotoTier(n){
+      const t = TIERS[n-1]; if(!t) return;
+      logt = t.center;
+      document.getElementById('sl-logt').value = logt;
+      document.getElementById('vi-logt').value = logt.toFixed(1);
+      _zoomMode = null; document.getElementById('zoomBar').style.display='none';
+      draw();
+    },
     record(){
       const T = tempAt(logt);
       const era = eraAt(logt);
@@ -1713,7 +1890,7 @@ const ex2 = (function(){
     if(w<10) w = (cv.parentElement && cv.parentElement.clientWidth) || 700;
     if(h<10) h = w * 430/700;
     cv.width = w * dpr; cv.height = h * dpr;
-    cv.style.height = h+'px';
+    cv.style.removeProperty('height');
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
@@ -1959,7 +2136,7 @@ const ex3 = (function(){
     if(w<10) w = (cv.parentElement && cv.parentElement.clientWidth) || 700;
     if(h<10) h = w * 430/700;
     cv.width = w * dpr; cv.height = h * dpr;
-    cv.style.height = h+'px';
+    cv.style.removeProperty('height');
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
@@ -2178,7 +2355,7 @@ const ex4 = (function(){
     if(w<10) w = (cv.parentElement && cv.parentElement.clientWidth) || 700;
     if(h<10) h = w * 430/700;
     cv.width = w * dpr; cv.height = h * dpr;
-    cv.style.height = h+'px';
+    cv.style.removeProperty('height');
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
