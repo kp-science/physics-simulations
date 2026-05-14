@@ -1042,3 +1042,106 @@ match /settings/{docId} {
 - CMB: B(ν,T) = (2hν³/c²)/(exp(hν/kT)−1) · ν_peak = 5.879×10¹⁰·T Hz · Wien
 - VPL01 มี lab-43 (SHM04) อยู่แล้ว — access string vlab:vpl01:lab-43 vs vlab:vpl02:lab-43 แยกกันตาม schema v4 ไม่ชนกัน
 - Workflow แบ่ง main directory ↔ worktree — ทุกครั้งหลัง edit ต้อง cp ไฟล์ไปยัง worktree เพื่อให้ preview server เห็น (server รันจาก worktree)
+
+---
+
+## [2026-05-15] — เครื่อง: ที่ทำงาน · Lab 45 (แบบจำลองการขยายตัวของเอกภพ) NEW
+
+### ทำอะไรไปบ้าง — Lab 45 ใหม่ · VPL02 · กิจกรรม 1.2 (Balloon Universe Model)
+
+สร้าง simulation ตามเอกสารกิจกรรม 1.2 ที่ผู้ใช้แนบมา (ภาพหนังสือเรียน) — ครบทุกขั้นตอนของวิธีทดลอง + 2 modes + ตารางบันทึก + กราฟ Hubble + ทฤษฎี
+
+**ไฟล์:** `Virtual Physics Lab 02/45. expanding-universe-balloon.html` (~38 KB)
+
+### โครงสร้าง 3 Tabs
+- **Tab 1 Simulation**: Canvas balloon ขยายตัว (ellipse + grid pattern + tie) + 5 stickers (1 ref สีแดง + 4 กาแล็กซี ก/ข/ค/ง สีฟ้า) — ตำแหน่งตรงตาม textbook (ก r=2.0/35°, ข r=2.7/115°, ค r=4.0/200°, ง r=5.5/295°)
+- **Tab 2 วิธีการทดลอง · บันทึกผล**: จุดประสงค์ · 4 ขั้นการทดลอง · ตัวอย่างตารางจากหนังสือ · Q1-Q3 + แนวคำตอบ
+- **Tab 3 ทฤษฎี · อธิบาย**: Hubble's Law · ลูกโป่งเป็นแบบจำลอง 2D · สมการ H_balloon = (a-1)/Δt · Redshift visual (animated wave stretching) · ตารางเทียบ balloon↔universe จริง · ข้อจำกัด
+
+### Features
+- **2 Modes**: 
+  - **Manual (default)**: คลิกอ้างอิง → คลิกกาแล็กซี → ระบบวาดเส้นวัด + แสดง dist บนหน้าจอ → ผู้ใช้กรอกค่าในตารางเอง · 4 step pills (เป่า1 → วัด d₁ → เป่า2 → วัด d₂+คำนวณ)
+  - **Auto**: ปุ่ม "⚡ เริ่ม Auto" → ระบบเป่าครั้งที่ 1 → กรอก d₁ → เป่า 5 วินาที → กรอก d₂ → คำนวณ Δd,v + วาดกราฟ
+- **ตัวแปรปรับได้**: เวลา Δt (1-10s · default 5) · อัตราขยาย a (1.2-3.0 · default 2.0) · จำนวนกาแล็กซี (3-6 · default 4)
+- **Click-to-measure tool**: คลิก ref → คลิกกาแล็กซี → เส้นประเหลือง + กล่องระยะ
+- **Animated balloon inflation**: easing smooth · scale linear ตาม dt
+- **Hint อัตโนมัติ**: flash message guide ตาม stage (Reset/เป่า1เสร็จ/เป่า2เสร็จ/คำนวณเสร็จ + เทียบทฤษฎี)
+- **CSV export** 12-column (d1, d2, Δd, v, Δt, a, mode, H_theory)
+- **Graph v vs d₁**: linear best fit ผ่านจุด origin + R² + slope = H_balloon
+
+### Verification (preview_eval)
+ทดสอบ workflow เต็ม → ค่าตรงทฤษฎี:
+- d₁ (autoFill): ก=2.0, ข=2.7, ค=4.0, ง=5.5 ✓ (ตรง textbook 100%)
+- ที่ a=2.0 → d₂: ก=4.0, ข=5.4, ค=8.0, ง=11.0 (ideal scaling — textbook มี noise)
+- ความชัน = 0.2000 /s ตรงทฤษฎี (a-1)/Δt = 1/5 = 0.2 ✓
+- R² = 1.0000 (เส้นตรงสมบูรณ์) ✓
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/45. expanding-universe-balloon.html` — สร้างใหม่ + protect ✅
+- `kp-auth.js` — เพิ่ม 'lab-45' ใน vpl02.labs
+- `_admin/admin.html` — เพิ่ม 'lab-45' ใน VLAB_SERIES.vpl02 + LAB_LIST entry `{id:'lab-45',label:'Lab 45 (แบบจำลองการขยายตัวของเอกภพ)'}`
+- `SESSION_LOG.md` — entry นี้
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 45 ใน `virtual-physics-lab-02.html` (catalog) + `index.html` Featured + `library.html`
+- ยังไม่ได้สร้าง canvas preview animation สำหรับ Lab 45 (suggest: balloon expanding with galaxy dots receding)
+- Lab 42 (เวอร์เนียร์·ไมโครมิเตอร์) จาก session ก่อนยังไม่มีการ์ดเช่นกัน
+- Demo Astronomy 13 ไฟล์ค้างจาก session เก่า ยังไม่ขึ้น catalog
+- ยังไม่ได้ push git
+
+### หมายเหตุ
+- Physics ตรง textbook 100%: v = H₀·d (Hubble's Law) · d₂ = a·d₁ → Δd = (a-1)·d₁ → v = (a-1)/Δt × d₁ → H_balloon = (a-1)/Δt
+- Galaxy positions in polar coords, ref at (0,0) origin · physical position = a × (x,y) → distances scale linearly with a → perfect Hubble's Law
+- Idealized scaling (no noise) ทำให้นักเรียนเข้าใจหลักการก่อน แล้วค่อยเปรียบเทียบกับ textbook ที่มี measurement noise
+- Color theme: orange #fb923c (astronomy/cosmology) — เดียวกับ Lab 43 (Big Bang) เพื่อสร้าง cluster cosmology
+- ลูกโป่งวาดเป็น ellipse + radial gradient + grid lines (latitude/longitude) + tie ที่ก้น
+- Sticker = 1×1 cm square (ตามขนาดในเอกสาร) แสดง label ก/ข/ค/ง/อ้าง
+- Stars background (60 pseudo-random points) + ruler ที่มุมล่างซ้าย (0-5 cm)
+- Watermark "KP Science" บัง canvas เล็กน้อยตาม default ของระบบ — ปลดล็อกด้วย kp_access_tier
+- Verification: Hubble fit ผ่าน origin force-through (เพราะ v=0 ที่ d=0)
+
+### [2026-05-15 ต่อ] — เพิ่มการ์ด Lab 45 เข้า catalog ทั้ง 3 หน้า + preview animation
+
+**ไฟล์ที่แก้:**
+- `virtual-physics-lab-02.html` — เพิ่มการ์ด Lab 45 ในส่วน "ดาราศาสตร์ · จักรวาลวิทยา" (ต่อจาก Lab 43) · เปลี่ยน topic count `1 simulations → 2 simulations` · เพิ่ม renderer `'vpl2-expand'`
+- `index.html` — เพิ่มการ์ด Lab 45 ใน VPL02 Featured (ต่อจาก Lab 43) · CTA `"ดูทั้ง 15 → 16 การทดลอง →"` · เพิ่ม renderer `'vpl2-expand'`
+- `library.html` — เพิ่ม `lib-item` Exp 45 (ต่อจาก Exp 43) · `lib-cat-count` `14 → 15 files`
+
+**Preview renderer `vpl2-expand`** (เหมือนกันใน 2 ไฟล์):
+- พื้น space + starfield 40 ดวง (twinkle)
+- ลูกโป่ง ellipse pulsing scale a = 0.55–1.0 (period 5s) · radial gradient ส้ม→ชมพู→ม่วง · grid lines latitude (5 เส้น) · tie ที่ก้น
+- กาแล็กซีอ้างอิง (จุดสีแดง) ตรงกลางบนของลูกโป่ง
+- 4 กาแล็กซีรอบๆ (sticker สีฟ้า) ระยะถอยห่างตาม a × dist
+- ลูกศรความเร็ว Hubble flow (hue ต่างกันตาม direction — redshift effect 0–200°)
+- ลูกศร length ∝ ระยะ × (0.3+a) — กาแล็กซีไกล/ลูกโป่งโต → ลูกศรยาว
+
+**Verification (preview_eval):**
+- VPL02 catalog: Card render ครบ · pixel center (179,157,155) = สีลูกโป่ง · pixel mid (68,40,43) = ลูกโป่งโทนเข้ม ✓
+- index.html: หลังกด tab VPL02 → Canvas 641×280 · center pixel (220,38,38) = สีกาแล็กซีอ้างอิง (red) ✓
+- library.html: Lab 45 entry + count 15 files ✓
+- CTA text "ดูทั้ง 16 การทดลอง →" ตรงตามที่แก้ ✓
+
+### สรุปงาน Lab 45 ที่ทำเสร็จในวันนี้ (2026-05-15)
+
+| Component | Status |
+|---|---|
+| ไฟล์ Lab 45 หลัก + 3 tabs + 2 modes | ✅ |
+| Protect (GA, watermark, auth, access guard) | ✅ |
+| kp-auth.js + admin LAB_LIST sync | ✅ |
+| VPL02 catalog การ์ด + count | ✅ |
+| index.html Featured การ์ด + CTA | ✅ |
+| library.html entry + count | ✅ |
+| Preview animation `vpl2-expand` × 2 ไฟล์ | ✅ |
+| Verification ด้วย preview_eval (pixel sampling) | ✅ |
+
+### ค้างไว้ / ต้องทำต่อ
+- Lab 42 (vernier-micrometer) ใน VPL02 ยังไม่มีการ์ดในแคตาล็อก (ค้างจาก session ก่อน)
+- Lab 44 (standing-waves-air-column) ค้างจาก session ก่อน — ยังไม่มีการ์ดในแคตาล็อก (เคยใส่แล้วหรือยัง? ต้องเช็คอีกครั้ง)
+- Demo Astronomy 13 ไฟล์เก่า ยังไม่ขึ้น demo-astronomy.html
+- ยังไม่ได้ push git
+
+### หมายเหตุ
+- Bug ที่ค้นพบในระหว่างทาง: ใน `library.html` มี VPL01 entries (Exp 21, 42, 43, 44) ถูกใส่ผิดในส่วน VPL02 — ค้างจาก session ก่อน ไม่ใช่ของวันนี้ ยังไม่แก้
+- Index.html ใช้ tab system แบ่ง VPL01/VPL02 panels — `vpl2-panel` อยู่ใน `display:none` จนกว่าจะคลิก tab → canvas จะ init ก็ต่อเมื่อ panel visible
+- Preview screenshot tool มีปัญหา viewport position แต่ pixel sampling ผ่าน preview_eval ยืนยันว่า renderer ทำงานทุก canvas
+- `vpl2-expand` ใช้ pure 2D canvas (~85 lines) ไม่มี dependency · period 5s pulse แบบ smooth cosine

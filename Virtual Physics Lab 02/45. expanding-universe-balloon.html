@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Lab 45 — แบบจำลองการขยายตัวของเอกภพ | KP Science</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06090f; --panel:#0f1623; --panel2:#1a2235; --border:#1e3a5f;
+  --accent:#fb923c;       /* orange — Astronomy/Cosmology */
+  --accent2:#f472b6;      /* pink */
+  --accent3:#34d399;      /* green (success) */
+  --accent4:#38bdf8;      /* cyan (info) */
+  --accent5:#a78bfa;      /* purple */
+  --text:#e2e8f0; --muted:#94a3b8;
+  --warn:#facc15; --err:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+
+/* Header */
+header{background:linear-gradient(135deg,#0f172a,#1a0f08);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px}
+header .icon{font-size:2rem}
+header h1{font-size:1.25rem;font-weight:700;color:var(--accent);line-height:1.2}
+header p{font-size:0.82rem;color:var(--muted);margin-top:2px}
+header .badge{margin-left:auto;background:#3a2210;border:1px solid var(--accent);color:var(--accent);padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap}
+
+/* Nav */
+nav{display:flex;gap:4px;padding:10px 20px;background:#0a0f1a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.88rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav button:hover{border-color:var(--accent);color:var(--accent)}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+
+/* Tab */
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Sim Layout */
+.sim-wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;padding:14px;max-width:1400px;margin:0 auto}
+@media(max-width:1100px){.sim-wrap{grid-template-columns:1fr}}
+.canvas-box{position:relative;background:radial-gradient(circle at 50% 50%, #0a1530 0%, #050810 60%, #020308 100%);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:520px}
+canvas#sim{display:block;width:100%;height:100%}
+.canvas-overlay{position:absolute;inset:0;pointer-events:none}
+.hint{position:absolute;top:12px;left:12px;background:rgba(20,15,8,.85);border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:8px;font-size:.78rem;pointer-events:auto;max-width:280px;line-height:1.4}
+.mode-pill{position:absolute;top:12px;right:12px;background:rgba(15,22,35,.9);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:.78rem;color:var(--accent);font-weight:700}
+
+/* Right control panel */
+.control-panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 200px);overflow-y:auto}
+.cp-title{font-size:.92rem;color:var(--accent);font-weight:700;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:4px}
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--panel2);padding:4px;border-radius:10px;border:1px solid var(--border)}
+.mode-toggle button{background:transparent;border:none;color:var(--muted);padding:8px 6px;border-radius:7px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;font-size:.85rem;transition:.15s}
+.mode-toggle button.active{background:var(--accent);color:#0a0e1a}
+
+.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.sl-label{font-size:.78rem;color:var(--muted);min-width:54px;flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer}
+.sl-unit{font-size:.74rem;color:var(--muted);min-width:30px;flex-shrink:0}
+.val-input{width:50px;padding:2px 4px;background:var(--panel2);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.82rem;text-align:center;flex-shrink:0;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+
+.btn{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:.86rem;transition:.15s;text-align:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#0a0e1a}
+.btn-primary:hover:not(:disabled){background:#fcb076}
+.btn-secondary{background:var(--accent4);color:#0a0e1a}
+.btn-secondary:hover:not(:disabled){background:#5dcffd}
+.btn-success{background:var(--accent3);color:#0a0e1a}
+.btn-success:hover:not(:disabled){background:#4eddaa}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+.step-pill{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;background:var(--panel2);border:1px solid var(--border);padding:3px 8px;border-radius:14px;color:var(--muted)}
+.step-pill .num{background:var(--accent);color:#0a0e1a;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem}
+.step-pill.active{border-color:var(--accent);color:var(--accent)}
+.step-pill.done{border-color:var(--accent3);color:var(--accent3)}
+.step-pill.done .num{background:var(--accent3)}
+
+.flash{font-size:.78rem;color:var(--accent3);background:#0d2520;border:1px solid var(--accent3);padding:6px 10px;border-radius:8px;min-height:30px;line-height:1.4}
+.flash.warn{color:var(--warn);background:#2a2510;border-color:var(--warn)}
+.flash.err{color:var(--err);background:#2a1010;border-color:var(--err)}
+
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.8rem}
+.readout-grid > div{background:var(--panel2);border:1px solid var(--border);padding:6px 10px;border-radius:6px}
+.readout-grid label{color:var(--muted);font-size:.72rem;display:block}
+.readout-grid span{color:var(--accent);font-weight:700;font-family:'Share Tech Mono',monospace}
+
+/* Data Table */
+.data-table-wrap{padding:0 14px 16px;max-width:1400px;margin:0 auto}
+.data-table-wrap h3{font-size:.95rem;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.data-table-wrap h3 .badge-small{font-size:.7rem;background:#3a2210;color:var(--accent);padding:2px 8px;border-radius:10px;border:1px solid var(--accent);font-weight:600}
+table.data{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:.85rem}
+table.data th,table.data td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+table.data th{background:#0a1220;color:var(--accent);font-weight:700;font-size:.8rem}
+table.data td:first-child{font-weight:700;color:var(--accent2)}
+table.data td input{width:90%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:.88rem}
+table.data td input:focus{outline:none;border-color:var(--accent)}
+table.data td input.computed{background:#0a1f15;color:var(--accent3);border-color:#0d3325;font-weight:700}
+table.data .row-ref{background:rgba(248,113,113,.06)}
+table.data .row-ref td:first-child{color:var(--err)}
+
+.action-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* Graph */
+.graph-wrap{padding:0 14px 24px;max-width:1400px;margin:0 auto}
+.graph-wrap h3{font-size:.95rem;color:var(--accent);margin-bottom:8px}
+.graph-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;min-height:280px;position:relative}
+canvas#graph{display:block;width:100%;height:280px;cursor:crosshair}
+.graph-stats{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.graph-stats span.val{color:var(--accent3);font-family:'Share Tech Mono',monospace;font-weight:700;margin-left:6px}
+
+/* Procedure / Theory */
+.content-wrap{max-width:920px;margin:0 auto;padding:24px 20px}
+.content-wrap h2{font-size:1.3rem;color:var(--accent);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.content-wrap h3{font-size:1.05rem;color:var(--accent2);margin:18px 0 8px}
+.content-wrap p{line-height:1.75;color:var(--text);margin-bottom:10px;font-size:.95rem}
+.content-wrap ol,.content-wrap ul{margin-left:24px;margin-bottom:12px;color:var(--text);line-height:1.8;font-size:.95rem}
+.content-wrap li{margin-bottom:6px}
+.box{background:var(--panel);border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin:14px 0}
+.box.info{border-left-color:var(--accent4)}
+.box.success{border-left-color:var(--accent3)}
+.box.tip{border-left-color:var(--accent5)}
+.box .box-title{font-weight:700;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.box.info .box-title{color:var(--accent4)}
+.box.success .box-title{color:var(--accent3)}
+.box.tip .box-title{color:var(--accent5)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+.kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px}
+.kpi-card .kpi-label{font-size:.75rem;color:var(--muted)}
+.kpi-card .kpi-val{font-size:1.15rem;color:var(--accent);font-weight:700;font-family:'Share Tech Mono',monospace;margin-top:4px}
+.kpi-card .kpi-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+.equation{background:#0a1530;border:1px solid var(--accent);border-radius:8px;padding:12px 14px;margin:10px 0;text-align:center;font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:1.05rem}
+.equation small{display:block;font-size:.75rem;color:var(--muted);margin-top:4px;font-family:'Sarabun',sans-serif}
+
+/* Theory visuals */
+.theory-canvas-wrap{margin:14px 0;text-align:center}
+canvas.theory-canvas{display:block;width:100%;max-width:680px;height:260px;background:radial-gradient(circle at 50% 50%, #0a1530 0%, #050810 100%);border:1px solid var(--border);border-radius:10px;margin:0 auto}
+
+table.ref-table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:10px 0;font-size:.88rem}
+table.ref-table th,table.ref-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)}
+table.ref-table th{background:#0a1220;color:var(--accent2);font-weight:700}
+table.ref-table td:first-child{text-align:left;color:var(--accent3);font-weight:600}
+
+.legend-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:.82rem;color:var(--muted)}
+.legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:2px solid #fff}
+
+/* Procedure step */
+.step-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid var(--accent)}
+.step-card h4{font-size:.95rem;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.step-card h4 .step-num{background:var(--accent);color:#0a0e1a;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem}
+.step-card p{font-size:.9rem;line-height:1.7;color:var(--text);margin-bottom:4px}
+.step-card ul{margin-left:18px;font-size:.88rem}
+
+footer{text-align:center;padding:18px 12px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border);margin-top:10px}
+footer .brand{color:var(--accent);font-weight:700}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+</head>
+<body>
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+
+<header>
+  <div class="icon">🎈</div>
+  <div>
+    <h1>Lab 45 — แบบจำลองการขยายตัวของเอกภพ</h1>
+    <p>Hubble's Law · Balloon Universe Model · กิจกรรม 1.2</p>
+  </div>
+  <div class="badge">KP Science · VPL02</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('sim',this)">🎬 Simulation</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ============================================================
+     TAB 1 · SIMULATION
+============================================================ -->
+<div id="tab-sim" class="tab-section active">
+
+  <div class="sim-wrap">
+    <!-- Canvas -->
+    <div class="canvas-box">
+      <canvas id="sim"></canvas>
+      <div class="canvas-overlay">
+        <div id="hint" class="hint">🛠️ คลิก <b>กาแล็กซีอ้างอิง</b> (จุดสีแดง) แล้วคลิกกาแล็กซีอีกจุดเพื่อวัดระยะ</div>
+        <div id="modePill" class="mode-pill">โหมด: บันทึกค่าเอง (Manual)</div>
+      </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+
+      <div class="cp-title">🎛️ โหมดการทดลอง</div>
+      <div class="mode-toggle">
+        <button id="btn-mode-manual" class="active" onclick="setMode('manual')">✍️ บันทึกเอง</button>
+        <button id="btn-mode-auto" onclick="setMode('auto')">⚡ บันทึกอัตโนมัติ</button>
+      </div>
+
+      <div class="cp-title">⚙️ ตัวแปร</div>
+
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--accent)">⏱️ เวลา</span>
+        <input class="sl-range" type="range" id="sl-time" min="1" max="10" step="0.5" value="5">
+        <input class="val-input" type="number" id="vi-time" min="1" max="10" step="0.5" value="5">
+        <span class="sl-unit">วิ</span>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--accent2)">📏 อัตราขยาย a</span>
+        <input class="sl-range" type="range" id="sl-scale" min="1.2" max="3.0" step="0.05" value="2.0">
+        <input class="val-input" type="number" id="vi-scale" min="1.2" max="3.0" step="0.05" value="2.0">
+        <span class="sl-unit">×</span>
+      </div>
+
+      <div class="sl-row">
+        <span class="sl-label" style="color:var(--accent5)">🌀 จำนวน</span>
+        <input class="sl-range" type="range" id="sl-ngal" min="3" max="6" step="1" value="4">
+        <input class="val-input" type="number" id="vi-ngal" min="3" max="6" step="1" value="4">
+        <span class="sl-unit">ดวง</span>
+      </div>
+
+      <div class="cp-title">📊 สถานะ</div>
+      <div class="readout-grid">
+        <div><label>เส้นผ่านศก. ลูกโป่ง</label><span id="ro-dia">10.0 cm</span></div>
+        <div><label>อัตราขยาย ปัจจุบัน</label><span id="ro-a">1.00 ×</span></div>
+        <div><label>ครั้งที่เป่า</label><span id="ro-blow">0/2</span></div>
+        <div><label>กาแล็กซีที่เลือก</label><span id="ro-sel">—</span></div>
+      </div>
+
+      <div class="cp-title">🎈 ลำดับการทดลอง</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div class="step-pill" id="step1"><span class="num">1</span> เป่าครั้งที่ 1</div>
+        <div class="step-pill" id="step2"><span class="num">2</span> วัด d₁</div>
+        <div class="step-pill" id="step3"><span class="num">3</span> เป่าครั้งที่ 2</div>
+        <div class="step-pill" id="step4"><span class="num">4</span> วัด d₂ + คำนวณ</div>
+      </div>
+
+      <div id="flash" class="flash">เริ่มต้น — กด <b>"🎈 เป่าครั้งที่ 1"</b> เพื่อพองลูกโป่ง</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button id="btn-blow1" class="btn btn-primary" onclick="blow(1)">🎈 เป่าครั้งที่ 1</button>
+        <button id="btn-blow2" class="btn btn-secondary" onclick="blow(2)" disabled>💨 เป่าครั้งที่ 2</button>
+        <button id="btn-auto" class="btn btn-success" onclick="runAuto()" style="display:none;grid-column:1/-1">⚡ เริ่ม Auto</button>
+        <button class="btn btn-ghost" onclick="resetAll()" style="grid-column:1/-1">↺ Reset ทั้งหมด</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="data-table-wrap">
+    <h3>📋 ตารางบันทึกผล <span class="badge-small" id="tableModeBadge">โหมดบันทึกเอง</span></h3>
+    <table class="data" id="dataTable">
+      <thead>
+        <tr>
+          <th rowspan="2">กาแล็กซี</th>
+          <th colspan="2">ระยะ (ซม.) จากกาแล็กซีอ้างอิง</th>
+          <th rowspan="2">ผลต่าง<br>Δd (ซม.)</th>
+          <th rowspan="2">ความเร็ว<br>v (ซม./วิ)</th>
+        </tr>
+        <tr>
+          <th>เป่าครั้งที่ 1 (d₁)</th>
+          <th>เป่าครั้งที่ 2 (d₂)</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="action-row">
+      <button class="btn btn-ghost" onclick="autoFillFromCanvas()" id="btn-autofill">📐 อ่านค่าจาก Canvas (ช่วยเช็ค)</button>
+      <button class="btn btn-success" onclick="computeAll()">🧮 คำนวณ Δd, v</button>
+      <button class="btn btn-ghost" onclick="clearTable()">🗑️ ล้างค่า</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">📥 Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Graph -->
+  <div class="graph-wrap">
+    <h3>📈 กราฟ ความเร็ว v กับ ระยะตั้งต้น d₁</h3>
+    <div class="graph-box">
+      <canvas id="graph"></canvas>
+    </div>
+    <div class="graph-stats">
+      <div>ความชัน (Hubble จำลอง): <span class="val mono" id="g-slope">—</span></div>
+      <div>R² (ความตรงเชิงเส้น): <span class="val mono" id="g-r2">—</span></div>
+      <div>เวลา Δt ใช้คำนวณ: <span class="val mono" id="g-dt">5.00 s</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TAB 2 · PROCEDURE
+============================================================ -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+
+    <h2>🎯 จุดประสงค์การทดลอง</h2>
+    <ol>
+      <li>อธิบายความสัมพันธ์ระหว่าง <b>ความเร็วในการเคลื่อนที่ของกาแล็กซีจำลอง</b> และ <b>ระยะทางจากกาแล็กซีอ้างอิง</b></li>
+      <li>อธิบาย <b>การขยายตัวของเอกภพ</b> จากแบบจำลองที่ใช้</li>
+    </ol>
+
+    <div class="box info">
+      <div class="box-title">⏱️ เวลาที่ใช้: 60 นาที</div>
+      ในการทดลองจริง — ลูกโป่ง 1 ลูก, สติกเกอร์ 1×1 ซม. 5 ชิ้น, กระดาษกราฟ, ยางรัด, สายวัด, นาฬิกาจับเวลา
+    </div>
+
+    <h2>✍️ โหมด 1 — บันทึกค่าเอง (Default)</h2>
+    <p>โหมดนี้ <b>เลียนแบบการทดลองจริง</b> นักเรียนต้องวัดระยะบนผิวลูกโป่ง อ่านค่า แล้วกรอกลงตารางด้วยตนเอง — เพื่อฝึก <b>ทักษะการวัด การประมาณค่า และการบันทึกข้อมูล</b></p>
+
+    <div class="step-card">
+      <h4><span class="step-num">1</span> จัดเตรียมแบบจำลอง</h4>
+      <ul>
+        <li>กำหนดให้ <b>ลูกโป่ง = เอกภพ</b> และ <b>สติกเกอร์ = กาแล็กซี</b></li>
+        <li>เลือกจำนวนกาแล็กซี (default 4 ดวง: ก, ข, ค, ง + 1 ดวงเป็น <b>กาแล็กซีอ้างอิง</b>)</li>
+        <li>ปรับ <b>อัตราขยาย a</b> (default 2.0) และ <b>เวลาเป่าครั้งที่ 2</b> (default 5 วินาที)</li>
+      </ul>
+    </div>
+
+    <div class="step-card">
+      <h4><span class="step-num">2</span> เป่าลูกโป่งครั้งที่ 1 + วัด d₁</h4>
+      <ul>
+        <li>กดปุ่ม <b>"🎈 เป่าครั้งที่ 1"</b> — ลูกโป่งจะพองถึงขนาดตั้งต้น (เส้นผ่านศูนย์กลาง ≈ 10 ซม.)</li>
+        <li>ใช้ <b>เครื่องมือวัดบนหน้าจอ</b>: คลิกที่ <span style="color:var(--err);font-weight:700">กาแล็กซีอ้างอิง</span> (จุดสีแดง) แล้วคลิกที่กาแล็กซี ก, ข, ค, ง ทีละดวง</li>
+        <li>หน้าจอจะลากเส้นและแสดงระยะ (ซม.) — <b>อ่านค่าและพิมพ์ลงตาราง</b>ในช่อง <i>"เป่าครั้งที่ 1 (d₁)"</i></li>
+      </ul>
+    </div>
+
+    <div class="step-card">
+      <h4><span class="step-num">3</span> เป่าลูกโป่งครั้งที่ 2 (5 วินาที)</h4>
+      <ul>
+        <li>กดปุ่ม <b>"💨 เป่าครั้งที่ 2"</b> — ลูกโป่งจะค่อย ๆ ขยายอย่างสม่ำเสมอ <b>ใช้เวลา 5 วินาที</b></li>
+        <li>สังเกตว่า <b>กาแล็กซีไกล</b>เคลื่อนเร็วกว่า <b>กาแล็กซีใกล้</b> — เพราะการขยายเป็นสัดส่วนกับระยะ</li>
+      </ul>
+    </div>
+
+    <div class="step-card">
+      <h4><span class="step-num">4</span> วัด d₂ + คำนวณ</h4>
+      <ul>
+        <li>เมื่อหยุดเป่า ให้วัดระยะใหม่อีกครั้ง (คลิก ref → คลิกกาแล็กซี) แล้วกรอกในช่อง <i>"เป่าครั้งที่ 2 (d₂)"</i></li>
+        <li>กดปุ่ม <b>"🧮 คำนวณ Δd, v"</b> — ระบบจะคำนวณ
+          <ul>
+            <li><b>Δd = d₂ − d₁</b></li>
+            <li><b>v = Δd / Δt</b> (Δt = เวลาเป่า)</li>
+          </ul>
+        </li>
+        <li>กราฟ <b>v กับ d₁</b> จะปรากฏพร้อม <b>ความชันแสดงค่าฮับเบิลจำลอง (H<sub>balloon</sub>)</b></li>
+      </ul>
+    </div>
+
+    <div class="box tip">
+      <div class="box-title">💡 ข้อเสนอแนะการวัด</div>
+      <ul style="margin-left:18px">
+        <li>คลิกที่ <b>จุดกลาง</b>ของกาแล็กซี (ในการทดลองจริง วัดที่กึ่งกลางสติกเกอร์)</li>
+        <li>วัด <b>ระยะสั้นที่สุด</b>บนผิวลูกโป่ง (ไม่ใช่ผ่านกลาง)</li>
+        <li>เป่าด้วย <b>อัตราสม่ำเสมอ</b> เพื่อให้ Δd ตรงกับ scale factor</li>
+        <li>ติดสติกเกอร์ให้ <b>กระจาย</b> ระยะแตกต่างกัน (ใกล้/กลาง/ไกล)</li>
+      </ul>
+    </div>
+
+    <h2>⚡ โหมด 2 — บันทึกค่าอัตโนมัติ</h2>
+    <p>โหมดนี้เหมาะกับการ <b>เปรียบเทียบ/ตรวจสอบ</b> หลังจากทำโหมดบันทึกเองแล้ว — ระบบจะวัดระยะ d₁, d₂ และคำนวณ Δd, v ให้ทันที</p>
+
+    <div class="step-card">
+      <h4><span class="step-num">A</span> สลับเป็นโหมด Auto</h4>
+      <ul>
+        <li>กดปุ่ม <b>"⚡ บันทึกอัตโนมัติ"</b> ด้านบน — ตารางจะเป็น <b>read-only</b></li>
+        <li>กดปุ่ม <b>"⚡ เริ่ม Auto"</b> — ลูกโป่งจะเป่าครั้งที่ 1 และ 2 อัตโนมัติ</li>
+        <li>ระบบจะวัดระยะ d₁ → ขยายลูกโป่ง → วัดระยะ d₂ → คำนวณ Δd, v → วาดกราฟ</li>
+      </ul>
+    </div>
+
+    <h2>📋 ตัวอย่างตารางบันทึกผล (จากหนังสือเรียน)</h2>
+    <p>ค่าตัวอย่างเมื่อ <b>เป่าครั้งที่ 1 → 10 ซม.</b> และ <b>เป่าครั้งที่ 2 ใช้เวลา 5 วินาที</b>:</p>
+
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>กาแล็กซี</th>
+          <th>เป่าครั้งที่ 1 (ซม.)</th>
+          <th>เป่าครั้งที่ 2 (ซม.)</th>
+          <th>Δd (ซม.)</th>
+          <th>v (ซม./วิ)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>ก</td><td>2.0</td><td>3.5</td><td>1.5</td><td>0.30</td></tr>
+        <tr><td>ข</td><td>2.7</td><td>5.3</td><td>2.6</td><td>0.52</td></tr>
+        <tr><td>ค</td><td>4.0</td><td>8.3</td><td>4.3</td><td>0.86</td></tr>
+        <tr><td>ง</td><td>5.5</td><td>10.9</td><td>5.4</td><td>1.08</td></tr>
+      </tbody>
+    </table>
+
+    <h2>❓ คำถามท้ายกิจกรรม</h2>
+
+    <div class="box">
+      <div class="box-title">Q1 — ระยะทางบนผิวลูกโป่งเปลี่ยนแปลงอย่างไรเมื่อเป่าครั้งที่ 2</div>
+      <p><b>แนวคำตอบ:</b> ระยะทางระหว่างกาแล็กซีจำลองกับกาแล็กซีอ้างอิงใน <b>การเป่าครั้งที่ 1 น้อยกว่า</b>การเป่าครั้งที่ 2 — ทุกระยะเพิ่มขึ้นเป็นสัดส่วนเดียวกัน</p>
+    </div>
+
+    <div class="box">
+      <div class="box-title">Q2 — ความเร็วของกาแล็กซีจำลองแต่ละกาแล็กซีเหมือนหรือต่างกันอย่างไร</div>
+      <p><b>แนวคำตอบ:</b> กาแล็กซีจำลองเคลื่อนที่ด้วย <b>ความเร็วต่างกัน</b> โดย <b>กาแล็กซีที่อยู่ใกล้</b>กาแล็กซีอ้างอิงจะเคลื่อนที่ช้ากว่า <b>กาแล็กซีที่อยู่ไกล</b></p>
+    </div>
+
+    <div class="box">
+      <div class="box-title">Q3 — กาแล็กซีจำลองใดเคลื่อนที่เร็วที่สุด และอยู่ห่างเท่าใดเมื่อเทียบกับอื่น</div>
+      <p><b>แนวคำตอบ:</b> <b>กาแล็กซี ง</b> เคลื่อนที่เร็วที่สุด และอยู่ห่างจากกาแล็กซีอ้างอิงมากที่สุด</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     TAB 3 · THEORY
+============================================================ -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+
+    <h2>🌌 การขยายตัวของเอกภพ</h2>
+    <p>ในปี ค.ศ. 1929 <b>เอ็ดวิน ฮับเบิล (Edwin Hubble)</b> สังเกตพบว่ากาแล็กซีต่าง ๆ ในเอกภพมีการ <b>เลื่อนทางแดง (redshift)</b> ของสเปกตรัมแสง ซึ่งบ่งบอกว่ากาแล็กซีเหล่านั้นกำลัง <b>เคลื่อนที่ห่างออกจากเรา</b> และเมื่อพล็อตกราฟระหว่าง <b>ระยะทาง</b> กับ <b>ความเร็วในการถอยห่าง</b> พบว่าได้ <b>เส้นตรง</b> — นี่คือหลักฐานชิ้นสำคัญที่ทำให้เรารู้ว่า <b>เอกภพกำลังขยายตัว</b></p>
+
+    <div class="equation">
+      v = H<sub>0</sub> × d
+      <small>กฎฮับเบิล (Hubble's Law) — ความเร็วถอยห่าง (v) แปรผันตรงกับระยะทาง (d)</small>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">ค่าคงตัวฮับเบิล H₀</div>
+        <div class="kpi-val">≈ 70 km/s/Mpc</div>
+        <div class="kpi-sub">(67–74 ตามวิธีวัด)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">อายุเอกภพ (1/H₀)</div>
+        <div class="kpi-val">≈ 13.8 พันล้านปี</div>
+        <div class="kpi-sub">ตั้งแต่ Big Bang</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">1 Mpc</div>
+        <div class="kpi-val">3.086 × 10¹⁹ km</div>
+        <div class="kpi-sub">≈ 3.26 ล้านปีแสง</div>
+      </div>
+    </div>
+
+    <h2>🎈 ทำไมต้องใช้ลูกโป่งเป็นแบบจำลอง?</h2>
+
+    <p>ลูกโป่งเป็น <b>แบบจำลอง 2 มิติของเอกภพ 3 มิติ</b> โดยใช้ <b>ผิวลูกโป่ง (สองมิติ)</b> แทน <b>ปริมาตรของเอกภพ (สามมิติ)</b> — สติกเกอร์บนผิวลูกโป่งคือกาแล็กซี เมื่อลูกโป่งพอง ผิวจะ <b>ยืดออกทุกทิศทาง</b> ทำให้สติกเกอร์ทุกคู่ห่างกันมากขึ้น</p>
+
+    <div class="theory-canvas-wrap">
+      <canvas id="theoryCanvas1" class="theory-canvas"></canvas>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:6px">▲ ลูกโป่งพองตัว — กาแล็กซีไกลถอยห่างเร็วกว่ากาแล็กซีใกล้</p>
+    </div>
+
+    <div class="box success">
+      <div class="box-title">✨ ข้อสรุปสำคัญจากแบบจำลอง</div>
+      <ol style="margin-left:20px">
+        <li><b>ทุกจุดบนผิวลูกโป่งเห็นจุดอื่นถอยห่าง</b> — ไม่มี "จุดศูนย์กลาง" ของการขยายตัว (ทุกที่เป็น "ศูนย์กลาง" เสมือน) เช่นเดียวกับเอกภพจริง</li>
+        <li><b>กาแล็กซีไกลถอยห่างเร็วกว่ากาแล็กซีใกล้</b> — เพราะระยะทั้งหมดถูก scale ด้วยอัตราส่วนเดียวกัน</li>
+        <li><b>กาแล็กซีไม่ได้เคลื่อนที่ผ่านอวกาศ — อวกาศเองยืดออก</b> — ทำให้ระยะระหว่างกาแล็กซีเพิ่มขึ้น</li>
+      </ol>
+    </div>
+
+    <h2>📐 ความสัมพันธ์ทางคณิตศาสตร์</h2>
+
+    <p>ถ้าลูกโป่งพองด้วย <b>อัตราขยาย (scale factor)</b> a จากเส้นผ่านศูนย์กลางเดิม:</p>
+
+    <div class="equation">
+      d₂ = a × d₁ &nbsp;⟹&nbsp; Δd = (a − 1) × d₁
+    </div>
+
+    <p>ความเร็วของกาแล็กซีจำลอง:</p>
+
+    <div class="equation">
+      v = Δd / Δt = <span style="color:var(--accent3)">(a − 1)/Δt</span> × d₁
+    </div>
+
+    <p>เปรียบเทียบกับกฎฮับเบิล <b>v = H₀ × d</b> จะได้ <b>"ค่าฮับเบิลของแบบจำลอง"</b>:</p>
+
+    <div class="equation">
+      H<sub>balloon</sub> = (a − 1) / Δt
+    </div>
+
+    <p>เช่น ถ้า a = 2.0 และ Δt = 5 วินาที จะได้ H<sub>balloon</sub> = 1/5 = <b>0.20 / วินาที</b></p>
+
+    <h2>🔴 Redshift — หลักฐานการขยายตัว</h2>
+
+    <p>เมื่ออวกาศยืดออก <b>คลื่นแสง</b>จากกาแล็กซีไกลก็ <b>ยืดออกตามไปด้วย</b> ทำให้ความยาวคลื่นเพิ่มขึ้น (เลื่อนไปทางสีแดง) — เรียกว่า <b>cosmological redshift</b></p>
+
+    <div class="theory-canvas-wrap">
+      <canvas id="theoryCanvas2" class="theory-canvas"></canvas>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:6px">▲ คลื่นแสงยืดออกตามการขยายของอวกาศ ความยาวคลื่นเพิ่มขึ้น (z = Δλ/λ)</p>
+    </div>
+
+    <div class="equation">
+      z = (λ<sub>วัดได้</sub> − λ<sub>ต้นทาง</sub>) / λ<sub>ต้นทาง</sub>
+      <small>ค่า redshift — กาแล็กซีไกลมาก z &gt; 1, ใกล้สุดที่สังเกตได้ z ≈ 11</small>
+    </div>
+
+    <h2>🌐 จากแบบจำลอง → เอกภพจริง</h2>
+
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>แบบจำลองลูกโป่ง</th>
+          <th>เอกภพจริง</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>ผิวลูกโป่ง (2 มิติ)</td><td>อวกาศ (3 มิติ)</td></tr>
+        <tr><td>สติกเกอร์ (กาแล็กซีจำลอง)</td><td>กาแล็กซี / กระจุกกาแล็กซี</td></tr>
+        <tr><td>การพองลูกโป่ง</td><td>อวกาศขยายตัว (Metric Expansion)</td></tr>
+        <tr><td>H<sub>balloon</sub> = (a−1)/Δt</td><td>H₀ ≈ 70 km/s/Mpc</td></tr>
+        <tr><td>เป่าแรง = พองเร็ว</td><td>Dark Energy (เร่งการขยายตัว)</td></tr>
+        <tr><td>การหดตัว (ถ้าปล่อยลม)</td><td>Big Crunch (สมมุติฐาน) — แต่ปัจจุบันเอกภพขยายตัวเร่ง</td></tr>
+      </tbody>
+    </table>
+
+    <div class="box info">
+      <div class="box-title">🔬 หลักฐานสนับสนุนการขยายตัว</div>
+      <ol style="margin-left:20px">
+        <li><b>Redshift ของกาแล็กซีไกล</b> — ฮับเบิล (1929)</li>
+        <li><b>Cosmic Microwave Background (CMB)</b> — รังสีเหลือจาก Big Bang ≈ 2.725 K</li>
+        <li><b>สัดส่วนธาตุเบา (BBN)</b> — H ~75%, He ~25%</li>
+        <li><b>โครงสร้างขนาดใหญ่ของเอกภพ</b> — สอดคล้องกับการขยายตัวจาก inflation</li>
+      </ol>
+    </div>
+
+    <h2>⚠️ ข้อจำกัดของแบบจำลอง</h2>
+    <ul>
+      <li>ลูกโป่งมีขอบ — เอกภพจริง <b>ไม่มีขอบ</b></li>
+      <li>ลูกโป่งพองเข้าไปใน "อากาศ" — เอกภพ <b>ไม่ขยายเข้าไปใน "ที่ว่างภายนอก"</b> เพราะอวกาศคือเอกภพ</li>
+      <li>กาแล็กซีจริงมี <b>peculiar velocity</b> (เคลื่อนที่ของตัวเอง) เพิ่มเติมจากการขยายตัวของอวกาศ</li>
+      <li>เอกภพจริง <b>กำลังเร่งการขยาย</b> (Dark Energy) — ลูกโป่งทดลองในห้องเรียนคล้ายการขยายแบบสม่ำเสมอ</li>
+    </ul>
+
+  </div>
+</div>
+
+<footer>
+  <div class="brand">KP Science · Virtual Physics Lab 02 — Lab 45</div>
+  <div style="margin-top:4px">แบบจำลองการขยายตัวของเอกภพ · Balloon Universe Model · Hubble's Law</div>
+</footer>
+
+<script>
+/* =========================================================
+   STATE
+========================================================= */
+const state = {
+  mode: 'manual',         // 'manual' | 'auto'
+  blowStage: 0,           // 0 = ยังไม่เป่า, 1 = เป่าครั้งที่ 1, 2 = เป่าครั้งที่ 2 (ขยายเสร็จ)
+  animating: false,
+  aTarget: 2.0,           // scale factor target
+  aCurrent: 1.0,          // current scale (during animation)
+  dt: 5.0,                // วินาที
+  nGal: 4,
+  // initial galaxy comoving coordinates (in cm units, before scaling)
+  // reference at (0,0), others at known distances
+  galaxies: [],
+  // measurement
+  selectedRef: null,
+  selectedGal: null,
+  measureLine: null,      // {x1,y1,x2,y2,dist}
+  // table data (will be derived from galaxies)
+  tableData: []
+};
+
+// labels for galaxies
+const GAL_LABELS = ['ก','ข','ค','ง','จ','ฉ'];
+// pre-defined positions (in cm, polar from ref) — match textbook table for first 4
+// distance in cm, angle in degrees
+const DEFAULT_GAL_POS = [
+  {label:'ก', r:2.0, theta:35},
+  {label:'ข', r:2.7, theta:115},
+  {label:'ค', r:4.0, theta:200},
+  {label:'ง', r:5.5, theta:295},
+  {label:'จ', r:3.2, theta:165},
+  {label:'ฉ', r:4.8, theta:75}
+];
+
+/* =========================================================
+   GALAXY GENERATION
+========================================================= */
+function generateGalaxies(n) {
+  state.galaxies = [];
+  // reference at (0,0)
+  state.galaxies.push({label:'อ้างอิง', isRef:true, x:0, y:0});
+  for (let i = 0; i < n; i++) {
+    const pos = DEFAULT_GAL_POS[i];
+    const rad = pos.theta * Math.PI / 180;
+    state.galaxies.push({
+      label: pos.label,
+      isRef: false,
+      x: pos.r * Math.cos(rad),
+      y: pos.r * Math.sin(rad),
+      r: pos.r
+    });
+  }
+}
+
+function distCm(g1, g2, scaleFactor) {
+  const dx = (g2.x - g1.x) * scaleFactor;
+  const dy = (g2.y - g1.y) * scaleFactor;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+/* =========================================================
+   CANVAS — Balloon Drawing
+========================================================= */
+const canvas = document.getElementById('sim');
+const ctx = canvas.getContext('2d');
+
+let canvasW = 800, canvasH = 520;
+// view: 1 cm = pxPerCm pixels
+let pxPerCm = 28;
+
+function resizeCanvas() {
+  const box = canvas.parentElement;
+  canvasW = box.clientWidth;
+  canvasH = box.clientHeight;
+  canvas.width = canvasW * window.devicePixelRatio;
+  canvas.height = canvasH * window.devicePixelRatio;
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+
+  // auto-fit: ensure all galaxies at a=aTarget fit comfortably
+  // max distance from origin at a=aTarget = 5.5 * aTarget = ~11 cm
+  // canvas radius (smaller side / 2) should accommodate ~13 cm with margin
+  const maxR = 5.5 * state.aTarget * 1.15;
+  const minSide = Math.min(canvasW, canvasH);
+  pxPerCm = (minSide * 0.42) / maxR;
+  pxPerCm = Math.max(12, Math.min(40, pxPerCm));
+
+  draw();
+}
+
+function cmToPx(cm) { return cm * pxPerCm; }
+
+// world -> canvas
+function w2cX(x) { return canvasW/2 + cmToPx(x); }
+function w2cY(y) { return canvasH/2 + cmToPx(y); }
+// canvas -> world
+function c2wX(px) { return (px - canvasW/2) / pxPerCm; }
+function c2wY(py) { return (py - canvasH/2) / pxPerCm; }
+
+function draw() {
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // background gradient already set in CSS
+  // draw stars (subtle)
+  drawStars();
+
+  // draw balloon shape (ellipse)
+  drawBalloon();
+
+  // draw grid scale ruler (corner)
+  drawScaleRuler();
+
+  // draw galaxies
+  drawGalaxies();
+
+  // draw measurement line
+  if (state.measureLine) {
+    drawMeasureLine();
+  }
+}
+
+function drawStars() {
+  ctx.save();
+  // pseudo-random stars (seeded by position)
+  for (let i = 0; i < 60; i++) {
+    const seed = i * 9301 + 49297;
+    const sx = ((seed * 7) % 1000) / 1000 * canvasW;
+    const sy = ((seed * 13) % 1000) / 1000 * canvasH;
+    const sz = ((seed % 7) + 1) * 0.3;
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + (seed % 5) * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sz, 0, 2*Math.PI);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBalloon() {
+  // balloon stretches with aCurrent
+  // base diameter 10 cm at a=1, scales to a*10 cm
+  const a = state.blowStage === 0 ? 0 : state.aCurrent;
+  if (a < 0.05) return;
+  const baseDiaCm = 10;
+  // balloon visual radius — half of what the data implies
+  // we'll show balloon as ellipse with semi-axis ~ 7 cm * a (a bit larger than max galaxy distance to enclose them)
+  const rx = cmToPx(7 * a / 1.0);
+  const ry = cmToPx(6.2 * a / 1.0);
+  const cx = canvasW/2;
+  const cy = canvasH/2;
+
+  // balloon body — translucent gradient
+  ctx.save();
+  const grad = ctx.createRadialGradient(cx - rx*0.3, cy - ry*0.4, 0, cx, cy, rx);
+  grad.addColorStop(0, 'rgba(251,146,60,0.30)');
+  grad.addColorStop(0.7, 'rgba(244,114,182,0.18)');
+  grad.addColorStop(1, 'rgba(167,139,250,0.08)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, 2*Math.PI);
+  ctx.fill();
+
+  // balloon outline
+  ctx.strokeStyle = 'rgba(251,146,60,0.65)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, 2*Math.PI);
+  ctx.stroke();
+
+  // tie at bottom
+  ctx.fillStyle = 'rgba(251,146,60,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(cx-6, cy+ry);
+  ctx.lineTo(cx+6, cy+ry);
+  ctx.lineTo(cx+3, cy+ry+12);
+  ctx.lineTo(cx-3, cy+ry+12);
+  ctx.closePath();
+  ctx.fill();
+
+  // grid pattern on balloon (longitude/latitude lines for visual)
+  ctx.strokeStyle = 'rgba(251,146,60,0.18)';
+  ctx.lineWidth = 1;
+  for (let lat = -3; lat <= 3; lat++) {
+    const yfrac = lat / 4;
+    const y = cy + yfrac * ry;
+    const widthFactor = Math.sqrt(Math.max(0, 1 - yfrac*yfrac));
+    ctx.beginPath();
+    ctx.ellipse(cx, y, rx * widthFactor, ry * 0.04, 0, 0, 2*Math.PI);
+    ctx.stroke();
+  }
+  for (let lon = 0; lon < 6; lon++) {
+    ctx.beginPath();
+    const angle = (lon / 6) * Math.PI;
+    ctx.ellipse(cx, cy, rx * Math.abs(Math.cos(angle)) + 0.5, ry, 0, 0, 2*Math.PI);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawScaleRuler() {
+  // small ruler in bottom-left corner: 5 cm marks
+  ctx.save();
+  const margin = 14;
+  const y = canvasH - margin - 4;
+  const length5cm = cmToPx(5);
+  // ruler line
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(margin, y);
+  ctx.lineTo(margin + length5cm, y);
+  ctx.stroke();
+  // ticks
+  for (let i = 0; i <= 5; i++) {
+    const tx = margin + cmToPx(i);
+    ctx.beginPath();
+    ctx.moveTo(tx, y);
+    ctx.lineTo(tx, y - (i % 5 === 0 ? 8 : 4));
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '10px "Share Tech Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('0', margin - 2, y + 14);
+  ctx.fillText('5 cm', margin + length5cm - 14, y + 14);
+  ctx.restore();
+}
+
+function drawGalaxies() {
+  const a = state.blowStage === 0 ? 1.0 : state.aCurrent;
+
+  state.galaxies.forEach((g, idx) => {
+    const px = w2cX(g.x * a);
+    const py = w2cY(g.y * a);
+
+    // shadow
+    ctx.save();
+    ctx.shadowColor = g.isRef ? 'rgba(248,113,113,0.8)' : 'rgba(56,189,248,0.6)';
+    ctx.shadowBlur = 8;
+
+    // sticker rectangle (1 cm x 1 cm)
+    const stickerSize = cmToPx(1.0);
+    const halfS = stickerSize / 2;
+
+    // sticker background
+    ctx.fillStyle = g.isRef ? '#dc2626' : '#0ea5e9';
+    ctx.fillRect(px - halfS, py - halfS, stickerSize, stickerSize);
+
+    // sticker border
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = g.isRef ? '#fee2e2' : '#e0f2fe';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(px - halfS, py - halfS, stickerSize, stickerSize);
+
+    // label inside
+    ctx.fillStyle = '#fff';
+    ctx.font = `700 ${Math.max(10, halfS*0.9)}px Sarabun, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(g.label.length > 3 ? 'อ้าง' : g.label, px, py);
+
+    // selection ring
+    if (state.selectedRef === idx || state.selectedGal === idx) {
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(px - halfS - 4, py - halfS - 4, stickerSize + 8, stickerSize + 8);
+      ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+
+    // distance label below for non-ref (auto mode shows distance directly)
+    if (!g.isRef && state.blowStage > 0) {
+      const ref = state.galaxies[0];
+      const d = distCm(ref, g, a);
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(px - 22, py + halfS + 4, 44, 14);
+      ctx.fillStyle = '#34d399';
+      ctx.font = '10px "Share Tech Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.toFixed(1) + ' cm', px, py + halfS + 11);
+      ctx.restore();
+    }
+  });
+}
+
+function drawMeasureLine() {
+  const m = state.measureLine;
+  ctx.save();
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(m.x1, m.y1);
+  ctx.lineTo(m.x2, m.y2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // distance text in middle
+  const mx = (m.x1 + m.x2) / 2;
+  const my = (m.y1 + m.y2) / 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  const txt = m.dist.toFixed(2) + ' cm';
+  ctx.font = '700 13px "Share Tech Mono", monospace';
+  const w = ctx.measureText(txt).width + 12;
+  ctx.fillRect(mx - w/2, my - 12, w, 22);
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mx - w/2, my - 12, w, 22);
+  ctx.fillStyle = '#fde047';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(txt, mx, my - 1);
+  ctx.restore();
+}
+
+/* =========================================================
+   CLICK HANDLING — measurement
+========================================================= */
+canvas.addEventListener('click', (e) => {
+  if (state.mode !== 'manual') return;
+  if (state.blowStage === 0) {
+    flash('กดปุ่ม "🎈 เป่าครั้งที่ 1" ก่อนเริ่มวัด', 'warn');
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+  const a = state.aCurrent;
+
+  // find clicked galaxy (within sticker box)
+  let clicked = -1;
+  state.galaxies.forEach((g, idx) => {
+    const px = w2cX(g.x * a);
+    const py = w2cY(g.y * a);
+    const halfS = cmToPx(1.0) / 2 + 4;
+    if (Math.abs(cx - px) <= halfS && Math.abs(cy - py) <= halfS) {
+      clicked = idx;
+    }
+  });
+
+  if (clicked < 0) {
+    // click on empty space — clear selection
+    state.selectedRef = null;
+    state.selectedGal = null;
+    state.measureLine = null;
+    updateReadouts();
+    draw();
+    return;
+  }
+
+  const g = state.galaxies[clicked];
+
+  if (state.selectedRef === null) {
+    // first click — must be ref
+    if (g.isRef) {
+      state.selectedRef = clicked;
+      flash('เลือก <b>กาแล็กซีอ้างอิง</b> แล้ว — คลิกกาแล็กซี ก/ข/ค/ง เพื่อวัดระยะ', 'ok');
+    } else {
+      flash('⚠️ ต้องเริ่มจากการคลิก <b>กาแล็กซีอ้างอิง (จุดสีแดง)</b> ก่อน', 'warn');
+    }
+  } else {
+    if (g.isRef) {
+      // re-click ref — reset selection
+      state.selectedRef = clicked;
+      state.selectedGal = null;
+      state.measureLine = null;
+      flash('เลือก <b>กาแล็กซีอ้างอิง</b> แล้ว — คลิกกาแล็กซีถัดไปเพื่อวัด', 'ok');
+    } else {
+      state.selectedGal = clicked;
+      const ref = state.galaxies[state.selectedRef];
+      const dist = distCm(ref, g, a);
+      state.measureLine = {
+        x1: w2cX(ref.x * a),
+        y1: w2cY(ref.y * a),
+        x2: w2cX(g.x * a),
+        y2: w2cY(g.y * a),
+        dist: dist
+      };
+      flash(`📐 ระยะจาก <b>กาแล็กซีอ้างอิง → ${g.label}</b> = <b>${dist.toFixed(2)} ซม.</b><br>กรอกค่านี้ใน${state.blowStage===1?' d₁':' d₂'} ของแถว ${g.label}`, 'ok');
+    }
+  }
+  updateReadouts();
+  draw();
+});
+
+/* =========================================================
+   MODE / FLASH
+========================================================= */
+function setMode(m) {
+  state.mode = m;
+  document.getElementById('btn-mode-manual').classList.toggle('active', m === 'manual');
+  document.getElementById('btn-mode-auto').classList.toggle('active', m === 'auto');
+  document.getElementById('modePill').textContent = 'โหมด: ' + (m === 'manual' ? 'บันทึกค่าเอง (Manual)' : 'บันทึกอัตโนมัติ (Auto)');
+  document.getElementById('tableModeBadge').textContent = m === 'manual' ? 'โหมดบันทึกเอง' : 'โหมดบันทึกอัตโนมัติ';
+
+  // toggle button visibility
+  document.getElementById('btn-blow1').style.display = m === 'manual' ? '' : 'none';
+  document.getElementById('btn-blow2').style.display = m === 'manual' ? '' : 'none';
+  document.getElementById('btn-auto').style.display = m === 'auto' ? '' : 'none';
+  document.getElementById('btn-autofill').style.display = m === 'manual' ? '' : 'none';
+
+  // toggle inputs
+  setTableReadonly(m === 'auto');
+
+  if (m === 'manual') {
+    flash('โหมดบันทึกเอง — กด "🎈 เป่าครั้งที่ 1" จากนั้นวัดและกรอกค่าด้วยตัวเอง', 'ok');
+  } else {
+    flash('โหมด Auto — กด "⚡ เริ่ม Auto" ระบบจะวัดและกรอกค่าให้อัตโนมัติ', 'ok');
+  }
+}
+
+function flash(msg, type='ok') {
+  const el = document.getElementById('flash');
+  el.innerHTML = msg;
+  el.className = 'flash' + (type === 'warn' ? ' warn' : type === 'err' ? ' err' : '');
+}
+
+function updateReadouts() {
+  const dia = state.blowStage === 0 ? '0.0' : (10 * state.aCurrent).toFixed(1);
+  document.getElementById('ro-dia').textContent = dia + ' cm';
+  document.getElementById('ro-a').textContent = state.aCurrent.toFixed(2) + ' ×';
+  document.getElementById('ro-blow').textContent = state.blowStage + '/2';
+  let selText = '—';
+  if (state.selectedRef !== null && state.selectedGal !== null) {
+    selText = 'อ้างอิง → ' + state.galaxies[state.selectedGal].label;
+  } else if (state.selectedRef !== null) {
+    selText = 'อ้างอิง (รอจุดที่ 2)';
+  }
+  document.getElementById('ro-sel').textContent = selText;
+
+  // step pills
+  document.getElementById('step1').classList.toggle('done', state.blowStage >= 1);
+  document.getElementById('step1').classList.toggle('active', state.blowStage === 0);
+  document.getElementById('step2').classList.toggle('active', state.blowStage === 1);
+  document.getElementById('step3').classList.toggle('done', state.blowStage === 2);
+  document.getElementById('step3').classList.toggle('active', state.blowStage === 1 && hasAllD1());
+  document.getElementById('step4').classList.toggle('active', state.blowStage === 2);
+
+  // blow2 button
+  document.getElementById('btn-blow2').disabled = state.blowStage !== 1;
+  document.getElementById('btn-blow1').disabled = state.blowStage !== 0 || state.animating;
+}
+
+function hasAllD1() {
+  const rows = state.galaxies.slice(1); // skip ref
+  return rows.every(g => {
+    const inp = document.getElementById('inp-d1-' + g.label);
+    return inp && parseFloat(inp.value) > 0;
+  });
+}
+
+/* =========================================================
+   BLOW ACTIONS
+========================================================= */
+function blow(stage) {
+  if (state.animating) return;
+  if (stage === 1) {
+    // animate from 0 → 1 (initial inflation)
+    state.blowStage = 1;
+    state.animating = true;
+    animateInflation(0, 1.0, 1.2, () => {
+      state.animating = false;
+      flash('🎈 เป่าครั้งที่ 1 เสร็จ — เส้นผ่านศก. ≈ 10 ซม.<br><b>วัด d₁:</b> คลิกอ้างอิง → คลิก ก, ข, ค, ง แล้วกรอกใน d₁', 'ok');
+      updateReadouts();
+    });
+  } else if (stage === 2) {
+    if (!hasAllD1()) {
+      flash('⚠️ กรุณากรอก d₁ ครบทุกกาแล็กซีก่อนเป่าครั้งที่ 2', 'warn');
+      return;
+    }
+    state.animating = true;
+    animateInflation(1.0, state.aTarget, state.dt, () => {
+      state.blowStage = 2;
+      state.animating = false;
+      state.measureLine = null;
+      state.selectedRef = null;
+      state.selectedGal = null;
+      flash('💨 เป่าครั้งที่ 2 เสร็จ (Δt = ' + state.dt.toFixed(1) + ' วินาที)<br><b>วัด d₂:</b> คลิกอ้างอิง → คลิก ก, ข, ค, ง แล้วกรอกใน d₂ จากนั้นกด "🧮 คำนวณ"', 'ok');
+      updateReadouts();
+    });
+  }
+}
+
+function animateInflation(aFrom, aTo, durationSec, onDone) {
+  const startTs = performance.now();
+  function step(ts) {
+    const elapsed = (ts - startTs) / 1000;
+    const u = Math.min(1, elapsed / durationSec);
+    // smooth easing
+    const eased = u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u+2, 2)/2;
+    state.aCurrent = aFrom + (aTo - aFrom) * eased;
+    updateReadouts();
+    draw();
+    if (u < 1) {
+      requestAnimationFrame(step);
+    } else {
+      state.aCurrent = aTo;
+      draw();
+      onDone && onDone();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+/* =========================================================
+   AUTO MODE
+========================================================= */
+function runAuto() {
+  if (state.animating) return;
+  resetAll(true);
+  state.animating = true;
+  state.blowStage = 1;
+  flash('⚡ Auto: กำลังเป่าครั้งที่ 1...', 'ok');
+  animateInflation(0, 1.0, 1.0, () => {
+    // record d1
+    state.galaxies.slice(1).forEach(g => {
+      const d1 = distCm(state.galaxies[0], g, 1.0);
+      const inp = document.getElementById('inp-d1-' + g.label);
+      if (inp) inp.value = d1.toFixed(2);
+    });
+    flash('⚡ Auto: บันทึก d₁ เรียบร้อย — เริ่มเป่าครั้งที่ 2 (' + state.dt.toFixed(1) + ' วินาที)', 'ok');
+    setTimeout(() => {
+      animateInflation(1.0, state.aTarget, state.dt, () => {
+        state.galaxies.slice(1).forEach(g => {
+          const d2 = distCm(state.galaxies[0], g, state.aTarget);
+          const inp = document.getElementById('inp-d2-' + g.label);
+          if (inp) inp.value = d2.toFixed(2);
+        });
+        state.blowStage = 2;
+        state.animating = false;
+        flash('⚡ Auto สำเร็จ — กำลังคำนวณ Δd, v และวาดกราฟ', 'ok');
+        computeAll();
+        updateReadouts();
+      });
+    }, 400);
+  });
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+function rebuildTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  const ro = state.mode === 'auto' ? 'readonly' : '';
+  // ref row first
+  tbody.innerHTML += `
+    <tr class="row-ref">
+      <td>อ้างอิง</td>
+      <td colspan="2" style="color:var(--muted);font-style:italic">(จุดอ้างอิง — ไม่มีระยะกับตัวเอง)</td>
+      <td style="color:var(--muted)">—</td>
+      <td style="color:var(--muted)">—</td>
+    </tr>`;
+  state.galaxies.slice(1).forEach(g => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${g.label}</td>
+        <td><input type="number" step="0.01" id="inp-d1-${g.label}" placeholder="—" ${ro}></td>
+        <td><input type="number" step="0.01" id="inp-d2-${g.label}" placeholder="—" ${ro}></td>
+        <td><input type="number" step="0.01" id="inp-dd-${g.label}" class="computed" readonly placeholder="—"></td>
+        <td><input type="number" step="0.001" id="inp-v-${g.label}" class="computed" readonly placeholder="—"></td>
+      </tr>`;
+  });
+}
+
+function setTableReadonly(yes) {
+  state.galaxies.slice(1).forEach(g => {
+    ['d1','d2'].forEach(k => {
+      const inp = document.getElementById('inp-' + k + '-' + g.label);
+      if (inp) {
+        if (yes) inp.setAttribute('readonly', '');
+        else inp.removeAttribute('readonly');
+      }
+    });
+  });
+}
+
+function clearTable() {
+  state.galaxies.slice(1).forEach(g => {
+    ['d1','d2','dd','v'].forEach(k => {
+      const inp = document.getElementById('inp-' + k + '-' + g.label);
+      if (inp) inp.value = '';
+    });
+  });
+  drawGraph([]);
+  document.getElementById('g-slope').textContent = '—';
+  document.getElementById('g-r2').textContent = '—';
+}
+
+function autoFillFromCanvas() {
+  // helper button in manual mode: fills the current stage's column
+  if (state.blowStage === 0) {
+    flash('⚠️ ยังไม่ได้เป่า — กด "เป่าครั้งที่ 1" ก่อน', 'warn');
+    return;
+  }
+  const stage = state.blowStage;
+  const a = state.aCurrent;
+  state.galaxies.slice(1).forEach(g => {
+    const d = distCm(state.galaxies[0], g, a);
+    const inp = document.getElementById('inp-d' + stage + '-' + g.label);
+    if (inp) inp.value = d.toFixed(2);
+  });
+  flash('📐 อ่านค่าจาก Canvas → กรอกใน d' + stage + ' แล้ว (ใช้เพื่อตรวจสอบ)', 'ok');
+}
+
+function computeAll() {
+  const dt = state.dt;
+  document.getElementById('g-dt').textContent = dt.toFixed(2) + ' s';
+  const points = [];
+  state.galaxies.slice(1).forEach(g => {
+    const d1 = parseFloat(document.getElementById('inp-d1-' + g.label).value);
+    const d2 = parseFloat(document.getElementById('inp-d2-' + g.label).value);
+    if (!isNaN(d1) && !isNaN(d2)) {
+      const dd = d2 - d1;
+      const v = dd / dt;
+      document.getElementById('inp-dd-' + g.label).value = dd.toFixed(2);
+      document.getElementById('inp-v-' + g.label).value = v.toFixed(3);
+      points.push({d:d1, v:v, label:g.label});
+    } else {
+      document.getElementById('inp-dd-' + g.label).value = '';
+      document.getElementById('inp-v-' + g.label).value = '';
+    }
+  });
+  drawGraph(points);
+  if (points.length >= 2) {
+    const {slope, r2} = linearFit(points);
+    document.getElementById('g-slope').textContent = slope.toFixed(4) + ' /s';
+    document.getElementById('g-r2').textContent = r2.toFixed(4);
+    if (state.mode === 'manual' && points.length === state.galaxies.length - 1) {
+      flash('✅ คำนวณเสร็จ — ความชัน (H<sub>balloon</sub>) ≈ <b>' + slope.toFixed(3) + ' /s</b><br>เปรียบเทียบกับค่าทฤษฎี (a−1)/Δt = ' + ((state.aTarget-1)/state.dt).toFixed(3) + ' /s', 'ok');
+    }
+  } else {
+    document.getElementById('g-slope').textContent = '—';
+    document.getElementById('g-r2').textContent = '—';
+  }
+}
+
+function linearFit(points) {
+  // best fit line v = slope * d (force through origin since v=0 at d=0)
+  let num = 0, den = 0;
+  points.forEach(p => { num += p.d * p.v; den += p.d * p.d; });
+  const slope = den > 0 ? num / den : 0;
+  // R²
+  const vbar = points.reduce((s,p)=>s+p.v,0) / points.length;
+  let ssRes = 0, ssTot = 0;
+  points.forEach(p => {
+    const pred = slope * p.d;
+    ssRes += (p.v - pred)**2;
+    ssTot += (p.v - vbar)**2;
+  });
+  const r2 = ssTot > 0 ? 1 - ssRes/ssTot : 1;
+  return {slope, r2};
+}
+
+/* =========================================================
+   GRAPH
+========================================================= */
+const gCanvas = document.getElementById('graph');
+const gCtx = gCanvas.getContext('2d');
+let gW = 800, gH = 280;
+
+function resizeGraph() {
+  const box = gCanvas.parentElement;
+  gW = box.clientWidth - 28;
+  gH = 280;
+  gCanvas.width = gW * window.devicePixelRatio;
+  gCanvas.height = gH * window.devicePixelRatio;
+  gCanvas.style.width = gW + 'px';
+  gCanvas.style.height = gH + 'px';
+  gCtx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  drawGraph(lastPoints);
+}
+
+let lastPoints = [];
+
+function drawGraph(points) {
+  lastPoints = points;
+  gCtx.clearRect(0, 0, gW, gH);
+
+  // axes
+  const PAD_L = 56, PAD_R = 14, PAD_T = 14, PAD_B = 36;
+  const plotW = gW - PAD_L - PAD_R;
+  const plotH = gH - PAD_T - PAD_B;
+
+  // auto-scale
+  const maxD = Math.max(6, ...points.map(p=>p.d), 7);
+  const maxV = Math.max(0.5, ...points.map(p=>p.v), 1.5);
+  const xMax = Math.ceil(maxD * 1.1);
+  const yMax = Math.ceil(maxV * 1.15 * 10) / 10;
+
+  function x2p(x) { return PAD_L + (x / xMax) * plotW; }
+  function y2p(y) { return PAD_T + plotH - (y / yMax) * plotH; }
+
+  // grid
+  gCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+  gCtx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = PAD_L + (i/10) * plotW;
+    gCtx.beginPath(); gCtx.moveTo(x, PAD_T); gCtx.lineTo(x, PAD_T + plotH); gCtx.stroke();
+  }
+  for (let i = 0; i <= 6; i++) {
+    const y = PAD_T + (i/6) * plotH;
+    gCtx.beginPath(); gCtx.moveTo(PAD_L, y); gCtx.lineTo(PAD_L + plotW, y); gCtx.stroke();
+  }
+
+  // axes
+  gCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+  gCtx.lineWidth = 1.5;
+  gCtx.beginPath();
+  gCtx.moveTo(PAD_L, PAD_T);
+  gCtx.lineTo(PAD_L, PAD_T + plotH);
+  gCtx.lineTo(PAD_L + plotW, PAD_T + plotH);
+  gCtx.stroke();
+
+  // ticks + labels
+  gCtx.fillStyle = 'rgba(255,255,255,0.55)';
+  gCtx.font = '11px "Share Tech Mono", monospace';
+  gCtx.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) {
+    const xv = (xMax * i / 10);
+    const xp = x2p(xv);
+    gCtx.fillText(xv.toFixed(xv % 1 === 0 ? 0 : 1), xp, PAD_T + plotH + 14);
+  }
+  gCtx.textAlign = 'right';
+  for (let i = 0; i <= 6; i++) {
+    const yv = yMax * i / 6;
+    const yp = y2p(yv);
+    gCtx.fillText(yv.toFixed(2), PAD_L - 6, yp + 3);
+  }
+
+  // axis labels
+  gCtx.fillStyle = 'rgba(255,255,255,0.75)';
+  gCtx.font = '12px Sarabun, sans-serif';
+  gCtx.textAlign = 'center';
+  gCtx.fillText('ระยะตั้งต้น d₁ (ซม.)', PAD_L + plotW/2, PAD_T + plotH + 28);
+  gCtx.save();
+  gCtx.translate(14, PAD_T + plotH/2);
+  gCtx.rotate(-Math.PI/2);
+  gCtx.fillText('ความเร็ว v (ซม./วินาที)', 0, 0);
+  gCtx.restore();
+
+  // best fit line
+  if (points.length >= 2) {
+    const {slope} = linearFit(points);
+    gCtx.strokeStyle = 'rgba(52,211,153,0.7)';
+    gCtx.lineWidth = 2;
+    gCtx.setLineDash([6, 4]);
+    gCtx.beginPath();
+    gCtx.moveTo(x2p(0), y2p(0));
+    gCtx.lineTo(x2p(xMax), y2p(slope * xMax));
+    gCtx.stroke();
+    gCtx.setLineDash([]);
+    // label
+    gCtx.fillStyle = '#34d399';
+    gCtx.font = '11px "Share Tech Mono", monospace';
+    gCtx.textAlign = 'right';
+    gCtx.fillText('v = ' + slope.toFixed(3) + '·d', x2p(xMax) - 4, y2p(slope * xMax) - 6);
+  }
+
+  // points
+  points.forEach(p => {
+    const xp = x2p(p.d);
+    const yp = y2p(p.v);
+    gCtx.fillStyle = '#fb923c';
+    gCtx.strokeStyle = '#fff';
+    gCtx.lineWidth = 2;
+    gCtx.beginPath();
+    gCtx.arc(xp, yp, 6, 0, 2*Math.PI);
+    gCtx.fill();
+    gCtx.stroke();
+    // label
+    gCtx.fillStyle = '#fde047';
+    gCtx.font = '700 11px Sarabun, sans-serif';
+    gCtx.textAlign = 'left';
+    gCtx.fillText(p.label, xp + 9, yp - 6);
+  });
+
+  // empty state
+  if (points.length === 0) {
+    gCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    gCtx.font = '13px Sarabun, sans-serif';
+    gCtx.textAlign = 'center';
+    gCtx.fillText('— ยังไม่มีข้อมูล — กรอก d₁, d₂ แล้วกด "🧮 คำนวณ" —', gW/2, gH/2);
+  }
+}
+
+/* =========================================================
+   RESET
+========================================================= */
+function resetAll(keepStructure) {
+  state.blowStage = 0;
+  state.aCurrent = 1.0;
+  state.selectedRef = null;
+  state.selectedGal = null;
+  state.measureLine = null;
+  state.animating = false;
+  if (!keepStructure) {
+    generateGalaxies(state.nGal);
+    rebuildTable();
+  } else {
+    clearTable();
+  }
+  updateReadouts();
+  draw();
+  drawGraph([]);
+  document.getElementById('g-slope').textContent = '—';
+  document.getElementById('g-r2').textContent = '—';
+  flash('↺ Reset เรียบร้อย — เริ่มใหม่ได้', 'ok');
+}
+
+/* =========================================================
+   CSV EXPORT
+========================================================= */
+function exportCSV() {
+  const dt = state.dt;
+  let csv = 'กาแล็กซี,d1 (cm),d2 (cm),Δd (cm),v (cm/s)\n';
+  state.galaxies.slice(1).forEach(g => {
+    const d1 = document.getElementById('inp-d1-'+g.label).value || '';
+    const d2 = document.getElementById('inp-d2-'+g.label).value || '';
+    const dd = document.getElementById('inp-dd-'+g.label).value || '';
+    const v = document.getElementById('inp-v-'+g.label).value || '';
+    csv += `${g.label},${d1},${d2},${dd},${v}\n`;
+  });
+  csv += `\nΔt (s),${dt.toFixed(2)}\n`;
+  csv += `Scale factor a,${state.aTarget.toFixed(2)}\n`;
+  csv += `Mode,${state.mode}\n`;
+  csv += `H_balloon (theoretical),${((state.aTarget-1)/dt).toFixed(4)} /s\n`;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'expanding-universe-data.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* =========================================================
+   TAB
+========================================================= */
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+
+  // when switching to theory, draw theory canvases
+  if (name === 'theory') {
+    setTimeout(drawTheoryCanvases, 60);
+  }
+  if (name === 'sim') {
+    setTimeout(() => { resizeCanvas(); resizeGraph(); }, 60);
+  }
+}
+
+/* =========================================================
+   THEORY CANVASES
+========================================================= */
+let theoryAnim1Id = null, theoryT = 0;
+
+function drawTheoryCanvases() {
+  drawTheoryBalloon();
+  drawTheoryRedshift();
+}
+
+function drawTheoryBalloon() {
+  const c = document.getElementById('theoryCanvas1');
+  if (!c) return;
+  c.width = c.clientWidth * window.devicePixelRatio;
+  c.height = c.clientHeight * window.devicePixelRatio;
+  const tx = c.getContext('2d');
+  tx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  const W = c.clientWidth, H = c.clientHeight;
+
+  if (theoryAnim1Id) cancelAnimationFrame(theoryAnim1Id);
+
+  let t = 0;
+  function loop() {
+    tx.clearRect(0,0,W,H);
+    t += 0.012;
+    // 2 balloons side by side — small + large
+    // animate scaling
+    const a1 = 1.0;
+    const a2 = 1.5 + Math.sin(t) * 0.3;
+
+    drawBalloonStage(tx, W*0.27, H/2, 50, 'a = 1.0 (เริ่มต้น)', 1.0);
+    drawBalloonStage(tx, W*0.72, H/2, 50, 'a = ' + a2.toFixed(2), a2);
+
+    // arrow between
+    tx.strokeStyle = 'rgba(251,146,60,0.7)';
+    tx.lineWidth = 2;
+    tx.beginPath();
+    tx.moveTo(W*0.40, H/2);
+    tx.lineTo(W*0.58, H/2);
+    tx.stroke();
+    // arrowhead
+    tx.fillStyle = '#fb923c';
+    tx.beginPath();
+    tx.moveTo(W*0.58, H/2);
+    tx.lineTo(W*0.58 - 10, H/2 - 5);
+    tx.lineTo(W*0.58 - 10, H/2 + 5);
+    tx.closePath();
+    tx.fill();
+    tx.fillStyle = 'rgba(251,146,60,0.85)';
+    tx.font = '12px Sarabun, sans-serif';
+    tx.textAlign = 'center';
+    tx.fillText('เป่า', W*0.49, H/2 - 8);
+
+    theoryAnim1Id = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function drawBalloonStage(tx, cx, cy, baseR, label, a) {
+  const r = baseR * a;
+  // balloon
+  const grad = tx.createRadialGradient(cx - r*0.3, cy - r*0.4, 0, cx, cy, r);
+  grad.addColorStop(0, 'rgba(251,146,60,0.35)');
+  grad.addColorStop(1, 'rgba(244,114,182,0.08)');
+  tx.fillStyle = grad;
+  tx.beginPath();
+  tx.ellipse(cx, cy, r, r*0.92, 0, 0, 2*Math.PI);
+  tx.fill();
+  tx.strokeStyle = 'rgba(251,146,60,0.6)';
+  tx.lineWidth = 1.5;
+  tx.beginPath();
+  tx.ellipse(cx, cy, r, r*0.92, 0, 0, 2*Math.PI);
+  tx.stroke();
+
+  // galaxies as small dots — reference at center, 4 around
+  // pattern: ref at (0,0), others at fixed angles
+  const refRel = {x:0, y:-0.3*baseR};
+  const dots = [
+    {x:0.5*baseR, y:0.1*baseR, l:'ก'},
+    {x:-0.4*baseR, y:0.3*baseR, l:'ข'},
+    {x:-0.55*baseR, y:-0.2*baseR, l:'ค'},
+    {x:0.6*baseR, y:-0.45*baseR, l:'ง'}
+  ];
+  // reference (red)
+  tx.fillStyle = '#dc2626';
+  tx.fillRect(cx + refRel.x*a - 5, cy + refRel.y*a - 5, 10, 10);
+  // others (blue)
+  dots.forEach(d => {
+    tx.fillStyle = '#0ea5e9';
+    tx.fillRect(cx + d.x*a - 5, cy + d.y*a - 5, 10, 10);
+    tx.fillStyle = '#fff';
+    tx.font = '700 9px Sarabun, sans-serif';
+    tx.textAlign = 'center';
+    tx.textBaseline = 'middle';
+    tx.fillText(d.l, cx + d.x*a, cy + d.y*a);
+  });
+
+  // label
+  tx.fillStyle = 'rgba(255,255,255,0.85)';
+  tx.font = '12px Sarabun, sans-serif';
+  tx.textAlign = 'center';
+  tx.fillText(label, cx, cy + r + 18);
+}
+
+let theoryAnim2Id = null;
+function drawTheoryRedshift() {
+  const c = document.getElementById('theoryCanvas2');
+  if (!c) return;
+  c.width = c.clientWidth * window.devicePixelRatio;
+  c.height = c.clientHeight * window.devicePixelRatio;
+  const tx = c.getContext('2d');
+  tx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  const W = c.clientWidth, H = c.clientHeight;
+
+  if (theoryAnim2Id) cancelAnimationFrame(theoryAnim2Id);
+
+  let t = 0;
+  function loop() {
+    tx.clearRect(0,0,W,H);
+    t += 0.025;
+
+    // 3 wave bars showing stretching with distance
+    const bars = [
+      {y: H*0.25, dist: 0.2, color: '#3b82f6', label: 'กาแล็กซีใกล้ — λ สั้น (blue/normal)'},
+      {y: H*0.5, dist: 0.5, color: '#a855f7', label: 'กาแล็กซีกลาง — λ เริ่มยืด'},
+      {y: H*0.75, dist: 0.9, color: '#ef4444', label: 'กาแล็กซีไกล — λ ยืดมาก (redshift)'}
+    ];
+
+    bars.forEach((b, idx) => {
+      const xStart = W * 0.1;
+      const xEnd = W * 0.78;
+      // wave with frequency that decreases with distance
+      const baseFreq = 8;
+      const stretchFactor = 1 + b.dist * 2.5;
+      const freq = baseFreq / stretchFactor;
+
+      tx.strokeStyle = b.color;
+      tx.lineWidth = 2;
+      tx.beginPath();
+      const N = 100;
+      for (let i = 0; i <= N; i++) {
+        const x = xStart + (xEnd - xStart) * (i/N);
+        const phase = (x - xStart) / (xEnd - xStart) * freq * 2*Math.PI + t * 2;
+        const y = b.y + Math.sin(phase) * 16;
+        if (i === 0) tx.moveTo(x, y); else tx.lineTo(x, y);
+      }
+      tx.stroke();
+
+      // label
+      tx.fillStyle = b.color;
+      tx.font = '11px Sarabun, sans-serif';
+      tx.textAlign = 'left';
+      tx.fillText(b.label, xEnd + 6, b.y + 4);
+    });
+
+    theoryAnim2Id = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+window.addEventListener('DOMContentLoaded', () => {
+  // sliders
+  const _v2s = {'vi-time':'sl-time','vi-scale':'sl-scale','vi-ngal':'sl-ngal'};
+  function syncVal(inp) {
+    const sl = document.getElementById(_v2s[inp.id]);
+    if (!sl) return;
+    let v = Math.max(+sl.min, Math.min(+sl.max, parseFloat(inp.value) || 0));
+    inp.value = v; sl.value = v;
+    sl.dispatchEvent(new Event('input'));
+  }
+  Object.entries(_v2s).forEach(([vi, si]) => {
+    const sl = document.getElementById(si);
+    const inp = document.getElementById(vi);
+    if (!sl || !inp) return;
+    sl.addEventListener('input', () => {
+      inp.value = parseFloat(sl.value);
+      if (vi === 'vi-time') state.dt = parseFloat(sl.value);
+      if (vi === 'vi-scale') {
+        state.aTarget = parseFloat(sl.value);
+        if (state.blowStage <= 1) resizeCanvas();
+      }
+      if (vi === 'vi-ngal') {
+        const n = parseInt(sl.value);
+        if (n !== state.nGal) {
+          state.nGal = n;
+          resetAll();
+        }
+      }
+    });
+    inp.addEventListener('blur', () => syncVal(inp));
+  });
+
+  // resize listeners
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    resizeGraph();
+  });
+
+  // init
+  generateGalaxies(state.nGal);
+  rebuildTable();
+  resizeCanvas();
+  resizeGraph();
+  updateReadouts();
+  drawGraph([]);
+});
+</script>
+
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-45", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
