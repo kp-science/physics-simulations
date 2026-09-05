@@ -67,6 +67,8 @@ def get_access_string(filepath):
         return f'vlab:vpl01:{lab_id}'
     if '/Virtual Physics Lab 02/' in filepath:
         return f'vlab:vpl02:{lab_id}'
+    if '/Virtual Physics Lab 03/' in filepath:
+        return f'vlab:vpl03:{lab_id}'
     return None
 
 # ─── Templates ───────────────────────────────────────────
@@ -198,12 +200,12 @@ def check_file(filepath):
         issues.append('MOBILE')
 
     # 7. Watermark (VPL01/VPL02/Demo simulation files)
-    is_sim = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Demo/' in filepath
+    is_sim = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Virtual Physics Lab 03/' in filepath or '/Demo/' in filepath
     if is_sim and 'watermark.js' not in content and fname != 'index.html':
         issues.append('WATERMARK')
 
     # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
-    is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath
+    is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Virtual Physics Lab 03/' in filepath
     is_demo_sim = '/Demo/' in filepath  # Demo ก็ต้องการ page guard
     if (is_vlab or is_demo_sim) and fname != 'index.html':
         if 'firebase-app-compat' not in content:
@@ -326,6 +328,9 @@ def fix_file(filepath, issues=None):
                 listing = get_root_path(filepath) + 'virtual-physics-lab-01.html'
             elif '/Virtual Physics Lab 02/' in filepath:
                 listing = get_root_path(filepath) + 'virtual-physics-lab-02.html'
+            elif '/Virtual Physics Lab 03/' in filepath:
+                # VPL03 ยังไม่มีหน้า catalog → กลับหน้าแรก (เปลี่ยนเป็น virtual-physics-lab-03.html เมื่อสร้างแล้ว)
+                listing = get_root_path(filepath) + 'index.html'
             elif '/Demo/' in filepath:
                 # map subject → demo listing page
                 subject = access.split(':')[1] if ':' in access else 'mechanics'

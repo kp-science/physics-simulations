@@ -1145,3 +1145,37 @@ match /settings/{docId} {
 - Index.html ใช้ tab system แบ่ง VPL01/VPL02 panels — `vpl2-panel` อยู่ใน `display:none` จนกว่าจะคลิก tab → canvas จะ init ก็ต่อเมื่อ panel visible
 - Preview screenshot tool มีปัญหา viewport position แต่ pixel sampling ผ่าน preview_eval ยืนยันว่า renderer ทำงานทุก canvas
 - `vpl2-expand` ใช้ pure 2D canvas (~85 lines) ไม่มี dependency · period 5s pulse แบบ smooth cosine
+
+## [2026-09-05 01:30] — เครื่อง: (ไม่ระบุ) · NEW series VPL03 + Lab 1 การวัดอย่างละเอียด 3D
+
+### ทำอะไรไปบ้าง
+- อ่าน PDF `514108-514113-lab1.pdf` (คู่มือปฏิบัติการฟิสิกส์ เล่ม 1 ม.ศิลปากร หน้า 21–27: การทดลอง 1 การวัดอย่างละเอียด) แล้วออกแบบ simulation 3D ตามคู่มือครบทุกตอน
+- **สร้าง series ใหม่ `Virtual Physics Lab 03/`** (ปฏิบัติการฟิสิกส์ระดับมหาวิทยาลัย) เพราะเนื้อหาเป็นคนละระดับกับ VPL01/02 — ไฟล์แรก `1. precision-measurement-3d.html` (≈117 KB, access `vlab:vpl03:lab-1`)
+- Simulation: three.js r128 (cdnjs) วาดเวอร์เนียร์คาลิปเปอร์ (สเกลหลัก 0–150 mm, เวอร์เนียร์ 20 ช่อง/39 mm → 0.05 mm) + ไมโครมิเตอร์ (pitch 0.5 mm, thimble 50 ช่อง → 0.01 mm, กรอบสีฟ้าตามรูปที่ 7) + วงแหวนโลหะ (washer) ที่ไม่กลมสมบูรณ์ (ปรับ "ความไม่กลม" ได้ 0–0.10 mm) · orbit/zoom เอง (ไม่ใช้ OrbitControls) · ปุ่มมุมหน้า/เฉียง/ซูมสเกล
+- **แว่นขยายสเกล 2D** (canvas) = ภาพขยายสเกลจริงที่ตำแหน่งปัจจุบัน ใช้อ่านค่า — โหมด Manual (ดีฟอลต์) ซ่อนลูกศร ให้หาขีดที่ตรงเอง → กรอกสเกลหลัก+ขีด → ✅ ตรวจ (±1 ขีด) → 💡 คำใบ้ 2 ระดับ / 👁 เฉลย → ➕ บันทึก (บันทึกได้เฉพาะเมื่อ "แตะพอดี") · โหมด Auto อ่านให้ + วัดครบชุดอัตโนมัติ
+- การทดลองตามคู่มือ: ตอนที่ 1 เวอร์เนียร์วัด D (เขี้ยวนอก) และ d (เขี้ยวใน) อย่างละ 3 ครั้ง (หมุนวงแหวนทุกครั้ง) · ตอนที่ 2 ไมโครมิเตอร์ ตรวจขีดศูนย์ d (สุ่ม −0.03…+0.04 / กำหนดเอง / 0; ขีด 0 เหนือเส้น = ลบ, ใต้เส้น = บวก ตามรูป 9–10) แล้ววัดความหนา t 3 ครั้ง → t = t̄ − d · เสียง "กริ๊ก" ratchet (WebAudio)
+- Output: ตารางแยกตอน (θ, สเกลหลัก, ขีด, ค่า, สถานะ ✅/👁/⚡) · x̄, Δx̄ = Σ|xᵢ−x̄|/N (ถ้า 0 ใช้ least count), σ · กล่องรายงาน · dot-plot การกระจาย · CSV / คัดลอกรายงาน · เปรียบเทียบกับขนาดจริง (% error) · progress + streak (motivation layer)
+- Tab วิธีการทดลอง: วัตถุประสงค์/อุปกรณ์/วิธีใช้ sim/ขั้นตอนตอนที่ 1–2/รูปแบบตารางบันทึกผล+ตัวอย่างคำนวณ/คำถามท้ายการทดลอง
+- Tab ทฤษฎี (วิชวล): canvas โต้ตอบหลักเวอร์เนียร์ 10 ช่อง (รูป 1–3, slider), สมการ (1)–(4) + ตัวอย่าง 20V=39S, รูปที่ 5 (9.15 mm), แผนภาพส่วนประกอบคาลิปเปอร์ (รูป 6) และไมโครมิเตอร์ A B C F H L R S T (รูป 7), canvas ไมโครมิเตอร์โต้ตอบ (6.480 mm), รูป 9–10 ความคลาดเคลื่อนขีดศูนย์, การรายงาน x̄ ± Δx̄, precision vs accuracy
+- ตรวจตัวเลขทั้งหมดเทียบ PDF แล้ว: S/n = 1/20 = 0.05 mm · 9.0 + 3×0.05 = 9.15 · 0.5/50 = 0.01 · 6.0 + 48×0.01 = 6.480 · d เหนือเส้น = ลบ
+- Verify ใน browser (python http.server 8765): 3D render, snap/rotate tween, manual check/record/hint, zero-check flow (d=+0.01 → t = 3.130 ± 0.010), autoSeries, stats, revealTruth, theory canvases ✓ · ไม่มี console error หลังแก้
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 03/1. precision-measurement-3d.html` — NEW (GA + frame protection + topbar + watermark + firebase/kp-auth + guard → redirect `../index.html`)
+- `kp-auth.js` — เพิ่ม `VLAB_SERIES.vpl03` (labs: lab-1) · `vlab:vpl03:*` ใน presets member/pro/premium + `ANONYMOUS_ACCESS_FALLBACK` · legacy labs mapping รองรับ vpl03
+- `_admin/admin.html` — เพิ่ม vpl03 ใน VLAB_SERIES / presets / anonymous fallback ทุกจุด / legacy mapping / legacyLabs loop (`['vpl01','vpl02','vpl03']`) — **ไม่ได้เพิ่มใน `LAB_LIST`** เพราะ id `lab-1` ซ้ำกับ VPL01 (LAB_LIST เป็น legacy flat list); UI v4 ใช้ VLAB_SERIES อยู่แล้ว
+- `_admin/protect_new_file.py` — รองรับโฟลเดอร์ `Virtual Physics Lab 03/` (access string, watermark, auth guard; redirect ไป index.html จนกว่าจะมี catalog)
+- `CLAUDE.md` — เพิ่มบรรทัดโครงสร้าง VPL02/VPL03
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ⚠️ **สำคัญ:** Firestore `settings/public.anonymous_access` บนเว็บจริงยังมีแค่ vpl01/vpl02 → ผู้เข้าชมทั่วไปจะถูก guard redirect (`index.html?locked=vlab:vpl03:lab-1`) — ต้องเข้า admin panel → การ์ด "🌐 สิทธิ์ผู้เข้าชมทั่วไป" → กด preset/กำหนดเอง ให้มี `vlab:vpl03:*` แล้วบันทึก (ทดสอบในเครื่องเจอ redirect จริง)
+- ยังไม่มีหน้า catalog `virtual-physics-lab-03.html` และยังไม่ได้ใส่การ์ดใน index.html / library.html (เมื่อสร้างแล้วให้แก้ redirect ใน protect_new_file.py + guard ในไฟล์ Lab 1)
+- ยังไม่ commit/push git (ดู `git status` — มี VPL03 folder ใหม่ + 4 ไฟล์แก้)
+- ค้างจาก session ก่อน: การ์ด Lab 42/44 ใน catalog VPL02, Demo Astronomy 13 ไฟล์, library.html VPL01 entries ผิดหมวด
+
+### หมายเหตุ
+- Lab 42 ใน VPL02 เป็นหัวข้อเดียวกันแต่เป็น 2D ระดับ ม.ปลาย — Lab 1 VPL03 อิงคู่มือมหาวิทยาลัย (วงแหวนโลหะ D/d/t, ตรวจขีดศูนย์, Δx̄ แบบ mean absolute deviation)
+- โมเดล 3D ทำจาก primitives + CanvasTexture (สเกลบนคาน/สไลเดอร์/sleeve/thimble) — ตัวเลขบน thimble ใน 3D อ่านยากตามธรรมชาติ ให้ใช้แว่นขยายเป็นหลัก (เหมือนรูปที่ 7 ที่มีแว่นขยายตรง C)
+- tween ใช้ setInterval (ไม่ใช่ rAF) + `cancelTweens()` เมื่อเปลี่ยนเครื่องมือ — แก้บั๊ก tween ค้างข้ามเครื่องมือที่เจอตอนทดสอบ
+- ขากรรไกรเลื่อนทะลุวัตถุไม่ได้ (opening ≥ dim) · ค่าที่อ่านถูก quantize เป็น 0.05 / 0.01 · ค่าจริงในตอนเฉลย = ค่าเฉลี่ยรอบวง (D₀, d₀, t₀)
+- Preview screenshot tool: ต้อง `tabs_select` ก่อน screenshot และใช้ `resize_window` 1280×2300 แทนการ scroll (scroll แล้วภาพดำ)

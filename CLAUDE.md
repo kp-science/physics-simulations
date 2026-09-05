@@ -43,6 +43,8 @@
 - `library.html` — หน้ารวมไฟล์ทั้งหมด มี search
 - `mechanics.html` — บทเรียนกลศาสตร์ (ปลดล็อก password แล้ว — free preview)
 - `Virtual Physics Lab 01/Mechacnics/` — 22 ไฟล์ simulation (มี frame-busting + back button)
+- `Virtual Physics Lab 02/` — Lab 30–45 (คลื่น · แสง · การวัด · จักรวาลวิทยา)
+- `Virtual Physics Lab 03/` — **ปฏิบัติการฟิสิกส์ระดับมหาวิทยาลัย** (อิงคู่มือปฏิบัติการฟิสิกส์ เล่ม 1 ม.ศิลปากร) เริ่ม Lab 1 (การวัดอย่างละเอียด 3D/three.js) · access `vlab:vpl03:lab-N` · protect script + kp-auth + admin รองรับแล้ว · **ยังไม่มีหน้า catalog** (guard redirect ไป index.html)
 
 ## 🎨 Design tokens
 
