@@ -12,6 +12,9 @@
 <!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Lab 1 (VPL03) — การวัดอย่างละเอียด 3D: เวอร์เนียร์คาลิปเปอร์ &amp; ไมโครมิเตอร์ | KP Science simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -191,6 +194,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
     <p>วัดวงแหวนโลหะเสมือนจริงในมุมมอง 3 มิติ • ฝึกอ่านสเกลด้วยตนเอง • บันทึกผล 3 ครั้ง หาค่าเฉลี่ยและความคลาดเคลื่อน</p>
   </div>
   <span class="badge" style="background:#2d1a3a;border-color:#a78bfa;color:#c4b5fd">VPL03 · ปฏิบัติการฟิสิกส์ ม.</span>
+  <span class="badge" id="verBadge" style="background:#0c1424;border-color:#334155;color:#94a3b8">v1.6 · 2569-09-05</span>
   <span class="badge">KP Science simulation</span>
 </header>
 
@@ -214,6 +218,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button onclick="setView('iso')">มุมเฉียง</button>
           <button onclick="setView('scale')">ซูมสเกล</button>
         </div>
+        <div id="dragHint" style="display:none;position:absolute;left:10px;bottom:10px;background:rgba(10,14,26,.9);border:1px solid var(--accent4);color:var(--accent4);padding:5px 10px;border-radius:8px;font-size:.76rem;pointer-events:none"></div>
         <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต<br>ยังคงใช้ "แว่นขยายสเกล" ด้านล่างเพื่อฝึกอ่านค่าได้ตามปกติ</div>
       </div>
 
@@ -591,6 +596,7 @@ S − V = S/n              ……(3)   ← ค่าละเอียดที�
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+console.log('KP Science VPL03 Lab 1 — build v1.6 (2569-09-05) rigid-body');
 /* ═══════════════════════════════════════════════════════════
    KP Science — Lab 1 (VPL03) การวัดอย่างละเอียด 3D
    Core: state · physics · magnifier · manual/auto · table
@@ -612,7 +618,7 @@ const SEC_LABEL  = { outer:'ตอนที่ 1 · D ภายนอก (เว
 const state = {
   instrument:'vernier', measure:'outer', mode:'manual', vType:'0.05',
   ring:{D:38.20,d:25.40,t:3.12,h:12.35,phi:0.4,phi2:1.1}, oval:0.04,
-  theta:0, opening:0, pos:{x:-70,y:0}, zeroErr:0, zeroMode:'random',   // pos = ตำแหน่งเครื่องมือ (วัตถุอยู่นิ่ง)
+  theta:0, opening:0, pos:{x:-70,y:0}, blockedAt:0, zeroErr:0, zeroMode:'random',   // pos = ตำแหน่งเครื่องมือ (วัตถุอยู่นิ่ง)
   N:3, records:{outer:[],inner:[],depth:[],thick:[]}, zeroRead:null,
   checked:false, revealed:false, entered:null, streak:0, hintLevel:0
 };
@@ -678,7 +684,7 @@ function moveParam(key, target){
     if(test(v)){ lastOk=v; continue; }
     let lo=lastOk, hi=v;
     for(let j=0;j<30;j++){ const mid=(lo+hi)/2; if(test(mid)) lo=mid; else hi=mid; }
-    c[key]=lo; applyCfg(c); return false;
+    c[key]=lo; applyCfg(c); state.blockedAt=performance.now(); clearTimeout(moveParam._t); moveParam._t=setTimeout(updateContact,1600); return false;
   }
   c[key]=target; applyCfg(c); return true;
 }
@@ -834,7 +840,7 @@ function setMeasure(m, keepInst){
   $('m1row').style.display = m==='zero' ? 'none' : 'flex';
   $('mbTitle').textContent = m==='zero' ? 'อ่านขีด T ที่ตรงเส้นแกนนอน (ตรวจขีดศูนย์)' : 'อ่านสเกลจากแว่นขยาย แล้วกรอก';
   $('mIn1').value=''; $('mIn2').value='';
-  if(typeof rebuild3D==='function') rebuild3D();
+  if(typeof rebuild3D==='function'){ rebuild3D(); setView('front'); }
   refreshAll();
 }
 function setVernierType(t){
@@ -1031,7 +1037,9 @@ function refreshAll(full){
 function updateContact(){
   const p=$('contactPill'), c=isContact(), gap=state.opening-currentDim();
   p.className='contact '+(c?'ok':'no');
-  p.textContent = c ? '🟢 แตะพอดี' : '⚪ ยังไม่แตะ (ห่าง '+gap.toFixed(2)+' mm)';
+  const blocked = state.blockedAt && performance.now()-state.blockedAt<1500;
+  p.textContent = c ? '🟢 แตะพอดี' : blocked ? '⛔ ชนวัตถุ — เลื่อนต่อไม่ได้ (กางปากให้กว้างขึ้น / ขยับทางอื่น)' : '⚪ ยังไม่แตะ (ห่าง '+gap.toFixed(2)+' mm)';
+  if(blocked && !c) p.style.borderColor='#f87171'; else p.style.borderColor='';
 }
 function updateAutoRead(){
   if(state.mode!=='auto') return;
@@ -1348,11 +1356,14 @@ function init3D(){
   const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,0,1),0), hitPt=new THREE.Vector3();
   let dragMode=null, lx=0, ly=0, sx=0, dragZ=0, startX=null, startOpen=0, startPos={x:0,y:0}, startTheta=0, shift=false;
   function setNdc(x,y){ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1, -((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); }
+  const PICK_OFFS=[[0,0]]; [6,12,20,28].forEach(r=>{ for(let a=0;a<12;a++) PICK_OFFS.push([r*Math.cos(a*Math.PI/6), r*Math.sin(a*Math.PI/6)]); });
   function pick(x,y){
-    setNdc(x,y); const list=[state.instrument==='vernier'?calGroup:micGroup];
+    const list=[state.instrument==='vernier'?calGroup:micGroup];
     if(ringMesh) list.push(ringMesh);
     if(state.measure==='depth') list.push(P.block);
-    const hits=ray.intersectObjects(list,true); if(!hits.length) return null;
+    let hits=[];
+    for(const [dx,dy] of PICK_OFFS){ setNdc(x+dx,y+dy); hits=ray.intersectObjects(list,true); if(hits.length) break; }   // จับง่ายขึ้น: ยอมรับการคลิกใกล้ ๆ ชิ้นส่วน (≤28 px)
+    if(!hits.length) return null;
     let obj=hits[0].object, kind='tool';
     while(obj){
       if(obj===ringMesh||obj===P.block){ kind='ring'; break; }
@@ -1361,12 +1372,13 @@ function init3D(){
     }
     return {kind, z:hits[0].point.z};
   }
+  function showDragHint(t){ const h=$('dragHint'); h.textContent=t; h.style.display='block'; clearTimeout(showDragHint._t); showDragHint._t=setTimeout(()=>{h.style.display='none';},1800); }
   function planePt(x,y,z){ setNdc(x,y); plane.constant=-z; return ray.ray.intersectPlane(plane,hitPt) ? {x:hitPt.x,y:hitPt.y} : null; }
   const down=(x,y,e)=>{
     lx=x; ly=y; sx=x; shift=!!(e&&e.shiftKey);
     const p=pick(x,y);
     if(p){ dragMode=p.kind; dragZ=p.z; startX=planePt(x,y,dragZ); startOpen=state.opening; startPos={x:state.pos.x,y:state.pos.y}; startTheta=state.theta; cancelTweens(); cv.style.cursor= p.kind==='ring'?'grabbing':p.kind==='move'?'ew-resize':'move'; }
-    else { dragMode='orbit'; cv.style.cursor='grabbing'; }
+    else { dragMode='orbit'; cv.style.cursor='grabbing'; showDragHint('🔄 กำลังหมุนมุมมอง — ถ้าต้องการเลื่อนเครื่องมือ ให้จับลากที่ตัวเครื่องมือ / สไลเดอร์'); }
   };
   const move=(x,y,e)=>{
     if(!dragMode){ const p=pick(x,y); cv.style.cursor = p ? (p.kind==='ring'?'grab':p.kind==='move'?'ew-resize':'move') : 'grab'; return; }
@@ -1390,7 +1402,7 @@ function init3D(){
   cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); if(dragMode!=='orbit') e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchend',up);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); cam.dist=clamp(cam.dist*(1+e.deltaY*0.0012),25,600); },{passive:false});
-  resize3D(); rebuild3D(); setView('iso');
+  resize3D(); rebuild3D(); setView('front');
   (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return; updateCamera(); renderer.render(scene,camera); })();
 }
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800, h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
