@@ -238,6 +238,13 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
             <option value="inner">เส้นผ่านศูนย์กลางภายใน d (เขี้ยวใน)</option>
           </select>
         </div>
+        <div class="row" id="rowVType"><label>ความละเอียด</label>
+          <select id="selVType" onchange="setVernierType(this.value)">
+            <option value="0.05">0.05 mm — 20 ช่อง / 39 mm (ตามคู่มือ)</option>
+            <option value="0.02">0.02 mm — 50 ช่อง / 49 mm (ที่ใช้ในโรงเรียน)</option>
+            <option value="0.1">0.1 mm — 10 ช่อง / 9 mm</option>
+          </select>
+        </div>
         <div class="row"><label>วงแหวนโลหะ</label>
           <select id="selRing" onchange="setRing(this.value)">
             <option value="A">วงแหวน A (ขนาดกลาง)</option>
@@ -401,7 +408,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <h3>📋 วิธีการทดลอง</h3>
       <h4>ตอนที่ 1 — เวอร์เนียร์คาลิปเปอร์: วัด D และ d ของวงแหวนโลหะ อย่างละ 3 ครั้ง</h4>
       <ol class="step-list">
-        <li>เลือกเครื่องมือ <b>📏 เวอร์เนียร์</b> → หาค่าละเอียดที่สุด: S/n = 1/20 = 0.05 mm (บันทึกไว้ในรายงาน)</li>
+        <li>เลือกเครื่องมือ <b>📏 เวอร์เนียร์</b> → หาค่าละเอียดที่สุด: S/n = 1/20 = 0.05 mm (บันทึกไว้ในรายงาน) · เลือก "ความละเอียด" เป็น <b>0.02 mm (50 ช่อง / 49 mm)</b> ได้ถ้าต้องการฝึกแบบเดียวกับเวอร์เนียร์ที่โรงเรียนใช้ → S/n = 1/50 = 0.02 mm</li>
         <li>เลือก "เส้นผ่านศูนย์กลางภายนอก D" — วงแหวนจะถูกวางระหว่าง<b>เขี้ยวนอก</b> (outside jaws)</li>
         <li>กด <b>🎯 เลื่อนจนแตะวัตถุ</b> → ป้ายมุมขวาบนเป็นสีเขียว</li>
         <li>อ่านค่าจากแว่นขยาย: <b>สเกลหลัก</b> = ขีด mm ที่อยู่ทางซ้ายของขีด 0 ของเวอร์เนียร์ · <b>ขีดเวอร์เนียร์</b> = ขีดที่ตรงกับขีดใดขีดหนึ่งบนสเกลหลักพอดี (0–19)</li>
@@ -495,6 +502,7 @@ S − V = S/n              ……(3)   ← ค่าละเอียดที�
 2S − V = S/20
 กรณีทั่วไป:  (mS − V) = S/n     ……(4)   m = 1, 2, 3, …
 สมการ (3) คือกรณีพิเศษ m = 1</div>
+      <p>เวอร์เนียร์ที่ใช้ทั่วไปในโรงเรียน: n = 50 ช่อง ยาวเท่ากับสเกลหลัก 49 mm (m = 1) → S/n = 1/50 = <b>0.02 mm</b> · อ่านค่า = สเกลหลัก + ขีดที่ตรง × 0.02 mm (ใน simulation เลือกได้ที่ "ความละเอียด")</p>
       <p>ตัวอย่างการอ่าน (รูปที่ 5): n = 20, S = 1 mm → S/n = 1/20 = 0.05 mm</p>
       <div class="formula">ค่าที่อ่านได้ = ค่าหน้าสเกลหลัก + เศษของสเกลหลัก
              = 9.0 mm + 3 × (0.05 mm) = 9.15 mm</div>
@@ -585,15 +593,22 @@ S − V = S/n              ……(3)   ← ค่าละเอียดที�
    KP Science — Lab 1 (VPL03) การวัดอย่างละเอียด 3D
    Core: state · physics · magnifier · manual/auto · table
    ═══════════════════════════════════════════════════════════ */
-const LC_V = 0.05;        // least count vernier  (S/n = 1/20)
+/* ชนิดเวอร์เนียร์ที่เลือกได้: n ช่อง ยาวเท่ากับสเกลหลัก span mm → S/n */
+const VTYPES = {
+  '0.05': { n:20, span:39, labelV:2, labelVdiv:2, name:'0.05 mm (20 ช่อง / 39 mm — ตามคู่มือ)' },
+  '0.02': { n:50, span:49, labelV:5, labelVdiv:5, name:'0.02 mm (50 ช่อง / 49 mm — ที่ใช้ในโรงเรียน)' },
+  '0.1':  { n:10, span:9,  labelV:1, labelVdiv:1, name:'0.1 mm (10 ช่อง / 9 mm)' }
+};
+function vt(){ return VTYPES[state.vType]||VTYPES['0.05']; }
+function lcV(){ return 1/vt().n; }
+function vDiv(){ return vt().span/vt().n; }
 const LC_M = 0.01;        // least count micrometer (0.5/50)
-const V_DIV = 1.95;       // 1 ช่องเวอร์เนียร์ = 39/20 mm (m = 2)
 const RINGS = { A:{D:38.20,d:25.40,t:3.12,h:12.35}, B:{D:32.55,d:20.15,t:2.46,h:8.60}, C:{D:45.10,d:30.05,t:4.08,h:15.20} };   // h = ความลึกร่องของบล็อก (ก้านวัดความลึก)
 const MEAS_LABEL = { outer:'เส้นผ่านศูนย์กลางภายนอก D', inner:'เส้นผ่านศูนย์กลางภายใน d', depth:'ความลึกร่อง h (ก้านวัดความลึก)', thick:'ความหนา t', zero:'ตรวจขีดศูนย์ (ไม่มีวัตถุ)' };
 const SEC_LABEL  = { outer:'ตอนที่ 1 · D ภายนอก (เวอร์เนียร์)', inner:'ตอนที่ 1 · d ภายใน (เวอร์เนียร์)', depth:'ตอนที่ 1 (เสริม) · ความลึกร่อง h (ก้านวัดความลึก)', zero:'ตอนที่ 2 · ความคลาดเคลื่อนขีดศูนย์ d (ไมโครมิเตอร์)', thick:'ตอนที่ 2 · ความหนา t (ไมโครมิเตอร์)' };
 
 const state = {
-  instrument:'vernier', measure:'outer', mode:'manual',
+  instrument:'vernier', measure:'outer', mode:'manual', vType:'0.05',
   ring:{D:38.20,d:25.40,t:3.12,h:12.35,phi:0.4,phi2:1.1}, oval:0.04,
   theta:0, opening:45, zeroErr:0, zeroMode:'random',
   N:3, records:{outer:[],inner:[],depth:[],thick:[]}, zeroRead:null,
@@ -619,15 +634,15 @@ function dimAt(kind, th){
 function currentDim(){ return state.measure==='zero' ? 0 : dimAt(state.measure, state.theta); }
 function maxOpen(){ return state.instrument==='vernier' ? 60 : 25; }
 function isContact(){ return (state.opening - currentDim()) < 0.005; }
-function lc(){ return state.instrument==='vernier' ? LC_V : LC_M; }
+function lc(){ return state.instrument==='vernier' ? lcV() : LC_M; }
 
 /* ── readings ── */
 function trueReading(){
-  if(state.instrument==='vernier') return Math.round(state.opening/LC_V)*LC_V;
+  if(state.instrument==='vernier'){ const n=vt().n; return Math.round(state.opening*n)/n; }
   return Math.round((state.opening + state.zeroErr)/LC_M)*LC_M;
 }
 function decompose(val, inst){
-  if(inst==='vernier'){ const r=Math.round(val*20); const main=Math.floor(r/20); return {main, div:r-20*main, val:r/20}; }
+  if(inst==='vernier'){ const n=vt().n, r=Math.round(val*n); const main=Math.floor(r/n); return {main, div:r-n*main, val:r/n}; }
   const r=Math.round(val*100); const s=Math.floor(r/50)*50; return {main:s/100, div:r-s, val:r/100};
 }
 
@@ -681,13 +696,14 @@ function setInstrument(inst){
     sel.innerHTML='<option value="outer">เส้นผ่านศูนย์กลางภายนอก D (เขี้ยวนอก)</option><option value="inner">เส้นผ่านศูนย์กลางภายใน d (เขี้ยวใน)</option><option value="depth">ความลึกร่องของบล็อก h (ก้านวัดความลึก)</option>';
     $('rowZero').style.display='none'; $('rowRatchet').style.display='none';
     $('lblOpen').textContent='ระยะเปิดขากรรไกร';
-    $('m1l').textContent='สเกลหลัก (mm)'; $('m2l').textContent='ขีดเวอร์เนียร์ที่ตรง'; $('m2r').textContent='× 0.05 mm';
-    $('mIn1').step=1; $('mIn1').placeholder='เช่น 38'; $('mIn2').placeholder='0–19'; $('mIn2').max=19;
+    $('m1l').textContent='สเกลหลัก (mm)'; $('m2l').textContent='ขีดเวอร์เนียร์ที่ตรง'; $('m2r').textContent='× '+lcV()+' mm';
+    $('mIn1').step=1; $('mIn1').placeholder='เช่น 38'; $('mIn2').placeholder='0–'+(vt().n-1); $('mIn2').max=vt().n-1;
+    $('rowVType').style.display='flex';
     $('ar1l').textContent='สเกลหลัก'; $('ar2l').textContent='ขีดเวอร์เนียร์';
     state.measure = (state.measure==='outer'||state.measure==='inner'||state.measure==='depth') ? state.measure : 'outer';
   } else {
     sel.innerHTML='<option value="thick">ความหนาวงแหวน t (ระหว่างแป้น A กับแกน B)</option><option value="zero">ตรวจขีดศูนย์ (ไม่มีวัตถุ)</option>';
-    $('rowZero').style.display='flex'; $('rowRatchet').style.display='flex';
+    $('rowZero').style.display='flex'; $('rowRatchet').style.display='flex'; $('rowVType').style.display='none';
     $('lblOpen').textContent='ระยะ A–B (หมุนหัว H)';
     $('m1l').textContent='สเกลหลัก S (ขั้น 0.5 mm)'; $('m2l').textContent='ขีด T ที่ตรงเส้น'; $('m2r').textContent='× 0.01 mm';
     $('mIn1').step=0.5; $('mIn1').placeholder='เช่น 3.0 / 3.5'; $('mIn2').placeholder='0–49'; $('mIn2').max=49;
@@ -715,6 +731,14 @@ function setMeasure(m, keepInst){
   $('mIn1').value=''; $('mIn2').value='';
   if(typeof rebuild3D==='function') rebuild3D();
   refreshAll();
+}
+function setVernierType(t){
+  if(!VTYPES[t]) return; state.vType=t; $('selVType').value=t;
+  if(P.vMat){ if(P.vMat.map) P.vMat.map.dispose(); P.vMat.map=vernierTexture(); P.vMat.needsUpdate=true; }
+  $('m2r').textContent='× '+lcV()+' mm'; $('mIn2').placeholder='0–'+(vt().n-1); $('mIn2').max=vt().n-1;
+  $('inst-vernier').textContent='📏 เวอร์เนียร์ ('+lcV()+' mm)';
+  resetCheck(); refreshAll();
+  setFeedback('info','📏 เปลี่ยนเป็นเวอร์เนียร์ '+vt().n+' ช่อง / '+vt().span+' mm → ค่าละเอียดที่สุด S/n = 1/'+vt().n+' = '+lcV()+' mm');
 }
 function setMeasureZeroCheck(){ setMeasure('zero'); snapContact(); }
 
@@ -802,7 +826,7 @@ function updateManualCalc(){
 function checkReading(){
   const e=manualEntered();
   if(!e){ setFeedback('no', state.measure==='zero' ? 'กรุณากรอกขีด T ที่ตรงเส้นแกนนอน' : 'กรุณากรอกทั้งสเกลหลักและขีดที่ตรง'); return; }
-  const inst=state.instrument, maxDiv=inst==='vernier'?19:49;
+  const inst=state.instrument, maxDiv=inst==='vernier'?vt().n-1:49;
   if(e.div<0||e.div>maxDiv||e.div%1!==0){ setFeedback('no','ขีดต้องเป็นจำนวนเต็ม 0–'+maxDiv); return; }
   if(inst==='micro' && state.measure!=='zero' && Math.abs(e.main*2-Math.round(e.main*2))>1e-9){ setFeedback('no','สเกลหลัก S ของไมโครมิเตอร์อ่านเป็นขั้นละ 0.5 mm (เช่น 3.0 หรือ 3.5)'); return; }
   const tr=trueReading(), tol=lc()*1.001;
@@ -828,7 +852,7 @@ function showHint(){
   const h=$('hint'); h.className='hintbox show';
   if(state.measure==='zero'){ h.innerHTML = state.hintLevel===1 ? '💡 มองที่เส้นแกนนอนของสเกล S แล้วดูว่าขีดใดของ T ตรงกับเส้นพอดี — ถ้าขีด 0 อยู่ "เหนือ" เส้น เส้นจะชี้ที่ 47, 48, 49 …' : '💡 ขีดที่ตรงเส้นอยู่ในช่วง '+((d.div+48)%50)+'–'+((d.div+2)%50); return; }
   if(state.instrument==='vernier'){
-    h.innerHTML = state.hintLevel===1 ? '💡 ขีด 0 ของเวอร์เนียร์อยู่ระหว่าง '+d.main+' กับ '+(d.main+1)+' mm → สเกลหลักอ่าน '+d.main+' mm' : '💡 ขีดที่ตรงอยู่ในช่วง '+Math.max(0,d.div-2)+'–'+Math.min(19,d.div+2)+' ลองไล่ดูทีละขีด';
+    h.innerHTML = state.hintLevel===1 ? '💡 ขีด 0 ของเวอร์เนียร์อยู่ระหว่าง '+d.main+' กับ '+(d.main+1)+' mm → สเกลหลักอ่าน '+d.main+' mm' : '💡 ขีดที่ตรงอยู่ในช่วง '+Math.max(0,d.div-2)+'–'+Math.min(vt().n-1,d.div+2)+' ลองไล่ดูทีละขีด';
   } else {
     h.innerHTML = state.hintLevel===1 ? '💡 ขอบกระบอก T อยู่หลังขีด '+d.main.toFixed(1)+' mm บนสเกล S'+(d.main%1?' (ขีดครึ่งด้านล่าง)':'') : '💡 ขีด T ที่ตรงเส้นอยู่ในช่วง '+Math.max(0,d.div-2)+'–'+Math.min(49,d.div+2);
   }
@@ -939,11 +963,11 @@ function renderTable(){
   tb.innerHTML = html || '<tr><td colspan="6" style="color:var(--muted);padding:14px">ยังไม่มีข้อมูล — วัดแล้วกด ➕ บันทึกลงตาราง</td></tr>';
 
   // stats + report
-  let sb='', rep='ค่าละเอียดที่สุด: เวอร์เนียร์ 1/20 = 0.05 mm · ไมโครมิเตอร์ 0.5/50 = 0.01 mm\n';
+  let sb='', rep='ค่าละเอียดที่สุด: เวอร์เนียร์ 1/'+vt().n+' = '+lcV()+' mm · ไมโครมิเตอร์ 0.5/50 = 0.01 mm\n';
   const lines=[];
   [['outer','D'],['inner','d'],['depth','h'],['thick','t']].forEach(([k,sym])=>{
     const s=stats(state.records[k]); if(!s) return;
-    const unc = s.mad>0? s.mad : (k==='thick'?LC_M:LC_V);
+    const unc = s.mad>0? s.mad : (k==='thick'?LC_M:lcV());
     sb+='<div class="stat"><div class="l">'+sym+'̄ (N='+s.n+')</div><div class="v">'+s.mean.toFixed(3)+'</div></div><div class="stat"><div class="l">Δ'+sym+'̄</div><div class="v">'+unc.toFixed(3)+'</div></div><div class="stat"><div class="l">σ</div><div class="v">'+s.sd.toFixed(3)+'</div></div>';
     if(k==='thick'){
       const z=state.zeroRead? state.zeroRead.val : null;
@@ -979,7 +1003,7 @@ function drawChart(){
   const c=$('chartCanvas'); if(!c) return; const W=c.clientWidth||600, H=c.clientHeight||150;
   c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const ctx=c.getContext('2d'); ctx.scale(devicePixelRatio,devicePixelRatio);
   ctx.clearRect(0,0,W,H);
-  const rows=[['outer','D',LC_V,'#38bdf8'],['inner','d',LC_V,'#818cf8'],['depth','h',LC_V,'#34d399'],['thick','t',LC_M,'#fb923c']].filter(r=>state.records[r[0]].length);
+  const rows=[['outer','D',lcV(),'#38bdf8'],['inner','d',lcV(),'#818cf8'],['depth','h',lcV(),'#34d399'],['thick','t',LC_M,'#fb923c']].filter(r=>state.records[r[0]].length);
   ctx.font='11px Sarabun'; ctx.fillStyle='#94a3b8'; ctx.textAlign='left';
   if(!rows.length){ ctx.fillText('📈 การกระจายของค่าที่วัดได้ (จุด) เทียบค่าเฉลี่ย (เส้น) และ ±Δx̄ (แถบ)',10,20); return; }
   const rh=H/rows.length, x0=60, x1=W-20;
@@ -1038,6 +1062,7 @@ function drawVernierScale(ctx,W,H,reading,o){
   for(let j=0;j<=o.n;j++){
     const x=X(reading+j*o.V); if(x>W-pad+2) continue;
     const big=j%(o.labelV*5)===0||j===o.n, mid=j%o.labelV===0;
+    if(o.n>=50 && !mid){ ctx.strokeStyle='#0f172a'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,yMid+2); ctx.lineTo(x,yMid+2+9); ctx.stroke(); continue; }
     const len=big?26:mid?18:11;
     ctx.strokeStyle= j===0?'#0369a1':'#0f172a'; ctx.lineWidth=big||j===0?1.8:1.1;
     ctx.beginPath(); ctx.moveTo(x,yMid+2); ctx.lineTo(x,yMid+2+len); ctx.stroke();
@@ -1047,7 +1072,7 @@ function drawVernierScale(ctx,W,H,reading,o){
   // labels
   ctx.textAlign='right'; ctx.font='11px Sarabun'; ctx.fillStyle='#475569';
   ctx.fillText('สเกลหลัก (S = '+o.S+' '+o.unit+')', W-pad-2, top+12);
-  ctx.fillText('สเกลเวอร์เนียร์ (n = '+o.n+', S/n = '+(o.S/o.n).toFixed(o.n>=20?2:1)+' '+o.unit+')', W-pad-2, bot-4);
+  ctx.fillText('สเกลเวอร์เนียร์ (n = '+o.n+', S/n = '+(o.S/o.n)+' '+o.unit+')', W-pad-2, bot-4);
   if(o.showArrow){
     arrow(ctx, X(mainIdx*o.S), top+2, yMid-30, '#dc2626');
     arrow(ctx, X(reading+k*o.V), bot-2, yMid+32, '#16a34a');
@@ -1110,7 +1135,7 @@ function drawMag(){
   const {ctx,W,H}=prepCanvas(c);
   const show = state.mode==='auto' || state.revealed;
   const rd=trueReading();
-  if(state.instrument==='vernier') drawVernierScale(ctx,W,H,rd,{showArrow:show});
+  if(state.instrument==='vernier'){ const t=vt(); drawVernierScale(ctx,W,H,rd,{showArrow:show,n:t.n,V:vDiv(),winMm:t.span+8,labelV:t.labelV,labelVdiv:t.labelVdiv}); }
   else drawMicroScale(ctx,W,H,rd,{showArrow:show});
   if(!isContact()){ ctx.fillStyle='rgba(250,204,21,.9)'; ctx.font='bold 12px Sarabun'; ctx.textAlign='right'; ctx.fillText('⚠ ยังไม่แตะวัตถุ — ค่านี้ยังไม่ใช่ขนาดวัตถุ', W-16, H-6); }
 }
@@ -1264,7 +1289,7 @@ function updateCamera(){ const t=cam.target; camera.position.set(t.x+cam.dist*Ma
 function setView(v){
   const o=state.opening, isV=state.instrument==='vernier';
   if(isV){
-    if(v==='scale'){ cam.target.set(o+18,3,0); cam.dist=75; cam.az=0; cam.el=0.12; }
+    if(v==='scale'){ cam.target.set(o+22,3,0); cam.dist=80; cam.az=0; cam.el=0.12; }
     else if(state.measure==='depth'){ cam.target.set(150,-6,0); cam.dist= v==='front'?150:160; cam.az= v==='front'?0:0.5; cam.el= v==='front'?0.05:0.35; }
     else { cam.target.set(o/2+45, state.measure==='inner'?6:-26, 0); cam.dist= v==='front'?265:270; cam.az= v==='front'?0:0.45; cam.el= v==='front'?0.05:0.4; }
   } else {
@@ -1281,16 +1306,16 @@ function beamTexture(){ // front face of beam: x ∈ [-8,175] mm → 2048 px, y 
     const px=w/183, py=h/16, X=mm=>(mm+8)*px;
     ctx.strokeStyle='#111827'; ctx.fillStyle='#111827'; ctx.font='bold 30px "Share Tech Mono"'; ctx.textAlign='center';
     for(let v=0;v<=160;v++){ const x=X(v), big=v%10===0, mid=v%5===0; ctx.lineWidth=big?3:2; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,(big?9:mid?6.5:4)*py); ctx.stroke(); if(big) ctx.fillText(String(v),x,(9*py)+30); }
-    ctx.font='22px Sarabun'; ctx.textAlign='left'; ctx.fillStyle='#374151'; ctx.fillText('KP Science  0.05 mm  STAINLESS HARDENED',X(100),h-10);
+    ctx.font='22px Sarabun'; ctx.textAlign='left'; ctx.fillStyle='#374151'; ctx.fillText('KP Science  STAINLESS HARDENED',X(100),h-10);
   });
 }
 function vernierTexture(){ // slider front: x ∈ [-3,43] mm rel. to jaw face → 1024 px; y 12 mm → 120 px (top edge = y 0)
-  return makeTex(1024,120,(ctx,w,h)=>{
+  return makeTex(1536,120,(ctx,w,h)=>{
     ctx.fillStyle='#e5e9ee'; ctx.fillRect(0,0,w,h);
-    const px=w/46, py=h/12, X=mm=>(mm+3)*px;
+    const t=vt(), px=w/58, py=h/12, X=mm=>(mm+3)*px, V=vDiv();
     ctx.strokeStyle='#111827'; ctx.fillStyle='#111827'; ctx.font='bold 24px "Share Tech Mono"'; ctx.textAlign='center';
-    for(let k=0;k<=20;k++){ const x=X(k*V_DIV), big=k%10===0, mid=k%2===0; ctx.lineWidth=big?3:2; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,(big?3.2:mid?2.4:1.6)*py); ctx.stroke(); if(mid) ctx.fillText(String(k/2),x,3.2*py+24); }
-    ctx.font='18px Sarabun'; ctx.fillStyle='#374151'; ctx.textAlign='left'; ctx.fillText('0.05 mm',X(2),h-12);
+    for(let k=0;k<=t.n;k++){ const x=X(k*V), mid=k%t.labelV===0, big=k%(t.labelV*5)===0||k===t.n; ctx.lineWidth=big?3:mid?2:1.4; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,(big?3.2:mid?2.4:1.5)*py); ctx.stroke(); if(mid) ctx.fillText(String(k/t.labelVdiv),x,3.2*py+24); }
+    ctx.font='18px Sarabun'; ctx.fillStyle='#374151'; ctx.textAlign='left'; ctx.fillText(lcV()+' mm',X(t.span+2),h-12);
   });
 }
 /* cylinder textures: canvas x = around (u), canvas y = along axis; canvas y=0 ↔ +x end (v=1) */
@@ -1335,14 +1360,14 @@ function buildCaliper(){
   const fi=poly([[0,8],[0,29],[1.2,31.5],[4,30],[6.5,22],[6.5,8]],2.5,MAT.steel); fi.position.z=-1.5; calGroup.add(fi);       // z −1.5…1.0
   // ── ชุดเลื่อน (slider) ── ตำแหน่ง x = opening
   P.slider=new THREE.Group(); calGroup.add(P.slider);
-  const vFront=new THREE.MeshStandardMaterial({map:vernierTexture(),metalness:.4,roughness:.5});
-  const sl=new THREE.Mesh(new THREE.BoxGeometry(46,12,2.2),[MAT.steel2,MAT.steel2,MAT.steel2,MAT.steel2,vFront,MAT.steel2]); sl.position.set(20,-8,2.7); P.slider.add(sl);   // แผ่นเวอร์เนียร์ด้านหน้า y −14…−2
-  const back=box(46,28,2.2,MAT.steel2); back.position.set(20,0,-2.7); P.slider.add(back);                   // แผ่นหลังเต็มความสูง
-  const bridge=box(38,6,7.6,MAT.steel2); bridge.position.set(21,11,0); P.slider.add(bridge);                // สะพานคร่อมคาน x 2…40, y 8…14
-  const endcap=box(4,28,7.6,MAT.steel2); endcap.position.set(41,0,0); P.slider.add(endcap);                 // ปิดปลายขวา
-  const screw=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,4,20),MAT.dark); screw.position.set(14,16,0); P.slider.add(screw);       // เกลียวยึด (clamp screw)
-  const screwHead=new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.2,20),MAT.dark); screwHead.position.set(14,18.4,0); P.slider.add(screwHead);
-  const roller=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,3,28),MAT.dark); roller.rotation.x=Math.PI/2; roller.position.set(36,-15,4.6); P.slider.add(roller);   // ปุ่ม S (thumb roller)
+  P.vMat=new THREE.MeshStandardMaterial({map:vernierTexture(),metalness:.4,roughness:.5});
+  const sl=new THREE.Mesh(new THREE.BoxGeometry(58,12,2.2),[MAT.steel2,MAT.steel2,MAT.steel2,MAT.steel2,P.vMat,MAT.steel2]); sl.position.set(26,-8,2.7); P.slider.add(sl);   // แผ่นเวอร์เนียร์ด้านหน้า y −14…−2
+  const back=box(58,28,2.2,MAT.steel2); back.position.set(26,0,-2.7); P.slider.add(back);                   // แผ่นหลังเต็มความสูง
+  const bridge=box(50,6,7.6,MAT.steel2); bridge.position.set(27,11,0); P.slider.add(bridge);                // สะพานคร่อมคาน x 2…40, y 8…14
+  const endcap=box(4,28,7.6,MAT.steel2); endcap.position.set(53,0,0); P.slider.add(endcap);                 // ปิดปลายขวา
+  const screw=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,4,20),MAT.dark); screw.position.set(18,16,0); P.slider.add(screw);       // เกลียวยึด (clamp screw)
+  const screwHead=new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.2,20),MAT.dark); screwHead.position.set(18,18.4,0); P.slider.add(screwHead);
+  const roller=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,3,28),MAT.dark); roller.rotation.x=Math.PI/2; roller.position.set(46,-15,4.6); P.slider.add(roller);   // ปุ่ม S (thumb roller)
   // เขี้ยวนอกเลื่อน: หน้าวัดที่ x = 0 (สัมพัทธ์) ปลายเหลี่ยม
   const mo=poly([[0,-14],[0,-50],[4,-54],[14,-30],[14,-14]],3.8,MAT.steel); mo.position.z=-1.9; P.slider.add(mo);
   // เขี้ยวในเลื่อน: คมวัดด้านขวาที่ x = 0 (สัมพัทธ์)
