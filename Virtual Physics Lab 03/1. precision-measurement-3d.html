@@ -207,7 +207,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
     <div class="canvas-wrap">
       <div class="view3d" id="view3d">
         <canvas id="glCanvas"></canvas>
-        <div class="hud" id="hud"><b>เวอร์เนียร์คาลิปเปอร์</b> · วัดเส้นผ่านศูนย์กลางภายนอก<br>ลากเมาส์หมุนมุมมอง · ล้อเมาส์ซูม · ลากซ้าย-ขวาบนสไลเดอร์เพื่อเลื่อนขากรรไกร</div>
+        <div class="hud" id="hud"><b>เวอร์เนียร์คาลิปเปอร์</b> · วัดเส้นผ่านศูนย์กลางภายนอก<br>ลากสไลเดอร์ในภาพเพื่อเลื่อนขากรรไกร · ลากวงแหวนเพื่อหมุน · ลากที่ว่างหมุนมุมมอง · ล้อเมาส์ซูม</div>
         <div class="contact no" id="contactPill">⚪ ยังไม่แตะวัตถุ</div>
         <div class="viewbtns">
           <button onclick="setView('front')">มุมหน้า</button>
@@ -383,7 +383,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <h3>🖥️ การใช้งาน Simulation 3D</h3>
       <ul>
         <li><b>หมุนมุมมอง</b> — ลากเมาส์บนภาพ 3D · <b>ซูม</b> — ล้อเมาส์ · ปุ่ม "ซูมสเกล" พาไปดูสเกลใกล้ ๆ</li>
-        <li><b>เลื่อนขากรรไกร / หัววัด</b> — ใช้สไลเดอร์ "ระยะเปิด" หรือพิมพ์ตัวเลข</li>
+        <li><b>เลื่อนขากรรไกร / หัววัด</b> — ลากสไลเดอร์ของคาลิปเปอร์หรือกระบอกหมุนของไมโครมิเตอร์ <b>ในภาพ 3D โดยตรง</b> (กด Shift ค้างเพื่อเลื่อนละเอียด) หรือใช้สไลเดอร์ "ระยะเปิด" / พิมพ์ตัวเลข — เลื่อนเข้าหาวัตถุจนหยุด = แตะพอดี</li>
+        <li><b>หมุนวงแหวน</b> — ลากที่วงแหวนในภาพ หรือกดปุ่ม 🔄 (วงแหวนวางชิดปากวัดฝั่งคงที่เสมอ ปากอีกข้างเลื่อนเข้ามาชน)</li>
         <li><b>🎯 เลื่อนจนแตะวัตถุ</b> — จำลองการเลื่อนขากรรไกรจนสัมผัสวัตถุพอดี (ไมโครมิเตอร์: หมุนปุ่ม R จนได้ยินเสียง "กริ๊ก" แล้วหยุด)</li>
         <li><b>🔍 แว่นขยายสเกล</b> — ภาพขยายสเกลตรงตำแหน่งจริง ใช้อ่านค่า (ในโหมด Manual จะไม่มีลูกศรชี้ให้ ต้องหาขีดที่ตรงเอง)</li>
         <li>ป้าย <span class="kbd">แตะพอดี</span> มุมขวาบนจะเป็นสีเขียวเมื่อเครื่องมือสัมผัสวัตถุ — บันทึกค่าได้เฉพาะตอนแตะพอดีเท่านั้น (เหมือนของจริง ถ้ายังไม่แตะ ค่าที่อ่านจะมากเกินจริง)</li>
@@ -700,7 +701,7 @@ function setMeasure(m, keepInst){
   state.opening = clamp(d + (state.instrument==='vernier'?6:3), 0, maxOpen());
   if(m==='zero') state.opening = 2.5;
   syncOpenUI();
-  $('hud').innerHTML = '<b>'+(state.instrument==='vernier'?'เวอร์เนียร์คาลิปเปอร์':'ไมโครมิเตอร์')+'</b> · '+MEAS_LABEL[m]+'<br>ลากเมาส์หมุนมุมมอง · ล้อเมาส์ซูม · ใช้สไลเดอร์เลื่อน'+(state.instrument==='vernier'?'ขากรรไกร':'แกน B');
+  $('hud').innerHTML = '<b>'+(state.instrument==='vernier'?'เวอร์เนียร์คาลิปเปอร์':'ไมโครมิเตอร์')+'</b> · '+MEAS_LABEL[m]+'<br>ลาก'+(state.instrument==='vernier'?'สไลเดอร์':'กระบอกหมุน')+'ในภาพเพื่อเลื่อน (กด Shift = ละเอียด) · ลากวงแหวนเพื่อหมุน · ลากที่ว่างหมุนมุมมอง · ล้อเมาส์ซูม';
   $('btnRot').disabled = (m==='zero');
   $('m1row').style.display = m==='zero' ? 'none' : 'flex';
   $('mbTitle').textContent = m==='zero' ? 'อ่านขีด T ที่ตรงเส้นแกนนอน (ตรวจขีดศูนย์)' : 'อ่านสเกลจากแว่นขยาย แล้วกรอก';
@@ -1208,15 +1209,43 @@ function init3D(){
   MAT.mark=new THREE.MeshStandardMaterial({color:0x111827,metalness:.2,roughness:.8});
   buildCaliper(); buildMicrometer();
   ringParent=new THREE.Group(); scene.add(ringParent);
-  // orbit controls (custom)
-  let drag=false,lx=0,ly=0;
-  const down=(x,y)=>{drag=true;lx=x;ly=y;cv.style.cursor='grabbing';};
-  const move=(x,y)=>{ if(!drag) return; cam.az-=(x-lx)*0.006; cam.el=clamp(cam.el+(y-ly)*0.006,-0.3,1.45); lx=x;ly=y; };
-  cv.addEventListener('mousedown',e=>down(e.clientX,e.clientY)); window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
-  window.addEventListener('mouseup',()=>{drag=false;cv.style.cursor='grab';});
-  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1) down(e.touches[0].clientX,e.touches[0].clientY); },{passive:true});
-  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1) move(e.touches[0].clientX,e.touches[0].clientY); },{passive:true});
-  cv.addEventListener('touchend',()=>{drag=false;});
+  // pointer: ลากชิ้นส่วนที่เลื่อนได้ (สไลเดอร์ / กระบอกหมุน) = เลื่อนปากวัด · ลากวงแหวน = หมุนวงแหวน · ลากที่ว่าง = หมุนมุมมอง
+  const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,0,1),0), hitPt=new THREE.Vector3();
+  let dragMode=null, lx=0, ly=0, sx=0, dragZ=0, startX=null, startOpen=0, startTheta=0, shift=false;
+  function setNdc(x,y){ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1, -((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); }
+  function pick(x,y){
+    setNdc(x,y); const list=[];
+    if(state.instrument==='vernier') list.push(P.slider); else list.push(P.thimble,P.spindle);
+    if(ringMesh) list.push(ringMesh);
+    const hits=ray.intersectObjects(list,true); if(!hits.length) return null;
+    const h=hits[0]; let obj=h.object, isRing=false;
+    while(obj){ if(obj===ringMesh){isRing=true;break;} obj=obj.parent; }
+    return {kind:isRing?'ring':'move', z:h.point.z};
+  }
+  function planeX(x,y,z){ setNdc(x,y); plane.constant=-z; return ray.ray.intersectPlane(plane,hitPt) ? hitPt.x : null; }
+  const down=(x,y,e)=>{
+    lx=x; ly=y; sx=x; shift=!!(e&&e.shiftKey);
+    const p=pick(x,y);
+    if(p){ dragMode=p.kind; dragZ=p.z; startX=planeX(x,y,dragZ); startOpen=state.opening; startTheta=state.theta; cancelTweens(); cv.style.cursor= p.kind==='ring'?'grabbing':'ew-resize'; }
+    else { dragMode='orbit'; cv.style.cursor='grabbing'; }
+  };
+  const move=(x,y,e)=>{
+    if(!dragMode){ const p=pick(x,y); cv.style.cursor = p ? (p.kind==='ring'?'grab':'ew-resize') : 'grab'; return; }
+    if(dragMode==='move'){
+      const px=planeX(x,y,dragZ);
+      if(px!==null&&startX!==null){ const k=(e&&e.shiftKey)?0.1:1; state.opening=clamp(startOpen+(px-startX)*k, currentDim(), maxOpen()); syncOpenUI(); refreshAll(false); }
+    } else if(dragMode==='ring'){
+      if(state.measure!=='zero'){ state.theta=startTheta+(x-sx)*0.012; refreshAll(false); }
+    } else { cam.az-=(x-lx)*0.006; cam.el=clamp(cam.el+(y-ly)*0.006,-0.3,1.45); }
+    lx=x; ly=y;
+  };
+  const up=()=>{ if(!dragMode) return; const m=dragMode; dragMode=null; cv.style.cursor='grab'; if(m==='move'||m==='ring'){ resetCheck(); refreshAll(); if(m==='move'&&isContact()) setFeedback('info',(state.instrument==='micro'?'🔊 กริ๊ก — แกน B':'✅ ขากรรไกร')+'แตะ'+(state.measure==='zero'?'แป้น A':'วงแหวน')+'พอดี → อ่านค่าจากแว่นขยาย'); if(m==='ring') setFeedback('info','🔄 หมุนวงแหวนแล้ว (θ = '+fmt(deg(state.theta),0)+'°) → เลื่อนปากวัดให้แตะ แล้วอ่านค่าใหม่'); } };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY,e); });
+  window.addEventListener('mousemove',e=>{ if(dragMode||e.target===cv) move(e.clientX,e.clientY,e); });
+  window.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); if(dragMode!=='orbit') e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); if(dragMode!=='orbit') e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchend',up);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); cam.dist=clamp(cam.dist*(1+e.deltaY*0.0012),25,600); },{passive:false});
   resize3D(); rebuild3D(); setView('iso');
   (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return; updateCamera(); renderer.render(scene,camera); })();
@@ -1227,7 +1256,7 @@ function setView(v){
   const o=state.opening, isV=state.instrument==='vernier';
   if(isV){
     if(v==='scale'){ cam.target.set(o+18,3,0); cam.dist=75; cam.az=0; cam.el=0.12; }
-    else { cam.target.set(o/2+45,-14,0); cam.dist= v==='front'?240:250; cam.az= v==='front'?0:0.45; cam.el= v==='front'?0.05:0.4; }
+    else { cam.target.set(o/2+45, state.measure==='inner'?6:-22, 0); cam.dist= v==='front'?240:250; cam.az= v==='front'?0:0.45; cam.el= v==='front'?0.05:0.4; }
   } else {
     const rd=state.opening+state.zeroErr;
     if(v==='scale'){ cam.target.set(32+rd+4,2,0); cam.dist=55; cam.az=0; cam.el=0.1; }
@@ -1288,7 +1317,7 @@ function buildCaliper(){
   const beamFront=new THREE.MeshStandardMaterial({map:beamTexture(),metalness:.5,roughness:.45});
   const beam=new THREE.Mesh(new THREE.BoxGeometry(183,16,3),[MAT.steel,MAT.steel,MAT.steel,MAT.steel,beamFront,MAT.steel]); beam.position.set(83.5,0,0); calGroup.add(beam);
   const fo=box(8,42,3,MAT.steel); fo.position.set(-4,-29,0); calGroup.add(fo);
-  const fi=box(5,14,3,MAT.steel); fi.position.set(2.5,15,2.5); calGroup.add(fi);
+  const fi=box(5,30,2.5,MAT.steel); fi.position.set(2.5,23,1.45); calGroup.add(fi);      // เขี้ยวในคงที่ y 8–38, z 0.2–2.7
   // slider assembly (moves with opening)
   P.slider=new THREE.Group(); calGroup.add(P.slider);
   const vFront=new THREE.MeshStandardMaterial({map:vernierTexture(),metalness:.4,roughness:.5});
@@ -1299,7 +1328,7 @@ function buildCaliper(){
   const grip=box(12,6,5,MAT.dark); grip.position.set(34,-17,2); P.slider.add(grip);
   const roller=new THREE.Mesh(new THREE.CylinderGeometry(4,4,3,24),MAT.dark); roller.rotation.x=Math.PI/2; roller.position.set(30,-13,5); P.slider.add(roller);
   const mo=box(8,42,5,MAT.steel); mo.position.set(4,-29,1); P.slider.add(mo);
-  const mi=box(5,14,3,MAT.steel); mi.position.set(-2.5,15,-2.5); P.slider.add(mi);
+  const mi=box(5,30,2.5,MAT.steel); mi.position.set(-2.5,23,-1.45); P.slider.add(mi);     // เขี้ยวในเลื่อน z −2.7…−0.2
   P.depth=box(1,2,1,MAT.steel2); calGroup.add(P.depth);
 }
 /* ── micrometer ── */
@@ -1345,8 +1374,9 @@ function update3D(){
     P.slider.position.x=o;
     P.depth.scale.x=Math.max(0.01,o); P.depth.position.set(175+o/2,-6,0);
     if(ringMesh){
-      if(state.measure==='outer'){ ringMesh.position.set(o/2,-31,-r.t/2); ringMesh.rotation.set(0,0,state.theta); }
-      else { ringMesh.position.set(o/2,15,5); ringMesh.rotation.set(0,0,state.theta); }
+      const dm=currentDim();   // วงแหวนวางชิดปากวัดฝั่งคงที่ (x = 0) เสมอ → ปากเลื่อนมาชนเมื่อ opening = dm
+      if(state.measure==='outer'){ ringMesh.position.set(dm/2,-31,-r.t/2); ringMesh.rotation.set(0,0,state.theta); }
+      else { ringMesh.position.set(dm/2, 8.5+r.D/2, -r.t/2); ringMesh.rotation.set(0,0,state.theta); }
     }
   } else {
     const rd=o+state.zeroErr;                    // ค่าที่สเกลแสดง (รวมความคลาดเคลื่อนขีดศูนย์)
