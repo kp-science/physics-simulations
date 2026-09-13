@@ -68,6 +68,8 @@ LABS=[
      ('vlab:vpl02:lab-36', V2+'36. images-diverging-lenses.html','36','ภาพจากเลนส์เว้า & กล้องกาลิเลโอ (3D)','ม้านั่งเชิงแสง 3 มิติ · หา f ด้วยลำแสงเลเซอร์ (กราฟ D vs X) · ประกอบกล้องโทรทรรศน์กาลิเลโอ M = −F₁/F₂','light','ม.5','vpl02',['Lens','Telescope','3D']),
  ('vlab:vpl02:lab-46', V2+'46. images-concave-mirror.html','46','ภาพจากกระจกเว้า (3D)','ม้านั่งเชิงแสง 3 มิติ · หาโฟกัสด้วยแสงขนาน · ภาพจริง/เสมือน · วัดค่าเอง · f = R/2','light','ม.5','vpl02',['Mirror','3D']),
     ('vlab:vpl02:lab-47', V2+'47. image-location-parallax-mirrors.html','47','หาตำแหน่งภาพด้วยวิธีพาราแลกซ์ (3D)','กระจกราบ · เว้า · นูน สะท้อนแสงจริง (ray tracing) · ส่ายสายตาตรวจพาราแลกซ์ · ปลายชนปลาย · 1/f = 1/u + 1/v','light','ม.5','vpl02',['Mirror','Parallax','3D']),
+    ('vlab:vpl02:lab-48', V2+'48. real-apparent-depth.html','48','ความลึกจริงและความลึกปรากฏ (3D)','ของเหลวในถังแก้ว 3 มิติหักเหแสงจริง (ray tracing) · หาความลึกปรากฏด้วยวิธีไม่มีพาราแลกซ์ · n = ลึกจริง/ลึกปรากฏ · ของเหลวปริศนา','light','ม.5','vpl02',['Refraction','Parallax','3D']),
+    ('vlab:vpl02:lab-49', V2+'49. critical-angle-total-internal-reflection.html','49','มุมวิกฤตและการสะท้อนกลับหมด (3D)','แท่งแก้วครึ่งวงกลม 3 มิติหักเหแสงจริง · กฎของสเนลล์ · หามุมวิกฤต n = 1/sin θc · ความสว่างตามสมการเฟรเนล · วัสดุปริศนา','light','ม.5','vpl02',['Refraction','Critical angle','3D']),
  ('vlab:vpl02:lab-43', V2+'43. big-bang-theory.html','43','ทฤษฎีบิกแบง (Big Bang Theory)','Hubble · BBN · CMB · Build Lab','astro','ม.6','vpl02',['Cosmology']),
  ('vlab:vpl02:lab-45', V2+'45. expanding-universe-balloon.html','45','แบบจำลองการขยายตัวของเอกภพ','ลูกโป่ง = เอกภพ · วัดระยะ-ความเร็ว · กราฟ Hubble v = H·d (กิจกรรม 1.2)','astro','ม.6','vpl02',['Cosmology','Hubble']),
 ]

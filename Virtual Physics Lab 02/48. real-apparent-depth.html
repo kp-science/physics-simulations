@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 48 — ความลึกจริงและความลึกปรากฏ (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* sim layout */
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:400px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab}
+.view3d .hud{position:absolute;left:10px;top:10px;background:rgba(10,14,26,.82);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.74rem;color:var(--muted);pointer-events:none;line-height:1.5;max-width:60%}
+.view3d .hud b{color:var(--accent)}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px}
+.view3d .viewbtns button,.btn-mini{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover,.btn-mini:hover{border-color:var(--accent);color:var(--accent)}
+.liq-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.liq-grid button{padding:7px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600}
+.liq-grid button.active{background:var(--accent5);border-color:var(--accent5);color:#0a0e1a}
+.inset canvas{width:100%;height:100%;display:block}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
+.diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.diag-wrap .diag-head b{color:var(--accent5)}
+#diagCanvas{width:100%;height:300px;background:#0c1424;border-radius:8px;display:block;touch-action:none;cursor:ew-resize}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px}
+.mode-btns button{flex:1;padding:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+#typeBtns button.active{background:var(--accent5);border-color:var(--accent5)}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--err);color:#fecaca;background:rgba(248,113,113,.08)}
+.hint-box.virt{border-color:var(--accent2);color:#c7d2fe;background:rgba(129,140,248,.08)}
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
+.sl-unit{font-size:.72rem;color:var(--muted);min-width:20px}
+.val-input{width:60px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.98rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline.active{border-color:var(--warn);color:var(--warn)}
+.btn-sm{padding:5px 10px;font-size:.76rem}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th,td{padding:4px 5px;border-bottom:1px solid var(--border);text-align:center}
+th{color:var(--accent);background:var(--panel);font-weight:700}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+td input{width:58px;padding:2px 4px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-family:'Share Tech Mono',monospace}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:6px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:210px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+
+/* content tabs */
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:760px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+.example-table th{background:var(--panel2)}
+.example-table td{color:var(--text)}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem}
+.sign-card{padding:10px;border-radius:7px;border:1px solid var(--border);background:var(--panel2)}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:360px}.sign-grid{grid-template-columns:1fr}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl02:lab-48">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🥛</div>
+  <div>
+    <h1>Lab 48 — ความลึกจริงและความลึกปรากฏ (3D)</h1>
+    <p>Real and Apparent Depth — หาดรรชนีหักเหของของเหลวด้วยวิธีไม่มีพาราแลกซ์ · ถังแก้ว 3 มิติหักเหแสงจริง (ray tracing) · มองจากด้านบน ส่ายสายตาตรวจพาราแลกซ์</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="hud" id="hud"><b>👁 มุมจากตา</b> — มองลงจากด้านบน · ลากซ้าย-ขวาในภาพ หรือกด ↔ ส่ายสายตา</div>
+        <div class="viewbtns">
+          <button onclick="setView('eye')">👁 มุมจากตา</button>
+          <button onclick="setView('iso')">มุมเฉียง</button>
+          <button onclick="setView('side')">มุมข้าง</button>
+          <button id="btnSway3d" onclick="toggleSway()">↔ ส่ายสายตา</button>
+        </div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต<br>ยังใช้แผนภาพด้านล่างได้ แต่การตรวจพาราแลกซ์ต้องใช้ภาพ 3D</div>
+      </div>
+      <div class="diag-wrap">
+        <div class="diag-head">📐 <b>แผนภาพภาคตัดขวาง (มองด้านข้าง · ตามสเกล)</b> — ลากเข็ม S ขึ้น-ลงได้
+          <span id="diagNote" style="margin-left:auto;color:var(--muted)">โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์</span></div>
+        <canvas id="diagCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — วางเข็ม S และสายตาใหม่ให้นักเรียนปรับเอง</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ · ของเหลวปริศนาไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧪 ของเหลวในถัง</div>
+        <div class="liq-grid" id="liqBtns">
+          <button data-k="water" class="active" onclick="setLiquid('water')">💧 น้ำ</button>
+          <button data-k="ethanol" onclick="setLiquid('ethanol')">🍶 เอทานอล</button>
+          <button data-k="glycerin" onclick="setLiquid('glycerin')">🫙 กลีเซอรีน</button>
+          <button data-k="mystery" onclick="setLiquid('mystery')">❓ ปริศนา</button>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnRandomLiq" style="width:100%;margin-top:6px" onclick="randomMystery()">🎲 สุ่มของเหลวปริศนาใหม่</button>
+        <div id="liqInfo" style="font-size:.72rem;color:var(--muted);margin-top:5px;line-height:1.5"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📏 ระดับ (อ่านจากสเกล · cm)</div>
+        <div class="sl-row"><span class="sl-label" style="color:#38bdf8;min-width:78px">ผิวของเหลว h</span><input class="sl-range" type="range" id="sl-h" min="6" max="25" step="0.5" value="20"><input class="val-input" type="number" id="vi-h" min="6" max="25" step="0.5" value="20"></div>
+        <div class="sl-row" id="rowS"><span class="sl-label" style="color:#34d399;min-width:78px">เข็มค้นหา S</span><input class="sl-range" type="range" id="sl-s" min="0" max="27" step="0.1" value="15"><input class="val-input" type="number" id="vi-s" min="0" max="27" step="0.1" value="15"></div>
+        <div style="font-size:.72rem;color:var(--muted);line-height:1.5">สเกล 0 = ระดับเข็มวัตถุ O ที่ก้นถัง · ถังแก้วสูง 28 cm · เข็ม S วางนอกถังชิดผนัง ปลายชี้เข้าหาปลายเข็ม O</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">👁 สายตาผู้สังเกต (มองลงจากด้านบน)</div>
+        <div class="sl-row"><span class="sl-label" style="min-width:78px">เยื้องข้าง</span><input class="sl-range" type="range" id="sl-lat" min="-4" max="4" step="0.1" value="0"><input class="val-input" type="number" id="vi-lat" min="-4" max="4" step="0.1" value="0"><span class="sl-unit">cm</span></div>
+        <div class="sl-row"><span class="sl-label" style="min-width:78px">สูงเหนือปากถัง</span><input class="sl-range" type="range" id="sl-eye" min="3" max="40" step="1" value="10"><input class="val-input" type="number" id="vi-eye" min="3" max="40" step="1" value="10"><span class="sl-unit">cm</span></div>
+        <button class="btn btn-outline btn-sm" id="btnSway" style="width:100%" onclick="toggleSway()">↔ ส่ายสายตาซ้าย-ขวา (ตรวจพาราแลกซ์)</button>
+      </div>
+
+      <div id="manualCtrl" class="panel-section">
+        <div class="panel-title">🖐 คำแนะนำ</div>
+        <div class="hint-box info" id="manualHint"></div>
+        <button class="btn btn-green btn-sm" style="width:100%;margin-top:6px" onclick="recordRow()">📝 บันทึกผล</button>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ผลการคำนวณ</div>
+        <label style="font-size:.74rem;color:var(--muted);display:flex;gap:6px;align-items:center"><input type="checkbox" id="cbOffset"> เลื่อน S ขึ้นจากตำแหน่งภาพ 3 cm (ดูว่ามีพาราแลกซ์)</label>
+        <div class="readout-grid" style="margin-top:8px">
+          <div class="readout-box"><div class="label">ความลึกจริง (cm)</div><div class="value" id="rd-real">—</div></div>
+          <div class="readout-box"><div class="label">ความลึกปรากฏ (cm)</div><div class="value" id="rd-app">—</div></div>
+          <div class="readout-box"><div class="label">n ของเหลว</div><div class="value" id="rd-n">—</div></div>
+          <div class="readout-box"><div class="label">ภาพสูงจากก้น (cm)</div><div class="value" id="rd-img">—</div></div>
+        </div>
+        <button class="btn btn-green btn-sm" style="width:100%;margin-top:8px" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-wrap" id="tableWrap"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="clearTable()">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📈 กราฟความลึกจริงกับความลึกปรากฏ</div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <ul>
+      <li>หา<strong>ความลึกปรากฏ</strong>ของวัตถุที่อยู่ก้นของเหลว ด้วยวิธีไม่มีพาราแลกซ์ (no-parallax method)</li>
+      <li>หาความสัมพันธ์ระหว่างความลึกจริงกับความลึกปรากฏ</li>
+      <li>คำนวณดรรชนีหักเหของของเหลว จาก n = ความลึกจริง / ความลึกปรากฏ</li>
+    </ul>
+
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>ถังแก้วทรงสี่เหลี่ยม ด้านในกว้าง 10 × 10 cm สูง 28 cm วางบนแผ่นกระดาษขาว</li>
+      <li>ของเหลว: น้ำ · เอทานอล · กลีเซอรีน · ของเหลวปริศนา (สุ่มดรรชนีหักเห)</li>
+      <li>เข็มวัตถุ O (หัวสีส้ม) วางนอนที่ก้นถัง ปลายเข็มชี้ไปทางผนังถัง</li>
+      <li>เข็มค้นหา S (หัวสีเขียว) วางนอนนอกถัง ชิดผนังด้านเดียวกัน ปลายชี้เข้าหาปลายเข็ม O · เลื่อนขึ้น-ลงได้</li>
+      <li>สเกลแนวดิ่งข้างถัง (0 = ระดับเข็ม O)</li>
+    </ul>
+
+    <h2>การใช้งาน Simulation</h2>
+    <ul>
+      <li><b>ภาพ 3D มุมจากตา (ค่าเริ่มต้น):</b> กล้องคือดวงตาที่มองลงมาจากเหนือปากถัง · ปลายเข็ม S (ด้านบนของภาพ) กับภาพของปลายเข็ม O ที่เห็นผ่านผิวของเหลว (ด้านล่างของภาพ) อยู่ในแนวเดียวกัน · <b>ลากซ้าย-ขวาในภาพ</b> = ขยับศีรษะ · ปุ่ม <b>↔ ส่ายสายตา</b> ขยับให้อัตโนมัติ</li>
+      <li><b>มุมเฉียง / มุมข้าง:</b> ดูการจัดอุปกรณ์ หมุนมุมมองได้ · ลากเข็ม S ขึ้น-ลงในภาพได้ · มองผ่านผนังถังจะเห็นเข็ม O เลื่อนตำแหน่งเพราะการหักเหเช่นกัน</li>
+      <li><b>ของเหลวหักเหแสงจริงด้วยการคำนวณรังสี</b> (กฎของสเนลล์ที่ผิวของเหลวและผนังถัง รวมถึงการสะท้อนกลับหมด) — ภาพของเข็ม O จึงอยู่ที่ตำแหน่งจริงตามฟิสิกส์ และมีพาราแลกซ์เมื่อสายตาขยับ</li>
+      <li><b>สไลเดอร์</b> ในแผงขวา = อ่านค่าจากสเกล (ละเอียด 0.1 cm) · ลากเข็ม S ในแผนภาพด้านล่างได้เช่นกัน</li>
+      <li><b>↺ รีเซตค่า</b> คืนตำแหน่งเข็ม S สายตา และมุมมอง (ตารางบันทึกผลยังอยู่)</li>
+      <li><b>โหมดวัดเอง</b> ไม่แสดงตำแหน่งภาพและดรรชนีหักเห · <b>โหมดอัตโนมัติ</b> แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพให้ดู</li>
+    </ul>
+
+    <h2>วิธีการทดลอง</h2>
+    <ol>
+      <li>เลือกของเหลว ตั้งระดับผิวของเหลว h (ความลึกจริง = h เพราะเข็ม O อยู่ที่สเกล 0)</li>
+      <li>มองลงจากด้านบนตรงแนวปลายเข็ม จะเห็นภาพของเข็ม O ผ่านผิวของเหลว และเห็นเข็ม S นอกถัง</li>
+      <li>ส่ายสายตาซ้าย-ขวา · ถ้าปลายเข็ม S กับภาพปลายเข็ม O เคลื่อนสัมพัทธ์กัน แปลว่ายังอยู่คนละระดับ · <strong>สิ่งที่อยู่ไกลตากว่า (ต่ำกว่า) จะดูเหมือนเคลื่อนไปทางเดียวกับศีรษะ</strong></li>
+      <li>ถ้า S เคลื่อนไปทางเดียวกับศีรษะ ให้เลื่อน S <strong>ขึ้น</strong> · ถ้าภาพของ O เคลื่อนไปทางเดียวกับศีรษะ ให้เลื่อน S <strong>ลง</strong> · ทำจนเคลื่อนไปพร้อมกันเหมือนเป็นเข็มเล่มเดียว = ไม่มีพาราแลกซ์</li>
+      <li>กด <b>📝 บันทึกผล</b> · ความลึกปรากฏ = h − ระดับ S</li>
+      <li>เปลี่ยนระดับของเหลวอย่างน้อย 5 ค่า (เช่น 8, 12, 16, 20, 24 cm) แล้วทำซ้ำ · ทำกับของเหลวชนิดอื่นและของเหลวปริศนา</li>
+    </ol>
+    <div class="note-box">💡 ตาต้องมองเกือบตั้งฉากกับผิวของเหลว (ตรงเหนือปลายเข็ม) เพราะสูตร n = ลึกจริง/ลึกปรากฏ ใช้ได้เมื่อรังสีเกือบตั้งฉากกับผิว · ลองเยื้องสายตาไปมาก ๆ จะเห็นว่าภาพยกตัวสูงขึ้น</div>
+
+    <h2>วิธีบันทึกผล</h2>
+    <div class="formula-box">ของเหลว | ความลึกจริง h | ระดับ S | ความลึกปรากฏ = h − S | n = ลึกจริง/ลึกปรากฏ | n จริง (เฉลยหลังบันทึก) | %error<br>กราฟ: ความลึกจริง (แกนตั้ง) กับ ความลึกปรากฏ (แกนนอน) → เส้นตรงผ่านจุดกำเนิด ความชัน = n</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>ความลึกปรากฏมากกว่าหรือน้อยกว่าความลึกจริง เพราะอะไร?</li>
+      <li>กราฟความลึกจริงกับความลึกปรากฏมีลักษณะอย่างไร ความชันหมายถึงอะไร?</li>
+      <li>ของเหลวใดทำให้วัตถุดูตื้นที่สุด สัมพันธ์กับดรรชนีหักเหอย่างไร?</li>
+      <li>ถ้ามองลงในสระว่ายน้ำในแนวเฉียง สระจะดูลึกขึ้นหรือตื้นลงเมื่อเทียบกับการมองตรงลงไป?</li>
+      <li>ถ้าส่ายศีรษะไปทางขวาแล้วเห็นเข็ม S เคลื่อนไปทางขวาเทียบกับภาพของ O ต้องเลื่อน S ไปทางใด?</li>
+      <li>สาเหตุความคลาดเคลื่อนของการทดลองนี้มีอะไรบ้าง?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. ทำไมวัตถุในน้ำจึงดูตื้นกว่าจริง</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="320"></canvas></div>
+    <p>แสงจากวัตถุ O ที่ก้นของเหลวเคลื่อนที่จากตัวกลางที่มีดรรชนีหักเหมาก (n) ออกสู่อากาศ (n = 1) รังสีจึง<strong>หักเหออกจากเส้นแนวฉาก</strong> เมื่อรังสีเข้าตา สมองถือว่าแสงเดินเป็นเส้นตรง จึงเห็นภาพ I อยู่ที่จุดตัดของแนวต่อรังสี ซึ่งอยู่สูงกว่าวัตถุจริง</p>
+    <p>จากรูป ระยะ x จากแนวดิ่งถึงจุดที่รังสีออก: x = d·tan φ = d′·tan θ และกฎของสเนลล์ n·sin φ = sin θ · เมื่อมองเกือบตั้งฉาก (มุมเล็ก) tan ≈ sin จะได้</p>
+    <div class="formula-box">d′/d = tan φ / tan θ ≈ sin φ / sin θ = 1/n<br><br>n = ความลึกจริง (d) / ความลึกปรากฏ (d′)        (มองเกือบตั้งฉากกับผิว)</div>
+    <p>ในกรณีทั่วไป ถ้าวัตถุอยู่ในตัวกลาง n₁ และผู้สังเกตอยู่ในตัวกลาง n₂ จะได้ <span class="mono">d′/d = n₂/n₁</span> · ถ้ามีของเหลวหลายชั้นซ้อนกัน ความลึกปรากฏรวม <span class="mono">d′ = d₁/n₁ + d₂/n₂ + …</span></p>
+
+    <h2>2. มองเฉียง — ภาพยิ่งยกตัวสูงขึ้น</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="260"></canvas></div>
+    <p>สูตร d′ = d/n ใช้ได้เฉพาะเมื่อมองเกือบตั้งฉาก · ถ้ามองเฉียงมากขึ้น tan φ / tan θ มีค่าน้อยลง ภาพจึงดูตื้นยิ่งขึ้น (เช่น สระว่ายน้ำที่มองไกล ๆ ดูตื้นกว่าที่มองตรงลงไป) · เมื่อมุมในน้ำเข้าใกล้มุมวิกฤต ภาพเข้าใกล้ผิวน้ำ · ในการทดลองจึงต้องมองตรงเหนือวัตถุ</p>
+
+    <h2>3. วิธีไม่มีพาราแลกซ์</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas2" height="300"></canvas></div>
+    <p>วัตถุสองชิ้นที่อยู่ห่างจากตาไม่เท่ากัน เมื่อขยับศีรษะจะเห็นเคลื่อนที่สัมพัทธ์กัน (พาราแลกซ์) · สิ่งที่ไกลตากว่าดูเหมือนเคลื่อนไปทางเดียวกับศีรษะ · เราเลื่อนเข็ม S นอกถังขึ้น-ลงจนปลาย S กับภาพปลายเข็ม O เคลื่อนไปพร้อมกัน แสดงว่า S อยู่ระดับเดียวกับภาพ I</p>
+    <table class="example-table">
+      <thead><tr><th>ตัวกลาง</th><th>n (โดยประมาณ)</th><th>วัตถุลึก 20 cm ดูลึก</th></tr></thead>
+      <tbody>
+        <tr><td>น้ำ</td><td>1.33</td><td>15.0 cm</td></tr>
+        <tr><td>เอทานอล</td><td>1.36</td><td>14.7 cm</td></tr>
+        <tr><td>กลีเซอรีน</td><td>1.47</td><td>13.6 cm</td></tr>
+        <tr><td>แก้ว (แท่งแก้ว)</td><td>1.50</td><td>13.3 cm</td></tr>
+      </tbody>
+    </table>
+    <div class="note-box">🔍 ใน simulation ภาพคำนวณด้วยการหักเหจริงทุกพิกเซล ไม่ได้ใช้สูตร d/n โดยตรง ผลที่วัดได้จึงคลาดเล็กน้อยตามมุมมอง เหมือนการทดลองจริง</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนฟิสิกส์ ม.5 (สสวท.) บทแสงเชิงเรขาคณิต — การหักเหของแสง ความลึกจริงและความลึกปรากฏ · วิธีไม่มีพาราแลกซ์<br>
+  Lab 48 — Real and Apparent Depth (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 48 ความลึกจริงและความลึกปรากฏ (3D)
+   พิกัดโลก (cm): y ขึ้น · y = 0 = แกนเข็ม O (สเกล 0) · ถังด้านใน x,z ∈ [−5, 5] ก้นถัง y = −0.12
+   เข็ม O นอนตามแกน x ที่ก้นถัง ปลายที่ x = 4.3 · เข็ม S นอนนอกถัง ปลายที่ x = 6.0 สูง yS
+   ตามองลงจากด้านบนเหนือแนวปลายเข็ม (x ≈ 5.15) ส่ายสายตาตามแกน z
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL02 Lab 48 — build v1.0 3D (2569-09-14)');
+const $ = id => document.getElementById(id);
+const TW=5.0, WALL=0.3, TANK_H=28, YB=-0.12, PIN_R=0.1, HEAD_R=0.28, OX0=-3.0, OX1=4.3, SX0=6.0, SX1=14.0, EYE_X=5.15;
+const LIQ={
+  water:   {name:'น้ำ',        n:1.33, tint:[0.80,0.92,1.00]},
+  ethanol: {name:'เอทานอล',    n:1.36, tint:[0.94,0.97,1.00]},
+  glycerin:{name:'กลีเซอรีน',  n:1.47, tint:[0.97,0.95,0.84]},
+  mystery: {name:'ของเหลวปริศนา', n:1.40, tint:[0.90,0.84,0.98]}
+};
+let mode='manual', liq='water', mysteryId=1;
+let hLiq=20, yS=15, eyeLat=0, eyeGap=10, sway=false, swayT=0, curView='eye';
+let rows=[];
+const fmt=(v,d)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(d===undefined?1:d);
+
+/* ── physics ── */
+function nNow(){ return LIQ[liq].n; }
+function imageY(){ return hLiq - hLiq/nNow(); }          /* ภาพ (มองตั้งฉาก) สูงจากเข็ม O = h − h/n */
+function liqKey(){ return liq==='mystery' ? 'mystery#'+mysteryId : liq; }
+function autoLayout(){ if(mode!=='auto') return; yS = imageY() + ($('cbOffset').checked?3:0); }
+
+/* ── UI ── */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); $('rowS').classList.toggle('hidden',m==='auto'); $('btnRandomLiq').classList.toggle('hidden',m==='auto');
+  $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพ' : 'โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์';
+  if(m==='manual'){ yS=manualStartS(); }   /* กลับจากโหมดอัตโนมัติ: ไม่ให้ S ค้างที่ตำแหน่งภาพ (เฉลย) */
+  updateLiqInfo(); syncUI(); drawAll(); }
+function manualStartS(){ return Math.min(27, Math.round((hLiq*0.8)*10)/10); }   /* ต่ำกว่าผิวของเหลวเล็กน้อย — ห่างจากภาพเสมอ */
+function setLiquid(k){ liq=k; document.querySelectorAll('#liqBtns button').forEach(b=>b.classList.toggle('active',b.dataset.k===k)); updateLiqInfo(); updateTank(); renderTable(); drawGraph(); drawAll(); }
+function updateLiqInfo(){ const L=LIQ[liq]; $('liqInfo').innerHTML = mode==='auto' ? `${L.name}: <b class="mono" style="color:var(--accent3)">n = ${L.n.toFixed(2)}</b>` : `${L.name}: ดรรชนีหักเหไม่แสดงในโหมดวัดเอง — หาเองจากการทดลอง (เฉลยในตารางหลังบันทึก)`; }
+function randomMystery(){ LIQ.mystery.n=Math.round((1.30+Math.random()*0.28)*100)/100; mysteryId++; updateTank(); if(liq!=='mystery') setLiquid('mystery'); else { renderTable(); drawGraph(); drawAll(); } }
+function resetLab(){
+  /* คืนค่าเริ่มต้น: ระดับของเหลว · เข็ม S · สายตา · มุมมอง (ไม่ลบตาราง ไม่เปลี่ยน n ของเหลวปริศนา) */
+  hLiq=20; yS=manualStartS(); $('cbOffset').checked=false;
+  eyeLat=0; eyeGap=10; if(sway) toggleSway(); swayT=0;
+  setView('eye'); updateTank(); syncUI(); drawAll();
+}
+function toggleSway(){ sway=!sway; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.toggle('active',sway)); if(sway&&curView!=='eye') setView('eye'); }
+function syncUI(){ $('sl-h').value=hLiq; $('vi-h').value=hLiq.toFixed(1); $('sl-s').value=yS; $('vi-s').value=yS.toFixed(1); $('sl-lat').value=eyeLat; $('vi-lat').value=eyeLat.toFixed(1); $('sl-eye').value=eyeGap; $('vi-eye').value=Math.round(eyeGap); }
+function setH(v){ hLiq=Math.max(6,Math.min(25,v)); updateTank(); syncUI(); drawAll(); }
+function setS(v){ if(mode!=='manual') return; yS=Math.max(0,Math.min(27,v)); syncUI(); drawAll(); }
+function updateHint(){
+  if(mode!=='manual'){ const d=hLiq, da=d/nNow(); $('rd-real').textContent=fmt(d,1); $('rd-app').textContent=fmt(da,2); $('rd-n').textContent=nNow().toFixed(2); $('rd-img').textContent=fmt(d-da,2);
+    $('hud').innerHTML = '<b>'+LIQ[liq].name+'</b> — S วางที่ระดับภาพ'+($('cbOffset').checked?' <b style="color:#f87171">(เลื่อนขึ้น 3 cm)</b>':'')+' · ส่ายสายตาดู'; return; }
+  $('manualHint').innerHTML = 'ใน <b>👁 มุมจากตา</b> ปลายเข็ม S อยู่ด้านบนของภาพ ภาพของปลายเข็ม O (ผ่านผิวของเหลว) อยู่ด้านล่าง'
+    + '<br>↔ ส่ายสายตา: ถ้าสองปลายเคลื่อนสัมพัทธ์กัน = มีพาราแลกซ์ · <b>สิ่งที่ไกลตากว่า (ต่ำกว่า) เคลื่อนไปทางเดียวกับศีรษะ</b> · เลื่อน S จนเคลื่อนไปพร้อมกันเหมือนเข็มเล่มเดียว แล้วกดบันทึก';
+  $('hud').innerHTML = curView==='eye' ? '<b>👁 มุมจากตา</b> — มองลงจากด้านบน · ลากซ้าย-ขวาในภาพ หรือกด ↔ ส่ายสายตา' : '<b>'+LIQ[liq].name+'</b> — ลากเข็ม S ขึ้น-ลงในภาพได้ · กด 👁 มุมจากตาเพื่อสังเกต';
+}
+
+/* ── table ── */
+function recordRow(){
+  const real=hLiq, app=hLiq-yS;
+  if(app<=0.3){ alert('เข็ม S อยู่สูงกว่าหรือเท่ากับผิวของเหลว — ความลึกปรากฏต้องมากกว่า 0 · เลื่อน S ลงแล้วตรวจพาราแลกซ์ใหม่'); return; }
+  const nc=real/app, nt=nNow();
+  rows.push({key:liqKey(),name:LIQ[liq].name,mode,real,s:yS,app,nc,nt,err:Math.abs(nc-nt)/nt*100}); renderTable(); drawGraph();
+}
+function clearTable(){ rows=rows.filter(r=>r.key!==liqKey()); renderTable(); drawGraph(); }
+function renderTable(){
+  const rs=rows.filter(r=>r.key===liqKey());
+  let h='<table><thead><tr><th>#</th><th>ลึกจริง</th><th>ระดับ S</th><th>ลึกปรากฏ</th><th>n คำนวณ</th><th>n จริง</th><th>%err</th></tr></thead><tbody>'
+    + rs.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.real,1)}</td><td class="mono">${fmt(r.s,1)}</td><td class="mono">${fmt(r.app,1)}</td><td class="mono">${fmt(r.nc,3)}</td><td class="mono">${r.nt.toFixed(2)}</td><td class="mono" style="color:${r.err<3?'var(--accent3)':'var(--err)'}">${fmt(r.err,1)}%</td></tr>`).join('');
+  if(!rs.length) h+='<tr><td colspan="7" style="color:var(--muted)">ยังไม่มีข้อมูล ('+LIQ[liq].name+') — หาระดับภาพแล้วกด "บันทึก"</td></tr>';
+  $('tableWrap').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">'+LIQ[liq].name+' · ลึกปรากฏ = h − ระดับ S · n = ลึกจริง/ลึกปรากฏ · n จริงเฉลยหลังบันทึก</div>';
+}
+function exportCSV(){ const csv='﻿liquid,mode,real_depth,S_level,apparent_depth,n_calc,n_true,err%\n'+rows.map(r=>[r.name,r.mode,r.real.toFixed(1),r.s.toFixed(1),r.app.toFixed(1),r.nc.toFixed(3),r.nt.toFixed(2),r.err.toFixed(1)].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab48_real_apparent_depth.csv'; a.click(); }
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||210; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const rs=rows.filter(r=>r.key===liqKey()); const ml=38,mr=10,mt=12,mb=30,gw=W-ml-mr,gh=H-mt-mb, xMax=20, yMax=26;
+  const X=v=>ml+v/xMax*gw, Y=v=>mt+(yMax-v)/yMax*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh);
+  g.fillStyle='#94a3b8'; g.font='9px "Share Tech Mono"'; g.textAlign='center'; for(let v=0;v<=xMax;v+=5) g.fillText(v,X(v),H-mb+12); g.textAlign='right'; for(let v=0;v<=yMax;v+=5) g.fillText(v,ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px Sarabun'; g.fillText('ความลึกปรากฏ (cm)',ml+gw/2,H-2); g.save(); g.translate(9,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('ความลึกจริง (cm)',0,0); g.restore();
+  if(rs.length){ const sxy=rs.reduce((a,r)=>a+r.app*r.real,0), sxx=rs.reduce((a,r)=>a+r.app*r.app,0), k=sxy/sxx;
+    g.strokeStyle='rgba(56,189,248,.8)'; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); const xe=Math.min(xMax,yMax/k); g.lineTo(X(xe),Y(k*xe)); g.stroke();
+    rs.forEach(r=>{ g.fillStyle='#34d399'; g.beginPath(); g.arc(X(r.app),Y(r.real),4,0,Math.PI*2); g.fill(); });
+    $('graphNote').innerHTML=`ความชันเส้นตรงผ่านจุดกำเนิด = <b class="mono" style="color:var(--accent3)">${k.toFixed(3)}</b> = n ที่ได้จากกราฟ (${rs.length} จุด)`;
+  } else $('graphNote').textContent='บันทึกผลหลายระดับความลึก แล้วดูความชันของกราฟ';
+}
+
+/* ── 2D diagram (cross-section, true scale) ── */
+let DC,dctx,SC,OXp,OYp;
+const wx=x=>OXp+x*SC, wy=y=>OYp-y*SC, py2w=p=>(OYp-p)/SC;
+function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,H=DC.clientHeight||300; DC.width=W*devicePixelRatio; DC.height=H*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); SC=(H-34)/(TANK_H+2); OYp=H-20; OXp=Math.max(12*SC+10, W*0.30); }
+function hPin(c,x0,x1,y,col,dashed){ c.strokeStyle=dashed?col:'#cbd5e1'; c.lineWidth=2; if(dashed) c.setLineDash([5,3]); c.beginPath(); c.moveTo(wx(x0),wy(y)); c.lineTo(wx(x1),wy(y)); c.stroke(); c.setLineDash([]); c.fillStyle=col; c.beginPath(); c.arc(wx(x0),wy(y),4.5,0,Math.PI*2); c.fill(); }
+function drawDiag(){
+  if(!dctx) return; const W=DC.clientWidth,H=DC.clientHeight,c=dctx; c.clearRect(0,0,W,H);
+  const L=LIQ[liq], tint=`rgba(${Math.round(L.tint[0]*120)},${Math.round(L.tint[1]*170)},${Math.round(L.tint[2]*230)},.28)`;
+  /* ของเหลว + ถัง */
+  c.fillStyle=tint; c.fillRect(wx(-TW),wy(hLiq),2*TW*SC,(hLiq-YB)*SC);
+  c.strokeStyle='#7dd3fc'; c.lineWidth=1.5; c.beginPath(); c.moveTo(wx(-TW),wy(hLiq)); c.lineTo(wx(TW),wy(hLiq)); c.stroke();
+  c.fillStyle='rgba(191,227,255,.35)'; c.fillRect(wx(-TW-WALL),wy(TANK_H),WALL*SC,(TANK_H-YB+1)*SC); c.fillRect(wx(TW),wy(TANK_H),WALL*SC,(TANK_H-YB+1)*SC); c.fillRect(wx(-TW-WALL),wy(YB),(2*TW+2*WALL)*SC,1*SC);
+  c.fillStyle='#e5e7eb'; c.fillRect(wx(-TW-2),wy(YB-1),(2*TW+4)*SC,3);
+  /* สเกลแนวดิ่ง */
+  const rx=wx(-TW-2.2); c.strokeStyle='#64748b'; c.fillStyle='#94a3b8'; c.font='9px "Share Tech Mono"'; c.textAlign='right';
+  c.beginPath(); c.moveTo(rx,wy(0)); c.lineTo(rx,wy(TANK_H)); c.stroke();
+  for(let v=0;v<=TANK_H;v++){ const y=wy(v), L2= v%5===0?9: 4; c.beginPath(); c.moveTo(rx,y); c.lineTo(rx-L2,y); c.stroke(); if(v%5===0) c.fillText(v,rx-11,y+3); }
+  /* โหมดอัตโนมัติ: รังสีจริงจากปลายเข็ม O หักเหที่ผิว + แนวต่อ + ภาพ */
+  if(mode==='auto'){
+    const n=nNow(), yi=imageY();
+    [4,10].forEach((deg,i)=>{ const ph=deg*Math.PI/180, xs=OX1-hLiq*Math.tan(ph); if(xs<-TW) return; const th=Math.asin(Math.min(1,n*Math.sin(ph)));
+      const col=i?'#ef4444':'#f59e0b'; c.strokeStyle=col; c.lineWidth=1.4; c.beginPath(); c.moveTo(wx(OX1),wy(0)); c.lineTo(wx(xs),wy(hLiq)); const t=(TANK_H+1-hLiq); c.lineTo(wx(xs-t*Math.tan(th)),wy(TANK_H+1)); c.stroke();
+      const dApp=(OX1-xs)/Math.tan(th); c.setLineDash([4,3]); c.globalAlpha=.7; c.beginPath(); c.moveTo(wx(xs),wy(hLiq)); c.lineTo(wx(OX1),wy(hLiq-dApp)); c.stroke(); c.setLineDash([]); c.globalAlpha=1; });
+    hPin(c,OX0,OX1,yi,'#a78bfa',true); c.fillStyle='#a78bfa'; c.font='bold 10px Sarabun'; c.textAlign='left'; c.fillText('ภาพ I',wx(OX0)-2,wy(yi)-8);
+    const bx=wx(TW+WALL+16); c.strokeStyle='#fb923c'; c.lineWidth=1; c.beginPath(); c.moveTo(bx,wy(0)); c.lineTo(bx,wy(hLiq)); c.stroke(); c.strokeStyle='#a78bfa'; c.beginPath(); c.moveTo(bx+14,wy(yi)); c.lineTo(bx+14,wy(hLiq)); c.stroke();
+    c.font='10px Sarabun'; c.textAlign='left'; c.fillStyle='#fb923c'; c.fillText('ลึกจริง d = '+hLiq.toFixed(1)+' cm',bx+22,wy(yi/2)+4); c.fillStyle='#a78bfa'; c.fillText("ลึกปรากฏ d′ = "+(hLiq-yi).toFixed(2)+' cm',bx+22,wy((hLiq+yi)/2)+4); c.fillStyle='#94a3b8'; c.fillText('n = d/d′ = '+nNow().toFixed(2),bx+22,wy(hLiq)-8);
+  }
+  /* เข็ม O, S */
+  hPin(c,OX0,OX1,0,'#fb923c'); c.fillStyle='#fb923c'; c.font='bold 10px Sarabun'; c.textAlign='left'; c.fillText('O',wx(OX0)-4,wy(0)-8);
+  hPin(c,SX1,SX0,yS,'#34d399'); c.fillStyle='#34d399'; c.fillText('S',wx(SX1)+8,wy(yS)+4);
+  c.strokeStyle='rgba(52,211,153,.4)'; c.setLineDash([3,3]); c.beginPath(); c.moveTo(rx,wy(yS)); c.lineTo(wx(SX0),wy(yS)); c.stroke(); c.setLineDash([]);
+  c.fillStyle='#34d399'; c.font='bold 9px "Share Tech Mono"'; c.textAlign='left'; c.fillText(yS.toFixed(1),wx(SX1)+20,wy(yS)+4);
+  c.fillStyle='#7dd3fc'; c.fillText('h = '+hLiq.toFixed(1),wx(TW+WALL)+4,wy(hLiq)-4);
+  c.fillStyle='#94a3b8'; c.font='10px Sarabun'; c.textAlign='left'; c.fillText('👁 ตามองลงจากด้านบน ↓',wx(EYE_X)-40,12);
+}
+let drag2=false;
+function dPos(e){ const r=DC.getBoundingClientRect(),t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+function dHit(p){ if(mode!=='manual') return false; const y=wy(yS); return p.x>=wx(SX0)-8 && p.x<=wx(SX1)+10 && Math.abs(p.y-y)<12; }
+function onDDown(e){ if(!dHit(dPos(e))) return; drag2=true; e.preventDefault(); }
+function onDMove(e){ if(drag2 && !e.touches && e.buttons===0) drag2=false;   /* ปล่อยเมาส์นอกหน้าต่าง → เลิกลาก */
+  const p=dPos(e); if(!drag2){ DC.style.cursor=dHit(p)?'ns-resize':'default'; return; } e.preventDefault(); setS(Math.round(py2w(p.y)*10)/10); }
+function onDUp(){ drag2=false; }
+</script>
+<script>
+/* ═══════════ 3D SCENE — ของเหลวหักเหแสงด้วย ray tracing จริง ═══════════ */
+let renderer,scene,camera,P={},liqMat;
+const orbit={target:new THREE.Vector3(3,11,0),dist:58,az:-0.75,el:0.38};
+const LIQ_VERT=`varying vec3 vW; varying vec3 vN; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
+const LIQ_FRAG=`
+uniform float uH; uniform float uN; uniform float uYs; uniform vec3 uTint; uniform float uDbg;
+varying vec3 vW; varying vec3 vN;
+const float TW=${TW.toFixed(2)}; const float YB=${YB.toFixed(2)}; const float PR=${PIN_R.toFixed(3)}; const float HR=${HEAD_R.toFixed(3)};
+const float OX0=${OX0.toFixed(2)}; const float OX1=${OX1.toFixed(2)}; const float SX0=${SX0.toFixed(2)}; const float SX1=${SX1.toFixed(2)};
+/* ทรงกระบอกนอนตามแกน x (แกนที่ y = yc, z = 0) */
+float hitCylX(vec3 o, vec3 d, float yc, float r, float x0, float x1, out vec3 n){
+  vec2 oc=vec2(o.y-yc,o.z); vec2 dd=d.yz; float A=dot(dd,dd); if(A<1e-9) return -1.0;
+  float B=dot(oc,dd); float C=dot(oc,oc)-r*r; float disc=B*B-A*C; if(disc<0.0) return -1.0;
+  float t=(-B-sqrt(disc))/A; if(t<1e-4) return -1.0; float x=o.x+t*d.x; if(x<x0||x>x1) return -1.0;
+  vec2 h=oc+t*dd; n=normalize(vec3(0.0,h.x,h.y)); return t; }
+float hitSph(vec3 o, vec3 d, vec3 c, float r, out vec3 n){ vec3 oc=o-c; float b=dot(oc,d); float cc=dot(oc,oc)-r*r; float disc=b*b-cc; if(disc<0.0) return -1.0; float t=-b-sqrt(disc); if(t<1e-4) return -1.0; n=normalize(oc+t*d); return t; }
+float hitBox(vec3 o, vec3 d, vec3 bmin, vec3 bmax, out vec3 n){ vec3 dd=d+vec3(1e-7); vec3 t0=(bmin-o)/dd, t1=(bmax-o)/dd; vec3 tmn=min(t0,t1), tmx=max(t0,t1); float tn=max(max(tmn.x,tmn.y),tmn.z); float tf=min(min(tmx.x,tmx.y),tmx.z); if(tn>tf||tn<1e-4) return -1.0;
+  if(tn==tmn.x) n=vec3(-sign(d.x),0.0,0.0); else if(tn==tmn.y) n=vec3(0.0,-sign(d.y),0.0); else n=vec3(0.0,0.0,-sign(d.z)); return tn; }
+vec3 shade(vec3 alb, vec3 n){ vec3 L1=normalize(vec3(30.0,60.0,50.0)); vec3 L2=normalize(vec3(-40.0,20.0,-40.0)); vec3 hemi=mix(vec3(0.10,0.13,0.21),vec3(1.0),n.y*0.5+0.5);
+  return alb*(hemi*0.55+0.75*max(dot(n,L1),0.0)+0.25*max(dot(n,L2),0.0)); }
+vec3 bg(vec3 d){ return mix(vec3(0.05,0.07,0.11),vec3(0.09,0.12,0.18),clamp(d.y*0.5+0.5,0.0,1.0)); }
+/* ฉากในอากาศ: เข็ม S + แผ่นกระดาษขาวใต้ถัง */
+vec3 traceAir(vec3 o, vec3 d){
+  float bt=1e9; vec3 bn=vec3(0.0,1.0,0.0); vec3 bc=vec3(0.0); vec3 n; float t;
+  t=hitCylX(o,d,uYs,PR,SX0,SX1,n);          if(t>0.0&&t<bt){ bt=t; bn=n; bc= uDbg>0.5? vec3(0.0,1.0,0.0) : vec3(0.78,0.80,0.84); }
+  t=hitSph(o,d,vec3(SX1,uYs,0.0),HR,n);      if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.20,0.83,0.60); }
+  t=hitBox(o,d,vec3(-TW-2.0,YB-1.1,-TW-2.0),vec3(TW+2.0,YB-1.0,TW+2.0),n); if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.62,0.63,0.66); }
+  if(bt>1e8) return bg(d);
+  return shade(bc,bn);
+}
+/* ในของเหลว: เข็ม O · ก้นถัง · ผิวบน/ผนัง (หักเหออกด้วยสเนลล์ หรือสะท้อนกลับหมด) */
+vec3 traceLiquid(vec3 o, vec3 d){
+  vec3 att=vec3(1.0);
+  for(int i=0;i<6;i++){
+    float bt=1e9; int k=0; vec3 bn=vec3(0.0,1.0,0.0); vec3 bc=vec3(0.0); vec3 n; float t;
+    t=hitCylX(o,d,0.0,PR,OX0,OX1,n);               if(t>0.0&&t<bt){ bt=t; bn=n; k=1; bc= uDbg>0.5? vec3(1.0,0.0,1.0) : vec3(0.78,0.80,0.84); }
+    t=hitSph(o,d,vec3(OX0,YB+HR,0.0),HR,n);         if(t>0.0&&t<bt){ bt=t; bn=n; k=1; bc=vec3(0.98,0.57,0.24); }
+    if(d.y<0.0){ t=(YB-o.y)/d.y; if(t>0.0&&t<bt){ bt=t; bn=vec3(0.0,1.0,0.0); k=1; bc=vec3(0.60,0.62,0.66); } }
+    else if(d.y>0.0){ t=(uH-o.y)/d.y; if(t>0.0&&t<bt){ bt=t; bn=vec3(0.0,1.0,0.0); k=2; } }
+    if(abs(d.x)>1e-7){ float s=sign(d.x); t=(s*TW-o.x)/d.x; if(t>0.0&&t<bt){ bt=t; bn=vec3(s,0.0,0.0); k=2; } }
+    if(abs(d.z)>1e-7){ float s=sign(d.z); t=(s*TW-o.z)/d.z; if(t>0.0&&t<bt){ bt=t; bn=vec3(0.0,0.0,s); k=2; } }
+    if(k==0) return att*bg(d);
+    att*=pow(uTint,vec3(bt/25.0));
+    vec3 p=o+bt*d;
+    if(k==1) return att*shade(bc,bn);
+    vec3 r=refract(d,-bn,uN);
+    if(dot(r,r)<1e-8){ d=reflect(d,-bn); o=p-bn*1e-3; continue; }   /* สะท้อนกลับหมด */
+    return att*traceAir(p+bn*1e-3,r);
+  }
+  return att*bg(d);
+}
+void main(){
+  vec3 N=normalize(vN); vec3 v=normalize(vW-cameraPosition);
+  float c=max(dot(-v,N),0.0);
+  vec3 col=traceLiquid(vW-N*1e-3, refract(v,N,1.0/uN));
+  float F0=pow((uN-1.0)/(uN+1.0),2.0); float fr=F0+(1.0-F0)*pow(1.0-c,5.0);
+  col=mix(col, uTint*vec3(0.16,0.30,0.42), 0.12);   /* ของเหลวมีสีจาง ๆ ให้มองเห็นเนื้อของเหลว */
+  col=mix(col, traceAir(vW+N*1e-3, reflect(v,N)), fr);
+  gl_FragColor=vec4(col,1.0);
+}`;
+function makeRulerTexture(){
+  const c=document.createElement('canvas'); c.width=128; c.height=2048; const g=c.getContext('2d');
+  g.fillStyle='#e9e4d8'; g.fillRect(0,0,c.width,c.height); const ppc=c.height/30;   /* สเกล −1 … 29 cm */
+  g.strokeStyle='#1f2937'; g.fillStyle='#1f2937'; g.font='bold 30px "Share Tech Mono", monospace'; g.textAlign='right';
+  for(let mm=-10;mm<=290;mm++){ const y=c.height-(mm/10+1)*ppc; const L= mm%50===0?64: mm%10===0?44:18; g.lineWidth= mm%10===0?3:1.5; g.beginPath(); g.moveTo(c.width,y); g.lineTo(c.width-L,y); g.stroke(); if(mm%50===0&&mm>=0) g.fillText(mm/10,c.width-70,y+11); }
+  const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy(); return t;
+}
+function makeHPin(headCol, tipX, headX){ const g=new THREE.Group(); const L=Math.abs(headX-tipX);
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(PIN_R,PIN_R,L,10),new THREE.MeshStandardMaterial({color:0xc7ccd4,metalness:.6,roughness:.35})); shaft.rotation.z=Math.PI/2; shaft.position.x=(tipX+headX)/2; g.add(shaft);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(HEAD_R,20,14),new THREE.MeshStandardMaterial({color:headCol,roughness:.45})); head.position.x=headX; g.add(head);
+  scene.add(g); return g; }
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(20,1,0.3,900);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.9)); const d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(30,60,50); scene.add(d1); const d2=new THREE.DirectionalLight(0xbfd8ff,0.35); d2.position.set(-40,20,-40); scene.add(d2);
+  /* ของเหลว: กล่องทึบที่ shader คำนวณการหักเห (ผิวบน + ผนังด้านใน) */
+  liqMat=new THREE.ShaderMaterial({vertexShader:LIQ_VERT,fragmentShader:LIQ_FRAG,uniforms:{uH:{value:hLiq},uN:{value:1.33},uYs:{value:yS},uTint:{value:new THREE.Vector3(1,1,1)},uDbg:{value:0}}});
+  P.liquid=new THREE.Mesh(new THREE.BoxGeometry(2*TW,1,2*TW),liqMat); scene.add(P.liquid);
+  /* ผนังแก้ว (โปร่งใส) + ขอบ */
+  const glass=new THREE.MeshStandardMaterial({color:0xbfe3ff,transparent:true,opacity:.10,roughness:.1,metalness:0,depthWrite:false});
+  const edgeMat=new THREE.LineBasicMaterial({color:0xbfe3ff,transparent:true,opacity:.45});
+  const addGlass=(sx,sy,sz,x,y,z)=>{ const geo=new THREE.BoxGeometry(sx,sy,sz); const m=new THREE.Mesh(geo,glass); m.position.set(x,y,z); m.renderOrder=2; scene.add(m); const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),edgeMat); e.position.copy(m.position); scene.add(e); };
+  const wallH=TANK_H-YB, wy0=(TANK_H+YB)/2;
+  addGlass(WALL,wallH,2*TW+2*WALL, TW+WALL/2,wy0,0); addGlass(WALL,wallH,2*TW+2*WALL, -TW-WALL/2,wy0,0);
+  addGlass(2*TW,wallH,WALL, 0,wy0,TW+WALL/2); addGlass(2*TW,wallH,WALL, 0,wy0,-TW-WALL/2);
+  addGlass(2*TW+2*WALL,1-0.02,2*TW+2*WALL, 0,YB-0.5,0);
+  const paper=new THREE.Mesh(new THREE.BoxGeometry(2*TW+4,0.1,2*TW+4),new THREE.MeshStandardMaterial({color:0x5f646b,roughness:.95})); paper.position.set(0,YB-1.05,0); scene.add(paper);
+  /* สเกลแนวดิ่ง: ติดข้างถังด้านซ้าย (−x) */
+  const rt=makeRulerTexture(), rside=new THREE.MeshStandardMaterial({color:0xd6cfbf,roughness:.8});
+  const ruler=new THREE.Mesh(new THREE.BoxGeometry(0.25,30,1.4),[rside,new THREE.MeshStandardMaterial({map:rt,roughness:.8}),rside,rside,rside,rside]); ruler.position.set(-TW-WALL-0.15,14,TW-1.0); scene.add(ruler);
+  P.O=makeHPin(0xfb923c,OX1,OX0); P.O.position.y=0; P.O.children[1].position.y=YB+HEAD_R;
+  P.S=makeHPin(0x34d399,SX0,SX1);
+  updateTank(); setupPointer(cv); resize3D();
+  (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return; if(sway) swayT+=0.016; update3D(); renderer.render(scene,camera); })();
+}
+function updateTank(){ if(!liqMat) return; P.liquid.scale.y=hLiq-YB; P.liquid.position.y=(hLiq+YB)/2; const L=LIQ[liq]; liqMat.uniforms.uN.value=L.n; liqMat.uniforms.uTint.value.set(L.tint[0],L.tint[1],L.tint[2]); liqMat.uniforms.uH.value=hLiq; }
+function update3D(){
+  if(!scene) return;
+  P.S.position.y=yS; liqMat.uniforms.uYs.value=yS; liqMat.uniforms.uH.value=hLiq;
+  if(curView==='eye'){
+    const lat=eyeLat+(sway?2.5*Math.sin(swayT*2.2):0);
+    camera.position.set(EYE_X, TANK_H+eyeGap, lat); camera.up.set(1,0,0); camera.lookAt(EYE_X, 0, 0);   /* จอด้านบน = +x (เข็ม S) · ส่ายสายตาตามแกน z = ซ้าย-ขวาของจอ */
+    if(camera.fov!==20){ camera.fov=20; camera.updateProjectionMatrix(); }
+  } else {
+    const t=orbit.target; camera.up.set(0,1,0); camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t);
+    if(camera.fov!==38){ camera.fov=38; camera.updateProjectionMatrix(); }
+  }
+}
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(v){ curView=v; if(v==='iso'){ orbit.az=-0.75; orbit.el=0.38; orbit.dist=58; } if(v==='side'){ orbit.az=0; orbit.el=0.05; orbit.dist=72; } if(v!=='eye'&&sway){ sway=false; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.remove('active')); } updateHint(); }
+function setupPointer(cv){
+  const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,0,1),0),hit=new THREE.Vector3(); let dm=null,lx=0,ly=0,off=0;
+  const setN=(x,y)=>{ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); };
+  const pick=(x,y)=>{ if(mode!=='manual'||curView==='eye') return false; setN(x,y); return ray.intersectObject(P.S,true).length>0; };
+  const planeY=(x,y)=>{ setN(x,y); return ray.ray.intersectPlane(plane,hit)?hit.y:null; };
+  const down=(x,y)=>{ lx=x; ly=y; if(pick(x,y)){ dm='s'; const py=planeY(x,y); off=py!==null?py-yS:0; cv.style.cursor='ns-resize'; } else { dm= curView==='eye'?'eye':'orbit'; cv.style.cursor='grabbing'; } };
+  const move=(x,y)=>{ if(!dm){ cv.style.cursor=pick(x,y)?'ns-resize':'grab'; return; }
+    if(dm==='eye'){ const r=cv.getBoundingClientRect(); eyeLat=Math.max(-4,Math.min(4,eyeLat-(x-lx)*8/r.width)); syncUI(); }
+    else if(dm==='orbit'){ orbit.az-=(x-lx)*0.006; orbit.el=Math.max(-0.2,Math.min(1.45,orbit.el+(y-ly)*0.006)); }
+    else { const py=planeY(x,y); if(py!==null) setS(Math.round((py-off)*10)/10); }
+    lx=x; ly=y; };
+  const up=()=>{ dm=null; cv.style.cursor='grab'; };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) dm=null; if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
+  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchend',up);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); if(curView==='eye'){ eyeGap=Math.max(3,Math.min(40,eyeGap*(1+e.deltaY*0.001))); syncUI(); } else orbit.dist=Math.max(20,Math.min(300,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
+}
+
+/* ═══════════ THEORY CANVASES ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function arrowT(g,x0,y0,x1,y1,col){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=1.8; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); const a=Math.atan2(y1-y0,x1-x0), mx=(x0+x1)/2, my=(y0+y1)/2; g.beginPath(); g.moveTo(mx+7*Math.cos(a),my+7*Math.sin(a)); g.lineTo(mx-5*Math.cos(a)+4*Math.sin(a),my-5*Math.sin(a)-4*Math.cos(a)); g.lineTo(mx-5*Math.cos(a)-4*Math.sin(a),my-5*Math.sin(a)+4*Math.cos(a)); g.fill(); }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const n=1.33, sy=H*0.30, by=H*0.88, d=by-sy, ox=W*0.42, ph=22*Math.PI/180, th=Math.asin(n*Math.sin(ph)), x=d*Math.tan(ph), dA=x/Math.tan(th);
+  g.fillStyle='rgba(56,189,248,.14)'; g.fillRect(0,sy,W,H-sy); g.strokeStyle='#7dd3fc'; g.lineWidth=2; g.beginPath(); g.moveTo(0,sy); g.lineTo(W,sy); g.stroke();
+  g.fillStyle='#7dd3fc'; g.font='12px Sarabun'; g.textAlign='left'; g.fillText('อากาศ n = 1',10,sy-10); g.fillText('ของเหลว n',10,sy+20);
+  g.setLineDash([4,4]); g.strokeStyle='rgba(148,163,184,.55)'; g.lineWidth=1; g.beginPath(); g.moveTo(ox,10); g.lineTo(ox,by+10); g.stroke(); g.beginPath(); g.moveTo(ox+x,sy-90); g.lineTo(ox+x,sy+90); g.stroke(); g.setLineDash([]);
+  arrowT(g,ox,by,ox+x,sy,'#f59e0b'); const L=sy-20; arrowT(g,ox+x,sy,ox+x+L*Math.tan(th),sy-L,'#f59e0b');
+  g.setLineDash([5,4]); g.strokeStyle='rgba(245,158,11,.7)'; g.beginPath(); g.moveTo(ox+x,sy); g.lineTo(ox,sy+dA); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#fb923c'; g.beginPath(); g.arc(ox,by,6,0,Math.PI*2); g.fill(); g.fillStyle='#a78bfa'; g.beginPath(); g.arc(ox,sy+dA,6,0,Math.PI*2); g.fill();
+  g.font='bold 12px Sarabun'; g.textAlign='right'; g.fillStyle='#fb923c'; g.fillText('วัตถุ O',ox-10,by+4); g.fillStyle='#a78bfa'; g.fillText('ภาพ I',ox-10,sy+dA+4);
+  const bx=ox-90; g.lineWidth=1.5; g.strokeStyle='#fb923c'; g.beginPath(); g.moveTo(bx,sy); g.lineTo(bx,by); g.stroke(); g.strokeStyle='#a78bfa'; g.beginPath(); g.moveTo(bx+22,sy); g.lineTo(bx+22,sy+dA); g.stroke();
+  g.font='12px "Share Tech Mono"'; g.fillStyle='#fb923c'; g.textAlign='right'; g.fillText('d',bx-5,(sy+by)/2); g.fillStyle='#a78bfa'; g.textAlign='left'; g.fillText("d'",bx+26,sy+dA/2+4);
+  g.fillStyle='#fde68a'; g.font='12px Sarabun'; g.fillText('φ',ox+x-16,sy+34); g.fillText('θ',ox+x+8,sy-30); g.fillStyle='#e2e8f0'; g.fillText('x',ox+x/2-3,sy-6);
+  g.fillStyle='#94a3b8'; g.textAlign='left'; g.fillText('n sin φ = sin θ · x = d tan φ = d′ tan θ',W*0.62,H*0.55); g.fillText('มองเกือบตั้งฉาก → d′ = d/n',W*0.62,H*0.55+20); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p; const ml=54,mr=20,mt=16,mb=40,gw=W-ml-mr,gh=H-mt-mb; const X=a=>ml+a/90*gw, Y=r=>mt+(1-r/0.8)*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.fillStyle='#94a3b8'; g.font='10px "Share Tech Mono"'; g.textAlign='center'; for(let a=0;a<=90;a+=15) g.fillText(a+'°',X(a),H-mb+14); g.textAlign='right'; for(let r=0;r<=0.8001;r+=0.2) g.fillText(r.toFixed(1),ml-6,Y(r)+3);
+  g.textAlign='center'; g.font='11px Sarabun'; g.fillText('มุมมองในอากาศ θ (วัดจากแนวดิ่ง)',ml+gw/2,H-6); g.save(); g.translate(14,mt+gh/2); g.rotate(-Math.PI/2); g.fillText("d′/d",0,0); g.restore();
+  [[1.33,'#38bdf8','น้ำ 1.33'],[1.47,'#facc15','กลีเซอรีน 1.47']].forEach(([n,col,lab],i)=>{ g.strokeStyle=col; g.lineWidth=2; g.beginPath(); for(let a=0.5;a<89.5;a+=0.5){ const th=a*Math.PI/180, ph=Math.asin(Math.sin(th)/n), r=Math.tan(ph)/Math.tan(th); a===0.5?g.moveTo(X(a),Y(r)):g.lineTo(X(a),Y(r)); } g.stroke();
+    g.setLineDash([4,4]); g.globalAlpha=.5; g.beginPath(); g.moveTo(X(0),Y(1/n)); g.lineTo(X(90),Y(1/n)); g.stroke(); g.setLineDash([]); g.globalAlpha=1; g.fillStyle=col; g.textAlign='left'; g.font='11px Sarabun'; g.fillText(lab+' (มองตั้งฉาก d′/d = '+(1/n).toFixed(3)+')',X(38),Y(0.74)+i*16); }); }
+function drawTheory2(){ const p=prep('theoryCanvas2'); if(!p) return; const {g,W,H}=p; const cx=W*0.28, tw=90, top=H*0.28, bot=H*0.9, sy=top+34, h=bot-sy, iy=bot-h/1.33;
+  g.fillStyle='rgba(56,189,248,.16)'; g.fillRect(cx-tw/2,sy,tw,bot-sy); g.strokeStyle='#bfe3ff'; g.lineWidth=2; g.strokeRect(cx-tw/2,top,tw,bot-top); g.strokeStyle='#7dd3fc'; g.beginPath(); g.moveTo(cx-tw/2,sy); g.lineTo(cx+tw/2,sy); g.stroke();
+  const tipO=cx+tw/2-8; g.strokeStyle='#cbd5e1'; g.lineWidth=2; g.beginPath(); g.moveTo(cx-tw/2+10,bot-4); g.lineTo(tipO,bot-4); g.stroke(); g.fillStyle='#fb923c'; g.beginPath(); g.arc(cx-tw/2+10,bot-4,4,0,Math.PI*2); g.fill();
+  g.setLineDash([5,3]); g.strokeStyle='#a78bfa'; g.beginPath(); g.moveTo(cx-tw/2+10,iy); g.lineTo(tipO,iy); g.stroke(); g.setLineDash([]);
+  g.strokeStyle='#cbd5e1'; g.beginPath(); g.moveTo(cx+tw/2+8,iy); g.lineTo(cx+tw/2+70,iy); g.stroke(); g.fillStyle='#34d399'; g.beginPath(); g.arc(cx+tw/2+70,iy,4,0,Math.PI*2); g.fill();
+  g.font='bold 11px Sarabun'; g.textAlign='left'; g.fillStyle='#34d399'; g.fillText('S (นอกถัง)',cx+tw/2+20,iy-8); g.fillStyle='#fb923c'; g.fillText('O',cx-tw/2+4,bot+14); g.fillStyle='#a78bfa'; g.fillText('ภาพ I',cx-tw/2+6,iy-6);
+  g.fillStyle='#e2e8f0'; g.beginPath(); g.ellipse(cx+tw/2,top-26,11,7,0,0,Math.PI*2); g.fill(); g.fillStyle='#1e293b'; g.beginPath(); g.arc(cx+tw/2,top-26,3.5,0,Math.PI*2); g.fill(); g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='center'; g.fillText('ตามองลง',cx+tw/2,top-40);
+  /* มุมมองจากตา: ไม่มีพาราแลกซ์ / มีพาราแลกซ์ */
+  const box=(bx,lab,off)=>{ const bw=W*0.2, bh=H*0.62, by=H*0.2; g.strokeStyle='#1e3a5f'; g.strokeRect(bx,by,bw,bh); g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='center'; g.fillText(lab,bx+bw/2,by-8);
+    const mx=bx+bw/2, my=by+bh/2; g.strokeStyle='rgba(191,227,255,.5)'; g.lineWidth=1; g.beginPath(); g.moveTo(bx+6,my); g.lineTo(bx+bw-6,my); g.stroke();
+    g.strokeStyle='#cbd5e1'; g.lineWidth=3; g.beginPath(); g.moveTo(mx+off,by+10); g.lineTo(mx+off,my-6); g.stroke(); g.beginPath(); g.moveTo(mx,my+6); g.lineTo(mx,by+bh-10); g.stroke();
+    g.fillStyle='#34d399'; g.font='10px Sarabun'; g.fillText('S',mx+off+10,by+22); g.fillStyle='#a78bfa'; g.fillText('ภาพ O',mx+22,by+bh-16); };
+  box(W*0.52,'ไม่มีพาราแลกซ์ (ตรงกันเสมอ)',0); box(W*0.76,'มีพาราแลกซ์ (แยกเมื่อส่ายตา)',14); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); drawTheory2(); }
+
+/* ═══════════ DRAW ALL / INIT ═══════════ */
+function drawAll(){ autoLayout(); drawDiag(); updateHint(); }
+function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  DC=$('diagCanvas'); dctx=DC.getContext('2d');
+  DC.addEventListener('mousedown',onDDown); window.addEventListener('mousemove',e=>{ if(drag2||e.target===DC) onDMove(e); }); window.addEventListener('mouseup',onDUp);
+  DC.addEventListener('touchstart',onDDown,{passive:false}); DC.addEventListener('touchmove',onDMove,{passive:false}); DC.addEventListener('touchend',onDUp);
+  const pairs={'vi-h':'sl-h','vi-s':'sl-s','vi-lat':'sl-lat','vi-eye':'sl-eye'};
+  const onSl=id=>{ const v=parseFloat($(id).value); if(id==='sl-h') setH(v); else if(id==='sl-s') setS(v); else if(id==='sl-lat') eyeLat=v; else eyeGap=v; };
+  Object.entries(pairs).forEach(([vi,si])=>{ const sl=$(si),inp=$(vi); sl.addEventListener('input',()=>{ inp.value=parseFloat(sl.value); onSl(si); }); const sync=()=>{ let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0)); inp.value=v; sl.value=v; onSl(si); }; inp.addEventListener('blur',sync); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') sync(); }); });
+  $('cbOffset').addEventListener('change',()=>{ drawAll(); syncUI(); });
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  LIQ.mystery.n=Math.round((1.30+Math.random()*0.28)*100)/100;
+  init3D(); resizeAll(); setMode('manual'); setLiquid('water'); renderTable(); drawTheoryAll();
+});
+</script>
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-48", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 49 — มุมวิกฤตและการสะท้อนกลับหมด (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* sim layout */
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:400px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab}
+.view3d .hud{position:absolute;left:10px;top:10px;background:rgba(10,14,26,.82);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.74rem;color:var(--muted);pointer-events:none;line-height:1.5;max-width:60%}
+.view3d .hud b{color:var(--accent)}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px}
+.view3d .viewbtns button,.btn-mini{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover,.btn-mini:hover{border-color:var(--accent);color:var(--accent)}
+.liq-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.liq-grid button{padding:7px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600}
+.liq-grid button.active{background:var(--accent5);border-color:var(--accent5);color:#0a0e1a}
+.inset canvas{width:100%;height:100%;display:block}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
+.diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.diag-wrap .diag-head b{color:var(--accent5)}
+#diagCanvas{width:100%;height:400px;background:#0c1424;border-radius:8px;display:block;touch-action:none;cursor:default}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px}
+.mode-btns button{flex:1;padding:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+#typeBtns button.active{background:var(--accent5);border-color:var(--accent5)}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--err);color:#fecaca;background:rgba(248,113,113,.08)}
+.hint-box.virt{border-color:var(--accent2);color:#c7d2fe;background:rgba(129,140,248,.08)}
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
+.sl-unit{font-size:.72rem;color:var(--muted);min-width:20px}
+.val-input{width:60px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.98rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline.active{border-color:var(--warn);color:var(--warn)}
+.btn-sm{padding:5px 10px;font-size:.76rem}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th,td{padding:4px 5px;border-bottom:1px solid var(--border);text-align:center}
+th{color:var(--accent);background:var(--panel);font-weight:700}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+td input{width:58px;padding:2px 4px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-family:'Share Tech Mono',monospace}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:6px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:210px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+
+/* content tabs */
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:760px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+.example-table th{background:var(--panel2)}
+.example-table td{color:var(--text)}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem}
+.sign-card{padding:10px;border-radius:7px;border:1px solid var(--border);background:var(--panel2)}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:360px}.sign-grid{grid-template-columns:1fr}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl02:lab-49">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🔦</div>
+  <div>
+    <h1>Lab 49 — มุมวิกฤตและการสะท้อนกลับหมด (3D)</h1>
+    <p>Critical Angle &amp; Total Internal Reflection — แท่งแก้วครึ่งวงกลม 3 มิติหักเหแสงจริง (ray tracing) · กฎของสเนลล์ · วัดมุมวิกฤตหาดรรชนีหักเห</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="hud" id="hud"><b>มุมบน</b> — ลากในภาพเพื่อหมุนเลเซอร์</div>
+        <div class="viewbtns">
+          <button onclick="setView('top')">⬇ มุมบน</button>
+          <button onclick="setView('iso')">มุมเฉียง</button>
+          <button onclick="setView('low')">มุมต่ำ</button>
+        </div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต<br>ยังใช้แผนภาพด้านล่างได้</div>
+      </div>
+      <div class="diag-wrap">
+        <div class="diag-head">📐 <b>แผนภาพกระดาษองศา (มองจากด้านบน · ตามสเกล)</b> — ลากเลเซอร์หมุนรอบจุดศูนย์กลางได้
+          <span id="diagNote" style="margin-left:auto;color:var(--muted)">โหมดวัดเอง: อ่านมุม θ₁ และ θ₂ จากสเกลเอง</span></div>
+        <canvas id="diagCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — หมุนเลเซอร์กลับ 20° และมุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ · วัสดุปริศนาไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧊 วัสดุแท่งครึ่งวงกลม</div>
+        <div class="liq-grid" id="matBtns">
+          <button data-k="acrylic" class="active" onclick="setMat('acrylic')">อะคริลิก</button>
+          <button data-k="crown" onclick="setMat('crown')">แก้วคราวน์</button>
+          <button data-k="flint" onclick="setMat('flint')">แก้วฟลินต์</button>
+          <button data-k="mystery" onclick="setMat('mystery')">❓ ปริศนา</button>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnRandom" style="width:100%;margin-top:6px" onclick="randomMystery()">🎲 สุ่มวัสดุปริศนาใหม่</button>
+        <div id="matInfo" style="font-size:.72rem;color:var(--muted);margin-top:5px;line-height:1.5"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🔦 เลเซอร์ (นอกวงสเกล)</div>
+        <div class="sl-row"><span class="sl-label" style="color:#f87171;min-width:88px" id="lbl-a">หมุนเลเซอร์</span><input class="sl-range" type="range" id="sl-a" min="0" max="89" step="0.1" value="20"><input class="val-input" type="number" id="vi-a" min="0" max="89" step="0.1" value="20"><span class="sl-unit">°</span></div>
+        <div style="display:flex;gap:4px;margin-bottom:4px">
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="nudge(-1)">−1°</button>
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="nudge(-0.1)">−0.1°</button>
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="nudge(0.1)">+0.1°</button>
+          <button class="btn btn-outline btn-sm" style="flex:1" onclick="nudge(1)">+1°</button>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);line-height:1.5">แสงเข้าทางผิวโค้งตามแนวรัศมี (ไม่หักเห) ไปตกที่จุดศูนย์กลางผิวราบ · โหมดวัดเอง: ไม่แสดงค่ามุม — อ่าน θ₁ และ θ₂ จากสเกล (แว่นขยายในแผนภาพ 2D)</div>
+      </div>
+
+      <div id="manualCtrl" class="panel-section">
+        <div class="panel-title">🖐 บันทึกผล</div>
+        <div class="hint-box info" id="manualHint"></div>
+        <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="color:#f87171;min-width:150px">θ₁ ที่อ่านได้ (รังสีตกกระทบ)</span><input class="val-input" type="number" id="in-a" min="0" max="90" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <div class="sl-row"><span class="sl-label" style="color:#fbbf24;min-width:150px">θ₂ ที่อ่านได้ (รังสีหักเห)</span><input class="val-input" type="number" id="in-b" min="0" max="90" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn btn-green btn-sm" style="flex:1" onclick="recordSnell()">📝 บันทึก θ₁, θ₂</button>
+          <button class="btn btn-sm" style="flex:1;background:#6b21a8" onclick="recordCritical()">📍 บันทึก θ₁ ที่อ่านได้เป็นมุมวิกฤต</button>
+        </div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ผลการคำนวณ</div>
+        <button class="btn btn-outline btn-sm" id="btnSweep" style="width:100%" onclick="toggleSweep()">▶ กวาดมุม θ₁ อัตโนมัติ 0° → 89°</button>
+        <div class="readout-grid" style="margin-top:8px">
+          <div class="readout-box"><div class="label">θ₁ (ในแก้ว)</div><div class="value" id="rd-a">—</div></div>
+          <div class="readout-box"><div class="label">θ₂ (ในอากาศ)</div><div class="value" id="rd-b">—</div></div>
+          <div class="readout-box"><div class="label">n แท่งแก้ว</div><div class="value" id="rd-n">—</div></div>
+          <div class="readout-box"><div class="label">มุมวิกฤต θc</div><div class="value" id="rd-c">—</div></div>
+          <div class="readout-box"><div class="label">แสงสะท้อน</div><div class="value" id="rd-r">—</div></div>
+          <div class="readout-box"><div class="label">แสงหักเหออก</div><div class="value" id="rd-t">—</div></div>
+          <div class="readout-box" style="grid-column:1/-1"><div class="label">สิ่งที่เกิดขึ้น</div><div class="value" id="rd-state" style="font-size:.82rem">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตาราง A — กฎของสเนลล์</div>
+        <div class="tbl-wrap" id="tableA"></div>
+        <div class="panel-title" style="margin-top:10px">📋 ตาราง B — มุมวิกฤต</div>
+        <div class="tbl-wrap" id="tableB"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="clearTable()">🗑 ล้าง (วัสดุนี้)</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title" id="graphTitle">📈 กราฟ sin θ₂ กับ sin θ₁</div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <ul>
+      <li>ศึกษาการหักเหของแสงจากตัวกลางที่มีดรรชนีหักเหมาก (แก้ว) ไปยังตัวกลางที่มีดรรชนีหักเหน้อย (อากาศ)</li>
+      <li>หา<strong>มุมวิกฤต</strong> และสังเกต<strong>การสะท้อนกลับหมด</strong></li>
+      <li>หาดรรชนีหักเหของแท่งแก้ว 2 วิธี: จากกฎของสเนลล์ n = sin θ₂ / sin θ₁ และจากมุมวิกฤต n = 1 / sin θc</li>
+    </ul>
+
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>แท่งแก้ว/อะคริลิกครึ่งวงกลม รัศมี 6 cm หนา 2 cm · วัสดุ 4 แบบ (รวมวัสดุปริศนาที่สุ่มดรรชนีหักเห)</li>
+      <li>กระดาษองศา (สเกลละเอียด 1° วัดจากเส้นแนวฉาก 0°–90° ทั้ง 4 ส่วน) รัศมีสเกล 12 cm</li>
+      <li>เลเซอร์ลำแสงแคบสีแดง ตั้ง<strong>นอกวงสเกล</strong> หมุนรอบจุดศูนย์กลางของผิวราบได้ · ลำแสงเลียดผิวกระดาษจึงเห็นเป็นเส้นแสงบนกระดาษ และรังสีตกกระทบตัดวงสเกลให้อ่านมุมได้</li>
+    </ul>
+
+    <h2>การใช้งาน Simulation</h2>
+    <ul>
+      <li><b>⬇ มุมบน</b> (ค่าเริ่มต้น) — มองกระดาษองศาตรง ๆ · <b>มุมเฉียง / มุมต่ำ</b> — หมุนมุมมองได้ มองผ่านแท่งแก้วเห็นสเกลบนกระดาษหักเหจริง และเห็นผิวราบสะท้อนกลับหมด</li>
+      <li>หมุนเลเซอร์: <b>ลากในภาพ 3D หรือแผนภาพ 2D</b> · สไลเดอร์ θ₁ · ปุ่ม ±1° / ±0.1° สำหรับปรับละเอียดใกล้มุมวิกฤต</li>
+      <li>แผนภาพ 2D มี<b>แว่นขยายสเกล 2 ช่อง</b> — ตรงจุดที่รังสีตกกระทบตัดวงสเกล (อ่าน θ₁) และจุดที่รังสีหักเหตัดวงสเกล (อ่าน θ₂) · โหมดวัดเองไม่แสดงค่ามุมเป็นตัวเลข</li>
+      <li>ความสว่างของรังสีสะท้อนและรังสีหักเหคำนวณตามสมการของเฟรเนล — รังสีหักเหจางลงเรื่อย ๆ เมื่อเข้าใกล้มุมวิกฤต</li>
+      <li><b>↺ รีเซตค่า</b> คืนมุมเลเซอร์เป็น 20° และมุมมองเริ่มต้น (ตารางยังอยู่)</li>
+      <li><b>โหมดวัดเอง</b> ไม่แสดง θ₂, n และ θc · <b>โหมดอัตโนมัติ</b> แสดงค่าทั้งหมด พร้อมกราฟร้อยละของแสงสะท้อน/หักเห</li>
+    </ul>
+
+    <h2>ตอนที่ A — กฎของสเนลล์</h2>
+    <ol>
+      <li>วางผิวราบของแท่งแก้วตรงเส้น "ผิวราบ" ของกระดาษองศา จุดศูนย์กลางตรงจุดตัดเส้นแนวฉาก</li>
+      <li>หมุนเลเซอร์ให้รังสีตกกระทบทำมุมประมาณ 10° กับเส้นแนวฉาก แล้วอ่านทั้งมุมตกกระทบ θ₁ และมุมหักเห θ₂ จากสเกล (ใช้แว่นขยายสเกลในแผนภาพ 2D)</li>
+      <li>กรอก θ₁ และ θ₂ แล้วกด <b>📝 บันทึก θ₁, θ₂</b> · ทำซ้ำที่ θ₁ ประมาณ 15°, 20°, 25°, 30°, 35°</li>
+      <li>เขียนกราฟ sin θ₂ (แกนตั้ง) กับ sin θ₁ (แกนนอน) → ความชัน = n</li>
+    </ol>
+    <h2>ตอนที่ B — มุมวิกฤต</h2>
+    <ol>
+      <li>ค่อย ๆ เพิ่ม θ₁ สังเกตว่ารังสีหักเหเบนออกจากเส้นแนวฉากมากขึ้นและจางลง ส่วนรังสีสะท้อนสว่างขึ้น</li>
+      <li>ปรับละเอียด (±0.1°) จนรังสีหักเห<strong>เลียดผิวราบ (θ₂ = 90°) และกำลังจะหายไป</strong> — อ่านมุมตกกระทบ θ₁ ขณะนั้นจากแว่นขยาย = มุมวิกฤต θc</li>
+      <li>กรอก θ₁ ที่อ่านได้ แล้วกด <b>📍 บันทึก θ₁ ที่อ่านได้เป็นมุมวิกฤต</b> · ทำซ้ำโดยเริ่มจากมุมมากกว่า θc แล้วลดลงจนรังสีหักเหเริ่มปรากฏ · หาค่าเฉลี่ย</li>
+      <li>เพิ่ม θ₁ มากกว่า θc สังเกตว่าไม่มีรังสีหักเหออก แสงสะท้อนกลับทั้งหมด</li>
+    </ol>
+    <div class="note-box">💡 ทำกับแก้วอย่างน้อย 2 ชนิดและวัสดุปริศนา · เปรียบเทียบ n จากสองวิธี และเทียบกับ Lab 33B (ปักหมุด) และ Lab 48 (ความลึกปรากฏ)</div>
+
+    <h2>วิธีบันทึกผล</h2>
+    <div class="formula-box">ตาราง A   θ₁ | θ₂ | sin θ₁ | sin θ₂ | n = sin θ₂ / sin θ₁<br>ตาราง B   θc | n = 1 / sin θc | n จริง (เฉลยหลังบันทึก) | %error</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>เมื่อแสงเคลื่อนที่จากแก้วสู่อากาศ รังสีหักเหเบนเข้าหาหรือออกจากเส้นแนวฉาก เพราะอะไร?</li>
+      <li>เงื่อนไขการเกิดการสะท้อนกลับหมดมีอะไรบ้าง?</li>
+      <li>ทำไมแสงที่เข้าทางผิวโค้งตามแนวรัศมีจึงไม่หักเห?</li>
+      <li>วัสดุที่มีดรรชนีหักเหมากมีมุมวิกฤตมากหรือน้อย ข้อนี้เกี่ยวกับความแวววาวของเพชรอย่างไร?</li>
+      <li>ค่า n จากตอน A และตอน B ต่างกันหรือไม่ วิธีใดแม่นยำกว่า เพราะอะไร?</li>
+      <li>ยกตัวอย่างการนำการสะท้อนกลับหมดไปใช้ประโยชน์</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. แสงจากตัวกลางหนาแน่นสู่ตัวกลางโปร่ง</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="260"></canvas></div>
+    <p>เมื่อแสงเคลื่อนที่จากแก้ว (n) ออกสู่อากาศ (n = 1) รังสีหักเหเบน<strong>ออกจาก</strong>เส้นแนวฉาก ตามกฎของสเนลล์ · เมื่อเพิ่มมุมตกกระทบ มุมหักเหเพิ่มเร็วกว่า จนถึงมุมตกกระทบค่าหนึ่งที่มุมหักเหเท่ากับ 90° เรียกว่า <strong>มุมวิกฤต θc</strong> · ถ้ามุมตกกระทบมากกว่า θc จะไม่มีแสงหักเหออก แสงสะท้อนกลับเข้าตัวกลางเดิมทั้งหมด = <strong>การสะท้อนกลับหมด</strong></p>
+    <div class="formula-box">n₁ sin θ₁ = n₂ sin θ₂<br>แก้ว → อากาศ:  n sin θ₁ = sin θ₂   →   n = sin θ₂ / sin θ₁<br>มุมวิกฤต (θ₂ = 90°):  sin θc = n₂ / n₁ = 1/n</div>
+    <p>เงื่อนไขการสะท้อนกลับหมด: (1) แสงเคลื่อนที่จากตัวกลางที่มีดรรชนีหักเหมากไปน้อย (2) มุมตกกระทบมากกว่ามุมวิกฤต</p>
+
+    <h2>2. ความสว่างของรังสีสะท้อนและรังสีหักเห</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="260"></canvas></div>
+    <p>ที่ผิวรอยต่อ แสงบางส่วนสะท้อนเสมอ (ประมาณ 4% เมื่อตกตั้งฉาก) · เมื่อมุมตกกระทบเข้าใกล้มุมวิกฤต แสงสะท้อนเพิ่มขึ้นอย่างรวดเร็ว (สมการของเฟรเนล) รังสีหักเหจึงจางลงจนหายไปพอดีที่ θc · ในการทดลองจริงรังสีหักเหจางมากก่อนถึง θc เล็กน้อย จึงควรปรับละเอียดและวัดทั้งขาเพิ่มและขาลดมุม</p>
+
+    <h2>3. มุมวิกฤตของวัสดุต่าง ๆ และการนำไปใช้</h2>
+    <table class="example-table">
+      <thead><tr><th>วัสดุ</th><th>n (โดยประมาณ)</th><th>มุมวิกฤตกับอากาศ</th></tr></thead>
+      <tbody>
+        <tr><td>น้ำ</td><td>1.33</td><td>48.8°</td></tr>
+        <tr><td>อะคริลิก</td><td>1.49</td><td>42.2°</td></tr>
+        <tr><td>แก้วคราวน์</td><td>1.52</td><td>41.1°</td></tr>
+        <tr><td>แก้วฟลินต์</td><td>1.62</td><td>38.1°</td></tr>
+        <tr><td>เพชร</td><td>2.42</td><td>24.4°</td></tr>
+      </tbody>
+    </table>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas2" height="200"></canvas></div>
+    <p><strong>เส้นใยนำแสง</strong>: แสงสะท้อนกลับหมดที่ผนังซ้ำ ๆ จึงเดินทางไปตามเส้นใยได้ไกล · <strong>ปริซึมสะท้อนกลับหมด</strong> ในกล้องสองตา/กล้องส่องแนว · <strong>เพชร</strong> มีมุมวิกฤตเล็ก แสงสะท้อนกลับหมดหลายครั้งภายในจึงแวววาว · <strong>มิราจ</strong> เกิดจากแสงเลี้ยวผ่านอากาศร้อนใกล้ผิวถนนจนสะท้อนกลับหมด</p>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนฟิสิกส์ ม.5 (สสวท.) บทแสงเชิงรังสี — การหักเหของแสง มุมวิกฤต และการสะท้อนกลับหมด<br>
+  Lab 49 — Critical Angle &amp; Total Internal Reflection (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 49 มุมวิกฤตและการสะท้อนกลับหมด (3D)
+   พิกัดโลก (cm): กระดาษ y = 0 · จุดศูนย์กลางผิวราบที่จุดกำเนิด · ผิวราบอยู่บนแกน x (z = 0)
+   แท่งครึ่งวงกลมอยู่ด้าน z ≥ 0 (รัศมี 6 หนา 2) · อากาศด้านหักเหคือ z < 0
+   เลเซอร์ที่ (−L sin θ₁, z = L cos θ₁) ยิงเข้าจุดกำเนิด · รังสีหักเห (sin θ₂, −cos θ₂) · รังสีสะท้อน (sin θ₁, cos θ₁)
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL02 Lab 49 — build v1.0 3D (2569-09-14)');
+const $ = id => document.getElementById(id);
+const RB=6, TB=2, PAPER=36, SCALE_R=12, BOX_L=15.2, AP_R=13.7, BEAM_END=16.5, NSEG=4;   /* เลเซอร์อยู่นอกวงสเกล (ปลายช่องแสงที่รัศมี 13.7) → รังสีตกกระทบตัดสเกลให้อ่าน θ₁ ได้ */
+const MAT={
+  acrylic:{name:'อะคริลิก',   n:1.49, tint:[0.95,0.99,1.00]},
+  crown:  {name:'แก้วคราวน์', n:1.52, tint:[0.90,0.98,0.96]},
+  flint:  {name:'แก้วฟลินต์', n:1.62, tint:[0.96,0.96,0.90]},
+  mystery:{name:'วัสดุปริศนา', n:1.55, tint:[0.94,0.90,1.00]}
+};
+let mode='manual', mat='acrylic', mysteryId=1, th1=20, curView='top', sweep=false;
+let rowsA=[], rowsB=[];
+const D2R=Math.PI/180, fmt=(v,d)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(d===undefined?1:d);
+
+/* ── physics ── */
+function nNow(){ return MAT[mat].n; }
+function thetaC(){ return Math.asin(1/nNow())/D2R; }
+function optics(){
+  const n=nNow(), a=th1*D2R, s2=n*Math.sin(a);
+  if(s2>=1) return {tir:true, th2:NaN, R:1, T:0};
+  const b=Math.asin(s2), ci=Math.cos(a), ct=Math.cos(b);
+  const rs=Math.pow((n*ci-ct)/(n*ci+ct),2), rp=Math.pow((n*ct-ci)/(n*ct+ci),2), R=(rs+rp)/2;   /* สมการเฟรเนล แสงไม่โพลาไรซ์ */
+  return {tir:false, th2:b/D2R, R, T:1-R};
+}
+function matKey(){ return mat==='mystery' ? 'mystery#'+mysteryId : mat; }
+/* ส่วนของรังสีบนกระดาษ (x,z) + ความเข้ม */
+function segments(){
+  const o=optics(), a=th1*D2R, s=Math.sin(a), c=Math.cos(a), seg=[];
+  seg.push({a:[-AP_R*s,AP_R*c], b:[0,0], I:1});
+  if(!o.tir){ const b=o.th2*D2R; seg.push({a:[0,0], b:[BEAM_END*Math.sin(b),-BEAM_END*Math.cos(b)], I:o.T}); }
+  seg.push({a:[0,0], b:[RB*s,RB*c], I:o.R});
+  seg.push({a:[RB*s,RB*c], b:[BEAM_END*s,BEAM_END*c], I:o.R*0.96});   /* ออกทางผิวโค้งตามแนวรัศมี (สะท้อนเล็กน้อย) */
+  return seg;
+}
+
+/* ── UI ── */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); $('btnRandom').classList.toggle('hidden',m==='auto');
+  if(m==='manual'&&sweep) toggleSweep(); applyAngleUI();
+  $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงมุมและร้อยละของแสง' : 'โหมดวัดเอง: อ่านมุม θ₁ และ θ₂ จากสเกลเอง';
+  $('graphTitle').textContent = m==='auto' ? '📈 ร้อยละของแสงสะท้อน/หักเห กับ θ₁' : '📈 กราฟ sin θ₂ กับ sin θ₁';
+  updateMatInfo(); drawAll(); }
+function setMat(k){ mat=k; document.querySelectorAll('#matBtns button').forEach(b=>b.classList.toggle('active',b.dataset.k===k)); updateMatInfo(); updateBlock(); renderTables(); drawAll(); }
+function updateMatInfo(){ const M=MAT[mat]; $('matInfo').innerHTML = mode==='auto' ? `${M.name}: <b class="mono" style="color:var(--accent3)">n = ${M.n.toFixed(2)}</b> · θc = ${thetaC().toFixed(1)}°` : `${M.name}: ดรรชนีหักเหไม่แสดงในโหมดวัดเอง — หาเองจากการทดลอง (เฉลยในตาราง B หลังบันทึก)`; }
+function randomMystery(){ MAT.mystery.n=Math.round((1.40+Math.random()*0.35)*100)/100; mysteryId++; if(mat!=='mystery') setMat('mystery'); else { updateBlock(); renderTables(); drawAll(); } }
+function setTh(v){ th1=Math.max(0,Math.min(89,Math.round(v*10)/10)); $('sl-a').value=th1; $('vi-a').value=th1.toFixed(1); drawAll(); }
+function applyAngleUI(){ const man=mode==='manual'; $('vi-a').classList.toggle('hidden',man); $('lbl-a').textContent= man?'หมุนเลเซอร์':'มุมตกกระทบ θ₁'; $('vi-a').nextElementSibling.classList.toggle('hidden',man); }   /* โหมดวัดเอง: ซ่อนตัวเลขมุม ให้อ่านจากสเกล */
+function nudge(d){ if(sweep) toggleSweep(); setTh(th1+d); }
+function toggleSweep(){ sweep=!sweep; $('btnSweep').classList.toggle('active',sweep); $('btnSweep').textContent = sweep ? '⏸ หยุดกวาดมุม' : '▶ กวาดมุม θ₁ อัตโนมัติ 0° → 89°'; if(sweep&&th1>=88.9) setTh(0); }
+function resetLab(){
+  /* คืนค่าเริ่มต้น: มุมเลเซอร์ · มุมมอง · ช่องกรอก (ไม่ลบตาราง ไม่เปลี่ยน n ของวัสดุปริศนา) */
+  if(sweep) toggleSweep(); $('in-a').value=''; $('in-b').value=''; setView('top'); setTh(20);
+}
+function updateHint(){
+  const o=optics();
+  if(mode==='auto'){ $('rd-a').textContent=th1.toFixed(1)+'°'; $('rd-b').textContent=o.tir?'—':o.th2.toFixed(1)+'°'; $('rd-n').textContent=nNow().toFixed(2); $('rd-c').textContent=thetaC().toFixed(1)+'°';
+    $('rd-r').textContent=(o.R*100).toFixed(1)+'%'; $('rd-t').textContent=(o.T*100).toFixed(1)+'%';
+    $('rd-state').textContent = o.tir ? 'θ₁ > θc → สะท้อนกลับหมด' : Math.abs(th1-thetaC())<0.3 ? 'θ₁ ≈ θc → รังสีหักเหเลียดผิว' : 'θ₁ < θc → หักเหออก + สะท้อนบางส่วน';
+    $('hud').innerHTML='<b>'+MAT[mat].name+'</b> — θ₁ = '+th1.toFixed(1)+'° · '+(o.tir?'<b style="color:#f87171">สะท้อนกลับหมด</b>':'θ₂ = '+o.th2.toFixed(1)+'°'); return; }
+  $('manualHint').innerHTML='<b>ตอน A:</b> อ่านมุม θ₁ (รังสีตกกระทบ) และ θ₂ (รังสีหักเห) จากสเกล — ดูแว่นขยาย 2 ช่องในแผนภาพ 2D กรอกแล้วกดบันทึก<br><b>ตอน B:</b> หมุนเลเซอร์ละเอียดจนรังสีหักเหเลียดผิวราบและกำลังจะหายไป อ่าน θ₁ แล้วกด 📍';
+  $('hud').innerHTML='<b>'+MAT[mat].name+'</b> — ลากในภาพเพื่อหมุนเลเซอร์'+(curView==='top'?'':' · ลากพื้นที่ว่างเพื่อหมุนมุมมอง');
+}
+
+/* ── tables ── */
+function recordSnell(){
+  const a=parseFloat($('in-a').value), b=parseFloat($('in-b').value);
+  if(isNaN(a)||a<0||a>90){ alert('กรอกมุมตกกระทบ θ₁ ที่อ่านได้จากสเกล (0–90°)'); return; }
+  if(isNaN(b)||b<0||b>90){ alert('กรอกมุมหักเห θ₂ ที่อ่านได้จากสเกล (0–90°)'); return; }
+  if(a<0.5){ alert('θ₁ ใกล้ 0° คำนวณ n ไม่ได้ — หมุนเลเซอร์ให้ θ₁ ประมาณ 10° ขึ้นไป'); return; }
+  const nc=Math.sin(b*D2R)/Math.sin(a*D2R); rowsA.push({key:matKey(),name:MAT[mat].name,a,b,nc,nt:nNow()}); $('in-a').value=''; $('in-b').value=''; renderTables(); drawGraph();
+}
+function recordCritical(){
+  const c=parseFloat($('in-a').value); if(isNaN(c)||c<=5||c>90){ alert('กรอกมุมตกกระทบ θ₁ ที่อ่านได้จากสเกล ขณะรังสีหักเหเลียดผิวราบ แล้วกดอีกครั้ง'); return; }
+  const nc=1/Math.sin(c*D2R), nt=nNow(); rowsB.push({key:matKey(),name:MAT[mat].name,c,nc,nt,err:Math.abs(nc-nt)/nt*100}); $('in-a').value=''; renderTables(); drawGraph();
+}
+function clearTable(){ rowsA=rowsA.filter(r=>r.key!==matKey()); rowsB=rowsB.filter(r=>r.key!==matKey()); renderTables(); drawGraph(); }
+function renderTables(){
+  const ra=rowsA.filter(r=>r.key===matKey()), rb=rowsB.filter(r=>r.key===matKey()); const revealed=rb.length>0;
+  let h='<table><thead><tr><th>#</th><th>θ₁</th><th>θ₂</th><th>sin θ₁</th><th>sin θ₂</th><th>n</th></tr></thead><tbody>'+ra.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.a,1)}</td><td class="mono">${fmt(r.b,1)}</td><td class="mono">${Math.sin(r.a*D2R).toFixed(3)}</td><td class="mono">${Math.sin(r.b*D2R).toFixed(3)}</td><td class="mono">${fmt(r.nc,3)}</td></tr>`).join('');
+  if(!ra.length) h+='<tr><td colspan="6" style="color:var(--muted)">ยังไม่มีข้อมูล ('+MAT[mat].name+')</td></tr>';
+  if(ra.length) h+=`<tr><td colspan="5" style="text-align:right;color:var(--muted)">n เฉลี่ย</td><td class="mono">${(ra.reduce((s,r)=>s+r.nc,0)/ra.length).toFixed(3)}</td></tr>`;
+  $('tableA').innerHTML=h+'</tbody></table>';
+  h='<table><thead><tr><th>#</th><th>θc</th><th>n = 1/sin θc</th><th>n จริง</th><th>%err</th></tr></thead><tbody>'+rb.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.c,1)}</td><td class="mono">${fmt(r.nc,3)}</td><td class="mono">${r.nt.toFixed(2)}</td><td class="mono" style="color:${r.err<2?'var(--accent3)':'var(--err)'}">${fmt(r.err,1)}%</td></tr>`).join('');
+  if(!rb.length) h+='<tr><td colspan="5" style="color:var(--muted)">ยังไม่มีข้อมูล — หามุมวิกฤตแล้วกด 📍</td></tr>';
+  $('tableB').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">'+MAT[mat].name+' · n จริงเฉลยหลังบันทึกตาราง B'+(revealed?'':' (ยังไม่เฉลย)')+'</div>';
+}
+function exportCSV(){ const csv='﻿table,material,theta1,theta2_or_thetac,n_calc,n_true\n'+rowsA.map(r=>['A',r.name,r.a.toFixed(1),r.b.toFixed(1),r.nc.toFixed(3),''].join(',')).concat(rowsB.map(r=>['B',r.name,'',r.c.toFixed(1),r.nc.toFixed(3),r.nt.toFixed(2)].join(','))).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab49_critical_angle.csv'; a.click(); }
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||210; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=40,mr=10,mt=12,mb=30,gw=W-ml-mr,gh=H-mt-mb; g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.fillStyle='#94a3b8'; g.font='9px "Share Tech Mono"';
+  if(mode==='auto'){
+    const X=a=>ml+a/90*gw, Y=p=>mt+(1-p)*gh; g.textAlign='center'; for(let a=0;a<=90;a+=15) g.fillText(a+'°',X(a),H-mb+12); g.textAlign='right'; for(let p=0;p<=1.001;p+=0.25) g.fillText(Math.round(p*100)+'%',ml-4,Y(p)+3);
+    g.textAlign='center'; g.font='10px Sarabun'; g.fillText('มุมตกกระทบ θ₁',ml+gw/2,H-2);
+    const keep=th1; [['R','#60a5fa'],['T','#f87171']].forEach(([k,col])=>{ g.strokeStyle=col; g.lineWidth=2; g.beginPath(); for(let a=0;a<=90;a+=0.25){ th1=a; const o=optics(); const v=k==='R'?o.R:o.T; a===0?g.moveTo(X(a),Y(v)):g.lineTo(X(a),Y(v)); } g.stroke(); }); th1=keep;
+    const tc=thetaC(); g.setLineDash([4,3]); g.strokeStyle='rgba(250,204,21,.8)'; g.lineWidth=1; g.beginPath(); g.moveTo(X(tc),mt); g.lineTo(X(tc),mt+gh); g.stroke(); g.setLineDash([]); g.fillStyle='#facc15'; g.textAlign='left'; g.fillText('θc',X(tc)+3,mt+10);
+    g.strokeStyle='#e2e8f0'; g.beginPath(); g.moveTo(X(th1),mt); g.lineTo(X(th1),mt+gh); g.stroke();
+    $('graphNote').innerHTML='<span style="color:#60a5fa">━ แสงสะท้อน R</span> · <span style="color:#f87171">━ แสงหักเหออก T</span> · เส้นขาว = θ₁ ปัจจุบัน'; return;
+  }
+  const X=v=>ml+v*gw, Y=v=>mt+(1-v)*gh; g.textAlign='center'; for(let v=0;v<=1.001;v+=0.2) g.fillText(v.toFixed(1),X(v),H-mb+12); g.textAlign='right'; for(let v=0;v<=1.001;v+=0.2) g.fillText(v.toFixed(1),ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px Sarabun'; g.fillText('sin θ₁ (ในแก้ว)',ml+gw/2,H-2); g.save(); g.translate(10,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('sin θ₂ (ในอากาศ)',0,0); g.restore();
+  const ra=rowsA.filter(r=>r.key===matKey());
+  if(ra.length){ const pts=ra.map(r=>[Math.sin(r.a*D2R),Math.sin(r.b*D2R)]); const k=pts.reduce((s,p)=>s+p[0]*p[1],0)/pts.reduce((s,p)=>s+p[0]*p[0],0);
+    g.strokeStyle='rgba(56,189,248,.8)'; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(1/k),Y(1)); g.stroke();
+    pts.forEach(p=>{ g.fillStyle='#34d399'; g.beginPath(); g.arc(X(p[0]),Y(p[1]),4,0,Math.PI*2); g.fill(); });
+    $('graphNote').innerHTML=`ความชัน = <b class="mono" style="color:var(--accent3)">${k.toFixed(3)}</b> = n จากกราฟ · เส้นตรงถึง sin θ₂ = 1 ที่ sin θ₁ = 1/n (มุมวิกฤต)`;
+  } else $('graphNote').textContent='บันทึกตาราง A หลาย ๆ มุม แล้วดูความชันของกราฟ';
+}
+
+/* ── 2D diagram (top view, true scale: x ขวา, −z ขึ้น เหมือนภาพ 3D มุมบน) ── */
+let DC,dctx,CX,CY,SC,ZX,ZY,ZW,ZH;
+const px=(x,z)=>[CX+x*SC, CY+z*SC];
+function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,H=DC.clientHeight||340; DC.width=W*devicePixelRatio; DC.height=H*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  SC=Math.min((H-12)/(2*17.5),(W*0.58)/(2*17.5)); CX=17.5*SC+6; CY=H/2; ZX=CX+17.5*SC+14; ZW=W-ZX-10; ZY=26; ZH=(H-ZY-22-26)/2; }
+function drawProtractor(c){
+  c.fillStyle='#d9d6cc'; c.fillRect(CX-17.5*SC,CY-17.5*SC,35*SC,35*SC); c.fillStyle='#e8e6df'; c.beginPath(); c.arc(CX,CY,13.2*SC,0,Math.PI*2); c.fill();
+  c.strokeStyle='#374151'; c.lineWidth=1; c.beginPath(); c.arc(CX,CY,SCALE_R*SC,0,Math.PI*2); c.stroke();
+  for(let d=0;d<360;d++){ const a=d*D2R, L=d%10===0?0.9:d%5===0?0.6:0.3; c.lineWidth=d%10===0?1.2:0.7; c.beginPath(); c.moveTo(CX+Math.sin(a)*SCALE_R*SC,CY-Math.cos(a)*SCALE_R*SC); c.lineTo(CX+Math.sin(a)*(SCALE_R-L)*SC,CY-Math.cos(a)*(SCALE_R-L)*SC); c.stroke(); }
+  c.fillStyle='#1f2937'; c.font='bold 9px "Share Tech Mono"'; c.textAlign='center';
+  for(let d=0;d<360;d+=10){ const a=d*D2R; c.fillText(labelProtractor(d), CX+Math.sin(a)*(SCALE_R-1.7)*SC, CY-Math.cos(a)*(SCALE_R-1.7)*SC+3); }
+  c.strokeStyle='#4b5563'; c.setLineDash([5,4]); c.beginPath(); c.moveTo(CX,CY-13*SC); c.lineTo(CX,CY+13*SC); c.stroke(); c.setLineDash([]);
+  c.strokeStyle='#1f2937'; c.lineWidth=1.4; c.beginPath(); c.moveTo(CX-13*SC,CY); c.lineTo(CX+13*SC,CY); c.stroke();
+  c.fillStyle='#374151'; c.font='9px Sarabun'; c.textAlign='left'; c.fillText('เส้นแนวฉาก',CX+4,CY-12.4*SC); c.fillText('ผิวราบ',CX+9*SC,CY-4);
+}
+function labelProtractor(d){ const m=((d%360)+360)%360; return Math.min(m, Math.abs(180-m), 360-m); }   /* มุมจากเส้นแนวฉาก: 0 ที่แนวฉาก · 90 ที่ผิวราบ */
+function drawDiag(){
+  if(!dctx) return; const W=DC.clientWidth,H=DC.clientHeight,c=dctx; c.clearRect(0,0,W,H);
+  drawProtractor(c);
+  /* แท่งแก้วครึ่งวงกลม (ด้าน +z = ด้านล่างของแผนภาพ) */
+  c.fillStyle='rgba(125,211,252,.22)'; c.strokeStyle='rgba(56,189,248,.9)'; c.lineWidth=1.5; c.beginPath(); c.moveTo(CX-RB*SC,CY); c.arc(CX,CY,RB*SC,0,Math.PI); c.closePath(); c.fill(); c.stroke();
+  /* รังสีบนกระดาษ */
+  segments().forEach(s=>{ if(s.I<=0.003) return; const [ax,ay]=px(...s.a), [bx,by]=px(...s.b); const al=Math.sqrt(s.I);
+    c.strokeStyle=`rgba(239,68,68,${0.25*al})`; c.lineWidth=7; c.beginPath(); c.moveTo(ax,ay); c.lineTo(bx,by); c.stroke();
+    c.strokeStyle=`rgba(254,202,202,${al})`; c.lineWidth=1.6; c.beginPath(); c.moveTo(ax,ay); c.lineTo(bx,by); c.stroke(); });
+  /* เลเซอร์ */
+  const a=th1*D2R; c.save(); c.translate(...px(-BOX_L*Math.sin(a),BOX_L*Math.cos(a))); c.rotate(a); /* แกนยาวของกล่องขนานลำแสง · ช่องแสง (−y ของกล่อง) หันเข้าจุดศูนย์กลาง */ c.fillStyle='#374151'; c.fillRect(-0.8*SC,-1.5*SC,1.6*SC,3*SC); c.fillStyle='#ef4444'; c.fillRect(-0.25*SC,-1.6*SC,0.5*SC,0.25*SC); c.restore();
+  c.fillStyle='#1f2937'; c.font='bold 10px Sarabun'; c.textAlign='left'; c.fillText('เลเซอร์',...px(-BOX_L*Math.sin(a)+1.2,BOX_L*Math.cos(a)+1.5));
+  if(mode==='auto'){ c.fillStyle='#b91c1c'; c.font='bold 11px "Share Tech Mono"'; const [x1,y1]=px(-3*Math.sin(a/2),3*Math.cos(a/2)); c.fillText('θ₁='+th1.toFixed(1)+'°',x1-40,y1+14); const o=optics(); if(!o.tir){ const b=o.th2*D2R; const [x2,y2]=px(3.5*Math.sin(b/2),-3.5*Math.cos(b/2)); c.fillText('θ₂='+o.th2.toFixed(1)+'°',x2+4,y2-4); } }
+  drawZoom(c,W,H);
+}
+/* แว่นขยายสเกล 2 ช่อง: จุดที่รังสีตกกระทบ (θ₁) และรังสีหักเห (θ₂) ตัดวงสเกล · ตัวเลข = มุมจากเส้นแนวฉาก */
+function zoomStrip(c,y0,h,title,deg,I,msg){
+  c.fillStyle='#94a3b8'; c.font='bold 11px Sarabun'; c.textAlign='left'; c.fillText(title,ZX+4,y0-7);
+  c.fillStyle='#0c1424'; c.strokeStyle='#1e3a5f'; c.lineWidth=1; c.fillRect(ZX,y0,ZW,h); c.strokeRect(ZX,y0,ZW,h);
+  if(msg){ c.fillStyle='#fca5a5'; c.font='13px Sarabun'; c.textAlign='center'; c.fillText(msg,ZX+ZW/2,y0+h/2+4); return; }
+  const ppd=Math.min(26,ZW/16), mid=ZX+ZW/2, top=y0+h*0.12, bot=y0+h*0.88, base=y0+h*0.58, cd=Math.max(7,Math.min(83,Math.round(deg)));
+  c.save(); c.beginPath(); c.rect(ZX+1,y0+1,ZW-2,h-2); c.clip();
+  c.fillStyle='#e8e6df'; c.fillRect(ZX,top,ZW,bot-top);
+  c.strokeStyle='#1f2937'; c.fillStyle='#1f2937'; c.textAlign='center';
+  for(let d=Math.floor(cd-9); d<=cd+9; d+=0.5){ if(d<0||d>90) continue; const x=mid+(d-cd)*ppd, isInt=Math.abs(d-Math.round(d))<1e-6, L= !isInt?6: d%10===0?24: d%5===0?18:12; c.lineWidth= isInt&&d%5===0?1.6:1; c.beginPath(); c.moveTo(x,base); c.lineTo(x,base-L); c.stroke(); if(isInt){ c.font=(d%5===0?'bold 12px':'10px')+' "Share Tech Mono"'; c.fillText(d,x,base+14); } }
+  c.lineWidth=1.2; c.beginPath(); c.moveTo(ZX,base); c.lineTo(ZX+ZW,base); c.stroke();
+  const al=Math.sqrt(I), xb=mid+(deg-cd)*ppd; c.strokeStyle=`rgba(239,68,68,${0.35*al})`; c.lineWidth=9; c.beginPath(); c.moveTo(xb,top); c.lineTo(xb,bot); c.stroke(); c.strokeStyle=`rgba(185,28,28,${al})`; c.lineWidth=2; c.beginPath(); c.moveTo(xb,top); c.lineTo(xb,bot); c.stroke();
+  c.restore();
+}
+function drawZoom(c,W,H){
+  if(ZW<120) return; const o=optics();
+  zoomStrip(c,ZY,ZH,'🔍 รังสีตกกระทบ ตัดวงสเกล (ด้านแท่งแก้ว) → θ₁',th1,1,null);
+  zoomStrip(c,ZY+ZH+26,ZH,'🔍 รังสีหักเห ตัดวงสเกล (ด้านอากาศ) → θ₂',o.tir?0:o.th2,o.T,(o.tir||o.T<0.003)?'ไม่มีรังสีหักเหออกสู่อากาศ':null);
+  c.fillStyle='#94a3b8'; c.font='10px Sarabun'; c.textAlign='left'; c.fillText('ตัวเลข = มุมจากเส้นแนวฉาก · ขีดยาว 5°/10° · ขีดสั้นสุด 0.5°',ZX+4,H-6);
+}
+let drag2=false;
+function dPos(e){ const r=DC.getBoundingClientRect(),t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+function dAngle(p){ const x=(p.x-CX)/SC, z=(p.y-CY)/SC; if(Math.hypot(x,z)<RB+0.5||Math.hypot(x,z)>17.5||z<0.3) return null; return Math.atan2(-x,z)/D2R; }
+function onDDown(e){ const a=dAngle(dPos(e)); if(a===null) return; drag2=true; if(sweep) toggleSweep(); setTh(a); e.preventDefault(); }
+function onDMove(e){ if(drag2 && !e.touches && e.buttons===0) drag2=false;   /* ปล่อยเมาส์นอกหน้าต่าง → เลิกลาก ไม่ให้มุมเปลี่ยนเอง */
+  const p=dPos(e); if(!drag2){ DC.style.cursor=dAngle(p)!==null?'grab':'default'; return; } e.preventDefault(); const x=(p.x-CX)/SC, z=Math.max(0.05,(p.y-CY)/SC); setTh(Math.atan2(-x,z)/D2R); }
+function onDUp(){ drag2=false; }
+</script>
+<script>
+/* ═══════════ 3D SCENE — แท่งแก้วหักเหแสงจริง (ray tracing) · รังสีบนกระดาษคำนวณด้วยสเนลล์ + เฟรเนล ═══════════ */
+let renderer,scene,camera,P={},blockMat,paperMat,paperTex;
+const orbit={target:new THREE.Vector3(0,0,0),dist:52,az:-0.6,el:0.62};
+const VERT=`varying vec3 vW; varying vec3 vN; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
+const PAPER_GLSL=`
+uniform sampler2D tPaper; uniform vec2 uSA[${NSEG}]; uniform vec2 uSB[${NSEG}]; uniform float uSI[${NSEG}];
+const float PH=${(PAPER/2).toFixed(1)};
+vec3 glowAt(vec2 p){ float g=0.0, k=0.0;
+  for(int i=0;i<${NSEG};i++){ if(uSI[i]<=0.0) continue; vec2 a=uSA[i], ab=uSB[i]-uSA[i]; float h=clamp(dot(p-a,ab)/dot(ab,ab),0.0,1.0); float d=length(p-a-ab*h);
+    g+=uSI[i]*exp(-d*d/0.05); k+=uSI[i]*exp(-d*d/0.003); }
+  return vec3(0.9,0.08,0.05)*g*0.6 + vec3(1.0,0.55,0.50)*min(k,1.2)*0.8; }
+vec3 paperCol(vec3 p){ vec2 uv=vec2((p.x+PH)/(2.0*PH), 1.0-(p.z+PH)/(2.0*PH)); vec3 c=texture2D(tPaper,uv).rgb*0.92; return c+glowAt(p.xz); }`;
+const PAPER_FRAG=PAPER_GLSL+`
+varying vec3 vW; varying vec3 vN;
+void main(){ gl_FragColor=vec4(paperCol(vW),1.0); }`;
+const BLOCK_FRAG=PAPER_GLSL+`
+uniform float uN; uniform vec3 uTint;
+varying vec3 vW; varying vec3 vN;
+const float RB=${RB.toFixed(1)}; const float TB=${TB.toFixed(1)};
+vec3 bg(vec3 d){ return mix(vec3(0.05,0.07,0.11),vec3(0.12,0.15,0.22),clamp(d.y*0.5+0.5,0.0,1.0)); }
+vec3 traceAir(vec3 o, vec3 d){ if(d.y<-1e-5){ float t=-o.y/d.y; vec3 h=o+t*d; if(abs(h.x)<PH&&abs(h.z)<PH) return paperCol(h); } return bg(d); }
+/* ในแท่งครึ่งวงกลม (x²+z² ≤ R², z ≥ 0, 0 ≤ y ≤ T): หาผิวที่รังสีออก = ค่า t น้อยสุดของแต่ละเงื่อนไข */
+vec3 traceBlock(vec3 o, vec3 d){
+  vec3 att=vec3(1.0);
+  for(int i=0;i<8;i++){
+    float bt=1e9; int k=0; vec3 bn=vec3(0.0); float t;
+    if(d.y<0.0){ t=-o.y/d.y; if(t<bt){ bt=t; k=1; } }
+    else if(d.y>0.0){ t=(TB-o.y)/d.y; if(t<bt){ bt=t; k=2; bn=vec3(0.0,1.0,0.0); } }
+    if(d.z<0.0){ t=-o.z/d.z; if(t<bt){ bt=t; k=2; bn=vec3(0.0,0.0,-1.0); } }
+    float A=dot(d.xz,d.xz); if(A>1e-9){ float B=dot(o.xz,d.xz), C=dot(o.xz,o.xz)-RB*RB; float disc=max(B*B-A*C,0.0); t=(-B+sqrt(disc))/A; if(t<bt){ bt=t; k=2; vec3 h=o+t*d; bn=normalize(vec3(h.x,0.0,h.z)); } }
+    bt=max(bt,0.0); vec3 p=o+bt*d; att*=pow(uTint,vec3(bt/6.0));
+    if(k==1) return att*paperCol(vec3(p.x,0.0,p.z));
+    vec3 r=refract(d,-bn,uN);
+    float ci=abs(dot(d,bn));
+    if(dot(r,r)<1e-8){ d=reflect(d,-bn); o=p-bn*1e-3; continue; }   /* สะท้อนกลับหมด */
+    float F0=pow((uN-1.0)/(uN+1.0),2.0); float ct=abs(dot(r,bn)); float rs=pow((uN*ci-ct)/(uN*ci+ct),2.0), rp=pow((uN*ct-ci)/(uN*ct+ci),2.0); float R=0.5*(rs+rp);
+    return att*mix(traceAir(p+bn*1e-3,r), bg(reflect(d,-bn)), R);
+  }
+  return att*bg(d);
+}
+void main(){
+  vec3 N=normalize(vN); vec3 v=normalize(vW-cameraPosition);
+  float c=max(dot(-v,N),0.0);
+  vec3 col=traceBlock(vW-N*1e-3, refract(v,N,1.0/uN));
+  float F0=pow((uN-1.0)/(uN+1.0),2.0); float fr=F0+(1.0-F0)*pow(1.0-c,5.0);
+  col=mix(col, traceAir(vW+N*1e-3, reflect(v,N)), fr);
+  col=mix(col, vec3(0.55,0.80,0.95), 0.10);
+  gl_FragColor=vec4(col,1.0);
+}`;
+function makePaperTexture(){
+  const S=2048, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'), k=S/PAPER, X=x=>(x+PAPER/2)*k, Z=z=>(z+PAPER/2)*k;
+  g.fillStyle='#f1efe8'; g.fillRect(0,0,S,S);
+  g.strokeStyle='#222'; g.lineWidth=2.5; g.beginPath(); g.arc(X(0),Z(0),SCALE_R*k,0,Math.PI*2); g.stroke();
+  for(let d=0;d<360;d+=0.5){ const a=d*D2R, isInt=d%1===0, L=!isInt?0.18: d%10===0?0.9: d%5===0?0.6:0.36; g.lineWidth= d%10===0?3: d%5===0?2.2:1.4;
+    const sx=Math.sin(a), sz=-Math.cos(a); g.beginPath(); g.moveTo(X(sx*SCALE_R),Z(sz*SCALE_R)); g.lineTo(X(sx*(SCALE_R-L)),Z(sz*(SCALE_R-L))); g.stroke(); }
+  g.fillStyle='#222'; g.textAlign='center'; g.textBaseline='middle';
+  for(let d=0;d<360;d+=5){ const a=d*D2R, sx=Math.sin(a), sz=-Math.cos(a), r=SCALE_R-(d%10===0?1.55:1.15); g.save(); g.translate(X(sx*r),Z(sz*r)); g.rotate(a); g.font=(d%10===0?'bold 34px':'24px')+' "Share Tech Mono", monospace'; g.fillText(labelProtractor(d),0,0); g.restore(); }
+  g.strokeStyle='#444'; g.lineWidth=2; g.setLineDash([22,16]); g.beginPath(); g.moveTo(X(0),Z(-14)); g.lineTo(X(0),Z(14)); g.stroke(); g.setLineDash([]);
+  g.strokeStyle='#111'; g.lineWidth=3; g.beginPath(); g.moveTo(X(-14),Z(0)); g.lineTo(X(14),Z(0)); g.stroke();
+  g.fillStyle='#374151'; g.font='30px Sarabun, sans-serif'; g.textAlign='left'; g.fillText('เส้นแนวฉาก',X(0.4),Z(-13.6)); g.fillText('ผิวราบ',X(9.4),Z(-0.6));
+  g.strokeStyle='rgba(56,110,160,.55)'; g.lineWidth=2; g.beginPath(); g.arc(X(0),Z(0),RB*k,0,Math.PI); g.stroke();
+  const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy(); return t;
+}
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(38,1,0.3,900);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.9)); const d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(30,60,50); scene.add(d1);
+  paperTex=makePaperTexture();
+  const segU=()=>({uSA:{value:[...Array(NSEG)].map(()=>new THREE.Vector2())},uSB:{value:[...Array(NSEG)].map(()=>new THREE.Vector2())},uSI:{value:new Array(NSEG).fill(0)},tPaper:{value:paperTex}});
+  paperMat=new THREE.ShaderMaterial({vertexShader:VERT,fragmentShader:PAPER_FRAG,uniforms:segU()});
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(PAPER,PAPER),paperMat); paper.rotation.x=-Math.PI/2; scene.add(paper); P.paper=paper;
+  /* แท่งครึ่งวงกลม: ผิวโค้ง + ฝาบน/ล่าง (ครึ่งวงกลม) + ผิวราบ */
+  blockMat=new THREE.ShaderMaterial({vertexShader:VERT,fragmentShader:BLOCK_FRAG,uniforms:Object.assign(segU(),{uN:{value:1.49},uTint:{value:new THREE.Vector3(1,1,1)}}),depthWrite:false});
+  blockMat.uniforms.uSA=paperMat.uniforms.uSA; blockMat.uniforms.uSB=paperMat.uniforms.uSB; blockMat.uniforms.uSI=paperMat.uniforms.uSI;
+  const curved=new THREE.CylinderGeometry(RB,RB,TB,96,1,false,-Math.PI/2,Math.PI);
+  const bm=new THREE.Mesh(curved,blockMat); bm.position.y=TB/2; bm.renderOrder=2; scene.add(bm);
+  const flat=new THREE.Mesh(new THREE.PlaneGeometry(2*RB,TB),blockMat); flat.rotation.y=Math.PI; flat.position.y=TB/2; flat.renderOrder=2; scene.add(flat);
+  const edge=new THREE.LineSegments(new THREE.EdgesGeometry(curved,30),new THREE.LineBasicMaterial({color:0x7cc4f0,transparent:true,opacity:.7})); edge.position.y=TB/2; scene.add(edge);
+  /* เลเซอร์ */
+  P.box=new THREE.Group(); const body=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.8,3),new THREE.MeshStandardMaterial({color:0x374151,roughness:.6,metalness:.2})); body.position.y=0.9; P.box.add(body);
+  const slit=new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.9),new THREE.MeshBasicMaterial({color:0xff3b30})); slit.position.set(0,0.75,-1.51); slit.rotation.y=Math.PI; P.box.add(slit);
+  const knob=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.3,16),new THREE.MeshStandardMaterial({color:0x9ca3af})); knob.position.set(0,1.95,0.6); P.box.add(knob);
+  scene.add(P.box);
+  updateBlock(); setupPointer(cv); resize3D();
+  (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return;
+    if(sweep){ const nt=th1+0.12; if(nt>=89){ setTh(89); toggleSweep(); } else setTh(nt); }
+    update3D(); renderer.render(scene,camera); })();
+}
+function updateBlock(){ if(!blockMat) return; const M=MAT[mat]; blockMat.uniforms.uN.value=M.n; blockMat.uniforms.uTint.value.set(...M.tint); }
+function update3D(){
+  if(!scene) return; const a=th1*D2R;
+  P.box.position.set(-BOX_L*Math.sin(a),0,BOX_L*Math.cos(a)); P.box.rotation.y=-a;   /* ด้านช่องแสง (−z ของกล่อง) หันเข้าจุดศูนย์กลาง */
+  const seg=segments(), U=paperMat.uniforms; for(let i=0;i<NSEG;i++){ const s=seg[i]; if(s){ U.uSA.value[i].set(s.a[0],s.a[1]); U.uSB.value[i].set(s.b[0],s.b[1]); U.uSI.value[i]=Math.sqrt(Math.max(0,s.I)); } else U.uSI.value[i]=0; }
+  if(curView==='top'){ camera.up.set(0,0,-1); camera.position.set(0,62,0.001); camera.lookAt(0,0,0); if(camera.fov!==34){ camera.fov=34; camera.updateProjectionMatrix(); } }
+  else { const t=orbit.target; camera.up.set(0,1,0); camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t); if(camera.fov!==38){ camera.fov=38; camera.updateProjectionMatrix(); } }
+}
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(v){ curView=v; if(v==='iso'){ orbit.az=-0.6; orbit.el=0.62; orbit.dist=52; orbit.target.set(0,0,0); } if(v==='low'){ orbit.az=0.35; orbit.el=0.16; orbit.dist=30; orbit.target.set(0,1,0); } updateHint(); }
+function setupPointer(cv){
+  const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3(); let dm=null,lx=0,ly=0;
+  const setN=(x,y)=>{ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); };
+  const paperPt=(x,y)=>{ setN(x,y); return ray.ray.intersectPlane(plane,hit)?{x:hit.x,z:hit.z}:null; };
+  const canGrab=(x,y)=>{ setN(x,y); if(ray.intersectObject(P.box,true).length) return true; if(curView!=='top') return false; const p=paperPt(x,y); return p && p.z>0.3 && Math.hypot(p.x,p.z)>RB+0.5; };
+  const aim=(x,y)=>{ const p=paperPt(x,y); if(p){ if(sweep) toggleSweep(); setTh(Math.atan2(-p.x,Math.max(0.05,p.z))/D2R); } };
+  const down=(x,y)=>{ lx=x; ly=y; if(canGrab(x,y)){ dm='box'; aim(x,y); } else dm= curView==='top'?null:'orbit'; cv.style.cursor= dm?'grabbing':'default'; };
+  const move=(x,y)=>{ if(!dm){ cv.style.cursor=canGrab(x,y)?'grab':(curView==='top'?'default':'grab'); return; }
+    if(dm==='box') aim(x,y); else { orbit.az-=(x-lx)*0.006; orbit.el=Math.max(0.03,Math.min(1.5,orbit.el+(y-ly)*0.006)); }
+    lx=x; ly=y; };
+  const up=()=>{ dm=null; };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) dm=null; if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
+  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchend',up);
+  cv.addEventListener('wheel',e=>{ if(curView==='top') return; e.preventDefault(); orbit.dist=Math.max(12,Math.min(120,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
+}
+
+/* ═══════════ THEORY CANVASES ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function rayT(g,x0,y0,x1,y1,col,al){ g.strokeStyle=col; g.globalAlpha=al; g.lineWidth=2.2; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); const a=Math.atan2(y1-y0,x1-x0), mx=(x0+x1)/2, my=(y0+y1)/2; g.fillStyle=col; g.beginPath(); g.moveTo(mx+7*Math.cos(a),my+7*Math.sin(a)); g.lineTo(mx-5*Math.cos(a)+4*Math.sin(a),my-5*Math.sin(a)-4*Math.cos(a)); g.lineTo(mx-5*Math.cos(a)-4*Math.sin(a),my-5*Math.sin(a)+4*Math.cos(a)); g.fill(); g.globalAlpha=1; }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const n=1.5, tc=Math.asin(1/n)/D2R;
+  [[25,'θ₁ < θc'],[tc,'θ₁ = θc'],[60,'θ₁ > θc']].forEach(([deg,lab],i)=>{ const cx=W*(i+0.5)/3, cy=H*0.48, L=Math.min(W/3*0.42,H*0.4), a=deg*D2R;
+    g.fillStyle='rgba(125,211,252,.16)'; g.fillRect(cx-W/6+6,cy,W/3-12,H*0.46); g.strokeStyle='#7dd3fc'; g.lineWidth=1.5; g.beginPath(); g.moveTo(cx-W/6+6,cy); g.lineTo(cx+W/6-6,cy); g.stroke();
+    g.setLineDash([4,4]); g.strokeStyle='rgba(148,163,184,.6)'; g.lineWidth=1; g.beginPath(); g.moveTo(cx,cy-L); g.lineTo(cx,cy+L); g.stroke(); g.setLineDash([]);
+    const s2=n*Math.sin(a); let R=1,T=0,b=Math.PI/2; if(s2<1){ b=Math.asin(s2); const ci=Math.cos(a),ct=Math.cos(b); R=(Math.pow((n*ci-ct)/(n*ci+ct),2)+Math.pow((n*ct-ci)/(n*ct+ci),2))/2; T=1-R; }
+    rayT(g,cx-L*Math.sin(a),cy+L*Math.cos(a),cx,cy,'#ef4444',1);
+    if(s2<1.0001&&T>0.001) rayT(g,cx,cy,cx+L*Math.sin(b),cy-L*Math.cos(b),'#ef4444',Math.max(.25,Math.sqrt(T)));
+    if(i===1){ g.strokeStyle='#ef4444'; g.globalAlpha=.6; g.lineWidth=2.2; g.beginPath(); g.moveTo(cx,cy-1); g.lineTo(cx+L,cy-1); g.stroke(); g.globalAlpha=1; }
+    rayT(g,cx,cy,cx+L*Math.sin(a),cy+L*Math.cos(a),'#ef4444',Math.max(.2,Math.sqrt(i===1?1:R)));
+    g.fillStyle='#e2e8f0'; g.font='bold 12px Sarabun'; g.textAlign='center'; g.fillText(lab,cx,18); g.font='10px Sarabun'; g.fillStyle='#94a3b8'; g.fillText(i===0?'หักเหออก + สะท้อนบางส่วน':i===1?'θ₂ = 90° (เลียดผิว)':'สะท้อนกลับหมด',cx,34);
+    g.fillStyle='#7dd3fc'; g.textAlign='left'; g.fillText('แก้ว',cx-W/6+10,cy+16); g.fillText('อากาศ',cx-W/6+10,cy-6); }); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p; const ml=54,mr=20,mt=16,mb=40,gw=W-ml-mr,gh=H-mt-mb, n=1.5, X=a=>ml+a/90*gw, Y=v=>mt+(1-v)*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.fillStyle='#94a3b8'; g.font='10px "Share Tech Mono"'; g.textAlign='center'; for(let a=0;a<=90;a+=15) g.fillText(a+'°',X(a),H-mb+14); g.textAlign='right'; for(let v=0;v<=1.001;v+=0.25) g.fillText(Math.round(v*100)+'%',ml-6,Y(v)+3);
+  g.textAlign='center'; g.font='11px Sarabun'; g.fillText('มุมตกกระทบในแก้ว θ₁ (n = 1.50)',ml+gw/2,H-6);
+  [['R','#60a5fa','แสงสะท้อน'],['T','#f87171','แสงหักเหออก']].forEach(([k,col,lab],i)=>{ g.strokeStyle=col; g.lineWidth=2.2; g.beginPath(); for(let a=0;a<=90;a+=0.25){ const s2=n*Math.sin(a*D2R); let R=1; if(s2<1){ const b=Math.asin(s2),ci=Math.cos(a*D2R),ct=Math.cos(b); R=(Math.pow((n*ci-ct)/(n*ci+ct),2)+Math.pow((n*ct-ci)/(n*ct+ci),2))/2; } const v=k==='R'?R:1-R; a===0?g.moveTo(X(a),Y(v)):g.lineTo(X(a),Y(v)); } g.stroke(); g.fillStyle=col; g.textAlign='left'; g.fillText('━ '+lab,ml+12,mt+18+i*16); });
+  const tc=Math.asin(1/n)/D2R; g.setLineDash([4,3]); g.strokeStyle='#facc15'; g.beginPath(); g.moveTo(X(tc),mt); g.lineTo(X(tc),mt+gh); g.stroke(); g.setLineDash([]); g.fillStyle='#facc15'; g.fillText('θc = '+tc.toFixed(1)+'°',X(tc)+4,mt+gh/2); }
+function drawTheory2(){ const p=prep('theoryCanvas2'); if(!p) return; const {g,W,H}=p; const y0=H*0.3,y1=H*0.7, x0=30, x1=W-30;
+  g.fillStyle='rgba(125,211,252,.18)'; g.fillRect(x0,y0,x1-x0,y1-y0); g.strokeStyle='#7dd3fc'; g.lineWidth=2; g.strokeRect(x0,y0,x1-x0,y1-y0);
+  const ang=58*D2R, dx=(y1-y0)*Math.tan(ang); g.strokeStyle='#ef4444'; g.lineWidth=2; g.beginPath(); let x=x0, y=(y0+y1)/2; g.moveTo(x,y); x+=dx/2; y=y1; g.lineTo(x,y); let up=true; while(x+dx<x1){ x+=dx; y=up?y0:y1; g.lineTo(x,y); up=!up; } g.lineTo(x1,y+(up?-1:1)*(x1-x)/Math.tan(ang)); g.stroke();
+  g.fillStyle='#e2e8f0'; g.font='12px Sarabun'; g.textAlign='center'; g.fillText('เส้นใยนำแสง — แสงตกกระทบผนังด้วยมุมมากกว่ามุมวิกฤต จึงสะท้อนกลับหมดทุกครั้ง',W/2,H*0.18); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); drawTheory2(); }
+
+/* ═══════════ DRAW ALL / INIT ═══════════ */
+function drawAll(){ drawDiag(); updateHint(); if(mode==='auto') drawGraph(); }
+function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  DC=$('diagCanvas'); dctx=DC.getContext('2d');
+  DC.addEventListener('mousedown',onDDown); window.addEventListener('mousemove',e=>{ if(drag2||e.target===DC) onDMove(e); }); window.addEventListener('mouseup',onDUp);
+  DC.addEventListener('touchstart',onDDown,{passive:false}); DC.addEventListener('touchmove',onDMove,{passive:false}); DC.addEventListener('touchend',onDUp); DC.addEventListener('touchcancel',onDUp); window.addEventListener('blur',onDUp);
+  const sl=$('sl-a'), vi=$('vi-a'); sl.addEventListener('input',()=>{ if(sweep) toggleSweep(); setTh(parseFloat(sl.value)); });
+  const sync=()=>{ if(sweep) toggleSweep(); setTh(parseFloat(vi.value)||0); }; vi.addEventListener('blur',sync); vi.addEventListener('keydown',e=>{ if(e.key==='Enter') sync(); });
+  $('in-b').addEventListener('keydown',e=>{ if(e.key==='Enter') recordSnell(); });
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  MAT.mystery.n=Math.round((1.40+Math.random()*0.35)*100)/100;
+  init3D(); resizeAll(); setMode('manual'); setMat('acrylic'); setTh(20); renderTables(); drawGraph(); drawTheoryAll();
+});
+</script>
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-49", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
