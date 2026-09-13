@@ -944,6 +944,7 @@ function drawPartB(){
     } else {
       updateFocusHint(-1);
     }
+    if(isFinite(d_i) && d_i > 0) drawImageOnScreen(screenX, lensCm + d_i, result.M);
     drawScreenInset(d_o, d_i, result.M);
   }
 
@@ -954,6 +955,28 @@ function drawPartB(){
 
   // Ruler overlay
   if(rulerVisible) drawRuler();
+}
+
+/* ===== REAL IMAGE ON THE SCREEN (true scale: h' = |M|·h, inverted) ===== */
+function drawImageOnScreen(screenX, idealScreenCm, M){
+  const h = OBJ_H_PX_F();
+  const imgH = Math.min(Math.abs(M) * h, 260);
+  const err = Math.abs(screenCm - idealScreenCm);
+  const sharp = Math.exp(-0.5 * Math.pow(err/1.5, 2));
+  const x = screenX + 5;                 // ผิวจอด้านที่รับแสง (ด้านขวาของแผ่นจอ)
+  const spread = (1 - sharp) * 10;
+  const drawArrow = (dx, dy, alpha, w) => {
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#f472b6'; ctx.fillStyle = '#f472b6'; ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(x+dx, AY+dy); ctx.lineTo(x+dx, AY+imgH+dy); ctx.stroke();      // กลับหัว: ห้อยลงจากแกน
+    ctx.beginPath(); ctx.moveTo(x+dx, AY+imgH+dy+4); ctx.lineTo(x+dx-5, AY+imgH+dy-8); ctx.lineTo(x+dx+5, AY+imgH+dy-8); ctx.closePath(); ctx.fill();
+  };
+  if(spread > 0.5){ [[-spread,0],[spread,0],[0,-spread*0.5],[0,spread*0.5]].forEach(([dx,dy]) => drawArrow(dx, dy, 0.10 + 0.15*sharp, 3 + spread)); }
+  drawArrow(0, 0, 0.25 + 0.75*sharp, 2.5);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(244,114,182,' + (0.4 + 0.6*sharp) + ')';
+  ctx.font = 'bold 9px Sarabun,sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(sharp > 0.85 ? "ภาพจริง h' = " + (Math.abs(M)*objHeightCm).toFixed(2) + ' cm' : 'ภาพบนจอ', x + 8, AY + imgH + 14);
 }
 
 /* ===== EYE ===== */
@@ -1027,12 +1050,18 @@ function drawEyeInset(d_o, d_i, M, sharpness){
   ctx.textAlign = 'center';
   ctx.fillText('👁 มุมมองของตา', bx + bw/2, by + 16);
 
-  const cx = bx + bw/2;
-  const baseY = by + bh - 25;
-  const refH = 35;
-  const imgH = Math.min(Math.abs(M) * refH, bh - 50);
+  const cx = bx + bw/2 + 18;
+  const baseY = by + bh - 42;
+  const refH = Math.min(35, (bh - 98) / Math.max(1, Math.abs(M)));   // กันลูกศรชนป้ายด้านบน
+  const imgH = Math.abs(M) * refH;
   const color = '#a78bfa';
   const s = sharpness || 0;
+  // reference object (faint) — ภาพเสมือนหัวตั้ง ขยาย |M| เท่า
+  ctx.globalAlpha = 0.45; ctx.strokeStyle = '#fb923c'; ctx.fillStyle = '#fb923c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-36, baseY); ctx.lineTo(cx-36, baseY-refH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-36, baseY-refH-5); ctx.lineTo(cx-40, baseY-refH+3); ctx.lineTo(cx-32, baseY-refH+3); ctx.closePath(); ctx.fill();
+  ctx.font = '8px Sarabun,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('วัตถุ', cx-36, baseY+11);
+  ctx.globalAlpha = 1;
 
   // Blur effect when eye is not in optimal position
   const spread = (1 - s) * 5;
@@ -1076,7 +1105,7 @@ function drawEyeInset(d_o, d_i, M, sharpness){
   ctx.font = '8px Sarabun,sans-serif';
   ctx.fillText('ภาพเสมือน (หัวตั้ง ขยาย)', bx+bw/2, by+bh-20);
   ctx.font = '9px "Share Tech Mono",monospace';
-  ctx.fillText('M = '+Math.abs(M).toFixed(1)+'x', bx+bw/2, by+bh-8);
+  ctx.fillText('M = '+Math.abs(M).toFixed(2)+'×', bx+bw/2, by+bh-8);
 }
 
 /* ===== PHYSICAL OBJECT (thin card with arrow tip) ===== */
@@ -1154,12 +1183,20 @@ function drawScreenInset(d_o, d_i, M){
   const error = Math.abs(screenCm - idealScreenCm);
   const sharpness = Math.exp(-0.5 * Math.pow(error/1.5, 2));
 
-  // Image in inset
-  const cx = bx + bw/2;
-  const baseY = by + bh - 25;
-  const refH = 45; // reference height in inset
-  const imgH = Math.min(Math.abs(M) * refH, bh - 55);
+  // Image in inset — สเกลเดียวกับวัตถุอ้างอิง: วัตถุสูง refH, ภาพสูง |M|·refH
+  const cx = bx + bw/2 + 18;
+  const baseY = by + bh/2 + 12;
+  const refH = Math.min(38, (bh - 70) / Math.max(1, Math.abs(M)));
+  const imgH = Math.abs(M) * refH;
   const inverted = M > 0;   // Thai convention: M = d_i/d_o > 0 → ภาพจริง → กลับหัว
+  // reference object (faint, upright) for size comparison
+  ctx.globalAlpha = 0.45; ctx.strokeStyle = '#fb923c'; ctx.fillStyle = '#fb923c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-36, baseY); ctx.lineTo(cx-36, baseY-refH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-36, baseY-refH-5); ctx.lineTo(cx-40, baseY-refH+3); ctx.lineTo(cx-32, baseY-refH+3); ctx.closePath(); ctx.fill();
+  ctx.font = '8px Sarabun,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('วัตถุ', cx-36, baseY+11);
+  ctx.globalAlpha = 1;
+  // axis line
+  ctx.strokeStyle = 'rgba(148,163,184,0.35)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(bx+8, baseY); ctx.lineTo(bx+bw-8, baseY); ctx.stroke(); ctx.setLineDash([]);
 
   // Blur effect: draw multiple offset copies
   const spread = (1 - sharpness) * 6;
@@ -1177,6 +1214,10 @@ function drawScreenInset(d_o, d_i, M){
                 sharpness > 0.3 ? 'rgba(244,114,182,0.6)' : 'rgba(180,140,160,0.5)';
   drawInsetArrow(cx, baseY, imgH, inverted, color);
   ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(244,114,182,0.8)'; ctx.font = '8px Sarabun,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('ภาพ', cx, inverted ? baseY - 6 : baseY + 11);
+  ctx.fillStyle = 'rgba(148,163,184,0.7)'; ctx.font = '9px "Share Tech Mono",monospace';
+  ctx.fillText('M = ' + Math.abs(M).toFixed(2) + '×', bx + bw/2, by + bh - 30);
 
   // Sharpness label
   let label, lcolor;
