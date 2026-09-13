@@ -1226,3 +1226,24 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - ทดสอบด้วย computer left_click_drag ต้องคำนวณพิกัดจาก state ปัจจุบัน (หลัง orbit ตำแหน่งบนจอเปลี่ยน) — ครั้งแรกที่คิดว่า pick พลาดคือพิกัดผิดเอง ไม่ใช่บั๊ก
+
+## [2026-09-13 10:30] — เครื่อง: (ไม่ระบุ) · เมนูทางลัดหน้าแรก + VPL03 เข้าถึงได้จากเว็บ
+
+### ทำอะไรไปบ้าง
+- **index.html**: เพิ่ม "🚀 ไปที่ต้องการทันที" (quick menu) ไว้บนสุดใต้ topbar ก่อน hero — 5 ปุ่ม: Demo / VPL01 / VPL02 / VPL03 (NEW) / Library → เห็นทันทีไม่ต้องเลื่อน (ผู้ใช้บอกว่าใช้งานจริงต้องเลื่อนหา lab ยุ่งยาก) · responsive 2 คอลัมน์บนมือถือ
+- index.html: เพิ่ม tab "📐 VPL 03 · ปฏิบัติการ ม. (3D)" ใน section Virtual Lab + การ์ด Lab 1 (preview canvas `vpl3-caliper` วาดคาลิปเปอร์เลื่อนปาก) + รายการใน Collections accordion · `openVPL3()` สลับ tab + scroll · รองรับ `#vpl3-panel` ใน URL
+- **library.html**: เพิ่มหมวด Virtual Physics Lab 03 (`data-cat="vlab3"`) + รายการ Lab 1
+- แก้บั๊กเก่า library.html: `\!==` (escaped) ใน script ดาวน์โหลด → SyntaxError ทั้ง script (มีมาก่อน session นี้) แก้เป็น `!==` แล้ว node --check ผ่านทุก script
+- Lab 1 VPL03 ก่อนหน้านี้ (2026-09-05): v1.2–v1.6 — ลากในภาพ 3D, โมเดลคาลิปเปอร์ใหม่ + วัดความลึก, ไมโครฯ วัดความหนา, เลือกความละเอียด 0.05/0.02/0.1, โมเดลของแข็ง (วัตถุนิ่ง ลากเครื่องมือ ชนไม่ทะลุ), front view + จับง่าย + ป้ายเวอร์ชัน (บันทึกใน commit log)
+
+### ไฟล์ที่แก้
+- `index.html` — quick menu CSS/HTML, VPL03 tab+panel+card, accordion item, `openVPL3()`, preview sim `vpl3-caliper`
+- `library.html` — หมวด VPL03 + แก้ `\!==`
+- `SESSION_LOG.md`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ⚠️ การ์ด VPL03 ยังแสดง "สมาชิกเท่านั้น" สำหรับผู้ไม่ login ถ้า Firestore `settings/public.anonymous_access` ยังไม่มี `vlab:vpl03:*` → admin ต้องเพิ่มใน admin panel
+- ยังไม่มีหน้า catalog `virtual-physics-lab-03.html` (ตอนนี้ปุ่ม VPL03 ในเมนูพาไป tab ในหน้าแรก)
+
+### หมายเหตุ
+- quick menu ใช้ `color-mix()` — Safari ≥16.2 / Chrome ≥111 รองรับ
