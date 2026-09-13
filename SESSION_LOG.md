@@ -1272,3 +1272,19 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - ถ้าจะทำ "ระดับ 2" (สิทธิ์แบบ topic:*) หรือ "ระดับ 3" (ย้ายไฟล์ตามหัวข้อ) ในอนาคต — labs_data.py คือจุดเริ่มต้น (มี topic ของทุก lab แล้ว)
+
+## [2026-09-13 13:10] — เครื่อง: (ไม่ระบุ) · admin panel แสดง lab ตามบทเรียน (แสดงผลเท่านั้น)
+
+### ทำอะไรไปบ้าง
+- `_admin/admin.html`: modal แก้สิทธิ์ (vlab + manual) ส่วน "▾ เลือกเฉพาะ lab" เดิมเป็น checkbox `L1 L2 …` → ใหม่ `renderLabsByTopic()` จัดกลุ่มตามบทเรียน สสวท. แสดง เลข + ชื่อไทย + ระดับ (tooltip = access string) · ค่า `data-access` ยังเป็น `vlab:vplXX:lab-N` เดิม → สิทธิ์สมาชิกเก่าไม่กระทบ, `onAccessChange()`/bundle logic ไม่แตะ
+- `_admin/build_virtual_lab.py`: เพิ่ม `build_admin_meta()` ฝัง `LAB_META` (46) + `TOPIC_META` (11) ระหว่าง marker `/* ── LAB_META … ── */` ใน admin.html (regenerate ได้ซ้ำ)
+- ตรวจ: node --check ทุก script ใน admin.html ผ่าน · ทุก lab ใน VLAB_SERIES (vpl01/02/03) มี meta ครบ · จำลอง render vpl01 → 7 กลุ่ม / 26 checkbox / ชื่อไทยขึ้นถูก
+- **ยังไม่ได้ทดสอบเปิด admin panel จริง** (ต้อง login admin) → ผู้ใช้ควรเปิดดู modal สิทธิ์ 1 ครั้ง
+
+### ไฟล์ที่แก้
+- `_admin/admin.html` — LAB_META/TOPIC_META (generated) + `renderLabsByTopic()`
+- `_admin/build_virtual_lab.py`, `CLAUDE.md`, `SESSION_LOG.md`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- เพิ่ม `vlab:vpl03:*` ใน anonymous_access (admin panel) — ยังค้าง
+- (ทางเลือกอนาคต) ระดับ 2: สิทธิ์แบบ `topic:*` ถ้าจะขายแพ็กเกจตามบทเรียน
