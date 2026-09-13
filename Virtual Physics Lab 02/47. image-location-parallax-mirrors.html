@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 47 — หาตำแหน่งภาพด้วยวิธีพาราแลกซ์ (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#f472b6;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#38bdf8;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#3a1a2e;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* sim layout */
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:400px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab}
+.view3d .hud{position:absolute;left:10px;top:10px;background:rgba(10,14,26,.82);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.74rem;color:var(--muted);pointer-events:none;line-height:1.5;max-width:60%}
+.view3d .hud b{color:var(--accent)}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px}
+.view3d .viewbtns button,.btn-mini{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover,.btn-mini:hover{border-color:var(--accent);color:var(--accent)}
+.inset{position:absolute;right:10px;top:10px;width:150px;height:170px;background:rgba(10,14,26,.92);border:1px solid rgba(244,114,182,.35);border-radius:8px}
+.inset canvas{width:100%;height:100%;display:block}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
+.diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.diag-wrap .diag-head b{color:var(--accent5)}
+#diagCanvas{width:100%;height:280px;background:#0c1424;border-radius:8px;display:block;touch-action:none;cursor:ew-resize}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px}
+.mode-btns button{flex:1;padding:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+#typeBtns button.active{background:var(--accent5);border-color:var(--accent5)}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--err);color:#fecaca;background:rgba(248,113,113,.08)}
+.hint-box.virt{border-color:var(--accent2);color:#c7d2fe;background:rgba(129,140,248,.08)}
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
+.sl-unit{font-size:.72rem;color:var(--muted);min-width:20px}
+.val-input{width:60px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.val-input:focus{outline:none;border-color:var(--accent);color:var(--text)}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.98rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline.active{border-color:var(--warn);color:var(--warn)}
+.btn-sm{padding:5px 10px;font-size:.76rem}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th,td{padding:4px 5px;border-bottom:1px solid var(--border);text-align:center}
+th{color:var(--accent);background:var(--panel);font-weight:700}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+td input{width:58px;padding:2px 4px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:center;font-family:'Share Tech Mono',monospace}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:6px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:210px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+
+/* content tabs */
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.95rem}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:760px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+.example-table th{background:var(--panel2)}
+.example-table td{color:var(--text)}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem}
+.sign-card{padding:10px;border-radius:7px;border:1px solid var(--border);background:var(--panel2)}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:360px}.sign-grid{grid-template-columns:1fr}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:'Sarabun',sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl02:lab-47">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🪞</div>
+  <div>
+    <h1>Lab 47 — หาตำแหน่งภาพด้วยวิธีพาราแลกซ์ (3D)</h1>
+    <p>Locating Images by the No-Parallax Method — กระจกราบ · กระจกเว้า · กระจกนูน · กระจก 3 มิติสะท้อนแสงจริง (ray tracing) · ส่ายสายตาตรวจพาราแลกซ์</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="hud" id="hud"><b>👁 มุมจากตา</b> — ลากซ้าย-ขวาในภาพ หรือกด ↔ ส่ายสายตา</div>
+        <div class="viewbtns">
+          <button onclick="setView('eye')">👁 มุมจากตา</button>
+          <button onclick="setView('iso')">มุมเฉียง</button>
+          <button onclick="setView('side')">มุมข้าง</button>
+          <button id="btnSway3d" onclick="toggleSway()">↔ ส่ายสายตา</button>
+        </div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต<br>ยังใช้แผนภาพด้านล่างได้ แต่การตรวจพาราแลกซ์ต้องใช้ภาพ 3D</div>
+      </div>
+      <div class="diag-wrap">
+        <div class="diag-head">📐 <b>แผนภาพม้านั่งเชิงแสง (มองด้านข้าง · ตามสเกล)</b> — ลากเข็ม O / S ได้
+          <span id="diagNote" style="margin-left:auto;color:var(--muted)">โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์</span></div>
+        <canvas id="diagCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">🪞 ชนิดกระจก</div>
+        <div class="mode-btns" id="typeBtns">
+          <button class="active" onclick="setType('plane')">กระจกราบ</button>
+          <button onclick="setType('concave')">กระจกเว้า</button>
+          <button onclick="setType('convex')">กระจกนูน</button>
+        </div>
+      </div>
+
+      <div class="panel-section" id="posSection">
+        <div class="panel-title">📍 ตำแหน่งบนม้านั่ง (cm)</div>
+        <div class="sl-row"><span class="sl-label" style="color:#fb923c;min-width:62px">เข็มวัตถุ O</span><input class="sl-range" type="range" id="sl-o" min="2" max="53" step="0.1" value="35"><input class="val-input" type="number" id="vi-o" min="2" max="53" step="0.1" value="35"></div>
+        <div class="sl-row"><span class="sl-label" style="color:#34d399;min-width:62px">เข็มค้นหา S</span><input class="sl-range" type="range" id="sl-s" min="2" max="100" step="0.1" value="80"><input class="val-input" type="number" id="vi-s" min="2" max="100" step="0.1" value="80"></div>
+        <div style="font-size:.72rem;color:var(--muted);line-height:1.5">กระจกอยู่ที่ <b class="mono" style="color:var(--accent5)">55.0 cm</b> หันหน้าไปทางซ้าย · หน้ากระจก = ด้านเข็ม O · หลังกระจก = ขวา<br>S หลังกระจกเป็นเข็มยาวโผล่เหนือขอบกระจก · S หน้ากระจกปลายอยู่ระดับแกน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">👁 สายตาผู้สังเกต</div>
+        <div class="sl-row"><span class="sl-label" style="min-width:62px">เยื้องข้าง</span><input class="sl-range" type="range" id="sl-lat" min="-5" max="5" step="0.1" value="2"><input class="val-input" type="number" id="vi-lat" min="-5" max="5" step="0.1" value="2"><span class="sl-unit">cm</span></div>
+        <div class="sl-row"><span class="sl-label" style="min-width:62px">ห่างกระจก</span><input class="sl-range" type="range" id="sl-eyed" min="25" max="120" step="1" value="70"><input class="val-input" type="number" id="vi-eyed" min="25" max="120" step="1" value="70"><span class="sl-unit">cm</span></div>
+        <label style="font-size:.74rem;color:var(--muted);display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="checkbox" id="cbAutoEye" checked> ปรับระยะตาอัตโนมัติ (อยู่ไกลกว่าเข็มทุกตัว)</label>
+        <button class="btn btn-outline btn-sm" id="btnSway" style="width:100%" onclick="toggleSway()">↔ ส่ายสายตาซ้าย-ขวา (ตรวจพาราแลกซ์)</button>
+      </div>
+
+      <div id="manualCtrl" class="panel-section">
+        <div class="panel-title">🖐 คำแนะนำ</div>
+        <div class="hint-box info" id="manualHint"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-green btn-sm" style="flex:1" onclick="recordRow()">📝 บันทึกตำแหน่ง</button>
+          <button class="btn btn-outline btn-sm" id="btnRandomF" onclick="randomizeF()">🎲 สุ่มกระจกใหม่</button>
+        </div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ตัวแปรควบคุม</div>
+        <div class="sl-row" id="rowAutoF"><span class="sl-label" style="color:var(--accent5)">|f|</span><span class="sl-label">ทางยาวโฟกัส</span><input class="sl-range" type="range" id="sl-f" min="6" max="25" step="0.5" value="12"><input class="val-input" type="number" id="vi-f" min="6" max="25" step="0.5" value="12"><span class="sl-unit">cm</span></div>
+        <div class="sl-row"><span class="sl-label" style="color:#fb923c">u</span><span class="sl-label">ระยะวัตถุ</span><input class="sl-range" type="range" id="sl-u" min="3" max="50" step="0.5" value="20"><input class="val-input" type="number" id="vi-u" min="3" max="50" step="0.5" value="20"><span class="sl-unit">cm</span></div>
+        <label style="font-size:.74rem;color:var(--muted);display:flex;gap:6px;align-items:center"><input type="checkbox" id="cbOffset"> เลื่อน S ออกจากตำแหน่งภาพ 4 cm (ดูว่ามีพาราแลกซ์)</label>
+        <div class="readout-grid" style="margin-top:8px">
+          <div class="readout-box"><div class="label">u (cm)</div><div class="value" id="rd-u">—</div></div>
+          <div class="readout-box"><div class="label">v (cm)</div><div class="value" id="rd-v">—</div></div>
+          <div class="readout-box"><div class="label">f (cm)</div><div class="value" id="rd-f">—</div></div>
+          <div class="readout-box"><div class="label">|M|</div><div class="value" id="rd-m">—</div></div>
+          <div class="readout-box" style="grid-column:1/-1"><div class="label">ชนิดภาพ</div><div class="value" id="rd-type" style="font-size:.82rem">—</div></div>
+        </div>
+        <button class="btn btn-green btn-sm" style="width:100%;margin-top:8px" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-wrap" id="tableWrap"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="clearTable()">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section" id="graphSection">
+        <div class="panel-title">📈 กราฟ 1/u กับ 1/v (กระจกโค้ง)</div>
+        <canvas id="graphCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <ul>
+      <li>หาตำแหน่งภาพที่เกิดจาก<strong>กระจกราบ กระจกเว้า และกระจกนูน</strong> ด้วยวิธีไม่มีพาราแลกซ์ (no-parallax method)</li>
+      <li>ตรวจสอบว่าภาพในกระจกราบอยู่หลังกระจกเท่ากับระยะวัตถุ (|v| = u)</li>
+      <li>หาความยาวโฟกัสของกระจกเว้าและกระจกนูนจากสมการกระจก 1/f = 1/u + 1/v</li>
+    </ul>
+
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>กระจกราบ กระจกเว้า กระจกนูน เส้นผ่านศูนย์กลาง 7 cm พร้อมที่ยึด (ขั้วกระจกสูง 12 cm จากม้านั่ง)</li>
+      <li>ม้านั่งเชิงแสงยาว 100 cm มีสเกล · กระจกตั้งที่ตำแหน่ง 55.0 cm</li>
+      <li>เข็มวัตถุ O (หัวสีส้ม) ปลายอยู่ระดับแกนกระจก</li>
+      <li>เข็มค้นหา S (หัวสีเขียว) — วางหลังกระจกใช้แบบยาวให้โผล่เหนือขอบกระจก · วางหน้ากระจกใช้แบบสั้นปลายอยู่ระดับแกน</li>
+    </ul>
+
+    <h2>การใช้งาน Simulation</h2>
+    <ul>
+      <li><b>ภาพ 3D มุมจากตา (ค่าเริ่มต้น):</b> กล้องคือดวงตาผู้สังเกต · <b>ลากซ้าย-ขวาในภาพ</b> = ขยับศีรษะไปด้านข้าง · ปุ่ม <b>↔ ส่ายสายตา</b> ขยับให้อัตโนมัติ</li>
+      <li><b>มุมเฉียง / มุมข้าง:</b> ดูการจัดอุปกรณ์ทั้งหมด หมุนมุมมองได้ · ลากเข็มในภาพเพื่อเลื่อนตามม้านั่ง</li>
+      <li><b>กระจกทุกแบบสะท้อนแสงจริงด้วยการคำนวณรังสี</b> (ray tracing บนผิวโค้งทรงกลม) — ภาพในกระจกจึงอยู่ที่ตำแหน่งจริงตามฟิสิกส์ และมีพาราแลกซ์เมื่อสายตาขยับ</li>
+      <li><b>สไลเดอร์ตำแหน่ง</b> ในแผงขวา = อ่านค่าจากสเกลม้านั่ง (ละเอียด 0.1 cm) · ลากเข็มในแผนภาพด้านล่างได้เช่นกัน</li>
+      <li><b>โหมดวัดเอง</b> สุ่มความยาวโฟกัสและไม่แสดงตำแหน่งภาพ · <b>โหมดอัตโนมัติ</b> แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพให้ดู</li>
+    </ul>
+
+    <h2>หลักการ: วิธีไม่มีพาราแลกซ์</h2>
+    <p>ถ้าวัตถุสองชิ้นอยู่ห่างจากตาไม่เท่ากัน เมื่อขยับศีรษะไปด้านข้าง จะเห็นวัตถุทั้งสองเคลื่อนที่สัมพัทธ์กัน เรียกว่า <strong>พาราแลกซ์</strong> · วัตถุที่อยู่<strong>ไกลกว่าจะดูเหมือนเคลื่อนไปทางเดียวกับศีรษะ</strong> · ถ้าทั้งสองอยู่ตำแหน่งเดียวกัน จะเคลื่อนไปพร้อมกันเสมอ = <strong>ไม่มีพาราแลกซ์</strong></p>
+    <p>เราจึงเลื่อนเข็มค้นหา S จนภาพของเข็ม O ในกระจกกับเข็ม S ไม่มีพาราแลกซ์ ตำแหน่งของ S คือตำแหน่งของภาพ</p>
+
+    <h2>วิธีการทดลอง — ภาพเสมือน (กระจกราบ · กระจกนูน · กระจกเว้าเมื่อ u &lt; f)</h2>
+    <ol>
+      <li>วางเข็ม O หน้ากระจก บันทึกระยะวัตถุ u = ตำแหน่งกระจก − ตำแหน่ง O</li>
+      <li>มองภาพของ O ในกระจก ภาพเป็นหัวตั้ง</li>
+      <li>วางเข็มยาว S <strong>หลังกระจก</strong> ให้ส่วนบนโผล่เหนือขอบกระจก</li>
+      <li>ส่ายสายตาซ้าย-ขวา เปรียบเทียบภาพของ O (ในกระจก) กับส่วนของ S (เหนือกระจก) · ถ้า S เคลื่อนไปทางเดียวกับศีรษะ แปลว่า S อยู่ไกลกว่าภาพ ให้เลื่อน S เข้าหากระจก</li>
+      <li>เมื่อไม่มีพาราแลกซ์ กด <b>📝 บันทึกตำแหน่ง</b> · ระยะภาพ v = ตำแหน่งกระจก − ตำแหน่ง S (ติดลบเพราะอยู่หลังกระจก)</li>
+    </ol>
+
+    <h2>วิธีการทดลอง — ภาพจริง (กระจกเว้าเมื่อ u &gt; f) · วิธีปลายชนปลาย</h2>
+    <ol>
+      <li>วางเข็ม O หน้ากระจกให้ไกลกว่าจุดโฟกัส · มองในกระจกจากระยะไกล จะเห็นภาพของ O <strong>กลับหัว</strong> ห้อยลงมา ปลายอยู่ระดับแกน</li>
+      <li>วางเข็ม S <strong>หน้ากระจก</strong> (ปลายอยู่ระดับแกน) ให้ปลาย S แตะปลายภาพกลับหัว</li>
+      <li>ส่ายสายตาซ้าย-ขวา · เลื่อน S ตามแนวแกนจนปลายทั้งสองติดกันตลอดเวลา = ไม่มีพาราแลกซ์</li>
+      <li>บันทึกตำแหน่ง · v เป็นบวกเพราะภาพจริงอยู่หน้ากระจก · ตาต้องอยู่ไกลกว่าภาพ (เปิดปรับระยะตาอัตโนมัติไว้)</li>
+    </ol>
+    <div class="note-box">💡 ทำซ้ำกับกระจกเว้าอย่างน้อย 4 ระยะวัตถุ (ทั้ง u &gt; f และ u &lt; f) และกระจกนูน 4 ระยะ · กระจกราบ 3 ระยะ · กดสุ่มกระจกใหม่เพื่อเปลี่ยน f</div>
+
+    <h2>วิธีบันทึกผล</h2>
+    <div class="formula-box">กระจกราบ   u | v | |v| − u | %error ของ |v| เทียบ u
+กระจกโค้ง   u | v | f = uv/(u+v) | f จริง (เฉลยหลังบันทึก) | %error
+กราฟ       1/v (แกนตั้ง) กับ 1/u (แกนนอน) → เส้นตรงความชัน −1 ตัดแกนที่ 1/f</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>ในกระจกราบ ระยะภาพกับระยะวัตถุสัมพันธ์กันอย่างไร ผลการทดลองสอดคล้องหรือไม่?</li>
+      <li>ทำไมภาพเสมือนต้องใช้เข็ม S ที่โผล่เหนือกระจก แต่ภาพจริงของกระจกเว้าใช้วิธีปลายชนปลายหน้ากระจก?</li>
+      <li>ถ้าส่ายศีรษะไปทางขวาแล้วเห็นเข็ม S เคลื่อนไปทางขวาเทียบกับภาพ ต้องเลื่อน S ไปทางใด เพราะอะไร?</li>
+      <li>ค่า f ของกระจกนูนที่คำนวณได้มีเครื่องหมายอะไร และหมายความว่าอย่างไร?</li>
+      <li>สาเหตุความคลาดเคลื่อนของวิธีพาราแลกซ์มีอะไรบ้าง?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. พาราแลกซ์ (Parallax)</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="250"></canvas></div>
+    <p>เมื่อตาเคลื่อนจากตำแหน่ง 1 ไปตำแหน่ง 2 เข็ม A (ใกล้) กับเข็ม B (ไกล) ที่เคยเห็นซ้อนกันจะแยกออก เข็มที่ไกลกว่าดูเหมือนเคลื่อนไปทางเดียวกับตา · ถ้าเข็มทั้งสองอยู่ที่ระยะเดียวกัน จะเห็นซ้อนกันทุกมุมมอง = ไม่มีพาราแลกซ์</p>
+
+    <h2>2. ภาพจากกระจกราบ</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="250"></canvas></div>
+    <p>รังสีจากวัตถุสะท้อนจากกระจกตามกฎการสะท้อน แนวต่อของรังสีสะท้อนตัดกันหลังกระจกที่ระยะเท่ากับระยะวัตถุ ภาพเป็นภาพเสมือน หัวตั้ง ขนาดเท่าวัตถุ</p>
+    <div class="formula-box">|v| = u   (ภาพเสมือน v = −u)</div>
+
+    <h2>3. ภาพจากกระจกเว้าและกระจกนูน</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas2" height="480"></canvas></div>
+    <div class="formula-box">1/f = 1/u + 1/v          M = v/u          f = R/2</div>
+    <table class="example-table">
+      <thead><tr><th>กระจก</th><th>ระยะวัตถุ</th><th>ภาพ</th><th>เครื่องหมาย v</th><th>วิธีหาภาพ</th></tr></thead>
+      <tbody>
+        <tr><td>ราบ</td><td>ทุกระยะ</td><td>เสมือน หัวตั้ง เท่าวัตถุ</td><td>− (|v| = u)</td><td>S หลังกระจก</td></tr>
+        <tr><td>เว้า (f +)</td><td>u &gt; f</td><td>จริง กลับหัว</td><td>+</td><td>ปลายชนปลาย หน้ากระจก</td></tr>
+        <tr><td>เว้า (f +)</td><td>u &lt; f</td><td>เสมือน หัวตั้ง ขยาย</td><td>−</td><td>S หลังกระจก</td></tr>
+        <tr><td>นูน (f −)</td><td>ทุกระยะ</td><td>เสมือน หัวตั้ง ย่อ</td><td>−</td><td>S หลังกระจก</td></tr>
+      </tbody>
+    </table>
+    <h3>กฎเครื่องหมาย (สัญนิยมแบบไทย)</h3>
+    <ul>
+      <li>u เป็นบวกเสมอ (วัตถุอยู่หน้ากระจก)</li>
+      <li>v เป็นบวกเมื่อภาพจริงอยู่หน้ากระจก · เป็นลบเมื่อภาพเสมือนอยู่หลังกระจก</li>
+      <li>f ของกระจกเว้าเป็นบวก · กระจกนูนเป็นลบ · กระจกราบ f → ∞</li>
+    </ul>
+    <div class="note-box">🔍 กระจกในการทดลองนี้เป็นผิวทรงกลมจริง รังสีที่ห่างแกนมากจะโฟกัสคลาดเล็กน้อย (ความคลาดทรงกลม) ผลที่วัดได้จึงอาจต่างจากสมการกระจกเล็กน้อยเหมือนการทดลองจริง</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนฟิสิกส์ ม.5 (สสวท.) บทแสงเชิงเรขาคณิต — การหาตำแหน่งภาพโดยวิธีพาราแลกซ์ · สัญนิยมเครื่องหมายแบบไทย (M = v/u, ภาพจริง +)<br>
+  Lab 47 — Locating Images by the No-Parallax Method (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 47 หาตำแหน่งภาพด้วยวิธีพาราแลกซ์ (3D)
+   พิกัดโลก: x = ตำแหน่งบนม้านั่ง (cm) · y ขึ้น (ผิวม้านั่ง y = 0) · z ด้านข้าง
+   กระจกขั้วอยู่ที่ (MIR, HC, 0) หันหน้าไปทาง −x · หน้ากระจก x < MIR · หลังกระจก x > MIR
+   สัญนิยมไทย: u > 0 · v > 0 ภาพจริง (หน้ากระจก) · v < 0 ภาพเสมือน (หลังกระจก) · f เว้า + นูน − · M = v/u
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL02 Lab 47 — build v1.0 3D (2569-09-14)');
+const $ = id => document.getElementById(id);
+const MIR=55, HC=12, AP=3.5, PIN_R=0.1, HEAD_R=0.24, S_TALL=HC+AP+6;
+let mode='manual', mtype='plane';
+let fTrue={concave:12, convex:-12};
+let oCm=35, sCm=80, eyeLat=2.0, eyeD=70, autoEye=true, sway=false, swayT=0, curView='eye';
+let rows=[], eyeFov=14;
+const fmt=(v,d)=>(v===undefined||v===null||isNaN(v))?'—':(isFinite(v)?v.toFixed(d===undefined?1:d):'∞');
+const TNAME={plane:'กระจกราบ',concave:'กระจกเว้า',convex:'กระจกนูน'};
+
+/* ── physics ── */
+function curF(){ if(mtype==='plane') return Infinity; if(mode==='auto'){ const a=parseFloat($('sl-f').value)||12; return mtype==='concave'?a:-a; } return fTrue[mtype]; }
+function imageOf(u){ const f=curF(); if(!isFinite(f)) return {v:-u,M:-1,type:'virtual'}; if(Math.abs(u-f)<0.05) return {v:Infinity,M:Infinity,type:'none'}; const v=u*f/(u-f); return {v,M:v/u,type:v>0?'real':'virtual'}; }
+function uNow(){ return MIR-oCm; }
+function sTip(){ return sCm>MIR ? S_TALL : HC; }
+function autoLayout(){ if(mode!=='auto') return; const u=parseFloat($('sl-u').value)||20; oCm=MIR-u; const im=imageOf(u); let s=isFinite(im.v)?MIR-im.v:NaN; if($('cbOffset').checked&&isFinite(s)) s+= (im.v>0?-4:4); sCm=(isFinite(s)&&s>=0&&s<=100)?s:NaN; }
+function clampS(v){ v=Math.max(2,Math.min(100,v)); if(v>MIR-1.5&&v<MIR+1.5) v = v<MIR ? MIR-1.5 : MIR+1.5; return v; }
+function eyeDist(){ if(!autoEye) return eyeD; const u=uNow(); const sf=(isFinite(sCm)&&sCm<MIR)?MIR-sCm:0; return Math.max(40,Math.min(120,Math.max(u,sf)+30)); }
+
+/* ── UI ── */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual'))); $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); $('posSection').classList.toggle('hidden',m==='auto'); $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพ' : 'โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์'; if(m==='manual'&&!isFinite(sCm)) sCm=80; applyTypeUI(); drawAll(); }
+function setType(t){ mtype=t; document.querySelectorAll('#typeBtns button').forEach((b,i)=>b.classList.toggle('active',['plane','concave','convex'][i]===t)); if(mode==='manual'){ oCm=t==='concave'?25:35; sCm=t==='concave'?30:80; } applyTypeUI(); buildMirror(); drawAll(); }
+function applyTypeUI(){ $('rowAutoF').classList.toggle('hidden',mtype==='plane'); $('btnRandomF').classList.toggle('hidden',mtype==='plane'); $('graphSection').classList.toggle('hidden',mtype==='plane'); autoLayout(); syncPosUI(); renderTable(); drawGraph(); }
+function randomizeF(){ const a=Math.round((9+Math.random()*7)*2)/2; fTrue.concave=a; fTrue.convex=-(Math.round((9+Math.random()*7)*2)/2); buildMirror(); drawAll(); renderTable(); }
+function toggleSway(){ sway=!sway; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.toggle('active',sway)); if(sway&&curView!=='eye') setView('eye'); }
+function syncPosUI(){ $('sl-o').value=oCm; $('vi-o').value=oCm.toFixed(1); if(isFinite(sCm)){ $('sl-s').value=sCm; $('vi-s').value=sCm.toFixed(1); } $('sl-lat').value=eyeLat; $('vi-lat').value=eyeLat.toFixed(1); const d=eyeDist(); $('sl-eyed').value=d; $('vi-eyed').value=Math.round(d); }
+function updateHint(){
+  if(mode!=='manual'){ const u=uNow(), im=imageOf(u); $('rd-u').textContent=fmt(u,1); $('rd-v').textContent=fmt(im.v,2); $('rd-f').textContent=isFinite(curF())?fmt(curF(),1):'∞'; $('rd-m').textContent=isFinite(im.M)?Math.abs(im.M).toFixed(2):'∞'; $('rd-type').textContent= im.type==='real'?'ภาพจริง · กลับหัว · หน้ากระจก': im.type==='virtual'?'ภาพเสมือน · หัวตั้ง · หลังกระจก':'ไม่เกิดภาพ (u = f)'; $('hud').innerHTML = isFinite(sCm) ? '<b>'+TNAME[mtype]+'</b> — S วางที่ตำแหน่งภาพ'+($('cbOffset').checked?' <b style="color:#f87171">(เลื่อนออก 4 cm)</b>':'')+' · ส่ายสายตาดู' : '<b>'+TNAME[mtype]+'</b> — ภาพอยู่นอกม้านั่ง'; return; }
+  const behind=sCm>MIR;
+  $('manualHint').innerHTML = (behind
+    ? '<b>S อยู่หลังกระจก</b> (เข็มยาว) — ใน "มุมจากตา" เทียบภาพของ O ในกระจก กับส่วนของ S ที่โผล่<b>เหนือขอบกระจก</b>'
+    : '<b>S อยู่หน้ากระจก</b> (วิธีปลายชนปลาย) — ให้ปลายหัวเขียวของ S แตะปลายภาพของ O ในกระจก')
+    + '<br>↔ ส่ายสายตา: ถ้าสองสิ่งเคลื่อนสัมพัทธ์กัน = มีพาราแลกซ์ · <b>สิ่งที่อยู่ไกลกว่าเคลื่อนไปทางเดียวกับศีรษะ</b> · เลื่อน S จนเคลื่อนไปพร้อมกัน แล้วกดบันทึก';
+  $('hud').innerHTML = curView==='eye' ? '<b>👁 มุมจากตา</b> — ลากซ้าย-ขวาในภาพ หรือกด ↔ ส่ายสายตา' : '<b>'+TNAME[mtype]+'</b> — ลากเข็มในภาพเพื่อเลื่อน · กด 👁 มุมจากตาเพื่อสังเกต';
+}
+
+/* ── table ── */
+function recordRow(){
+  const u=uNow(); if(!isFinite(sCm)){ alert('ภาพอยู่นอกม้านั่ง — ปรับระยะวัตถุ'); return; }
+  const v=MIR-sCm, f=curF(); let fc, err;
+  if(mtype==='plane'){ fc=Infinity; err=Math.abs(Math.abs(v)-u)/u*100; }
+  else { fc = Math.abs(u+v)<1e-6?Infinity:u*v/(u+v); err=isFinite(fc)?Math.abs(fc-f)/Math.abs(f)*100:NaN; }
+  rows.push({type:mtype,mode,u,v,fc,ft:f,err}); renderTable(); drawGraph();
+}
+function clearTable(){ rows=rows.filter(r=>r.type!==mtype); renderTable(); drawGraph(); }
+function renderTable(){
+  const rs=rows.filter(r=>r.type===mtype); let h;
+  if(mtype==='plane'){ h='<table><thead><tr><th>#</th><th>u</th><th>v</th><th>|v|−u</th><th>%err</th></tr></thead><tbody>'+rs.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.u,1)}</td><td class="mono">${fmt(r.v,1)}</td><td class="mono">${fmt(Math.abs(r.v)-r.u,1)}</td><td class="mono" style="color:${r.err<5?'var(--accent3)':'var(--err)'}">${fmt(r.err,1)}%</td></tr>`).join(''); }
+  else { h='<table><thead><tr><th>#</th><th>u</th><th>v</th><th>ภาพ</th><th>f คำนวณ</th><th>f จริง</th><th>%err</th></tr></thead><tbody>'+rs.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.u,1)}</td><td class="mono">${fmt(r.v,1)}</td><td>${r.v>0?'จริง':'เสมือน'}</td><td class="mono">${fmt(r.fc,2)}</td><td class="mono">${fmt(r.ft,1)}</td><td class="mono" style="color:${r.err<5?'var(--accent3)':'var(--err)'}">${fmt(r.err,1)}%</td></tr>`).join(''); }
+  if(!rs.length) h+='<tr><td colspan="7" style="color:var(--muted)">ยังไม่มีข้อมูล — หาตำแหน่งภาพแล้วกด "บันทึก"</td></tr>';
+  $('tableWrap').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">u = 55.0 − ตำแหน่ง O · v = 55.0 − ตำแหน่ง S (หลังกระจกได้ค่าลบ)'+(mtype!=='plane'?' · f จริงเฉลยหลังบันทึก · กด 🎲 เปลี่ยนกระจก':'')+'</div>';
+}
+function exportCSV(){ const csv='﻿mirror,mode,u,v,f_calc,f_true,err%\n'+rows.map(r=>[TNAME[r.type],r.mode,r.u.toFixed(1),r.v.toFixed(1),isFinite(r.fc)?r.fc.toFixed(2):'inf',isFinite(r.ft)?r.ft:'inf',isFinite(r.err)?r.err.toFixed(1):''].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab47_parallax_mirrors.csv'; a.click(); }
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth||mtype==='plane') return; const W=c.clientWidth,H=c.clientHeight||210; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const rs=rows.filter(r=>r.type===mtype&&isFinite(r.v)&&Math.abs(r.v)>0.1); const ml=46,mr=10,mt=12,mb=30,gw=W-ml-mr,gh=H-mt-mb;
+  const xMax=0.4, yMin=-0.4, yMax=0.3; const X=v=>ml+v/xMax*gw, Y=v=>mt+(yMax-v)/(yMax-yMin)*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.strokeStyle='rgba(148,163,184,.4)'; g.beginPath(); g.moveTo(ml,Y(0)); g.lineTo(ml+gw,Y(0)); g.stroke();
+  g.fillStyle='#94a3b8'; g.font='9px "Share Tech Mono"'; g.textAlign='center'; for(let v=0;v<=xMax+1e-9;v+=0.1) g.fillText(v.toFixed(1),X(v),H-mb+12); g.textAlign='right'; for(let v=yMin;v<=yMax+1e-9;v+=0.1) g.fillText(v.toFixed(1),ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px Sarabun'; g.fillText('1/u (cm⁻¹)',ml+gw/2,H-2); g.save(); g.translate(10,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('1/v',0,0); g.restore();
+  const ft=rows.filter(r=>r.type===mtype).slice(-1)[0]; if(ft&&isFinite(ft.ft)){ const k=1/ft.ft; g.setLineDash([4,3]); g.strokeStyle='rgba(244,114,182,.7)'; g.beginPath(); g.moveTo(X(0),Y(k)); g.lineTo(X(xMax),Y(k-xMax)); g.stroke(); g.setLineDash([]); g.fillStyle='rgba(244,114,182,.9)'; g.textAlign='left'; g.fillText('1/f จริง = '+k.toFixed(3),X(0.01),Y(k)-4); }
+  rs.forEach(r=>{ const x=1/r.u,y=1/r.v; if(y<yMin||y>yMax) return; g.fillStyle=r.v>0?'#34d399':'#a78bfa'; g.beginPath(); g.arc(X(x),Y(y),4,0,Math.PI*2); g.fill(); });
+}
+
+/* ── 2D diagram (side view, true scale) ── */
+let DC,dctx,BL,BR,BW,BY,AY;
+const cm2px=cm=>BL+cm/100*BW, px2cm=px=>(px-BL)/BW*100, hpx=cm=>cm/100*BW;
+function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,H=DC.clientHeight||280; DC.width=W*devicePixelRatio; DC.height=H*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); BL=34; BR=W-18; BW=BR-BL; BY=H-30; AY=BY-hpx(HC); }
+function pin2D(x,tip,col,label,dashed){ const c=dctx, X=cm2px(x); c.strokeStyle=dashed?col:'#cbd5e1'; c.lineWidth=2; if(dashed) c.setLineDash([4,3]); c.beginPath(); c.moveTo(X,BY); c.lineTo(X,BY-hpx(tip)); c.stroke(); c.setLineDash([]); c.fillStyle=col; c.beginPath(); c.arc(X,BY-hpx(tip),4.5,0,Math.PI*2); c.fill(); if(!dashed){ c.fillStyle='#a16207'; c.fillRect(X-6,BY-5,12,5); } c.font='bold 10px Sarabun'; c.textAlign='center'; c.fillText(label,X,BY-hpx(tip)-9); }
+function mirror2D(){ const c=dctx, X=cm2px(MIR), h=hpx(AP), R=isFinite(curF())?Math.abs(2*curF()):Infinity; const sag = isFinite(R)? Math.max(3, hpx(R-Math.sqrt(Math.max(0,R*R-AP*AP)))*2.5) : 0; const sgn = mtype==='concave'?-1:1;
+  c.strokeStyle='#38bdf8'; c.lineWidth=3.5; c.beginPath(); if(mtype==='plane'){ c.moveTo(X,AY-h); c.lineTo(X,AY+h); } else { c.moveTo(X+sgn*sag,AY-h); c.quadraticCurveTo(X-sgn*sag,AY,X+sgn*sag,AY+h); } c.stroke();
+  c.strokeStyle='#1e3a5f'; c.lineWidth=1.5; for(let y=-h;y<=h;y+=6){ const xx = mtype==='plane'?X:X+sgn*sag*(Math.pow(y/h,2)*2-1)*0.5+sgn*sag*0.5; c.beginPath(); c.moveTo(xx+2,AY+y); c.lineTo(xx+7,AY+y+4); c.stroke(); }
+  c.fillStyle='#64748b'; c.fillRect(X+3,AY+h,3,BY-AY-h); c.fillStyle='#38bdf8'; c.font='bold 10px Sarabun'; c.textAlign='center'; c.fillText(TNAME[mtype],X,AY-h-8); }
+function drawDiag(){
+  if(!dctx) return; const W=DC.clientWidth,H=DC.clientHeight,c=dctx; c.clearRect(0,0,W,H);
+  c.fillStyle='rgba(56,189,248,.05)'; c.fillRect(cm2px(MIR),0,BR-cm2px(MIR)+10,BY); c.fillStyle='rgba(148,163,184,.45)'; c.font='9px Sarabun'; c.textAlign='left'; c.fillText('หน้ากระจก (ด้านวัตถุ)',BL+2,14); c.textAlign='right'; c.fillText('หลังกระจก',BR,14);
+  c.fillStyle='#374151'; c.fillRect(BL-4,BY,BW+8,6); c.strokeStyle='#64748b'; c.fillStyle='#94a3b8'; c.font='9px "Share Tech Mono"'; c.textAlign='center';
+  for(let v=0;v<=100;v++){ const x=cm2px(v); c.lineWidth=1; c.beginPath(); c.moveTo(x,BY+6); c.lineTo(x,BY+6+(v%10===0?8:v%5===0?5:2)); c.stroke(); if(v%10===0) c.fillText(v,x,BY+24); }
+  c.strokeStyle='rgba(148,163,184,.35)'; c.setLineDash([4,4]); c.lineWidth=1; c.beginPath(); c.moveTo(BL,AY); c.lineTo(BR,AY); c.stroke(); c.setLineDash([]);
+  mirror2D();
+  const u=uNow(), im=imageOf(u), f=curF();
+  if(mode==='auto'&&isFinite(im.v)){
+    if(isFinite(f)){ [[MIR-f,'F'],[MIR-2*f,'C']].forEach(([cm,l])=>{ if(cm<0||cm>100) return; const x=cm2px(cm); c.fillStyle='#facc15'; c.beginPath(); c.moveTo(x,AY-3); c.lineTo(x-4,AY-10); c.lineTo(x+4,AY-10); c.closePath(); c.fill(); c.font='9px "Share Tech Mono"'; c.textAlign='center'; c.fillText(l,x,AY-13); }); }
+    const bx=cm2px(oCm), by=BY, ix=cm2px(MIR-im.v), iy=AY - hpx(-im.M*(-HC)) /* y_img = −M·y , y = −HC */;
+    const hits=[[cm2px(MIR),by,'#ef4444'],[cm2px(MIR),AY,'#3b82f6']];
+    c.lineWidth=1.5;
+    hits.forEach(([hx,hy,col])=>{ c.strokeStyle=col; c.beginPath(); c.moveTo(bx,by); c.lineTo(hx,hy); c.stroke();
+      let dx,dy; if(im.v>0){ dx=ix-hx; dy=iy-hy; } else { dx=hx-ix; dy=hy-iy; }
+      const t=(BL-hx)/dx; if(isFinite(t)&&t>0){ c.beginPath(); c.moveTo(hx,hy); c.lineTo(hx+dx*t,hy+dy*t); c.stroke(); }
+      if(im.v<0){ c.setLineDash([4,3]); c.globalAlpha=.6; c.beginPath(); c.moveTo(hx,hy); c.lineTo(ix,iy); c.stroke(); c.setLineDash([]); c.globalAlpha=1; } });
+    c.strokeStyle=im.v>0?'#f472b6':'#a78bfa'; c.lineWidth=2.5; c.setLineDash(im.v>0?[]:[5,3]); c.beginPath(); c.moveTo(ix,Math.max(-50,Math.min(H+50,iy))); c.lineTo(ix,AY); c.stroke(); c.setLineDash([]); c.fillStyle=c.strokeStyle; c.beginPath(); c.arc(ix,AY,4.5,0,Math.PI*2); c.fill(); c.font='bold 10px Sarabun'; c.textAlign='center'; c.fillText(im.v>0?'ภาพจริง (กลับหัว)':'ภาพเสมือน',ix,AY+16);
+  }
+  pin2D(oCm,HC,'#fb923c','O');
+  if(isFinite(sCm)) pin2D(sCm,sTip(),'#34d399','S');
+  c.fillStyle='#94a3b8'; c.font='bold 9px "Share Tech Mono"'; c.textAlign='center'; c.fillText(oCm.toFixed(1),cm2px(oCm),BY-hpx(HC)-22); if(isFinite(sCm)) c.fillText(sCm.toFixed(1),cm2px(sCm),BY-hpx(sTip())-22);
+  c.fillText('55.0',cm2px(MIR),AY-hpx(AP)-20);
+}
+let drag2=null;
+function dPos(e){ const r=DC.getBoundingClientRect(),t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+function dHit(p){ if(mode!=='manual') return null; const d=[['o',oCm],['s',sCm]].map(([k,cm])=>[k,Math.abs(p.x-cm2px(cm))]).filter(a=>a[1]<14).sort((a,b)=>a[1]-b[1]); return d.length?d[0][0]:null; }
+function onDDown(e){ const h=dHit(dPos(e)); if(!h) return; drag2=h; e.preventDefault(); }
+function onDMove(e){ const p=dPos(e); if(!drag2){ DC.style.cursor=dHit(p)?'ew-resize':'default'; return; } e.preventDefault(); setPos(drag2, Math.round(px2cm(p.x)*10)/10); }
+function onDUp(){ drag2=null; }
+function setPos(k,cm){ if(k==='o') oCm=Math.max(2,Math.min(MIR-2,cm)); else sCm=clampS(cm); syncPosUI(); drawAll(); }
+</script>
+<script>
+/* ═══════════ 3D SCENE — กระจกสะท้อนด้วย ray tracing จริง ═══════════ */
+let renderer,scene,camera,P={},mirMat,benchTex;
+const orbit={target:new THREE.Vector3(42,7,0),dist:95,az:-0.85,el:0.35};
+const MIR_VERT=`varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
+const MIR_FRAG=`
+uniform int uType; uniform vec3 uCtr; uniform float uOx; uniform float uOtip; uniform float uSx; uniform float uStip; uniform float uSvis; uniform sampler2D tBench;
+varying vec3 vW;
+const float PIN_R=${PIN_R.toFixed(3)}; const float HEAD_R=${HEAD_R.toFixed(3)};
+float hitCyl(vec3 o, vec3 d, vec2 c, float r, float y0, float y1, out vec3 n){
+  vec2 oc=o.xz-c; float A=dot(d.xz,d.xz); if(A<1e-8) return -1.0; float B=dot(oc,d.xz); float C=dot(oc,oc)-r*r; float disc=B*B-A*C; if(disc<0.0) return -1.0;
+  float t=(-B-sqrt(disc))/A; if(t<1e-3) return -1.0; float y=o.y+t*d.y; if(y<y0||y>y1) return -1.0; vec2 h=oc+t*d.xz; n=normalize(vec3(h.x,0.0,h.y)); return t; }
+float hitSph(vec3 o, vec3 d, vec3 c, float r, out vec3 n){ vec3 oc=o-c; float b=dot(oc,d); float cc=dot(oc,oc)-r*r; float disc=b*b-cc; if(disc<0.0) return -1.0; float t=-b-sqrt(disc); if(t<1e-3) return -1.0; n=normalize(oc+t*d); return t; }
+float hitBox(vec3 o, vec3 d, vec3 bmin, vec3 bmax, out vec3 n){ vec3 dd=d+vec3(1e-6); vec3 t0=(bmin-o)/dd, t1=(bmax-o)/dd; vec3 tmn=min(t0,t1), tmx=max(t0,t1); float tn=max(max(tmn.x,tmn.y),tmn.z); float tf=min(min(tmx.x,tmx.y),tmx.z); if(tn>tf||tn<1e-3) return -1.0;
+  if(tn==tmn.x) n=vec3(-sign(d.x),0.0,0.0); else if(tn==tmn.y) n=vec3(0.0,-sign(d.y),0.0); else n=vec3(0.0,0.0,-sign(d.z)); return tn; }
+vec3 shade(vec3 alb, vec3 n){ vec3 L1=normalize(vec3(30.0,60.0,50.0)); vec3 L2=normalize(vec3(-40.0,20.0,-40.0)); vec3 hemi=mix(vec3(0.10,0.13,0.21),vec3(1.0),n.y*0.5+0.5);
+  return alb*(hemi*0.55+0.75*max(dot(n,L1),0.0)+0.25*max(dot(n,L2),0.0)); }
+vec3 trace(vec3 o, vec3 d){
+  float bt=1e9; vec3 bn=vec3(0.0,1.0,0.0); vec3 bc=vec3(0.0); vec3 n; float t;
+  t=hitCyl(o,d,vec2(uOx,0.0),PIN_R,0.0,uOtip,n); if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.78,0.80,0.84); }
+  t=hitSph(o,d,vec3(uOx,uOtip,0.0),HEAD_R,n);     if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.98,0.57,0.24); }
+  t=hitBox(o,d,vec3(uOx-0.8,0.0,-0.6),vec3(uOx+0.8,1.0,0.6),n); if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.63,0.38,0.03); }
+  if(uSvis>0.5){
+    t=hitCyl(o,d,vec2(uSx,0.0),PIN_R,0.0,uStip,n); if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.78,0.80,0.84); }
+    t=hitSph(o,d,vec3(uSx,uStip,0.0),HEAD_R,n);     if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.20,0.83,0.60); }
+    t=hitBox(o,d,vec3(uSx-0.8,0.0,-0.6),vec3(uSx+0.8,1.0,0.6),n); if(t>0.0&&t<bt){ bt=t; bn=n; bc=vec3(0.63,0.38,0.03); }
+  }
+  t=hitBox(o,d,vec3(0.0,-3.0,-5.0),vec3(100.0,0.0,5.0),n); if(t>0.0&&t<bt){ bt=t; bn=n; vec3 h=o+t*d; bc = n.y>0.5 ? texture2D(tBench,vec2(h.x/100.0,0.5-h.z/10.0)).rgb : vec3(0.28,0.30,0.34); }
+  if(bt>1e8){ return mix(vec3(0.20,0.23,0.29),vec3(0.36,0.40,0.48),clamp(d.y*1.2+0.5,0.0,1.0)); }   /* ผนังห้องทดลองด้านหลังผู้สังเกต */
+  return shade(bc,bn);
+}
+void main(){
+  if(!gl_FrontFacing){ gl_FragColor=vec4(0.20,0.22,0.26,1.0); return; }
+  vec3 n = uType==0 ? vec3(-1.0,0.0,0.0) : (uType==1 ? normalize(uCtr-vW) : normalize(vW-uCtr));
+  vec3 v=normalize(vW-cameraPosition); vec3 r=reflect(v,n);
+  vec3 col=trace(vW+n*0.01, r);
+  float fr=pow(1.0-max(dot(-v,n),0.0),5.0);
+  gl_FragColor=vec4(col*0.9+vec3(0.8,0.85,0.9)*(0.03+0.2*fr),1.0);
+}`;
+function makeBenchTexture(){
+  const c=document.createElement('canvas'); c.width=2048; c.height=256; const g=c.getContext('2d');
+  g.fillStyle='#d6d3cc'; g.fillRect(0,0,c.width,c.height); const ppc=c.width/100;
+  g.strokeStyle='#1f2937'; g.fillStyle='#1f2937'; g.font='bold 26px "Share Tech Mono", monospace'; g.textAlign='center';
+  for(let mm=0;mm<=1000;mm++){ const x=mm/10*ppc; const L= mm%100===0?60: mm%50===0?42: mm%10===0?30:12; g.lineWidth= mm%10===0?2.2:1; g.beginPath(); g.moveTo(x,0); g.lineTo(x,L); g.stroke(); g.beginPath(); g.moveTo(x,c.height); g.lineTo(x,c.height-L); g.stroke(); if(mm%100===0&&mm>0&&mm<1000){ g.fillText(mm/10,x,96); } }
+  g.fillStyle='rgba(56,189,248,.35)'; g.fillRect(MIR*ppc-2,0,4,c.height);
+  const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy(); return t;
+}
+function makePin(headCol){ const g=new THREE.Group(); const shaft=new THREE.Mesh(new THREE.CylinderGeometry(PIN_R,PIN_R,1,10),new THREE.MeshStandardMaterial({color:0xc7ccd4,metalness:.6,roughness:.35})); g.add(shaft); const head=new THREE.Mesh(new THREE.SphereGeometry(HEAD_R,20,14),new THREE.MeshStandardMaterial({color:headCol,roughness:.45})); g.add(head); const base=new THREE.Mesh(new THREE.BoxGeometry(1.6,1,1.2),new THREE.MeshStandardMaterial({color:0xa16207,roughness:.9})); base.position.y=0.5; g.add(base); g.userData={shaft,head}; scene.add(g); return g; }
+function setPinTip(g,tip){ g.userData.shaft.scale.y=tip; g.userData.shaft.position.y=tip/2; g.userData.head.position.y=tip; }
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(22,1,0.3,900);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.9)); const d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(30,60,50); scene.add(d1); const d2=new THREE.DirectionalLight(0xbfd8ff,0.35); d2.position.set(-40,20,-40); scene.add(d2);
+  benchTex=makeBenchTexture();
+  const side=new THREE.MeshStandardMaterial({color:0x474c55,roughness:.8});
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(100,3,10),[side,side,new THREE.MeshStandardMaterial({map:benchTex,roughness:.85}),side,side,side]); bench.position.set(50,-1.5,0); scene.add(bench);
+  mirMat=new THREE.ShaderMaterial({vertexShader:MIR_VERT,fragmentShader:MIR_FRAG,side:THREE.DoubleSide,uniforms:{uType:{value:0},uCtr:{value:new THREE.Vector3()},uOx:{value:0},uOtip:{value:HC},uSx:{value:0},uStip:{value:HC},uSvis:{value:1},tBench:{value:benchTex}}});
+  P.mirror=new THREE.Group(); scene.add(P.mirror);
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,HC-AP,12),new THREE.MeshStandardMaterial({color:0x6b7280,metalness:.3,roughness:.5})); post.position.set(MIR+1.0,(HC-AP)/2,0); scene.add(post);
+  const foot=new THREE.Mesh(new THREE.BoxGeometry(3,1,4),new THREE.MeshStandardMaterial({color:0x4b5563,roughness:.7})); foot.position.set(MIR+1.0,0.5,0); scene.add(foot);
+  P.O=makePin(0xfb923c); P.S=makePin(0x34d399);
+  buildMirror(); setupPointer(cv); resize3D();
+  (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return; if(sway) swayT+=0.016; update3D(); renderer.render(scene,camera); })();
+}
+function buildMirror(){
+  if(!P.mirror) return; while(P.mirror.children.length){ const c=P.mirror.children.pop(); if(c.geometry) c.geometry.dispose(); }
+  const f=curF(), R=isFinite(f)?Math.abs(2*f):Infinity;
+  const g=new THREE.CircleGeometry(AP,72,0,Math.PI*2); g.rotateY(-Math.PI/2);   // หันหน้า −x
+  const pos=g.attributes.position; const sag=r=> isFinite(R)? R-Math.sqrt(R*R-r*r) : 0; const sgn = mtype==='concave'?-1:1;
+  for(let i=0;i<pos.count;i++){ const y=pos.getY(i), z=pos.getZ(i); pos.setX(i, sgn*sag(Math.hypot(y,z))); } pos.needsUpdate=true; g.computeVertexNormals();
+  const m=new THREE.Mesh(g,mirMat); P.mirror.add(m);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(AP+.15,.22,10,64),new THREE.MeshStandardMaterial({color:0x9ca3af,metalness:.5,roughness:.4})); rim.rotation.y=Math.PI/2; rim.position.x=sgn*sag(AP); P.mirror.add(rim);
+  const back=new THREE.Mesh(new THREE.CylinderGeometry(AP+.2,AP+.2,.35,48),new THREE.MeshStandardMaterial({color:0x374151,roughness:.8})); back.rotation.z=Math.PI/2; back.position.x=Math.max(0,sgn*sag(AP))+0.45; P.mirror.add(back);
+  P.mirror.position.set(MIR,HC,0);
+  mirMat.uniforms.uType.value = mtype==='plane'?0:mtype==='concave'?1:2;
+  mirMat.uniforms.uCtr.value.set(mtype==='concave'?MIR-R:MIR+R, HC, 0);
+}
+function update3D(){
+  if(!scene) return;
+  P.O.position.set(oCm,0,0); setPinTip(P.O,HC);
+  const sv=isFinite(sCm); P.S.visible=sv; if(sv){ P.S.position.set(sCm,0,0); setPinTip(P.S,sTip()); }
+  const u=mirMat.uniforms; u.uOx.value=oCm; u.uSx.value=sv?sCm:0; u.uStip.value=sTip(); u.uSvis.value=sv?1:0;
+  if(curView==='eye'){
+    const behind=sv&&sCm>MIR, d=eyeDist(), lat=eyeLat+(behind?0:1.5)+(sway?1.5*Math.sin(swayT*2.2):0);   /* ภาพจริง: เยื้องเพิ่ม 1.5 cm ให้หัวเข็ม O แยกจากปลาย S กับภาพ */
+    /* S หลังกระจก: ตาสูงกว่าแกนเล็กน้อย (มุมก้มเล็ก → ความคลาดแบบ astigmatism ของผิวทรงกลมน้อย) · หัวเข็ม O จริงแยกจากภาพด้วยการเยื้องตาด้านข้าง
+       S หน้ากระจก (ภาพจริง): ตาอยู่ระดับแกน เทียบปลายชนปลาย */
+    const h = behind ? AP*0.6 : 0.15;
+    camera.position.set(MIR-d, HC+h, lat); camera.up.set(0,1,0); camera.lookAt(MIR, behind?HC+AP*0.45:HC, 0);
+    if(camera.fov!==eyeFov){ camera.fov=eyeFov; camera.updateProjectionMatrix(); }
+    if(autoEye){ $('sl-eyed').value=d; $('vi-eyed').value=Math.round(d); }
+  } else {
+    const t=orbit.target; camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t);
+    if(camera.fov!==38){ camera.fov=38; camera.updateProjectionMatrix(); }
+  }
+}
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(v){ curView=v; if(v==='iso'){ orbit.az=-0.85; orbit.el=0.35; orbit.dist=95; } if(v==='side'){ orbit.az=0; orbit.el=0.08; orbit.dist=110; } if(v!=='eye'&&sway){ sway=false; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.remove('active')); } updateHint(); }
+function setupPointer(cv){
+  const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,0,1),0),hit=new THREE.Vector3(); let dm=null,lx=0,ly=0,off=0;
+  const setN=(x,y)=>{ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); };
+  const pick=(x,y)=>{ if(mode!=='manual'||curView==='eye') return null; setN(x,y); const hs=ray.intersectObjects([P.O,P.S],true); if(!hs.length) return null; let o=hs[0].object; while(o){ if(o===P.O) return 'o'; if(o===P.S) return 's'; o=o.parent; } return null; };
+  const planeX=(x,y)=>{ setN(x,y); return ray.ray.intersectPlane(plane,hit)?hit.x:null; };
+  const down=(x,y)=>{ lx=x; ly=y; const p=pick(x,y); if(p){ dm=p; const px=planeX(x,y); off=px!==null?px-(p==='o'?oCm:sCm):0; cv.style.cursor='ew-resize'; } else { dm= curView==='eye'?'eye':'orbit'; cv.style.cursor='grabbing'; } };
+  const move=(x,y)=>{ if(!dm){ cv.style.cursor=pick(x,y)?'ew-resize':'grab'; return; }
+    if(dm==='eye'){ eyeLat=Math.max(-5,Math.min(5,eyeLat-(x-lx)*0.02)); syncPosUI(); }
+    else if(dm==='orbit'){ orbit.az-=(x-lx)*0.006; orbit.el=Math.max(0.02,Math.min(1.4,orbit.el+(y-ly)*0.006)); }
+    else { const px=planeX(x,y); if(px!==null) setPos(dm, Math.round((px-off)*10)/10); }
+    lx=x; ly=y; };
+  const up=()=>{ dm=null; cv.style.cursor='grab'; };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up);
+  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
+  cv.addEventListener('touchend',up);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); if(curView==='eye'){ $('cbAutoEye').checked=false; autoEye=false; eyeD=Math.max(25,Math.min(120,eyeDist()*(1+e.deltaY*0.001))); syncPosUI(); } else orbit.dist=Math.max(20,Math.min(300,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
+}
+
+/* ═══════════ THEORY CANVASES ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function pinT(g,x,y,h,col,lab){ g.strokeStyle='#cbd5e1'; g.lineWidth=2; g.beginPath(); g.moveTo(x,y); g.lineTo(x,y-h); g.stroke(); g.fillStyle=col; g.beginPath(); g.arc(x,y-h,5,0,Math.PI*2); g.fill(); g.font='bold 11px Sarabun'; g.textAlign='center'; g.fillText(lab,x,y+14); }
+function eyeT(g,x,y,lab){ g.fillStyle='#e2e8f0'; g.beginPath(); g.ellipse(x,y,11,7,0,0,Math.PI*2); g.fill(); g.fillStyle='#1e293b'; g.beginPath(); g.arc(x,y,3.5,0,Math.PI*2); g.fill(); g.fillStyle='#94a3b8'; g.font='10px Sarabun'; g.textAlign='center'; g.fillText(lab,x,y+20); }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const ex=W*0.12, e1=H*0.35, e2=H*0.72, ax=W*0.5, bx=W*0.82, ay=H*0.35;
+  // top view: eyes at left, pins A (near) B (far) on the line of eye1
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left'; g.fillText('มองจากด้านบน',10,16);
+  eyeT(g,ex,e1,'ตำแหน่ง 1'); eyeT(g,ex,e2,'ตำแหน่ง 2');
+  g.fillStyle='#fb923c'; g.beginPath(); g.arc(ax,ay,6,0,Math.PI*2); g.fill(); g.fillText('A (ใกล้)',ax-10,ay-12);
+  g.fillStyle='#34d399'; g.beginPath(); g.arc(bx,ay,6,0,Math.PI*2); g.fill(); g.fillText('B (ไกล)',bx-10,ay-12);
+  g.setLineDash([4,3]); g.strokeStyle='rgba(148,163,184,.6)'; g.beginPath(); g.moveTo(ex,e1); g.lineTo(bx,ay); g.stroke(); g.strokeStyle='rgba(251,146,60,.6)'; g.beginPath(); g.moveTo(ex,e2); g.lineTo(ax+(ax-ex)*0.6,ay+(ay-e2)*0.6); g.stroke(); g.strokeStyle='rgba(52,211,153,.6)'; g.beginPath(); g.moveTo(ex,e2); g.lineTo(bx+20,ay+(ay-e2)*(bx+20-ex)/(bx-ex)); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#e2e8f0'; g.font='11px Sarabun'; g.fillText('ตำแหน่ง 1: A บัง B พอดี (ซ้อนกัน)',W*0.5,H*0.72); g.fillText('ตำแหน่ง 2: เห็น B ขยับไปทางเดียวกับตา = มีพาราแลกซ์',W*0.5,H*0.72+18); g.fillText('ถ้า A กับ B อยู่ที่เดียวกัน → ซ้อนกันทุกตำแหน่ง',W*0.5,H*0.72+36); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p; const mx=W*0.55, base=H*0.8, u=W*0.25, ox=mx-u, ix=mx+u, h=H*0.45;
+  g.strokeStyle='#38bdf8'; g.lineWidth=4; g.beginPath(); g.moveTo(mx,base-h*0.75); g.lineTo(mx,base-h*0.35); g.stroke(); g.fillStyle='#38bdf8'; g.font='bold 11px Sarabun'; g.textAlign='center'; g.fillText('กระจกราบ',mx,base-h*0.8);
+  g.strokeStyle='rgba(148,163,184,.4)'; g.lineWidth=1; g.beginPath(); g.moveTo(20,base); g.lineTo(W-20,base); g.stroke();
+  pinT(g,ox,base,h*0.55,'#fb923c','O'); g.setLineDash([5,3]); pinT(g,ix,base,h*0.55,'#a78bfa','ภาพ I'); g.setLineDash([]); pinT(g,ix,base,h*0.95,'#34d399','');
+  g.fillStyle='#34d399'; g.fillText('S (เข็มยาว)',ix+34,base-h*0.95);
+  const eye={x:W*0.08,y:base-h*0.62}; eyeT(g,eye.x,eye.y,'ตา');
+  const tipO={x:ox,y:base-h*0.55}, tipI={x:ix,y:base-h*0.55}; const t=(mx-eye.x)/(tipI.x-eye.x), hy=eye.y+(tipI.y-eye.y)*t;
+  g.strokeStyle='#ef4444'; g.lineWidth=1.5; g.beginPath(); g.moveTo(tipO.x,tipO.y); g.lineTo(mx,hy); g.lineTo(eye.x,eye.y); g.stroke(); g.setLineDash([4,3]); g.globalAlpha=.6; g.beginPath(); g.moveTo(mx,hy); g.lineTo(tipI.x,tipI.y); g.stroke(); g.setLineDash([]); g.globalAlpha=1;
+  g.strokeStyle='#fb923c'; g.beginPath(); g.moveTo(ox,base+22); g.lineTo(mx,base+22); g.stroke(); g.strokeStyle='#a78bfa'; g.beginPath(); g.moveTo(mx,base+22); g.lineTo(ix,base+22); g.stroke(); g.fillStyle='#e2e8f0'; g.font='11px "Share Tech Mono"'; g.fillText('u',(ox+mx)/2,base+36); g.fillText('|v| = u',(mx+ix)/2,base+36); }
+function drawTheory2(){ const p=prep('theoryCanvas2'); if(!p) return; const {g,W,H}=p; const rows=[['กระจกเว้า u > f → ภาพจริง กลับหัว (หน้ากระจก)',10,25],['กระจกเว้า u < f → ภาพเสมือน หัวตั้ง ขยาย',10,6],['กระจกนูน → ภาพเสมือน หัวตั้ง ย่อ',-10,20]]; const rh=H/3;
+  rows.forEach(([lab,f,u],i)=>{ const ay=rh*i+rh*0.55, mx=W*0.62, sc=(W*0.5)/40, v=u*f/(u-f), M=v/u, oh=rh*0.28;
+    g.strokeStyle='rgba(148,163,184,.35)'; g.lineWidth=1; g.setLineDash([4,4]); g.beginPath(); g.moveTo(10,ay); g.lineTo(W-10,ay); g.stroke(); g.setLineDash([]);
+    const s= f>0?-1:1, half=rh*0.38; g.strokeStyle='#38bdf8'; g.lineWidth=3; g.beginPath(); g.moveTo(mx+s*7,ay-half); g.quadraticCurveTo(mx-s*7,ay,mx+s*7,ay+half); g.stroke();
+    [[f,'F'],[2*f,'C']].forEach(([d,l])=>{ const x=mx-d*sc; if(x<10||x>W-10) return; g.fillStyle='#facc15'; g.beginPath(); g.arc(x,ay,3,0,Math.PI*2); g.fill(); g.font='10px "Share Tech Mono"'; g.textAlign='center'; g.fillText(l,x,ay+14); });
+    const ox=mx-u*sc, ix=mx-v*sc, tip={x:ox,y:ay-oh}, itip={x:ix,y:ay+M*oh};
+    g.strokeStyle='#fb923c'; g.lineWidth=2.5; g.beginPath(); g.moveTo(ox,ay); g.lineTo(ox,ay-oh); g.stroke(); g.fillStyle='#fb923c'; g.beginPath(); g.arc(ox,ay-oh,4,0,Math.PI*2); g.fill();
+    g.lineWidth=1.4; [[mx,tip.y,'#ef4444'],[mx,ay,'#3b82f6']].forEach(([hx,hy,col])=>{ g.strokeStyle=col; g.beginPath(); g.moveTo(tip.x,tip.y); g.lineTo(hx,hy); let dx,dy; if(v>0){dx=itip.x-hx;dy=itip.y-hy;}else{dx=hx-itip.x;dy=hy-itip.y;} const t=(10-hx)/dx; g.lineTo(hx+dx*t,hy+dy*t); g.stroke(); if(v<0){ g.setLineDash([4,3]); g.globalAlpha=.55; g.beginPath(); g.moveTo(hx,hy); g.lineTo(itip.x,itip.y); g.stroke(); g.setLineDash([]); g.globalAlpha=1; } });
+    const col=v>0?'#f472b6':'#a78bfa'; g.strokeStyle=col; g.lineWidth=2.5; g.setLineDash(v>0?[]:[5,3]); const iy=Math.max(rh*i+8,Math.min(rh*(i+1)-8,itip.y)); g.beginPath(); g.moveTo(ix,ay); g.lineTo(ix,iy); g.stroke(); g.setLineDash([]); g.fillStyle=col; g.beginPath(); g.arc(ix,iy,4,0,Math.PI*2); g.fill();
+    g.fillStyle='#e2e8f0'; g.font='bold 11px Sarabun'; g.textAlign='left'; g.fillText(lab,12,rh*i+16); g.font='10px "Share Tech Mono"'; g.fillStyle='#94a3b8'; g.fillText('f = '+f+'  u = '+u+'  v = '+v.toFixed(1)+'  M = '+M.toFixed(2),12,rh*i+30);
+  }); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); drawTheory2(); }
+
+/* ═══════════ DRAW ALL / INIT ═══════════ */
+function drawAll(){ autoLayout(); drawDiag(); updateHint(); }
+function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  DC=$('diagCanvas'); dctx=DC.getContext('2d');
+  DC.addEventListener('mousedown',onDDown); window.addEventListener('mousemove',e=>{ if(drag2||e.target===DC) onDMove(e); }); window.addEventListener('mouseup',onDUp);
+  DC.addEventListener('touchstart',onDDown,{passive:false}); DC.addEventListener('touchmove',onDMove,{passive:false}); DC.addEventListener('touchend',onDUp);
+  const pairs={'vi-o':'sl-o','vi-s':'sl-s','vi-lat':'sl-lat','vi-eyed':'sl-eyed','vi-f':'sl-f','vi-u':'sl-u'};
+  const onSl=id=>{ const v=parseFloat($(id).value);
+    if(id==='sl-o') setPos('o',v); else if(id==='sl-s') setPos('s',v); else if(id==='sl-lat'){ eyeLat=v; } else if(id==='sl-eyed'){ autoEye=false; $('cbAutoEye').checked=false; eyeD=v; } else { if(id==='sl-f') buildMirror(); drawAll(); } };
+  Object.entries(pairs).forEach(([vi,si])=>{ const sl=$(si),inp=$(vi); sl.addEventListener('input',()=>{ inp.value=parseFloat(sl.value); onSl(si); }); const sync=()=>{ let v=Math.max(+sl.min,Math.min(+sl.max,parseFloat(inp.value)||0)); inp.value=v; sl.value=v; onSl(si); }; inp.addEventListener('blur',sync); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') sync(); }); });
+  $('cbAutoEye').addEventListener('change',e=>{ autoEye=e.target.checked; if(!autoEye) eyeD=eyeDist(); syncPosUI(); });
+  $('cbOffset').addEventListener('change',()=>drawAll());
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  randomizeF(); init3D(); resizeAll(); setMode('manual'); setType('plane'); drawTheoryAll();
+});
+</script>
+
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-47", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
