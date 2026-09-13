@@ -64,7 +64,7 @@ LABS=[
  ('vlab:vpl02:lab-44', V2+'44. standing-waves-air-column.html','44','คลื่นนิ่งของเสียงในหลอดอากาศ','หลอดปลายปิด/เปิด หาความถี่กำทอนและอัตราเร็วเสียง','sound','ม.5','vpl02',['Sound','Resonance']),
  ('vlab:vpl02:lab-32b',V2+'32B. light-reflection.html','32B','การสะท้อนของแสง','กฎการสะท้อน กระจกเงาราบ','light','ม.5','vpl02',['Optics']),
  ('vlab:vpl02:lab-33b',V2+'33B. light-refraction-glass.html','33B','การหักเหของแสง (อากาศ→แก้ว)','กฎของสเนลล์ ดรรชนีหักเห','light','ม.5','vpl02',['Optics']),
- ('vlab:vpl02:lab-35', V2+'35. images-converging-lenses.html','35','ภาพจากเลนส์นูน','ตำแหน่งภาพ กำลังขยาย สมการเลนส์','light','ม.5','vpl02',['Lens']),
+ ('vlab:vpl02:lab-35', V2+'35. images-converging-lenses.html','35','ภาพจากเลนส์นูน (3D)','ม้านั่งเชิงแสง 3 มิติ · หาโฟกัสด้วยแสงขนาน · ภาพจริง/เสมือน · วัดค่าเอง · สมการเลนส์บาง','light','ม.5','vpl02',['Lens','3D']),
  ('vlab:vpl02:lab-36', V2+'36. images-diverging-lenses.html','36','ภาพจากเลนส์เว้า & กล้องกาลิเลโอ','ภาพเสมือน กล้องโทรทรรศน์แบบกาลิเลโอ','light','ม.5','vpl02',['Lens']),
  ('vlab:vpl02:lab-46', V2+'46. images-concave-mirror.html','46','ภาพจากกระจกเว้า (3D)','ม้านั่งเชิงแสง 3 มิติ · หาโฟกัสด้วยแสงขนาน · ภาพจริง/เสมือน · วัดค่าเอง · f = R/2','light','ม.5','vpl02',['Mirror','3D']),
  ('vlab:vpl02:lab-43', V2+'43. big-bang-theory.html','43','ทฤษฎีบิกแบง (Big Bang Theory)','Hubble · BBN · CMB · Build Lab','astro','ม.6','vpl02',['Cosmology']),
