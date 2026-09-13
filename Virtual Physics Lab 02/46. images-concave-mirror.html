@@ -419,7 +419,7 @@ console.log('KP Science VPL02 Lab 46 — build v1.0 (2569-09-13)');
 const $ = id => document.getElementById(id);
 const VSCALE = 2.5;                       // สเกลแนวตั้งของแผนภาพ 2D
 const MIRROR_AP = 8;                       // เส้นผ่านศูนย์กลางกระจก (cm)
-const SCREEN_H = 12, SCREEN_W = 9;         // ขนาดจอ (cm)
+const SCREEN_H = 20, SCREEN_W = 12;        // ขนาดจอ (cm) — สูงพอให้ภาพจริงกลับหัวห้อยใต้แกนได้
 let mode = 'manual', part = 'A';
 let mirrorCm = 70, objCm = 45, screenCm = 50, eyeCm = 20, fTrue = 10, objHeightCm = 3;
 let tableA = [{fMeas:''},{fMeas:''},{fMeas:''}], tableB = [], tableAuto = [];
@@ -750,14 +750,12 @@ function init3D(){
   // screen
   P.screen=new THREE.Group(); scene.add(P.screen);
   screenTexCanvas=document.createElement('canvas'); screenTexCanvas.width=256; screenTexCanvas.height=Math.round(256*SCREEN_H/SCREEN_W); screenTex=new THREE.CanvasTexture(screenTexCanvas);
-  const scr=new THREE.Mesh(new THREE.BoxGeometry(0.4,SCREEN_H,SCREEN_W),[new THREE.MeshStandardMaterial({map:screenTex,roughness:.9,side:THREE.DoubleSide}),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db)]); scr.position.set(0,SCREEN_H/2-1.5,0); P.screen.add(scr);
-  stand(P.screen, SCREEN_H-1.5, 0x6b7280, -0.75);   // เสาอยู่หลังจอ (ด้าน −x) ไม่บังหน้าจอ
+  const scr=new THREE.Mesh(new THREE.BoxGeometry(0.4,SCREEN_H,SCREEN_W),[new THREE.MeshStandardMaterial({map:screenTex,roughness:.9,side:THREE.DoubleSide}),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db),matStd(0xd1d5db)]); scr.position.set(0,0,0); P.screen.add(scr);   // จอกึ่งกลางอยู่ที่แกนแสง
   // eye
   P.eye=new THREE.Group(); scene.add(P.eye);
   const eyeball=new THREE.Mesh(new THREE.SphereGeometry(1.6,24,16),new THREE.MeshStandardMaterial({color:0xf5f5f4,roughness:.4})); P.eye.add(eyeball);
   const iris=new THREE.Mesh(new THREE.SphereGeometry(.7,16,12),new THREE.MeshStandardMaterial({color:0x4c1d95})); iris.position.set(1.3,0,0); P.eye.add(iris);
   const pupil=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8),new THREE.MeshStandardMaterial({color:0x111827})); pupil.position.set(1.75,0,0); P.eye.add(pupil);
-  stand(P.eye,-1.6,0xa78bfa);
   // sun
   P.sun=new THREE.Group(); scene.add(P.sun); const sun=new THREE.Mesh(new THREE.SphereGeometry(3,24,16),new THREE.MeshBasicMaterial({color:0xfde68a})); P.sun.add(sun); P.sun.position.set(-8,0,0);
   rayGroup=new THREE.Group(); scene.add(rayGroup);
@@ -777,15 +775,12 @@ function buildMirror(){
   const mir=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xe2ecf8,metalness:.55,roughness:.2,side:THREE.FrontSide})); mir.position.set(R,0,0); P.mirror.add(mir);   // ผิวเว้าสะท้อน (จุดยอดที่ x=0 ของกลุ่ม)
   const back=new THREE.Mesh(g.clone(),new THREE.MeshStandardMaterial({color:0x374151,roughness:.85,side:THREE.DoubleSide})); back.position.set(R+0.25,0,0); P.mirror.add(back);   // ด้านหลังกระจก (ทึบ)
   const rim=new THREE.Mesh(new THREE.TorusGeometry(MIRROR_AP/2+.15,.25,10,48),matStd(0x9ca3af)); rim.rotation.y=Math.PI/2; const sag=R-Math.sqrt(R*R-(MIRROR_AP/2)**2); rim.position.set(sag,0,0); P.mirror.add(rim);
-  stand(P.mirror, -MIRROR_AP/2, 0x38bdf8);
-  const post=P.mirror.children[P.mirror.children.length-2]; post.position.y=-(MIRROR_AP/2)-( (MIRROR_AP/2)-0 )/2+0.6; post.scale.y=1;
 }
 function buildObject(){
   while(P.obj.children.length){ const c=P.obj.children.pop(); if(c.geometry) c.geometry.dispose(); }
   const h=objHeightCm;
   const shaft=new THREE.Mesh(new THREE.BoxGeometry(.5,Math.max(.1,h-1.2),1.2),new THREE.MeshStandardMaterial({color:0xfb923c,emissive:0x7c2d12,emissiveIntensity:.6})); shaft.position.set(0,(h-1.2)/2,0); P.obj.add(shaft);
   const head=new THREE.Mesh(new THREE.ConeGeometry(1,1.4,4),new THREE.MeshStandardMaterial({color:0xfb923c,emissive:0x7c2d12,emissiveIntensity:.6})); head.rotation.y=Math.PI/4; head.position.set(0,h-0.7,0); P.obj.add(head);
-  stand(P.obj, 0, 0x78350f);
 }
 function rebuild3D(){ if(!scene) return; buildMirror(); buildObject(); update3D(); }
 function line3(pts, color, dashed, alpha){ const g=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]||0))); const m= dashed? new THREE.LineDashedMaterial({color,dashSize:1.2,gapSize:.8,transparent:true,opacity:alpha||.6}) : new THREE.LineBasicMaterial({color,transparent:true,opacity:alpha||.9}); const l=new THREE.Line(g,m); if(dashed) l.computeLineDistances(); return l; }
@@ -824,9 +819,7 @@ function update3D(){
 function drawScreenTexture(res){
   const c=screenTexCanvas.getContext('2d'), W=screenTexCanvas.width, H=screenTexCanvas.height, pxPerCm=W/SCREEN_W;
   c.fillStyle='#e5e7eb'; c.fillRect(0,0,W,H);
-  const axisY = H - (SCREEN_H/2 - 1.5)*pxPerCm;   // แกนแสง (y=0) อยู่สูงจากฐานจอ SCREEN_H/2-1.5 → ตำแหน่งบน texture (v กลับด้าน)
-  const axisPx = H - ((SCREEN_H/2 - 1.5)+ (SCREEN_H/2)) * pxPerCm + (SCREEN_H/2)*pxPerCm; // = center line of card
-  const cy = H/2 + 1.5*pxPerCm;   // แกนแสงอยู่ต่ำกว่ากึ่งกลางจอ 1.5 cm (จอสูง 12 ยกให้กึ่งกลางที่ y=+1.5... ใช้ค่านี้)
+  const cy = H/2;   // แกนแสงอยู่กึ่งกลางจอ
   if(mode==='manual' && part==='A'){
     const focusCm=mirrorCm-fTrue, err=Math.abs(screenCm-focusCm), rCm = err*(MIRROR_AP/2)/fTrue + 0.15, s=Math.exp(-0.5*Math.pow(err/1.2,2));
     const g=c.createRadialGradient(W/2,cy,0,W/2,cy,rCm*pxPerCm); g.addColorStop(0,`rgba(255,235,150,${.5+.5*s})`); g.addColorStop(1,'rgba(255,200,60,0.05)'); c.fillStyle=g; c.beginPath(); c.arc(W/2,cy,rCm*pxPerCm,0,Math.PI*2); c.fill();
