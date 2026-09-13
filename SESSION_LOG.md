@@ -1356,7 +1356,7 @@ match /settings/{docId} {
 ### ไฟล์ที่แก้
 - `Virtual Physics Lab 02/35. images-converging-lenses.html` (เขียนใหม่) · `_admin/labs_data.py` · `virtual-lab.html`, `library.html`, `_admin/admin.html` (generated) · `index.html`, `virtual-physics-lab-02.html` (การ์ด Lab 35) · `.gitignore` · `SESSION_LOG.md`
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- **ยังไม่ commit** (รอผู้ใช้สั่ง) — ไฟล์เดิม 2D อยู่ที่ commit 67067a6 ถ้าต้องการย้อน
+- commit + push แล้ว (4613028) — ไฟล์เดิม 2D อยู่ที่ commit 67067a6 ถ้าต้องการย้อน
 - canvas preview `vpl2-lens` บนการ์ดหน้าแรกยังเป็นภาพวาด 2D เดิม (ไม่กระทบการใช้งาน)
 - Lab 36 (เลนส์เว้า) ยังเป็น 2D — ถ้าพอใจ Lab 35 อาจแปลงด้วยโครงเดียวกัน (เปลี่ยน f เป็นลบ, ภาพเสมือนเสมอ)
 ### หมายเหตุ
