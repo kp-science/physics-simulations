@@ -728,9 +728,15 @@ void main(){
   float sPaper = (dW.y<-1e-4) ? clamp(-eW.y/dW.y,0.0,40.0) : 40.0;
   vec2 uvPaper=uvOf(exitP+d*sPaper);
   /* เดินตามรังสีออกทีละน้อยเพื่อหาวัตถุบาง ๆ (หมุด) ที่อยู่หลังแก้วก่อนถึงกระดาษ: ชนเมื่อจุดบนรังสีอยู่หลังผิวใน depth buffer */
-  vec2 uv=uvPaper; bool found=false;
+  vec2 uv=uvPaper; bool found=false; float sPrev=0.0;
   for(int i=1;i<=48;i++){ if(found) break; float sI=sPaper*float(i)/48.0; vec3 pI=exitP+d*sI; vec2 uvI=uvOf(pI); float zI=viewZAt(uvI);
-    if(zI < vViewPos.z-0.02 && zI > pI.z && (zI-pI.z) < 1.5){ uv=uvI; found=true; } }
+    if(zI < vViewPos.z-0.02 && zI > pI.z){
+      /* จุดบนรังสีอยู่หลังผิวใน depth buffer → หาจุดตัดละเอียดด้วย bisection แล้วรับเฉพาะเมื่อรังสีตัดผิวจริง (ไม่ใช่ผ่านข้างหลังวัตถุบาง) */
+      float a=sPrev, b=sI;
+      for(int k=0;k<5;k++){ float m=(a+b)*0.5; vec3 pm=exitP+d*m; float zm=viewZAt(uvOf(pm)); if(zm < vViewPos.z-0.02 && zm > pm.z) b=m; else a=m; }
+      vec3 pb=exitP+d*b; vec2 ub=uvOf(pb); float zb=viewZAt(ub);
+      if(zb - pb.z < 0.3){ uv=ub; found=true; } }
+    sPrev=sI; }
   vec4 tex=texture2D(tScene,uv); vec3 col=mix(uBg,tex.rgb,tex.a);
   if(!found){ vec3 pP=exitP+d*sPaper; if(viewZAt(uvPaper) > pP.z+0.4){
     /* จุดบนกระดาษถูกหมุดบังใน buffer → หาพิกเซลกระดาษที่ไม่ถูกบังข้าง ๆ (หมุดบางไม่กี่พิกเซล) เพื่อให้สีกลมกลืน ไม่เกิดรอย */
