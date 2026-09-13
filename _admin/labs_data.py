@@ -70,6 +70,7 @@ LABS=[
     ('vlab:vpl02:lab-47', V2+'47. image-location-parallax-mirrors.html','47','หาตำแหน่งภาพด้วยวิธีพาราแลกซ์ (3D)','กระจกราบ · เว้า · นูน สะท้อนแสงจริง (ray tracing) · ส่ายสายตาตรวจพาราแลกซ์ · ปลายชนปลาย · 1/f = 1/u + 1/v','light','ม.5','vpl02',['Mirror','Parallax','3D']),
     ('vlab:vpl02:lab-48', V2+'48. real-apparent-depth.html','48','ความลึกจริงและความลึกปรากฏ (3D)','ของเหลวในถังแก้ว 3 มิติหักเหแสงจริง (ray tracing) · หาความลึกปรากฏด้วยวิธีไม่มีพาราแลกซ์ · n = ลึกจริง/ลึกปรากฏ · ของเหลวปริศนา','light','ม.5','vpl02',['Refraction','Parallax','3D']),
     ('vlab:vpl02:lab-49', V2+'49. critical-angle-total-internal-reflection.html','49','มุมวิกฤตและการสะท้อนกลับหมด (3D)','แท่งแก้วครึ่งวงกลม 3 มิติหักเหแสงจริง · กฎของสเนลล์ · หามุมวิกฤต n = 1/sin θc · ความสว่างตามสมการเฟรเนล · วัสดุปริศนา','light','ม.5','vpl02',['Refraction','Critical angle','3D']),
+    ('vlab:vpl02:lab-50', V2+'50. polarization-malus-law.html','50','โพลาไรเซชันของแสง · กฎของมาลุส (3D)','แผ่นโพลารอยด์ 3 มิติ เห็นเวกเตอร์สนามไฟฟ้าสั่น · วัดทั้ง E และ I · E = E₀ cos θ · I = I₀ cos² θ · แผ่นกลาง 3 แผ่น','light','ม.5','vpl02',['Polarization','Malus','3D']),
  ('vlab:vpl02:lab-43', V2+'43. big-bang-theory.html','43','ทฤษฎีบิกแบง (Big Bang Theory)','Hubble · BBN · CMB · Build Lab','astro','ม.6','vpl02',['Cosmology']),
  ('vlab:vpl02:lab-45', V2+'45. expanding-universe-balloon.html','45','แบบจำลองการขยายตัวของเอกภพ','ลูกโป่ง = เอกภพ · วัดระยะ-ความเร็ว · กราฟ Hubble v = H·d (กิจกรรม 1.2)','astro','ม.6','vpl02',['Cosmology','Hubble']),
 ]
