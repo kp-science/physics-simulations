@@ -41,6 +41,8 @@
 - `index.html` — หน้าแรก มี Featured Demos (canvas animations) + Virtual Physics Lab 01 section + Collections (accordion)
 - `virtual-physics-lab-01.html` — หน้ารวม 22 simulations ของ VPL (ใช้ canvas previews)
 - `library.html` — หน้ารวมไฟล์ทั้งหมด มี search
+- `virtual-lab.html` — **catalog รวม Virtual Lab ทุกชุด (46) จัดตามบทเรียน สสวท.** มี filter กลุ่ม/บทเรียน/ระดับ + search + deep link (`?level=uni`, `?topic=waves`, `#g-mech`) — **ไฟล์นี้ generate จาก `_admin/labs_data.py` ด้วย `python3 _admin/build_virtual_lab.py`** (สคริปต์เขียนหมวด Virtual Lab ใน library.html ใหม่ด้วย และรัน protect ให้เอง) → **เพิ่ม lab ใหม่ = เพิ่ม entry ใน labs_data.py แล้ว build** ห้ามแก้ virtual-lab.html ตรง ๆ
+- หน้าแรก: เมนูทางลัด "🚀 ไปที่ต้องการทันที" (ใต้ topbar) และ section Virtual Lab ใช้ chips กรองตามบทเรียน (การ์ดมี `data-topic`) — ชื่อชุด VPL01/02/03 ยังคงอยู่ในระดับไฟล์/สิทธิ์ (ผู้ใช้เลือกปรับเฉพาะหน้าเว็บ)
 - `mechanics.html` — บทเรียนกลศาสตร์ (ปลดล็อก password แล้ว — free preview)
 - `Virtual Physics Lab 01/Mechacnics/` — 22 ไฟล์ simulation (มี frame-busting + back button)
 - `Virtual Physics Lab 02/` — Lab 30–45 (คลื่น · แสง · การวัด · จักรวาลวิทยา)

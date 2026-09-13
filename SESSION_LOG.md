@@ -1247,3 +1247,28 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - quick menu ใช้ `color-mix()` — Safari ≥16.2 / Chrome ≥111 รองรับ
+
+## [2026-09-13 12:30] — เครื่อง: (ไม่ระบุ) · Virtual Lab จัดตามบทเรียน สสวท. (ระดับหน้าเว็บ)
+
+### ทำอะไรไปบ้าง
+- ผู้ใช้ต้องการเลิกใช้ชื่อ "Lab 01/02/03" ในการจัดกลุ่ม → ตัดสินใจ **ปรับเฉพาะหน้าเว็บ (ระดับ 1)** เฉพาะส่วน Virtual Lab (ไม่แตะ Demo) ยึดบทเรียนตามหลักสูตร สสวท. · ไฟล์/โฟลเดอร์/access string `vlab:vplXX:*` คงเดิมทั้งหมด (ไม่กระทบ URL ที่แชร์และสิทธิ์ใน Firestore)
+- **`_admin/labs_data.py`** (ใหม่) — ข้อมูลกลาง 46 labs: access, href, เลข, ชื่อไทย, คำอธิบาย, บทเรียน (11 หัวข้อ), ระดับ (ม.4/5/6/ป.ตรี), ชุด, tags · 3 กลุ่มใหญ่ (กลศาสตร์ 28 · คลื่น-เสียง-แสง 16 · ดาราศาสตร์ 2)
+- **`_admin/build_virtual_lab.py`** (ใหม่) — generate `virtual-lab.html` + เขียนหมวด Virtual Lab ใน `library.html` ใหม่ + รัน protect_new_file อัตโนมัติ
+- **`virtual-lab.html`** (ใหม่) — catalog รวมทุกชุด: กลุ่ม → บทเรียน → การ์ด (เลข Exp/Lab, ระดับ, ป้ายชุด VPL) · filter bar sticky (กลุ่ม/บทเรียน/ระดับ/ค้นหา) · deep link `?level=uni` `?topic=` `?group=` `?q=` `#g-mech` · ลิงก์ "ดูแบบชุดเดิม" ไป VPL01/02 · kp-auth lock ทำงาน
+- **index.html** — quick menu เปลี่ยนเป็น 6 ปุ่ม: Demo · Lab กลศาสตร์ · Lab คลื่น-เสียง-แสง · Lab ดาราศาสตร์ · ปฏิบัติการ ม.(3D) · Library (ลิงก์ไป virtual-lab.html#g-… / ?level=uni) · section Virtual Lab: ยุบ 3 tab ชุด → grid เดียว 19 การ์ด + chips กรองตามบทเรียน (`filterVLab`) + ปุ่ม "ดูทั้ง 46 การทดลอง" + ปุ่มรอง "ชุด VPL 01/02" · Collections accordion เพิ่ม "Virtual Lab ทุกชุด — จัดตามบทเรียน" · `openVPL3()`/`#vpl3-panel` ยังใช้ได้ (map → กรอง "การวัด")
+- **library.html** — หมวด Virtual Lab 01/02/03 (3 หมวด, มีรายการซ้ำ SHM และขาด Exp 42/44) → หมวดเดียว "Virtual Physics Lab" 46 รายการ แบ่ง lib-sub ตาม 11 บทเรียน (generated)
+- ตรวจ: node --check ทุก inline script ผ่าน · headless Chrome: virtual-lab.html 46 การ์ด/11 บทเรียน/3 กลุ่ม, filter ?level=uni → 1/46, group=wave + ค้น "เลนส์" → 2/46 · หน้าแรก quick menu 6 ปุ่ม, chips 9 อัน
+
+### ไฟล์ที่แก้
+- `virtual-lab.html` (ใหม่, generated) · `_admin/labs_data.py` (ใหม่) · `_admin/build_virtual_lab.py` (ใหม่)
+- `index.html` — quick menu, VPL section, accordion, JS `filterVLab`
+- `library.html` — หมวด Virtual Lab (generated block)
+- `CLAUDE.md` — โครงสร้าง + กติกา "เพิ่ม lab ใหม่ = แก้ labs_data.py แล้ว build"
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ⚠️ ทดสอบ in-app browser ไม่ได้ในรอบนี้ (มี popup Google sign-in ค้างอยู่ใน Browser pane ที่ agent ปิดไม่ได้) → ใช้ headless Chrome แทน · ควรเปิดดูจริงอีกครั้งบนมือถือ
+- หน้า `virtual-physics-lab-01.html` / `-02.html` (catalog แบบชุด) ยังคงอยู่และยังไม่มี Lab 42/44 ของ VPL02 ในหน้า index cards (มีใน virtual-lab.html แล้ว)
+- ยังไม่ได้เพิ่ม `vlab:vpl03:*` ใน Firestore anonymous_access (งานของ admin)
+
+### หมายเหตุ
+- ถ้าจะทำ "ระดับ 2" (สิทธิ์แบบ topic:*) หรือ "ระดับ 3" (ย้ายไฟล์ตามหัวข้อ) ในอนาคต — labs_data.py คือจุดเริ่มต้น (มี topic ของทุก lab แล้ว)
