@@ -49,7 +49,7 @@ nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0
 .diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
 .diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
 .diag-wrap .diag-head b{color:var(--accent5)}
-#diagCanvas{width:100%;height:230px;background:#0c1424;border-radius:8px;display:block;touch-action:none;cursor:ew-resize}
+#diagCanvas{width:100%;height:260px;background:#0c1424;border-radius:8px;display:block;touch-action:none;cursor:ew-resize}
 
 .sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
 .panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
@@ -595,28 +595,26 @@ function drawDiag(){
   // axis
   c.strokeStyle='rgba(148,163,184,.35)'; c.setLineDash([4,4]); c.beginPath(); c.moveTo(BL,AY); c.lineTo(BR,AY); c.stroke(); c.setLineDash([]);
   // mirror (arc, concave to the left) — drawn to scale: R in cm, chord = MIRROR_AP
-  const mx=cm2px(mirrorCm), Rpx=R/100*BW, half=hpx(MIRROR_AP/2), sag=Rpx-Math.sqrt(Math.max(0,Rpx*Rpx-Math.pow(MIRROR_AP/2/100*BW,2)));
-  c.strokeStyle='#38bdf8'; c.lineWidth=4; c.beginPath(); c.moveTo(mx+sag*VSCALE*0+0, AY-half); c.quadraticCurveTo(mx-2, AY, mx, AY+half); c.stroke();   // ผิวสะท้อน (โค้งเข้าทางซ้ายเล็กน้อยตามสายตา)
-  c.strokeStyle='#1e3a5f'; c.lineWidth=2; for(let y=-half;y<=half;y+=8){ c.beginPath(); c.moveTo(mx+2,AY+y); c.lineTo(mx+7,AY+y+5); c.stroke(); }   // ด้านหลังกระจก (hatch)
-  c.fillStyle='#374151'; c.fillRect(mx-1.5,AY+half,3,BY-AY-half); c.fillRect(mx-10,BY-2,20,4);
+  const mx=cm2px(mirrorCm), half=hpx(MIRROR_AP/2);
+  // กระจกเว้าหันหน้าไปทางซ้าย: จุดยอดอยู่ที่ mx ขอบบน-ล่างเบนไปทางซ้าย (รูป ")") — ขยาย sagitta ให้เห็นความเว้าชัด
+  const sag=Math.max(12, Math.min(half*0.45, (R - Math.sqrt(Math.max(0,R*R-(MIRROR_AP/2)**2)))/100*BW*VSCALE*4));
+  const mirrorX = y => mx - sag*Math.pow(y/half,2);          // x ของผิวกระจกที่ความสูง y (พาราโบลาใกล้เคียงวงกลม)
+  c.strokeStyle='#38bdf8'; c.lineWidth=4; c.beginPath(); c.moveTo(mirrorX(-half),AY-half); c.quadraticCurveTo(mx+sag,AY,mirrorX(half),AY+half); c.stroke();
+  c.strokeStyle='#1e3a5f'; c.lineWidth=2; for(let y=-half;y<=half;y+=8){ const x=mirrorX(y); c.beginPath(); c.moveTo(x+2,AY+y); c.lineTo(x+8,AY+y+5); c.stroke(); }   // ด้านหลัง (hatch)
   c.fillStyle='#38bdf8'; c.font='bold 10px Sarabun'; c.textAlign='center'; c.fillText('กระจกเว้า',mx,AY-half-8);
   // F and C markers
-  [[mirrorCm-f,'F','#facc15'],[mirrorCm-R,'C (2F)','#fb923c']].forEach(([cm,l,col])=>{ if(cm<0) return; const x=cm2px(cm); c.fillStyle=col; c.beginPath(); c.moveTo(x,AY+2); c.lineTo(x-4,AY+9); c.lineTo(x+4,AY+9); c.closePath(); c.fill(); c.font='9px "Share Tech Mono"'; c.fillText(l,x,AY+19); });
+  if(!(mode==='manual' && part==='A')) [[mirrorCm-f,'F','#facc15'],[mirrorCm-R,'C (2F)','#fb923c']].forEach(([cm,l,col])=>{ if(cm<0) return; const x=cm2px(cm); c.fillStyle=col; c.beginPath(); c.moveTo(x,AY+2); c.lineTo(x-4,AY+9); c.lineTo(x+4,AY+9); c.closePath(); c.fill(); c.font='9px "Share Tech Mono"'; c.fillText(l,x,AY+19); });
   // Part A: parallel rays
   if(mode==='manual' && part==='A'){
-    const focus=cm2px(mirrorCm-f), sx=cm2px(screenCm);
-    c.strokeStyle='rgba(250,220,80,.75)'; c.lineWidth=1.2;
-    for(let k=-3;k<=3;k++){ const y=AY+hpx(k*1.1); c.beginPath(); c.moveTo(BL,y); c.lineTo(mx,y); c.stroke();
-      // reflected: from (mx,y) through focus (focus,AY), continue until screen if screen between, else to left edge
-      const slope=(AY-y)/(focus-mx); let xe = (sx<mx && sx>BL) ? sx : BL; const ye=y+slope*(xe-mx); c.beginPath(); c.moveTo(mx,y); c.lineTo(xe,ye); c.stroke(); }
-    c.fillStyle='rgba(255,220,80,.7)'; c.beginPath(); c.arc(BL+10,AY,7,0,Math.PI*2); c.fill(); c.font='9px Sarabun'; c.fillText('☀ แสงขนาน',BL+14,AY-12);
+    // โหมดวัดเอง: ไม่วาดรังสี (จะเฉลยตำแหน่ง F) — นักเรียนหาโฟกัสจากวงแสงบนจอ
+    const glow=c.createLinearGradient(BL,0,mx,0); glow.addColorStop(0,'rgba(255,230,120,.10)'); glow.addColorStop(1,'rgba(255,230,120,.03)'); c.fillStyle=glow; c.fillRect(BL,AY-half,mx-BL,2*half);
+    c.fillStyle='rgba(255,220,80,.8)'; c.beginPath(); c.arc(BL+10,AY,7,0,Math.PI*2); c.fill(); c.font='9px Sarabun'; c.textAlign='left'; c.fillText('☀ แสงอาทิตย์ (แสงขนาน) →',BL+22,AY-10); c.textAlign='center';
     drawScreen2D(cm2px(screenCm));
     drawPosLabel(cm2px(screenCm), screenCm, '#d1d5db', 12);
   } else {
     // object
     const ox=cm2px(oCm), oh=hpx(objHeightCm);
     drawArrow2D(ox, AY, -oh, '#fb923c', 3); c.fillStyle='#fb923c'; c.font='bold 10px Sarabun'; c.textAlign='center'; c.fillText('วัตถุ',ox,AY-oh-8);
-    c.fillStyle='#78350f'; c.fillRect(ox-1.5,AY,3,BY-AY); c.fillRect(ox-9,BY-2,18,4);
     drawPosLabel(ox, oCm, '#fb923c', 12);
     const showRays = mode==='auto';
     if(showRays && isFinite(res.d_i)){
@@ -637,7 +635,7 @@ function drawDiag(){
       else { c.setLineDash([4,3]); c.globalAlpha=.6; c.beginPath(); c.moveTo(mx,yAtM3); c.lineTo(imgX,imgTip); c.stroke(); c.setLineDash([]); c.globalAlpha=1; }
       // image
       c.setLineDash(res.d_i<0?[5,3]:[]); drawArrow2D(imgX, AY, imgTip-AY, '#f472b6', 2.5); c.setLineDash([]);
-      c.fillStyle='#f472b6'; c.font='9px Sarabun'; c.fillText(res.d_i>0?'ภาพจริง':'ภาพเสมือน', imgX, res.d_i>0? imgTip+12 : imgTip-6);
+      c.fillStyle='#f472b6'; c.font='9px Sarabun'; c.fillText(res.d_i>0?'ภาพจริง':'ภาพเสมือน (หลังกระจก)', imgX, res.d_i>0? Math.min(imgTip,BY-AY-18+AY)+12 : AY+14);
       // d labels
       c.strokeStyle='#fb923c'; c.lineWidth=1; c.beginPath(); c.moveTo(ox,BY-12); c.lineTo(mx,BY-12); c.stroke(); c.fillStyle='#fb923c'; c.font='9px "Share Tech Mono"'; c.fillText('d_o = '+fmt(d_o,1),(ox+mx)/2,BY-16);
       if(imgX>BL-5 && imgX<BR+5){ c.strokeStyle='#f472b6'; c.beginPath(); c.moveTo(imgX,BY-30); c.lineTo(mx,BY-30); c.stroke(); c.fillStyle='#f472b6'; c.fillText('d_i = '+fmt(res.d_i,1),(imgX+mx)/2,BY-34); }
@@ -645,7 +643,8 @@ function drawDiag(){
     if(mode==='manual'){
       if(res.type==='real' || res.type==='none'){ drawScreen2D(cm2px(screenCm)); drawPosLabel(cm2px(screenCm), screenCm, '#d1d5db', 24);
         if(res.type==='real'){ const ideal=mirrorCm-res.d_i, s=sharpnessScreen(ideal); const ih=hpx(Math.abs(res.M)*objHeightCm); const sx=cm2px(screenCm)-5; c.globalAlpha=.25+.75*s; if(s<.5){ c.globalAlpha=.25; } drawArrow2D(sx, AY, Math.min(ih,140), '#f472b6', 2.5); c.globalAlpha=1; } }
-      else { drawEye2D(cm2px(eyeCm)); drawPosLabel(cm2px(eyeCm), eyeCm, '#a78bfa', 24); }
+      else { drawEye2D(cm2px(eyeCm)); drawPosLabel(cm2px(eyeCm), eyeCm, '#a78bfa', 24);
+        if(res.type==='virtual' && eyeCm < objCm){ const imgX=cm2px(mirrorCm-res.d_i), ih=hpx(Math.abs(res.M)*objHeightCm); c.setLineDash([5,3]); c.globalAlpha=.75; drawArrow2D(imgX, AY, -Math.min(ih,150), '#a78bfa', 2.5); c.setLineDash([]); c.globalAlpha=1; c.fillStyle='#a78bfa'; c.font='9px Sarabun'; c.textAlign='center'; c.fillText('ภาพเสมือน (หัวตั้ง หลังกระจก)', imgX, AY+14); drawPosLabel(imgX, mirrorCm-res.d_i, '#a78bfa', 36); } }
     }
   }
   drawPosLabel(mx, mirrorCm, '#38bdf8', 0);
@@ -655,9 +654,9 @@ function rayFrom(c, x0, y0, xThru, yThru, xEnd, color, opt){
   const s=(yThru-y0)/(xThru-x0); c.strokeStyle=color; c.beginPath(); c.moveTo(x0,y0); c.lineTo(xEnd, y0+s*(xEnd-x0)); c.stroke();
   if(opt && opt.dashTo){ c.setLineDash([4,3]); c.globalAlpha=.6; c.beginPath(); c.moveTo(x0,y0); c.lineTo(opt.dashTo[0], y0+s*(opt.dashTo[0]-x0)); c.stroke(); c.setLineDash([]); c.globalAlpha=1; }
 }
-function drawArrow2D(x, baseY, dy, color, w){ const c=dctx; c.strokeStyle=color; c.fillStyle=color; c.lineWidth=w; c.beginPath(); c.moveTo(x,baseY); c.lineTo(x,baseY+dy); c.stroke(); const d=Math.sign(dy)||-1; c.beginPath(); c.moveTo(x,baseY+dy+d*4); c.lineTo(x-5,baseY+dy-d*7); c.lineTo(x+5,baseY+dy-d*7); c.closePath(); c.fill(); }
-function drawScreen2D(x){ const c=dctx, h=hpx(SCREEN_H/2); c.fillStyle='#d1d5db'; c.fillRect(x-3,AY-h,6,2*h); c.fillStyle='#374151'; c.fillRect(x-1.5,AY+h,3,BY-AY-h); c.fillRect(x-9,BY-2,18,4); c.fillStyle='#d1d5db'; c.font='bold 9px Sarabun'; c.textAlign='center'; c.fillText('จอ',x,AY-h-6); }
-function drawEye2D(x){ const c=dctx; c.fillStyle='#a78bfa'; c.beginPath(); c.ellipse(x,AY,12,7,0,0,Math.PI*2); c.fill(); c.fillStyle='#1e1b4b'; c.beginPath(); c.arc(x+3,AY,4,0,Math.PI*2); c.fill(); c.fillStyle='#a78bfa'; c.font='bold 9px Sarabun'; c.textAlign='center'; c.fillText('👁 ตา',x,AY-12); c.fillStyle='#4c1d95'; c.fillRect(x-1.5,AY+7,3,BY-AY-7); c.fillRect(x-9,BY-2,18,4); }
+function drawArrow2D(x, baseY, dy, color, w){ const c=dctx; dy = Math.max(-(AY-14), Math.min(BY-AY-18, dy)); /* ไม่ให้ลูกศรทะลุขอบแผนภาพ */ c.strokeStyle=color; c.fillStyle=color; c.lineWidth=w; c.beginPath(); c.moveTo(x,baseY); c.lineTo(x,baseY+dy); c.stroke(); const d=Math.sign(dy)||-1; c.beginPath(); c.moveTo(x,baseY+dy+d*4); c.lineTo(x-5,baseY+dy-d*7); c.lineTo(x+5,baseY+dy-d*7); c.closePath(); c.fill(); }
+function drawScreen2D(x){ const c=dctx, h=Math.min(hpx(SCREEN_H/2), AY-16); c.fillStyle='#d1d5db'; c.fillRect(x-3,AY-h,6,2*h); c.fillStyle='#d1d5db'; c.font='bold 9px Sarabun'; c.textAlign='center'; c.fillText('จอ',x,AY-h-6); }
+function drawEye2D(x){ const c=dctx; c.fillStyle='#a78bfa'; c.beginPath(); c.ellipse(x,AY,12,7,0,0,Math.PI*2); c.fill(); c.fillStyle='#1e1b4b'; c.beginPath(); c.arc(x+3,AY,4,0,Math.PI*2); c.fill(); c.fillStyle='#a78bfa'; c.font='bold 9px Sarabun'; c.textAlign='center'; c.fillText('👁 ตา',x,AY-12); }
 function drawPosLabel(x, cm, color, yOff){ const c=dctx; c.fillStyle=color; c.font='bold 9px "Share Tech Mono"'; c.textAlign='center'; c.fillText(fmt(cm,1)+' cm', x, BY-40-yOff); }
 
 /* ── ruler on 2D diagram ── */
@@ -797,8 +796,10 @@ function update3D(){
   while(rayGroup.children.length){ const c=rayGroup.children.pop(); c.geometry.dispose(); c.material.dispose(); }
   while(imgArrow3D.children.length){ const c=imgArrow3D.children.pop(); if(c.geometry) c.geometry.dispose(); }
   if(partA){
-    const focus=mirrorCm-fTrue;
-    for(let k=-3;k<=3;k++){ const y=k*1.1; rayGroup.add(line3([[-5,y,0],[mirrorCm,y,0]],0xfde68a,false,.7)); const s=(0-y)/(focus-mirrorCm); const xe=(screenCm<mirrorCm)?screenCm:-5; rayGroup.add(line3([[mirrorCm,y,0],[xe,y+s*(xe-mirrorCm),0]],0xfde68a,false,.7)); }
+    // ไม่วาดรังสีในโหมดวัดเอง (จะเฉลย F) — มีเพียงดวงอาทิตย์และแสงสว่างบนจอ
+  } else if(mode==='manual' && res.type==='virtual' && eyeCm < objCm){
+    const imgX=mirrorCm-res.d_i, ih=Math.abs(res.M)*objHeightCm, mat=new THREE.MeshStandardMaterial({color:0xa78bfa,emissive:0x4c1d95,emissiveIntensity:.5,transparent:true,opacity:.45});
+    const sh=new THREE.Mesh(new THREE.BoxGeometry(.4,Math.max(.1,ih-1),1),mat); sh.position.set(imgX,(ih-1)/2,0); const hd=new THREE.Mesh(new THREE.ConeGeometry(.8,1.2,4),mat); hd.rotation.y=Math.PI/4; hd.position.set(imgX,ih-.6,0); imgArrow3D.add(sh); imgArrow3D.add(hd);
   } else if(mode==='auto' && isFinite(res.d_i)){
     const tip=objHeightCm, F=mirrorCm-f, C=mirrorCm-R, imgX=mirrorCm-res.d_i, imgTip= res.d_i>0 ? -Math.abs(res.M)*objHeightCm : Math.abs(res.M)*objHeightCm;
     rayGroup.add(line3([[oCm,tip,0],[mirrorCm,tip,0]],0xef4444));
