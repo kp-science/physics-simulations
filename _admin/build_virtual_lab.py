@@ -38,6 +38,7 @@ def build_page():
 {''.join(card(l) for l in labs)}  </div>
 </section>
 '''
+    level_chips=''.join(f'<button class="fchip" data-f="level" data-v="{LEVEL_KEY[lv]}" onclick="setFilter(this)">{esc(lv)}</button>' for lv in ['ม.4','ม.5','ม.6','ปริญญาตรี'] if any(l[6]==lv for l in LABS))
     topic_chips=''.join(f'<button class="fchip" data-f="topic" data-v="{t[0]}" onclick="setFilter(this)">{t[1]} {esc(t[2])}</button>' for t in TOPICS if by_topic[t[0]])
     total=len(LABS)
     return f'''<!DOCTYPE html>
@@ -125,10 +126,7 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
   <div class="frow"><span class="flabel">บทเรียน</span>{topic_chips}</div>
   <div class="frow"><span class="flabel">ระดับ</span>
     <button class="fchip active" data-f="level" data-v="all" onclick="setFilter(this)">ทุกระดับ</button>
-    <button class="fchip" data-f="level" data-v="m4" onclick="setFilter(this)">ม.4</button>
-    <button class="fchip" data-f="level" data-v="m5" onclick="setFilter(this)">ม.5</button>
-    <button class="fchip" data-f="level" data-v="m6" onclick="setFilter(this)">ม.6</button>
-    <button class="fchip" data-f="level" data-v="uni" onclick="setFilter(this)">ปริญญาตรี · 3D</button>
+    {level_chips}
     <span class="fcount" id="fcount">{total} / {total}</span>
   </div>
 </div></div>

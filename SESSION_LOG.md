@@ -1288,3 +1288,9 @@ match /settings/{docId} {
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
 - เพิ่ม `vlab:vpl03:*` ใน anonymous_access (admin panel) — ยังค้าง
 - (ทางเลือกอนาคต) ระดับ 2: สิทธิ์แบบ `topic:*` ถ้าจะขายแพ็กเกจตามบทเรียน
+
+## [2026-09-13 13:40] — ระดับ Lab การวัด 3D = ม.4
+- ผู้ใช้แจ้งว่าเวอร์เนียร์/ไมโครมิเตอร์ (VPL03 Lab 1) สอนที่ ม.4 → `labs_data.py` level 'ปริญญาตรี' → 'ม.4' (tags: 3D, วงแหวนโลหะ) · rebuild ทั้ง virtual-lab.html / library / admin LAB_META
+- virtual-lab.html: chip ระดับ generate เฉพาะระดับที่มี lab จริง (ตอนนี้ ม.4/ม.5/ม.6 — "ปริญญาตรี" หายไปอัตโนมัติ ถ้ามี lab ระดับนั้นในอนาคตจะกลับมาเอง)
+- index.html: ปุ่ม quick menu "ปฏิบัติการ ม. (3D)" → "📐 Lab การวัด 3D" (→ `virtual-lab.html?topic=measure`, 3 การทดลอง) · accordion VPL03 → ?topic=measure · การ์ดหน้าแรก dc-topic "การวัด · ม.4 · 3D"
+- หมายเหตุ: ชุด VPL03 ยังชื่อ "ปฏิบัติการฟิสิกส์ ม." ในไฟล์ lab (อ้างอิงที่มาคู่มือ) — ไม่ได้แก้
