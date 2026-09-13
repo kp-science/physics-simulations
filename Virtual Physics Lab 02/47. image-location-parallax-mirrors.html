@@ -189,6 +189,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
           <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
         </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetAll()">↺ รีเซตค่า — วางเข็มและสายตาใหม่ให้นักเรียนปรับเอง</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ</div>
       </div>
       <div class="panel-section">
         <div class="panel-title">🪞 ชนิดกระจก</div>
@@ -280,6 +282,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li><b>มุมเฉียง / มุมข้าง:</b> ดูการจัดอุปกรณ์ทั้งหมด หมุนมุมมองได้ · ลากเข็มในภาพเพื่อเลื่อนตามม้านั่ง</li>
       <li><b>กระจกทุกแบบสะท้อนแสงจริงด้วยการคำนวณรังสี</b> (ray tracing บนผิวโค้งทรงกลม) — ภาพในกระจกจึงอยู่ที่ตำแหน่งจริงตามฟิสิกส์ และมีพาราแลกซ์เมื่อสายตาขยับ</li>
       <li><b>สไลเดอร์ตำแหน่ง</b> ในแผงขวา = อ่านค่าจากสเกลม้านั่ง (ละเอียด 0.1 cm) · ลากเข็มในแผนภาพด้านล่างได้เช่นกัน (จับที่ตัวหมุด — แม้ O กับ S อยู่ตำแหน่งเดียวกันก็เลือกจับได้ เพราะ O อยู่ล่าง S อยู่บน)</li>
+      <li><b>↺ รีเซตค่า</b> คืนตำแหน่งเข็ม สายตา และมุมมองเป็นค่าเริ่มต้นให้เริ่มปรับใหม่ (ตารางบันทึกผลยังอยู่)</li>
       <li><b>โหมดวัดเอง</b> สุ่มความยาวโฟกัสและไม่แสดงตำแหน่งภาพ · <b>โหมดอัตโนมัติ</b> แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพให้ดู</li>
     </ul>
 
@@ -392,9 +395,17 @@ function eyeDist(){ if(!autoEye) return eyeD; const u=uNow(); const sf=(isFinite
 
 /* ── UI ── */
 function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
-function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual'))); $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); $('posSection').classList.toggle('hidden',m==='auto'); $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพ' : 'โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์'; if(m==='manual'&&!isFinite(sCm)) sCm=80; applyTypeUI(); drawAll(); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual'))); $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); $('posSection').classList.toggle('hidden',m==='auto'); $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงรังสี ตำแหน่งภาพ และวาง S ที่ภาพ' : 'โหมดวัดเอง: ไม่แสดงตำแหน่งภาพ — หาเองด้วยวิธีพาราแลกซ์'; if(m==='manual'){ oCm = mtype==='concave'?25:35; sCm = mtype==='concave'?30:80; syncPosUI(); }   /* กลับจากโหมดอัตโนมัติ: ไม่ให้ S ค้างที่ตำแหน่งภาพ (เฉลย) */ applyTypeUI(); drawAll(); }
 function setType(t){ mtype=t; document.querySelectorAll('#typeBtns button').forEach((b,i)=>b.classList.toggle('active',['plane','concave','convex'][i]===t)); if(mode==='manual'){ oCm=t==='concave'?25:35; sCm=t==='concave'?30:80; } applyTypeUI(); buildMirror(); drawAll(); }
 function applyTypeUI(){ $('rowAutoF').classList.toggle('hidden',mtype==='plane'); $('btnRandomF').classList.toggle('hidden',mtype==='plane'); $('graphSection').classList.toggle('hidden',mtype==='plane'); autoLayout(); syncPosUI(); renderTable(); drawGraph(); }
+function resetAll(){
+  /* คืนค่าเริ่มต้น: ตำแหน่งเข็ม · สายตา · มุมมอง · ตัวแปรโหมดอัตโนมัติ (ไม่ลบตาราง ไม่เปลี่ยน f ของกระจก) */
+  if(mode==='manual'){ oCm = mtype==='concave'?25:35; sCm = mtype==='concave'?30:80; }
+  else { $('sl-u').value=20; $('vi-u').value=20; $('sl-f').value=12; $('vi-f').value=12; $('cbOffset').checked=false; buildMirror(); }
+  eyeLat=2.0; autoEye=true; $('cbAutoEye').checked=true; eyeD=70;
+  if(sway) toggleSway(); swayT=0;
+  setView('eye'); syncPosUI(); drawAll(); drawGraph();
+}
 function randomizeF(){ const a=Math.round((9+Math.random()*7)*2)/2; fTrue.concave=a; fTrue.convex=-(Math.round((9+Math.random()*7)*2)/2); buildMirror(); drawAll(); renderTable(); }
 function toggleSway(){ sway=!sway; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.toggle('active',sway)); if(sway&&curView!=='eye') setView('eye'); }
 function syncPosUI(){ $('sl-o').value=oCm; $('vi-o').value=oCm.toFixed(1); if(isFinite(sCm)){ $('sl-s').value=sCm; $('vi-s').value=sCm.toFixed(1); } $('sl-lat').value=eyeLat; $('vi-lat').value=eyeLat.toFixed(1); const d=eyeDist(); $('sl-eyed').value=d; $('vi-eyed').value=Math.round(d); }
