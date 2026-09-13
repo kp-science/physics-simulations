@@ -713,7 +713,7 @@ const w2=(cm)=>({x:cm.x-PW/2, z:cm.y-PH/2});   // cm บนกระดาษ �
 const GLASS_VERT=`uniform vec3 uSize; varying vec3 vViewPos; varying vec3 vNormalV; varying float vThick;
 void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vViewPos=mv.xyz; vNormalV=normalize(normalMatrix*normal); vThick=dot(abs(normal),uSize); gl_Position=projectionMatrix*mv; }`;
 const GLASS_FRAG=`#include <packing>
-uniform sampler2D tScene; uniform sampler2D tDepth; uniform mat4 uProj; uniform mat4 uInvView; uniform float cameraNear; uniform float cameraFar; uniform float uIor; uniform vec3 uTint; uniform vec3 uBg;
+uniform sampler2D tScene; uniform sampler2D tDepth; uniform mat4 uProj; uniform mat4 uInvView; uniform vec2 uRes; uniform float cameraNear; uniform float cameraFar; uniform float uIor; uniform vec3 uTint; uniform vec3 uBg;
 varying vec3 vViewPos; varying vec3 vNormalV; varying float vThick;
 vec2 uvOf(vec3 p){ vec4 c=uProj*vec4(p,1.0); return clamp((c.xy/c.w)*0.5+0.5, 0.001, 0.999); }
 float viewZAt(vec2 uv){ return perspectiveDepthToViewZ(texture2D(tDepth,uv).x, cameraNear, cameraFar); }
@@ -732,7 +732,13 @@ void main(){
   for(int i=1;i<=48;i++){ if(found) break; float sI=sPaper*float(i)/48.0; vec3 pI=exitP+d*sI; vec2 uvI=uvOf(pI); float zI=viewZAt(uvI);
     if(zI < vViewPos.z-0.02 && zI > pI.z && (zI-pI.z) < 1.5){ uv=uvI; found=true; } }
   vec4 tex=texture2D(tScene,uv); vec3 col=mix(uBg,tex.rgb,tex.a);
-  if(!found){ vec3 pP=exitP+d*sPaper; if(viewZAt(uvPaper) > pP.z+0.4) col=mix(uBg,vec3(0.93,0.91,0.86),0.9); }   /* จุดบนกระดาษถูกบังใน buffer (หมุดหลังแก้วที่รังสีนี้ไม่ได้ชนจริง หรือหมุดหน้าแก้ว) → ใช้สีกระดาษ ไม่ให้เกิดภาพซ้อน */
+  if(!found){ vec3 pP=exitP+d*sPaper; if(viewZAt(uvPaper) > pP.z+0.4){
+    /* จุดบนกระดาษถูกหมุดบังใน buffer → หาพิกเซลกระดาษที่ไม่ถูกบังข้าง ๆ (หมุดบางไม่กี่พิกเซล) เพื่อให้สีกลมกลืน ไม่เกิดรอย */
+    bool ok=false; vec3 alt=mix(uBg,vec3(0.93,0.91,0.86),0.9);
+    for(int j=1;j<=8;j++){ if(ok) break; vec2 o=vec2(3.0*float(j)/uRes.x,0.0);
+      vec2 uA=clamp(uvPaper+o,0.001,0.999); if(viewZAt(uA) <= pP.z+0.4){ vec4 tA=texture2D(tScene,uA); alt=mix(uBg,tA.rgb,tA.a); ok=true; }
+      else { vec2 uB=clamp(uvPaper-o,0.001,0.999); if(viewZAt(uB) <= pP.z+0.4){ vec4 tB=texture2D(tScene,uB); alt=mix(uBg,tB.rgb,tB.a); ok=true; } } }
+    col=alt; } }
   float fres=pow(1.0-max(dot(-v,n),0.0),3.0);
   col=mix(col*uTint, vec3(0.85,0.92,1.0), 0.08+0.35*fres);
   gl_FragColor=vec4(col,1.0);
@@ -748,7 +754,7 @@ function init3D(){
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),new THREE.MeshStandardMaterial({map:paperTex,roughness:.9})); paper.rotation.x=-Math.PI/2; scene.add(paper); P.paper=paper;
   // แท่งแก้ว (shader หักเห) + render target สำหรับฉากหลัง
   rt=new THREE.WebGLRenderTarget(4,4,{depthTexture:new THREE.DepthTexture(4,4),depthBuffer:true});
-  glassMat=new THREE.ShaderMaterial({vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,side:THREE.FrontSide,uniforms:{tScene:{value:rt.texture},tDepth:{value:rt.depthTexture},uProj:{value:camera.projectionMatrix},cameraNear:{value:camera.near},cameraFar:{value:camera.far},uIor:{value:1.52},uSize:{value:new THREE.Vector3(GR-GL,BH,GB-GT)},uInvView:{value:new THREE.Matrix4()},uTint:{value:new THREE.Color(0.9,0.95,1)},uBg:{value:new THREE.Color(0x0f1626)}}});
+  glassMat=new THREE.ShaderMaterial({vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,side:THREE.FrontSide,uniforms:{tScene:{value:rt.texture},tDepth:{value:rt.depthTexture},uProj:{value:camera.projectionMatrix},cameraNear:{value:camera.near},cameraFar:{value:camera.far},uIor:{value:1.52},uSize:{value:new THREE.Vector3(GR-GL,BH,GB-GT)},uInvView:{value:new THREE.Matrix4()},uRes:{value:new THREE.Vector2(1,1)},uTint:{value:new THREE.Color(0.9,0.95,1)},uBg:{value:new THREE.Color(0x0f1626)}}});
   P.glass=new THREE.Mesh(new THREE.BoxGeometry(GR-GL,BH,GB-GT),glassMat); P.glass.position.set(0,BH/2,0); scene.add(P.glass);
   const edges=new THREE.LineSegments(new THREE.EdgesGeometry(P.glass.geometry),new THREE.LineBasicMaterial({color:0xe0ecff,transparent:true,opacity:.7})); P.glass.add(edges);
   // หมุด 4 ตัว
@@ -765,7 +771,7 @@ function update3D(){
   const all=mode==='manual'?incPins.concat(emPins):[]; pinObjs.forEach((g,i)=>{ const p=all[i]; if(p&&(i<2||i-2<emPins.length)){ const w=w2(p); g.position.set(w.x,0,w.z); g.visible=true; } else g.visible=false; });
 }
 function eyeTarget(){ const sl=sightLine(); if(sl){ const x=w2(sl.exit); return new THREE.Vector3(x.x,1.1,x.z); } return new THREE.Vector3(0,1.0,-(GB-GT)/2); }
-function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); const pr=renderer.getPixelRatio(); rt.setSize(Math.round(w*pr),Math.round(h*pr)); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); const pr=renderer.getPixelRatio(); rt.setSize(Math.round(w*pr),Math.round(h*pr)); if(glassMat) glassMat.uniforms.uRes.value.set(Math.round(w*pr),Math.round(h*pr)); }
 function updateCamera(){ const t=cam.target; camera.position.set(t.x+cam.dist*Math.sin(cam.az)*Math.cos(cam.el),t.y+cam.dist*Math.sin(cam.el),t.z+cam.dist*Math.cos(cam.az)*Math.cos(cam.el)); camera.lookAt(t); }
 function setView(v){ curView=v; applyView(); }
 function applyView(){
