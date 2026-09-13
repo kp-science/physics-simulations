@@ -1294,3 +1294,9 @@ match /settings/{docId} {
 - virtual-lab.html: chip ระดับ generate เฉพาะระดับที่มี lab จริง (ตอนนี้ ม.4/ม.5/ม.6 — "ปริญญาตรี" หายไปอัตโนมัติ ถ้ามี lab ระดับนั้นในอนาคตจะกลับมาเอง)
 - index.html: ปุ่ม quick menu "ปฏิบัติการ ม. (3D)" → "📐 Lab การวัด 3D" (→ `virtual-lab.html?topic=measure`, 3 การทดลอง) · accordion VPL03 → ?topic=measure · การ์ดหน้าแรก dc-topic "การวัด · ม.4 · 3D"
 - หมายเหตุ: ชุด VPL03 ยังชื่อ "ปฏิบัติการฟิสิกส์ ม." ในไฟล์ lab (อ้างอิงที่มาคู่มือ) — ไม่ได้แก้
+
+## [2026-09-13 14:10] — Lab 35 bugfix: ภาพจริงต้องกลับหัว
+- ผู้ใช้พบว่า Lab 35 (เลนส์นูน) วาดภาพจริงเป็นหัวตั้ง → สาเหตุ: ไฟล์ใช้ convention ไทย M = d_i/d_o (M > 0 = ภาพจริง) แต่โค้ดวาดใช้ `inverted = M < 0` (convention สากล) ทั้ง 2 จุด: กล่อง "ภาพบนจอ" (`drawScreenInset`, บรรทัด ~1162) และลูกศรภาพบนม้านั่งโหมด Auto (`drawAutoMode`, ~1489) → แก้เป็น `M > 0`
+- ตรวจด้วย headless Chrome (test copy บังคับ Part B d_o=20,f=10 และ Auto d_o=25): ภาพจริงกลับหัวทั้ง 2 ที่ · ตารางทฤษฎี/ข้อความในไฟล์ถูกอยู่แล้ว ("จริง = กลับหัว")
+- Lab 36 (เลนส์เว้า) ตรวจแล้ววาดภาพเสมือนหัวตั้งถูกต้อง (`imgTipY = ay - imgH`) ไม่ต้องแก้
+- ไฟล์ที่แก้: `Virtual Physics Lab 02/35. images-converging-lenses.html`
