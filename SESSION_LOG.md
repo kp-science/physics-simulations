@@ -1315,3 +1315,19 @@ match /settings/{docId} {
 - breakpoint แผงควบคุม 800 → 900 px เพื่อให้ iPad แนวตั้ง (820 px) วางแผงใต้แคนวาส แคนวาสกว้างเต็ม กล่อง inset ไม่บังเลนส์
 - ตรวจ headless: Part A, 2f, 1.5f (+ไม้บรรทัดแนวตั้งอ่าน 3.0 cm ถูก), ภาพเสมือน, Auto, iPad 820×1180 ✓ · ทั้งหน้าพอดี 900 px ไม่ต้องเลื่อนหาตาราง
 - Lab 36 ยังไม่ปรับ (รอผู้ใช้พอใจ Lab 35 ก่อน)
+
+## [2026-09-13 17:30] — NEW Lab 46 (VPL02) ภาพจากกระจกเว้า 3D
+### ทำอะไรไปบ้าง
+- สร้าง `Virtual Physics Lab 02/46. images-concave-mirror.html` (≈100 KB) โครงเดียวกับ Lab 35: Part A หาโฟกัสด้วยแสงขนาน (สุ่ม f 6–22) · Part B ศึกษาภาพ (จริง→จอ / เสมือน→ตา) · โหมดวัดเอง (ดีฟอลต์, ไม่โชว์รังสี/ภาพ) / อัตโนมัติ (รังสีหลัก 3 เส้น + ภาพ + กราฟ 1/d_o–1/d_i) · ตาราง A/B/Auto + CSV · ไม้บรรทัด ↔/↕ · ทฤษฎี 4 canvas (f=R/2, รังสี 3 เส้นแบบโต้ตอบ, 5 กรณี, กราฟ)
+- **3D (three.js r128):** ม้านั่ง 100 cm มีสเกล · กระจกเว้าเป็น spherical cap R=2f (ผิวสะท้อน metalness 1) · วัตถุลูกศรเรืองแสง · จอ (CanvasTexture: วงแสง Part A / ภาพจริงกลับหัวสเกลจริง |M|·h เบลอเมื่อไม่โฟกัส) · ตา · ดวงอาทิตย์+รังสีขนาน · รังสี 3 เส้นเป็น THREE.Line · ลากอุปกรณ์ในภาพ (raycast) · ปุ่มมุมข้าง/เฉียง/จากตา (มองเข้ากระจกเห็นภาพเสมือน)
+- **แผนภาพรังสี 2D ตามสเกล** ใต้ภาพ 3D (VSCALE 2.5) ลากอุปกรณ์/ไม้บรรทัดได้ · กล่อง inset (วงแสง/ภาพบนจอ/มุมมองตา + วัตถุอ้างอิง) **อยู่ในเฟรม 3D** ตามที่ผู้ใช้ต้องการสำหรับ iPad
+- convention ไทย: d_i>0 จริง (หน้ากระจก) M=d_i/d_o>0 กลับหัว · ตรวจ 5 กรณี (2f→M=1 ที่ 2f, 1.5f→M=2, d_o<f→เสมือน 2.5×, Part A, Auto) ด้วย headless Chrome + swiftshader ไม่มี runtime error
+- `_shared/three.min.js` (603 KB) = fallback offline; Lab 46 + VPL03 Lab 1 ใช้ cdnjs ก่อน ถ้าไม่มี THREE → document.write ไฟล์นี้ · แยกข้อความ "ไม่มี WebGL" ออกจาก "โหลดไลบรารีไม่ได้"
+- ลงทะเบียน lab-46: `labs_data.py` (light · ม.5) → build virtual-lab.html/library/admin LAB_META · `VLAB_SERIES` vpl02 ใน kp-auth.js + admin.html · admin LAB_LIST
+### ไฟล์ที่แก้
+- ใหม่: `Virtual Physics Lab 02/46. images-concave-mirror.html`, `_shared/three.min.js`
+- `_admin/labs_data.py`, `virtual-lab.html`, `library.html`, `_admin/admin.html`, `kp-auth.js`, `Virtual Physics Lab 03/1. precision-measurement-3d.html` (fallback), `CLAUDE.md`
+### ค้างไว้ / ต้องทำต่อ
+- ยังไม่ได้เพิ่มการ์ด Lab 46 ใน `virtual-physics-lab-02.html` (catalog ชุดเดิม) และ index cards — มีใน virtual-lab.html/library แล้ว
+- ทดสอบใน in-app browser/iPad จริงยังไม่ได้ (popup Google sign-in ค้างใน Browser pane) — ทดสอบด้วย headless เท่านั้น
+- Lab 36 ยังไม่ปรับแคนวาสกะทัดรัดแบบ Lab 35
