@@ -491,7 +491,8 @@ function dHit(p){ if(mode!=='manual') return null; let best=null, bd=12;
   ['s','o'].forEach(k=>{ const g=pinSeg(k); if(!g) return; const lo=Math.min(g.y0,g.y1)-6, hi=Math.max(g.y0,g.y1)+6; const dy= p.y<lo? lo-p.y : p.y>hi? p.y-hi : 0; const d=Math.hypot(p.x-g.x, dy); if(d<bd){ bd=d; best=k; } });
   return best; }
 function onDDown(e){ const h=dHit(dPos(e)); if(!h) return; drag2=h; e.preventDefault(); }
-function onDMove(e){ const p=dPos(e); if(!drag2){ DC.style.cursor=dHit(p)?'ew-resize':'default'; return; } e.preventDefault(); setPos(drag2, Math.round(px2cm(p.x)*10)/10); }
+function onDMove(e){ if(drag2 && !e.touches && e.buttons===0) drag2=null;   /* ปล่อยเมาส์นอกหน้าต่าง → เลิกลาก ไม่ให้เข็มเลื่อนเอง */
+  const p=dPos(e); if(!drag2){ DC.style.cursor=dHit(p)?'ew-resize':'default'; return; } e.preventDefault(); setPos(drag2, Math.round(px2cm(p.x)*10)/10); }
 function onDUp(){ drag2=null; }
 function setPos(k,cm){ if(k==='o') oCm=Math.max(2,Math.min(MIR-2,cm)); else sCm=clampS(cm); syncPosUI(); drawAll(); }
 </script>
@@ -618,10 +619,10 @@ function setupPointer(cv){
     else { const px=planeX(x,y); if(px!==null) setPos(dm, Math.round((px-off)*10)/10); }
     lx=x; ly=y; };
   const up=()=>{ dm=null; cv.style.cursor='grab'; };
-  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up);
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) up(); if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
   cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
-  cv.addEventListener('touchend',up);
+  cv.addEventListener('touchend',up); cv.addEventListener('touchcancel',up);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); if(curView==='eye'){ $('cbAutoEye').checked=false; autoEye=false; eyeD=Math.max(25,Math.min(120,eyeDist()*(1+e.deltaY*0.001))); syncPosUI(); } else orbit.dist=Math.max(20,Math.min(300,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
 }
 
@@ -665,7 +666,7 @@ function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
 window.addEventListener('DOMContentLoaded',()=>{
   DC=$('diagCanvas'); dctx=DC.getContext('2d');
   DC.addEventListener('mousedown',onDDown); window.addEventListener('mousemove',e=>{ if(drag2||e.target===DC) onDMove(e); }); window.addEventListener('mouseup',onDUp);
-  DC.addEventListener('touchstart',onDDown,{passive:false}); DC.addEventListener('touchmove',onDMove,{passive:false}); DC.addEventListener('touchend',onDUp);
+  DC.addEventListener('touchstart',onDDown,{passive:false}); DC.addEventListener('touchmove',onDMove,{passive:false}); DC.addEventListener('touchend',onDUp); DC.addEventListener('touchcancel',onDUp); window.addEventListener('blur',onDUp);
   const pairs={'vi-o':'sl-o','vi-s':'sl-s','vi-lat':'sl-lat','vi-eyed':'sl-eyed','vi-f':'sl-f','vi-u':'sl-u'};
   const onSl=id=>{ const v=parseFloat($(id).value);
     if(id==='sl-o') setPos('o',v); else if(id==='sl-s') setPos('s',v); else if(id==='sl-lat'){ eyeLat=v; } else if(id==='sl-eyed'){ autoEye=false; $('cbAutoEye').checked=false; eyeD=v; } else { if(id==='sl-f') buildMirror(); drawAll(); } };
