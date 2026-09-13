@@ -1362,3 +1362,20 @@ match /settings/{docId} {
 ### หมายเหตุ
 - โหมด Auto: เลนส์จะขยับขวาเองถ้า d_o > lensCm−2 (`curLensCm()`) เพื่อไม่ให้วัตถุหลุดสเกล 0
 - Browser pane รอบนี้ใช้ได้แล้ว (ไม่มี popup ค้าง) — server python http.server 8765 ที่ผู้ใช้เปิดไว้อยู่แล้ว
+
+## [2026-09-13 21:00] — Lab 36 (VPL02) เลนส์เว้า & กล้องกาลิเลโอ → 3D
+### ทำอะไรไปบ้าง
+- เขียน `Virtual Physics Lab 02/36. images-diverging-lenses.html` ใหม่ทั้งไฟล์ (3089 → ~590 บรรทัด, 113 KB) ด้วยโครง 3D เดียวกับ Lab 35/46 (three.js + fallback + แผนภาพ 2D ตามสเกล + inset ในเฟรม 3D)
+- **Part A (หา f ด้วยลำแสงเลเซอร์):** 3D = เลเซอร์ทรงกระบอก + ลำแสงแดง + เลนส์เว้าสองหน้า (LatheGeometry ขอบหนากลางบาง) + กรวยแสงบาน + กระดาษมี texture วงแสง D จริง · inset "วงแสงบนกระดาษ" 236×206 มีสเกลไม้บรรทัด + คาลิปเปอร์ A/B ลากวัด D ได้ + ซูม 1–10× (แสดงค่า A–B) · โหมด auto แสดง F เสมือน + เส้นต่อรังสี + วงเล็บ |f|, X · ตาราง X/D แก้ไขได้ + fit เส้นตรง + กราฟ D vs X extrapolate → f = จุดตัดแกน X (แก้เครื่องหมายให้ f = −b/a ติดลบถูกต้อง)
+- **Part B (กล้องกาลิเลโอ):** 3D = ต้นไม้ไกล (x = −70) + เลนส์นูน F₁ + เลนส์เว้า F₂ + ตา · รังสีคำนวณจริงด้วยสูตรเลนส์บาง s' = s − y/f (`traceRay`) ทั้ง 2D/3D: ลำขนาน 3 เส้น (ฟ้า) + ลำเฉียง 2 เส้น (ส้ม) → เมื่อ L = F₁+F₂ รังสีออกขนานและมุมขยาย M เท่า (เดิม Lab 36 2D ใช้รังสีประมาณเอา) · รังสีแสดงหลังบันทึก F₂ หรือในโหมด auto · inset "มุมมองผ่านกล้อง" ต้นไม้ขยาย M เบลอเมื่อยังไม่จูน
+- เนื้อหาแท็บวิธีทดลอง/ทฤษฎีเดิมคงไว้ + เพิ่มส่วน "การใช้งาน Simulation" · canvas ทฤษฎี 5 รูปเขียนใหม่ (รังสี 3 เส้นเลนส์เว้า, 3 กรณี, กราฟ 1/dᵢ–1/dₒ f<0, สามเหลี่ยมคล้าย D/X, กล้องกาลิเลโอ)
+- ตรวจ: node --check 7 script ผ่าน · Browser pane: Part A manual/auto, Part B จูนแล้วบันทึก F₂ (err 5% แสดงการ์ดผล + รังสี), มุมจากตา, auto B (M=5), ทฤษฎี, iPad 820 — ไม่มี console error
+- metadata: labs_data.py lab-36 "(3D)" + tags Telescope/3D → build · การ์ด index.html + virtual-physics-lab-02.html เป็น 3D
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 02/36. images-diverging-lenses.html` (เขียนใหม่) · `_admin/labs_data.py` · `virtual-lab.html`, `library.html`, `_admin/admin.html` (generated) · `index.html`, `virtual-physics-lab-02.html` · `SESSION_LOG.md`
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ไฟล์ 2D เดิมของ Lab 36 อยู่ที่ commit 77a8c72 ถ้าต้องการย้อน
+- canvas preview การ์ดหน้าแรก (`data-sim`) ของ Lab 35/36 ยังเป็นภาพวาด 2D เดิม
+- Lab อื่นใน VPL02 ที่อาจแปลง 3D ต่อ: 32B แสงสะท้อน, 33B หักเหแก้ว (ถ้าผู้ใช้ต้องการ)
+### หมายเหตุ
+- ระวังตอนคัดลอก head จาก Lab 35: ห้ามตัดที่ `<body ` เพราะสคริปต์ frame-protection มีสตริง `<body style=` อยู่ก่อน — ให้ตัดที่ `</head>`
