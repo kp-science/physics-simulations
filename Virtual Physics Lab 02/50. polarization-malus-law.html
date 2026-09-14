@@ -197,11 +197,20 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
         </div>
         <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — หมุนแผ่นโพลารอยด์กลับตำแหน่งเริ่มต้น</button>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ · แผ่นปริศนาไม่เปลี่ยน</div>
       </div>
+
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
 
       <div class="panel-section">
         <div class="panel-title">🔧 จัดอุปกรณ์</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px">แผ่นวิเคราะห์ P₂</div>
+        <div class="liq-grid" id="p2Btns">
+          <button data-k="std" class="active" onclick="setP2Type('std')">ปกติ (เห็นแนวแกน)</button>
+          <button data-k="myst" onclick="setP2Type('myst')">❓ ปริศนา (แกนซ่อน)</button>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnRandom" style="width:100%;margin:6px 0 4px" onclick="randomMystery()">🎲 สุ่มแผ่นปริศนาใหม่</button>
+        <div id="p2Info" style="font-size:.72rem;color:var(--muted);margin-bottom:6px;line-height:1.5"></div>
         <label class="cb"><input type="checkbox" id="cbP3"> ใส่แผ่นโพลารอยด์กลาง P₃ (ระหว่าง P₁ กับ P₂)</label>
         <label class="cb"><input type="checkbox" id="cbE" checked> แสดงเวกเตอร์สนามไฟฟ้า E</label>
         <label class="cb"><input type="checkbox" id="cbBeam" checked> แสดงลำแสง</label>
@@ -232,11 +241,12 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div id="manualCtrl" class="panel-section">
         <div class="panel-title">🖐 บันทึกผล</div>
-        <div class="hint-box info" id="manualHint"></div>
-        <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="color:#facc15;min-width:140px">มุม P₁ ที่อ่านได้</span><input class="val-input" type="number" id="in-1" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <div class="sl-row"><span class="sl-label" style="color:#facc15;min-width:140px">มุม P₁ ที่อ่านได้</span><input class="val-input" type="number" id="in-1" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div class="sl-row hidden" id="inRow3"><span class="sl-label" style="color:#34d399;min-width:140px">มุม P₃ ที่อ่านได้</span><input class="val-input" type="number" id="in-3" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div class="sl-row"><span class="sl-label" style="color:#fb923c;min-width:140px">มุม P₂ ที่อ่านได้</span><input class="val-input" type="number" id="in-2" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <button class="btn btn-green btn-sm" style="width:100%;margin-top:4px" onclick="recordRow()">📝 บันทึกมุม + ค่า E และ I จากมิเตอร์</button>
+        <div class="sl-row hidden" id="inRowM" style="margin-top:8px"><span class="sl-label" style="color:#c084fc;min-width:140px">φ แกนปริศนา (จากขีดชี้)</span><input class="val-input" type="number" id="in-m" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <button class="btn btn-sm hidden" id="btnCheck" style="width:100%;margin-top:4px;background:#6b21a8" onclick="checkMystery()">📍 ตรวจคำตอบ φ แกนแผ่นปริศนา</button>
       </div>
 
       <div id="autoCtrl" class="panel-section hidden">
@@ -252,7 +262,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div class="panel-section">
-        <div class="panel-title">📋 ตาราง A — แผ่นโพลารอยด์ 2 แผ่น</div>
+        <div class="panel-title" id="titleA">📋 ตาราง A — แผ่นโพลารอยด์ 2 แผ่น</div>
         <div class="tbl-wrap" id="tableA"></div>
         <div class="panel-title" style="margin-top:10px">📋 ตาราง B — 3 แผ่น (มีแผ่นกลาง P₃)</div>
         <div class="tbl-wrap" id="tableB"></div>
@@ -300,7 +310,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li><b>👁 มองสวนลำแสง</b>: มองจากหลังหัววัดย้อนไปหาหลอดไฟ เห็นแนวสั่นของ E เทียบกับแกนแผ่นโพลารอยด์</li>
       <li>หมุนแผ่น: ลากแผ่นในภาพ 3D ขึ้น-ลง · ลากหน้าปัด 2D · สไลเดอร์ · ปุ่ม ±1° / ±10° (แผ่น P₂)</li>
       <li><b>โหมดวัดเอง</b> ไม่แสดงตัวเลขมุม — อ่านจากหน้าปัดและแว่นขยาย · มิเตอร์ E และ I อ่านค่าได้ตามปกติ</li>
-      <li><b>↺ รีเซตค่า</b> คืน P₁ = 0°, P₂ = 30°, P₃ = 45° และมุมมองเริ่มต้น (ตารางยังอยู่)</li>
+      <li><b>↺ รีเซตค่า</b> คืน P₁ = 0°, P₂ = 30°, P₃ = 45° และมุมมองเริ่มต้น (ตารางและแผ่นปริศนายังอยู่)</li>
+      <li><b>🧭 ตอนนี้ต้องทำอะไร</b> บอกขั้นถัดไปตามสิ่งที่ทำไปแล้ว (ไม่บอกคำตอบในโหมดวัดเอง)</li>
     </ul>
 
     <h2>ตอนที่ A — แผ่นโพลารอยด์ 2 แผ่น</h2>
@@ -314,6 +325,12 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li>ตั้ง P₁ = 0° และ P₂ = 90° (ไขว้กัน) สังเกตว่าแสงไม่ผ่าน</li>
       <li>ใส่แผ่นกลาง P₃ แล้วหมุน P₃ ไปมุมต่าง ๆ · สังเกตว่าแสงกลับผ่านได้! บันทึกค่า</li>
       <li>เปรียบเทียบ I/I₀ กับ cos² α · cos² β เมื่อ α = มุม P₁→P₃ และ β = มุม P₃→P₂ · มุม α ใดให้แสงผ่านมากที่สุด?</li>
+    </ol>
+
+    <h2>ตอนที่ C — ❓ แผ่นวิเคราะห์ปริศนา (แกนซ่อน)</h2>
+    <ol>
+      <li>เลือก <b>❓ ปริศนา</b> — แผ่น P₂ มีเพียงขีดชี้สำหรับอ่านสเกล แต่แกนผ่านแสงจริงทำมุม φ (ไม่ทราบค่า 0°–180° ทวนเข็มนาฬิกาเมื่อมองสวนลำแสง) กับขีดชี้ · ถอดแผ่นกลาง P₃ ออก ตั้ง P₁ = 0°</li>
+      <li>หมุน P₂ ทีละ 10° ให้ครอบคลุมครึ่งรอบ (0°–180°) บันทึกทุกมุม แล้วดูกราฟ I กับมุมที่อ่านได้ · หาตำแหน่งที่ I น้อยที่สุด (คมกว่าจุดมากสุด ปรับละเอียด ±1° รอบจุดนั้น) → ขณะนั้นแกนจริงตั้งฉากกับ P₁ จึงได้ φ = 90° − x<sub>น้อยสุด</sub> (หรือ φ = 0° − x<sub>มากสุด</sub>) ปรับ ±180° ให้อยู่ในช่วง 0°–180° · กรอก φ แล้วกด <b>📍 ตรวจคำตอบ</b></li>
     </ol>
 
     <h2>วิธีบันทึกผล</h2>
@@ -373,7 +390,13 @@ const $ = id => document.getElementById(id);
 const C0=2.998e8, EPS0=8.854e-12, I_SRC=800, D2R=Math.PI/180;
 const X_SRC=2, X_P1=26, X_P3=46, X_P2=66, X_DET=88, R_POL=4.2;
 let mode='manual', usP3=false, ang={1:0,2:30,3:45}, curView='iso', sweep=false, graph='E';
-let rowsA=[], rowsB=[], noise=1, noiseT=0;
+let rowsA=[], rowsB=[], rowsQ=[], noise=1, noiseT=0;
+/* แผ่นวิเคราะห์ปริศนา: ขีดชี้อ่านสเกลที่ ang[2] แต่แกนผ่านแสงจริงอยู่ที่ ang[2] + mOff (ซ่อนในโหมดวัดเอง) */
+let p2Type='std', mysteryId=1, mOff=90;
+const newOff=()=>Math.round((10+Math.random()*160)*2)/2;
+const axAng=k=>(k===2&&p2Type==='myst')?ang[2]+mOff:ang[k];
+const hideAx=()=>p2Type==='myst'&&mode==='manual';
+const mod180=a=>((a%180)+180)%180;
 const fmt=(v,d)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(d===undefined?1:d);
 const norm180=a=>{ a=((a%360)+540)%360-180; return a; };
 
@@ -385,7 +408,7 @@ function chain(){
   I=I/2; pol=ang[1];
   if(usP3){ s.push({x0:X_P1,x1:X_P3,I,pol}); I*=Math.pow(Math.cos((ang[3]-pol)*D2R),2); pol=ang[3]; s.push({x0:X_P3,x1:X_P2,I,pol}); }
   else s.push({x0:X_P1,x1:X_P2,I,pol});
-  I*=Math.pow(Math.cos((ang[2]-pol)*D2R),2); pol=ang[2];
+  I*=Math.pow(Math.cos((axAng(2)-pol)*D2R),2); pol=axAng(2);
   s.push({x0:X_P2,x1:X_DET,I,pol});
   return s;
 }
@@ -396,65 +419,126 @@ function meters(){ const I=detI(), n= mode==='manual'?noise:1; return {I:I*n*n<0
 function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
 function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
   $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m==='manual'&&sweep) toggleSweep();
-  document.querySelectorAll('.val-input.ang').forEach(el=>el.classList.toggle('hidden',m==='manual'));
+  document.querySelectorAll('.val-input.ang').forEach(el=>el.classList.toggle('hidden',m==='manual')); $('btnRandom').classList.toggle('hidden',m==='auto'); refreshP2Tex(); updateP2Info();
   $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงมุมและค่าองค์ประกอบของ E' : 'โหมดวัดเอง: อ่านมุมจากสเกลเอง';
   drawAll(); }
 function setP3(on){ usP3=on; $('cbP3').checked=on; $('row3').classList.toggle('hidden',!on); $('inRow3').classList.toggle('hidden',!on); if(P.pol) P.pol[3].visible=on; resizeDiag(); drawAll(); }
+function setP2Type(k){ p2Type=k; document.querySelectorAll('#p2Btns button').forEach(b=>b.classList.toggle('active',b.dataset.k===k)); $('inRowM').classList.toggle('hidden',k!=='myst'); $('btnCheck').classList.toggle('hidden',k!=='myst'); refreshP2Tex(); updateP2Info(); renderTables(); drawAll(); drawGraph(); }
+function randomMystery(){ mOff=newOff(); mysteryId++; $('in-m').value=''; if(p2Type!=='myst') setP2Type('myst'); else { refreshP2Tex(); updateP2Info(); renderTables(); drawAll(); drawGraph(); } }
+function updateP2Info(){ $('p2Info').innerHTML= p2Type!=='myst' ? 'แผ่นปกติ: เส้นบนแผ่นคือแนวแกนผ่านแสง' : mode==='auto' ? `❓ แผ่นปริศนา #${mysteryId}: แกนผ่านแสงทำมุม <b class="mono" style="color:var(--accent3)">φ = ${mOff.toFixed(1)}°</b> กับขีดชี้ (เส้นประบนหน้าปัด)` : `❓ แผ่นปริศนา #${mysteryId}: เห็นแค่ขีดชี้อ่านสเกล — แกนผ่านแสงซ่อนอยู่ หาเองจากมิเตอร์ (เฉลยหลังกด 📍 ตรวจคำตอบ)`; }
 function setAng(k,v){ ang[k]=((Math.round(v*2)/2)%360+360)%360; $('sl-'+k).value=ang[k]; $('vi-'+k).value=ang[k]; drawAll(); }
 function nudge(d){ if(sweep) toggleSweep(); setAng(2,ang[2]+d); }
 function toggleSweep(){ sweep=!sweep; $('btnSweep').classList.toggle('active',sweep); $('btnSweep').textContent= sweep?'⏸ หยุดหมุน':'▶ หมุนแผ่นวิเคราะห์ P₂ อัตโนมัติ'; }
 function resetLab(){
   /* คืนค่าเริ่มต้น: มุมแผ่นโพลารอยด์ · มุมมอง · ช่องกรอก (ไม่ลบตาราง) */
-  if(sweep) toggleSweep(); ['in-1','in-2','in-3'].forEach(id=>$(id).value=''); setAng(1,0); setAng(3,45); setAng(2,30); setView('iso');
+  if(sweep) toggleSweep(); ['in-1','in-2','in-3','in-m'].forEach(id=>$(id).value=''); setAng(1,0); setAng(3,45); setAng(2,30); setView('iso');
 }
 function setGraph(g){ graph=g; document.querySelectorAll('#graphBtns button').forEach((b,i)=>b.classList.toggle('active',['E','I','T'][i]===g)); drawGraph(); }
 function updateMeters(){ const m=meters(); $('mE').textContent=m.E.toFixed(1); $('mI').textContent=m.I.toFixed(1); if(P.detTex) drawDetScreen(m); }
 function updateHint(){
-  if(mode==='auto'){ const th=norm180(ang[2]-(usP3?ang[3]:ang[1])), I0=I_SRC/2, I=detI();
+  if(mode==='auto'){ const th=norm180(axAng(2)-(usP3?ang[3]:ang[1])), I0=I_SRC/2, I=detI();
     $('rd-th').textContent= usP3 ? `P₁→P₃ ${norm180(ang[3]-ang[1]).toFixed(1)}° · P₃→P₂ ${th.toFixed(1)}°` : th.toFixed(1)+'°';
     $('rd-cos').textContent= usP3 ? '—' : `${Math.cos(th*D2R).toFixed(3)} · ${Math.pow(Math.cos(th*D2R),2).toFixed(3)}`;
     $('rd-0').textContent=`${Eof(I0).toFixed(1)} V/m · ${I0.toFixed(0)} W/m²`;
     $('rd-r').textContent=`${(Eof(I)/Eof(I0)).toFixed(3)} · ${(I/I0).toFixed(3)}`;
     $('rd-state').textContent= I<0.05 ? 'แกนไขว้กัน → แสงไม่ผ่าน' : usP3 ? 'I = I₀ cos²α cos²β — แผ่นกลางเปลี่ยนแนวโพลาไรซ์' : 'E ผ่านเฉพาะองค์ประกอบ E₀ cos θ ที่ขนานแกน P₂';
     $('hud').innerHTML=`<b>θ = ${usP3?'—':th.toFixed(1)+'°'}</b> · E = ${Eof(I).toFixed(1)} V/m · I = ${I.toFixed(1)} W/m²`; return; }
-  $('manualHint').innerHTML='อ่านมุมของ P₁ และ P₂'+(usP3?' และ P₃':'')+' จากหน้าปัด (ดูแว่นขยาย) กรอกแล้วกดบันทึก · ค่า E และ I บันทึกจากมิเตอร์ ณ ขณะกด<br>เริ่มจากแกน P₂ ตรงกับ P₁ (มิเตอร์มากสุด) เพื่อได้ E₀, I₀';
   $('hud').innerHTML='<b>'+({iso:'มุมเฉียง',side:'มุมข้าง',beam:'มองสวนลำแสง'})[curView]+'</b> — กดที่แผ่นแล้วลากขึ้น-ลง = หมุนแผ่น'+(curView==='beam'?'':' · ลากซ้าย-ขวา = หมุนมุมมอง');
 }
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับสิ่งที่ทำแล้ว · โหมดวัดเองไม่บอกมุม/แกนปริศนา) ── */
+function hintState(){
+  const std=rowsA.filter(r=>!r.m), rm=rowsA.filter(r=>r.m===mysteryId), q=rowsQ.find(r=>r.m===mysteryId), my=p2Type==='myst';
+  if(mode==='auto') return ['info', sweep ? '⚡ กำลังหมุน P₂ — ดูมิเตอร์ E, I และเวกเตอร์ E เปลี่ยนตาม cos θ, cos² θ · สลับกราฟด้านล่าง' : '⚡ โหมดอัตโนมัติ: กด <b>▶ หมุนแผ่นวิเคราะห์ P₂ อัตโนมัติ</b> หรือลากหน้าปัด ดูค่า θ, E/E₀, I/I₀ ใน "ผลการคำนวณ"'+(my?'<br>❓ แกนจริงของแผ่นปริศนาคือเส้นประบนหน้าปัด P₂':'')];
+  const v=id=>$(id).value.trim(), f1=v('in-1'), f2=v('in-2'), f3=v('in-3'), fm=v('in-m'), bad=[f1,f2,usP3?f3:''].some(x=>x!==''&&(isNaN(parseFloat(x))||parseFloat(x)<0||parseFloat(x)>360));
+  if(bad) return ['warn','มุมที่กรอกต้องอยู่ระหว่าง 0°–360° — อ่านจากสเกลหน้าปัดใหม่'];
+  const need=usP3?[f1,f3,f2]:[f1,f2], nFill=need.filter(x=>x!=='').length;
+  if(my && usP3) return ['warn','❓ แผ่นปริศนา: เอาติ๊ก <b>ใส่แผ่นกลาง P₃</b> ออกก่อน (ตอน C ใช้ 2 แผ่น)'];
+  if(nFill===need.length) return ['ok','พร้อมแล้ว → กด <b>📝 บันทึกมุม + ค่า E และ I จากมิเตอร์</b> (ค่ามิเตอร์บันทึก ณ ขณะกด)'];
+  if(nFill>0) return ['info','กรอกมุมที่อ่านได้ให้ครบทุกแผ่น ('+(usP3?'P₁, P₃, P₂':'P₁, P₂')+') แล้วกด <b>📝 บันทึก</b>'];
+  if(my){
+    if(fm!=='') return (isNaN(parseFloat(fm))||parseFloat(fm)<0||parseFloat(fm)>180) ? ['warn','φ ต้องอยู่ระหว่าง 0°–180° (แกนเป็นเส้นตรง ±180° คือแนวเดียวกัน)'] : ['ok','พร้อมแล้ว → กด <b>📍 ตรวจคำตอบ φ แกนแผ่นปริศนา</b>'];
+    if(q) return ['ok',`✓ ตรวจคำตอบแผ่นปริศนา #${mysteryId} แล้ว (ดูตาราง C) — กด <b>🎲 สุ่มแผ่นปริศนาใหม่</b> เพื่อฝึกอีก หรือกลับไปใช้แผ่นปกติ`];
+    if(!rm.length) return ['info','❓ <b>ตอน C</b> ① ตั้ง P₁ = 0° ② หมุน P₂ ปริศนา (ขีดชี้ = ตำแหน่งอ่านสเกล ไม่ใช่แกน) ③ อ่านมุม P₁, P₂ จากหน้าปัด กรอกแล้วกด <b>📝 บันทึก</b>'];
+    const span=rm.length>1?(()=>{ const xs=rm.map(r=>mod180(r.th)).sort((a,b)=>a-b); let gap=xs[0]+180-xs[xs.length-1]; for(let i=1;i<xs.length;i++) gap=Math.max(gap,xs[i]-xs[i-1]); return 180-gap; })():0;
+    if(rm.length<8||span<140) return ['info',`บันทึกแล้ว <b>${rm.length}</b> ค่า — หมุน P₂ ต่อครั้งละ 10° แล้วทำซ้ำ ให้ครอบคลุมครึ่งรอบ 0°–180° (ควรได้อย่างน้อย 8 ค่า)`];
+    return ['info','ดูกราฟ I กับมุมที่อ่านได้ → หามุมที่ I <b>น้อยที่สุด</b> (ปรับละเอียด ±1° รอบจุดนั้นแล้วบันทึกเพิ่ม) · คำนวณ φ = 90° − x<sub>น้อยสุด</sub> กรอกช่อง φ แล้วกด <b>📍 ตรวจคำตอบ</b>'];
+  }
+  if(!usP3){
+    if(!std.length) return ['info','<b>ตอน A</b> ① หมุน P₂ (ลากหน้าปัด / ปุ่ม ±1° ±10°) จนมิเตอร์ I อ่านได้<b>มากที่สุด</b> = แกนตรงกับ P₁<br>② อ่านมุม P₁, P₂ จากหน้าปัด (ดูแว่นขยาย) ③ กรอกแล้วกด <b>📝 บันทึก</b> → ได้ E₀, I₀'];
+    const r0=ref0();
+    if(std.length<7) return ['info',`บันทึกแล้ว <b>${std.length}</b> ค่า — หมุน P₂ เพิ่มครั้งละ 10° แล้วทำซ้ำจนถึง 90° (ควรได้อย่างน้อย 7 ค่า)`+(r0&&!r0.exact?'<br>⚠ ยังไม่มีแถว θ = 0° (แกนตรงกัน) — ควรบันทึกเพื่อได้ E₀, I₀':'')];
+    return ['ok','✓ ตาราง A ครบ — ดูกราฟ <b>E – cos θ</b> และ <b>I – cos² θ</b> เป็นเส้นตรงผ่านจุดกำเนิดไหม ความชัน = E₀, I₀<br>ตอน B → ติ๊ก <b>ใส่แผ่นกลาง P₃</b>'+(std.length&&rowsB.length>=5?' · หรือลอง <b>❓ ปริศนา</b>':'')];
+  }
+  if(!std.length) return ['warn','ควรทำ<b>ตอน A</b> ก่อน (ตาราง B ใช้ I₀ จากตาราง A) — เอาติ๊ก <b>ใส่แผ่นกลาง P₃</b> ออก'];
+  if(!rowsB.length) return ['info','<b>ตอน B</b> ① (ถอด P₃ ออกชั่วคราว) หมุน P₂ จนมิเตอร์ I ≈ 0 = แกนไขว้กับ P₁ ② ใส่ P₃ แล้วหมุน P₃ สังเกตมิเตอร์ ③ อ่านมุมทั้ง 3 แผ่น กรอกแล้วกด <b>📝 บันทึก</b>'];
+  if(rowsB.length<5) return ['info',`บันทึกแล้ว <b>${rowsB.length}</b> ค่า — หมุน P₃ ไปมุมอื่น (เช่น ทีละ 15°) แล้วทำซ้ำ (ควรได้อย่างน้อย 5 ค่า)`];
+  return ['ok','✓ ตาราง B ครบ — เทียบ I/I₀ กับ cos²α · cos²β · มุม α ใดให้แสงผ่านมากที่สุด?<br>ต่อไป → ลอง <b>❓ ปริศนา</b> (แผ่นวิเคราะห์แกนซ่อน)'];
+}
+function updateGuide(){ const [cls,txt]=hintState(), h=$('hint'); if(!h) return; if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls; }
 
 /* ── tables ── */
 function recordRow(){
   const a1=parseFloat($('in-1').value), a2=parseFloat($('in-2').value), a3=parseFloat($('in-3').value);
   if(isNaN(a1)||isNaN(a2)||(usP3&&isNaN(a3))){ alert('กรอกมุมของแผ่นโพลารอยด์ทุกแผ่นที่อ่านได้จากหน้าปัด'); return; }
+  if(usP3&&p2Type==='myst'){ alert('แผ่นปริศนา: เอาแผ่นกลาง P₃ ออกก่อน'); return; }
   const m=meters();
-  if(!usP3) rowsA.push({a1,a2,th:norm180(a2-a1),E:m.E,I:m.I});
+  if(!usP3) rowsA.push({a1,a2,th:norm180(a2-a1),E:m.E,I:m.I,m:p2Type==='myst'?mysteryId:0});
   else rowsB.push({a1,a2,a3,al:norm180(a3-a1),be:norm180(a2-a3),E:m.E,I:m.I});
-  ['in-1','in-2','in-3'].forEach(id=>$(id).value=''); renderTables(); drawGraph();
+  ['in-1','in-2','in-3'].forEach(id=>$(id).value=''); renderTables(); drawGraph(); updateGuide();
 }
-function ref0(){ if(!rowsA.length) return null; const z=rowsA.filter(r=>Math.abs(r.th)<0.25||Math.abs(Math.abs(r.th)-180)<0.25); const src=z.length?z:rowsA; const E0=Math.max(...src.map(r=>r.E)), I0=Math.max(...src.map(r=>r.I)); return {E0,I0,exact:z.length>0}; }
-function clearTable(){ if(usP3) rowsB=[]; else rowsA=[]; renderTables(); drawGraph(); }
+function checkMystery(){
+  const phi=parseFloat($('in-m').value); if(isNaN(phi)||phi<0||phi>180){ alert('กรอกมุม φ ระหว่างขีดชี้กับแกนผ่านแสงของแผ่นปริศนา (0°–180°)'); return; }
+  if(rowsA.filter(r=>r.m===mysteryId).length<3){ alert('บันทึกข้อมูลแผ่นปริศนาอย่างน้อย 3 มุมก่อนตรวจคำตอบ'); return; }
+  const d=Math.abs(((phi-mOff)%180+270)%180-90); rowsQ.push({m:mysteryId,phi,tru:mOff,err:d}); $('in-m').value=''; renderTables(); updateGuide();
+}
+function ref0(){ const std=rowsA.filter(r=>!r.m); if(!std.length) return null; const z=std.filter(r=>Math.abs(r.th)<0.25||Math.abs(Math.abs(r.th)-180)<0.25); const src=z.length?z:std; const E0=Math.max(...src.map(r=>r.E)), I0=Math.max(...src.map(r=>r.I)); return {E0,I0,exact:z.length>0}; }
+function clearTable(){ if(p2Type==='myst') rowsA=rowsA.filter(r=>r.m!==mysteryId); else if(usP3) rowsB=[]; else rowsA=rowsA.filter(r=>r.m); renderTables(); drawGraph(); updateGuide(); }
 function renderTables(){
   const r0=ref0();
-  let h='<table><thead><tr><th>#</th><th>θ</th><th>cos θ</th><th>cos²θ</th><th>E</th><th>I</th><th>E/E₀</th><th>I/I₀</th></tr></thead><tbody>'+rowsA.map((r,i)=>{ const c=Math.cos(r.th*D2R); return `<tr><td>${i+1}</td><td class="mono">${fmt(r.th,1)}</td><td class="mono">${c.toFixed(3)}</td><td class="mono">${(c*c).toFixed(3)}</td><td class="mono">${fmt(r.E,1)}</td><td class="mono">${fmt(r.I,1)}</td><td class="mono">${r0?(r.E/r0.E0).toFixed(3):'—'}</td><td class="mono">${r0?(r.I/r0.I0).toFixed(3):'—'}</td></tr>`; }).join('');
-  if(!rowsA.length) h+='<tr><td colspan="8" style="color:var(--muted)">ยังไม่มีข้อมูล — ถอดแผ่นกลางออก แล้วบันทึก</td></tr>';
-  $('tableA').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">θ = P₂ − P₁ · E (V/m) · I (W/m²) · '+(r0?(r0.exact?'E₀, I₀ จากแถว θ = 0°':'ยังไม่มีแถว θ = 0° — ใช้ค่ามากสุดแทน'):'')+'</div>';
+  if(p2Type==='myst'){ const rm=rowsA.filter(r=>r.m===mysteryId), Im=rm.length?Math.max(...rm.map(r=>r.I)):0, qs=rowsQ.filter(r=>r.m===mysteryId);
+    $('titleA').textContent='📋 ตาราง C — ❓ แผ่นปริศนา #'+mysteryId;
+    let t='<table><thead><tr><th>#</th><th>x = P₂ − P₁ (อ่าน)</th><th>E</th><th>I</th><th>I/I<sub>มากสุด</sub></th></tr></thead><tbody>'+rm.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(mod180(r.th),1)}</td><td class="mono">${fmt(r.E,1)}</td><td class="mono">${fmt(r.I,1)}</td><td class="mono">${Im>0?(r.I/Im).toFixed(3):'—'}</td></tr>`).join('');
+    if(!rm.length) t+='<tr><td colspan="5" style="color:var(--muted)">ยังไม่มีข้อมูล (❓ แผ่นปริศนา #'+mysteryId+')</td></tr>';
+    t+='</tbody></table>';
+    if(qs.length) t+='<table style="margin-top:4px"><thead><tr><th>คำตอบ</th><th>φ ที่หาได้</th><th>φ จริง</th><th>ผลต่าง</th></tr></thead><tbody>'+qs.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.phi,1)}°</td><td class="mono">${r.tru.toFixed(1)}°</td><td class="mono" style="color:${r.err<=2?'var(--accent3)':'var(--err)'}">${fmt(r.err,1)}°</td></tr>`).join('')+'</tbody></table>';
+    $('tableA').innerHTML=t+'<div style="font-size:.68rem;color:var(--muted);margin-top:4px">x ปัดให้อยู่ใน 0°–180° · φ = มุมจากขีดชี้ไปยังแกนผ่านแสง · '+(qs.length?'เฉลยแล้ว':'φ จริงเฉลยหลังกด 📍 ตรวจคำตอบ')+'</div>';
+  } else $('titleA').textContent='📋 ตาราง A — แผ่นโพลารอยด์ 2 แผ่น';
+  const stdA=rowsA.filter(r=>!r.m);
+  let h='<table><thead><tr><th>#</th><th>θ</th><th>cos θ</th><th>cos²θ</th><th>E</th><th>I</th><th>E/E₀</th><th>I/I₀</th></tr></thead><tbody>'+stdA.map((r,i)=>{ const c=Math.cos(r.th*D2R); return `<tr><td>${i+1}</td><td class="mono">${fmt(r.th,1)}</td><td class="mono">${c.toFixed(3)}</td><td class="mono">${(c*c).toFixed(3)}</td><td class="mono">${fmt(r.E,1)}</td><td class="mono">${fmt(r.I,1)}</td><td class="mono">${r0?(r.E/r0.E0).toFixed(3):'—'}</td><td class="mono">${r0?(r.I/r0.I0).toFixed(3):'—'}</td></tr>`; }).join('');
+  if(!stdA.length) h+='<tr><td colspan="8" style="color:var(--muted)">ยังไม่มีข้อมูล — ถอดแผ่นกลางออก แล้วบันทึก</td></tr>';
+  if(p2Type!=='myst') $('tableA').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">θ = P₂ − P₁ · E (V/m) · I (W/m²) · '+(r0?(r0.exact?'E₀, I₀ จากแถว θ = 0°':'ยังไม่มีแถว θ = 0° — ใช้ค่ามากสุดแทน'):'')+'</div>';
   h='<table><thead><tr><th>#</th><th>α</th><th>β</th><th>I</th><th>I/I₀</th><th>cos²α·cos²β</th></tr></thead><tbody>'+rowsB.map((r,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(r.al,1)}</td><td class="mono">${fmt(r.be,1)}</td><td class="mono">${fmt(r.I,1)}</td><td class="mono">${r0?(r.I/r0.I0).toFixed(3):'—'}</td><td class="mono">${(Math.pow(Math.cos(r.al*D2R),2)*Math.pow(Math.cos(r.be*D2R),2)).toFixed(3)}</td></tr>`).join('');
   if(!rowsB.length) h+='<tr><td colspan="6" style="color:var(--muted)">ใส่แผ่นกลาง P₃ แล้วบันทึก</td></tr>';
   $('tableB').innerHTML=h+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin-top:4px">α = P₃ − P₁ · β = P₂ − P₃ · I₀ จากตาราง A</div>';
 }
-function exportCSV(){ const csv='﻿table,P1,P3,P2,theta_or_alpha,beta,E_Vm,I_Wm2\n'+rowsA.map(r=>['A',r.a1,'',r.a2,r.th.toFixed(1),'',r.E.toFixed(2),r.I.toFixed(2)].join(',')).concat(rowsB.map(r=>['B',r.a1,r.a3,r.a2,r.al.toFixed(1),r.be.toFixed(1),r.E.toFixed(2),r.I.toFixed(2)].join(','))).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab50_polarization_malus.csv'; a.click(); }
+function exportCSV(){ const csv='﻿table,P1,P3,P2,theta_or_alpha,beta,E_Vm,I_Wm2\n'+rowsA.map(r=>[r.m?'C-mystery#'+r.m:'A',r.a1,'',r.a2,r.th.toFixed(1),'',r.E.toFixed(2),r.I.toFixed(2)].join(',')).concat(rowsB.map(r=>['B',r.a1,r.a3,r.a2,r.al.toFixed(1),r.be.toFixed(1),r.E.toFixed(2),r.I.toFixed(2)].join(','))).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab50_polarization_malus.csv'; a.click(); }
 function drawGraph(){
   const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||210; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
   const ml=44,mr=10,mt=12,mb=30,gw=W-ml-mr,gh=H-mt-mb; g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.fillStyle='#94a3b8'; g.font='9px "Share Tech Mono"';
   const Emax=Eof(I_SRC/2)*1.1, Imax=I_SRC/2*1.1;
   const axis=(xl,yl,xs,ys)=>{ g.textAlign='center'; xs.forEach(([v,x])=>g.fillText(v,x,H-mb+12)); g.textAlign='right'; ys.forEach(([v,y])=>g.fillText(v,ml-4,y+3)); g.textAlign='center'; g.font='10px Sarabun'; g.fillText(xl,ml+gw/2,H-2); g.save(); g.translate(10,mt+gh/2); g.rotate(-Math.PI/2); g.fillText(yl,0,0); g.restore(); g.font='9px "Share Tech Mono"'; };
   const fitLine=(pts,X,Y,col,xm)=>{ if(pts.length<1) return NaN; const k=pts.reduce((s,p)=>s+p[0]*p[1],0)/Math.max(1e-9,pts.reduce((s,p)=>s+p[0]*p[0],0)); g.strokeStyle=col; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(xm),Y(k*xm)); g.stroke(); return k; };
+  if(p2Type==='myst'){   /* แผ่นปริศนา: I กับมุมที่อ่านได้ x = P₂ − P₁ · fit I = a + b cos 2x + c sin 2x → จุดมากสุด x₀ */
+    const X=v=>ml+v/180*gw, Y=v=>mt+(1-v/Imax)*gh, rm=rowsA.filter(r=>r.m===mysteryId);
+    axis('x = มุม P₂ (อ่าน) − P₁  (องศา)','I (W/m²)',[0,30,60,90,120,150,180].map(v=>[v,X(v)]),[0,0.25,0.5,0.75,1].map(f=>[Math.round(f*I_SRC/2),Y(f*I_SRC/2)]));
+    if(mode==='auto'){ g.strokeStyle='rgba(148,163,184,.6)'; g.setLineDash([4,3]); g.lineWidth=1.2; g.beginPath(); for(let x=0;x<=180;x+=2){ const I=I_SRC/2*Math.pow(Math.cos((x+mOff)*D2R),2); x===0?g.moveTo(X(x),Y(I)):g.lineTo(X(x),Y(I)); } g.stroke(); g.setLineDash([]);
+      g.strokeStyle='#e2e8f0'; g.beginPath(); g.arc(X(mod180(ang[2]-ang[1])),Y(usP3?0:detI()),6,0,Math.PI*2); g.stroke(); }
+    let fit=null; if(rm.length>=3){ const M=[[0,0,0],[0,0,0],[0,0,0]], V=[0,0,0]; rm.forEach(r=>{ const u=[1,Math.cos(2*r.th*D2R),Math.sin(2*r.th*D2R)]; for(let i=0;i<3;i++){ V[i]+=u[i]*r.I; for(let j=0;j<3;j++) M[i][j]+=u[i]*u[j]; } });
+      const det=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]), D=det(M);
+      if(Math.abs(D)>1e-6*rm.length*rm.length*rm.length){ const sol=[0,1,2].map(k=>det(M.map((row,i)=>row.map((v,j)=>j===k?V[i]:v)))/D); const R=Math.hypot(sol[1],sol[2]); if(R>1){ fit={a:sol[0],R,x0:mod180(Math.atan2(sol[2],sol[1])/D2R/2)}; } } }
+    if(fit){ g.strokeStyle='rgba(56,189,248,.8)'; g.lineWidth=1.5; g.beginPath(); for(let x=0;x<=180;x+=2){ const I=fit.a+fit.R*Math.cos(2*(x-fit.x0)*D2R); x===0?g.moveTo(X(x),Y(I)):g.lineTo(X(x),Y(I)); } g.stroke(); }
+    rm.forEach(r=>{ g.fillStyle='#c084fc'; g.beginPath(); g.arc(X(mod180(r.th)),Y(r.I),4,0,Math.PI*2); g.fill(); });
+    $('graphNote').innerHTML= fit ? `❓ แผ่นปริศนา #${mysteryId} · เส้นฟ้า = fit รูป cos² · I มากสุดที่ x ≈ <b class="mono" style="color:var(--accent3)">${fit.x0.toFixed(1)}°</b> · น้อยสุดที่ x ≈ <b class="mono" style="color:var(--accent3)">${mod180(fit.x0+90).toFixed(1)}°</b> → แกนจริงทำมุม φ กับขีดชี้เท่าใด?` : '❓ แผ่นปริศนา: บันทึกหลายมุมให้ครอบคลุม 0°–180° (อย่างน้อย 3 ค่า) แล้วกราฟจะ fit รูป cos² ให้';
+    return;
+  }
   if(graph==='E'||graph==='I'){
     const isE=graph==='E', ymax=isE?Emax:Imax, X=v=>ml+v*gw, Y=v=>mt+(1-v/ymax)*gh;
     axis(isE?'cos θ':'cos² θ', isE?'E (V/m)':'I (W/m²)', [0,0.2,0.4,0.6,0.8,1].map(v=>[v.toFixed(1),X(v)]), [0,0.25,0.5,0.75,1].map(f=>[Math.round(f*ymax/1.1*1.1),Y(f*ymax)]));
-    const pts=rowsA.map(r=>{ const c=Math.abs(Math.cos(r.th*D2R)); return [isE?c:c*c, isE?r.E:r.I]; });
+    const pts=rowsA.filter(r=>!r.m).map(r=>{ const c=Math.abs(Math.cos(r.th*D2R)); return [isE?c:c*c, isE?r.E:r.I]; });
     const k=fitLine(pts,X,Y,'rgba(56,189,248,.8)',1);
     pts.forEach(p=>{ g.fillStyle=isE?'#facc15':'#fb923c'; g.beginPath(); g.arc(X(p[0]),Y(p[1]),4,0,Math.PI*2); g.fill(); });
-    if(mode==='auto'&&!usP3){ const th=ang[2]-ang[1], c=Math.abs(Math.cos(th*D2R)), I=detI(); g.strokeStyle='#e2e8f0'; g.beginPath(); g.arc(X(isE?c:c*c),Y(isE?Eof(I):I),6,0,Math.PI*2); g.stroke(); }
+    if(mode==='auto'&&!usP3){ const th=axAng(2)-ang[1], c=Math.abs(Math.cos(th*D2R)), I=detI(); g.strokeStyle='#e2e8f0'; g.beginPath(); g.arc(X(isE?c:c*c),Y(isE?Eof(I):I),6,0,Math.PI*2); g.stroke(); }
     $('graphNote').innerHTML= pts.length ? `ความชันเส้นตรงผ่านจุดกำเนิด = <b class="mono" style="color:var(--accent3)">${k.toFixed(isE?1:1)} ${isE?'V/m':'W/m²'}</b> = ${isE?'E₀':'I₀'} จากกราฟ` : 'บันทึกตาราง A หลายมุม แล้วดูว่าเป็นเส้นตรงหรือไม่';
     return;
   }
@@ -462,7 +546,7 @@ function drawGraph(){
   axis('θ (องศา)','E/E₀ , I/I₀',[0,30,60,90,120,150,180].map(v=>[v,X(v)]),[0,0.25,0.5,0.75,1].map(f=>[f.toFixed(2),mt+(1-f/1.1)*gh]));
   const Yr=f=>mt+(1-f/1.1)*gh;
   [['#facc15',t=>Math.abs(Math.cos(t*D2R))],['#fb923c',t=>Math.pow(Math.cos(t*D2R),2)]].forEach(([col,fn])=>{ g.strokeStyle=col; g.globalAlpha=.45; g.setLineDash([4,3]); g.lineWidth=1.2; g.beginPath(); for(let t=0;t<=180;t+=2) t===0?g.moveTo(X(t),Yr(fn(t))):g.lineTo(X(t),Yr(fn(t))); g.stroke(); g.setLineDash([]); g.globalAlpha=1; });
-  const r0=ref0(); if(r0) rowsA.forEach(r=>{ const t=Math.abs(r.th); g.fillStyle='#facc15'; g.beginPath(); g.arc(X(t),Yr(r.E/r0.E0),3.5,0,Math.PI*2); g.fill(); g.fillStyle='#fb923c'; g.beginPath(); g.rect(X(t)-3,Yr(r.I/r0.I0)-3,6,6); g.fill(); });
+  const r0=ref0(); if(r0) rowsA.filter(r=>!r.m).forEach(r=>{ const t=Math.abs(r.th); g.fillStyle='#facc15'; g.beginPath(); g.arc(X(t),Yr(r.E/r0.E0),3.5,0,Math.PI*2); g.fill(); g.fillStyle='#fb923c'; g.beginPath(); g.rect(X(t)-3,Yr(r.I/r0.I0)-3,6,6); g.fill(); });
   $('graphNote').innerHTML='<span style="color:#facc15">● E/E₀</span> · <span style="color:#fb923c">■ I/I₀</span> · เส้นประ = cos θ และ cos² θ (ทฤษฎี)';
 }
 
@@ -481,12 +565,17 @@ function drawDial(d){
   c.strokeStyle='#1f2937';
   for(let a=0;a<360;a++){ const L=a%10===0?0.13:a%5===0?0.09:0.05; c.lineWidth=a%10===0?1.3:0.7; const [x0,y0]=dir2(cx,cy,r*0.98,a), [x1,y1]=dir2(cx,cy,r*(0.98-L),a); c.beginPath(); c.moveTo(x0,y0); c.lineTo(x1,y1); c.stroke(); }
   c.fillStyle='#1f2937'; c.font='bold 9px "Share Tech Mono"'; c.textAlign='center'; for(let a=0;a<360;a+=30){ const [x,y]=dir2(cx,cy,r*0.8,a); c.fillText(a,x,y+3); }
-  /* แนวเส้นขนานบนแผ่น + แกน */
+  /* แนวเส้นขนานบนแผ่น + แกน (แผ่นปริศนา: มีแค่ขีดชี้ · โหมดอัตโนมัติแสดงแกนจริงเป็นเส้นประ) */
+  if(k===2&&p2Type==='myst'){ const [ax,ay]=dir2(cx,cy,r*0.9,ang[k]), [bx,by]=dir2(cx,cy,r*0.56,ang[k]); c.strokeStyle=col; c.lineWidth=3; c.beginPath(); c.moveTo(bx,by); c.lineTo(ax,ay); c.stroke();
+    c.fillStyle='rgba(226,232,240,.75)'; c.font='bold '+Math.round(r*0.5)+'px Sarabun'; c.textAlign='center'; c.fillText('?',cx,cy+r*0.17);
+    if(mode==='auto'){ const [tx,ty]=dir2(cx,cy,r*0.72,axAng(2)), [ux,uy]=dir2(cx,cy,r*0.72,axAng(2)+180); c.strokeStyle='#c084fc'; c.lineWidth=2; c.setLineDash([5,4]); c.beginPath(); c.moveTo(ux,uy); c.lineTo(tx,ty); c.stroke(); c.setLineDash([]); }
+  } else {
   c.save(); c.beginPath(); c.arc(cx,cy,r*0.72,0,Math.PI*2); c.clip(); c.translate(cx,cy); c.rotate(-ang[k]*D2R); c.strokeStyle='rgba(203,213,225,.18)'; c.lineWidth=1; for(let x=-r;x<=r;x+=6){ c.beginPath(); c.moveTo(x,-r); c.lineTo(x,r); c.stroke(); } c.restore();
   const [ax,ay]=dir2(cx,cy,r*0.9,ang[k]), [bx,by]=dir2(cx,cy,r*0.72,ang[k]+180);
   c.strokeStyle=col; c.lineWidth=2.5; c.beginPath(); c.moveTo(bx,by); c.lineTo(ax,ay); c.stroke();
   c.fillStyle=col; c.beginPath(); const a=ang[k]*D2R; c.moveTo(ax,ay); c.lineTo(ax+Math.sin(a)*10-Math.cos(a)*5, ay+Math.cos(a)*10+Math.sin(a)*5); c.lineTo(ax+Math.sin(a)*10+Math.cos(a)*5, ay+Math.cos(a)*10-Math.sin(a)*5); c.fill();
-  c.fillStyle=col; c.font='bold 11px Sarabun'; c.textAlign='center'; c.fillText(POLNAME[k]+(mode==='auto'?`  ${ang[k].toFixed(1)}°`:''),cx,cy+r+14);
+  }
+  c.fillStyle=col; c.font='bold 11px Sarabun'; c.textAlign='center'; c.fillText(POLNAME[k]+(k===2&&p2Type==='myst'?' ❓':'')+(mode==='auto'?`  ${ang[k].toFixed(1)}°`:''),cx,cy+r+14);
   /* แว่นขยายสเกล ±8° รอบหัวลูกศร */
   const zx=cx-d.zw/2, zy=d.zy, zw=d.zw, zh=d.zh, ppd=zw/17, cd=Math.round(ang[k]);
   c.fillStyle='#e8e6df'; c.fillRect(zx,zy,zw,zh); c.strokeStyle='#1e3a5f'; c.strokeRect(zx,zy,zw,zh);
@@ -502,12 +591,14 @@ function drawVectors(){
   c.strokeStyle='rgba(148,163,184,.25)'; c.beginPath(); c.arc(cx,cy,R,0,Math.PI*2); c.stroke();
   const seg=chain(), E1=Eof(seg[1].I), Ein= usP3?Eof(seg[2].I):E1, polIn= usP3?ang[3]:ang[1], Eout=Eof(detI()), sc=R/Eof(I_SRC/2);
   const arrow=(phi,len,col,w,dash)=>{ const [x,y]=dir2(cx,cy,len,phi); c.strokeStyle=col; c.fillStyle=col; c.lineWidth=w; if(dash) c.setLineDash([4,3]); c.beginPath(); c.moveTo(cx,cy); c.lineTo(x,y); c.stroke(); c.setLineDash([]); if(len>6){ const a=phi*D2R; c.beginPath(); c.moveTo(x,y); c.lineTo(x+Math.sin(a)*8-Math.cos(a)*4, y+Math.cos(a)*8+Math.sin(a)*4); c.lineTo(x+Math.sin(a)*8+Math.cos(a)*4, y+Math.cos(a)*8-Math.sin(a)*4); c.fill(); } };
-  /* แกน P₂ */ const [p1x,p1y]=dir2(cx,cy,R,ang[2]), [p2x,p2y]=dir2(cx,cy,R,ang[2]+180); c.strokeStyle='rgba(251,146,60,.5)'; c.lineWidth=1; c.setLineDash([6,4]); c.beginPath(); c.moveTo(p2x,p2y); c.lineTo(p1x,p1y); c.stroke(); c.setLineDash([]);
-  const t=norm180(ang[2]-polIn), cth=Math.cos(t*D2R), outPhi= cth>=0?ang[2]:ang[2]+180;
+  const A2=axAng(2), hid=hideAx();   /* แผ่นปริศนาในโหมดวัดเอง: ไม่วาดแกน P₂ และทิศ E หลัง P₂ (ไม่ให้เห็นแกนที่ซ่อน) */
+  if(!hid){ /* แกน P₂ */ const [p1x,p1y]=dir2(cx,cy,R,A2), [p2x,p2y]=dir2(cx,cy,R,A2+180); c.strokeStyle='rgba(251,146,60,.5)'; c.lineWidth=1; c.setLineDash([6,4]); c.beginPath(); c.moveTo(p2x,p2y); c.lineTo(p1x,p1y); c.stroke(); c.setLineDash([]); }
+  const t=norm180(A2-polIn), cth=Math.cos(t*D2R), outPhi= cth>=0?A2:A2+180;
   arrow(polIn,Ein*sc,usP3?'#34d399':'#facc15',2.5);
-  const [tx,ty]=dir2(cx,cy,Ein*sc,polIn), [qx,qy]=dir2(cx,cy,Math.abs(Ein*sc*cth),outPhi); c.strokeStyle='rgba(226,232,240,.5)'; c.setLineDash([3,3]); c.lineWidth=1; c.beginPath(); c.moveTo(tx,ty); c.lineTo(qx,qy); c.stroke(); c.setLineDash([]);
-  arrow(outPhi,Eout*sc,'#fb923c',3);
-  c.font='bold 11px "Share Tech Mono"'; c.textAlign='left'; c.fillStyle=usP3?'#34d399':'#facc15'; c.fillText(usP3?'E₃':'E₀',tx+6,ty); c.fillStyle='#fb923c'; c.fillText(usP3?'E = E₃cos β':'E = E₀cos θ',qx+6,qy+12);
+  const [tx,ty]=dir2(cx,cy,Ein*sc,polIn), [qx,qy]=dir2(cx,cy,Math.abs(Ein*sc*cth),outPhi);
+  if(!hid){ c.strokeStyle='rgba(226,232,240,.5)'; c.setLineDash([3,3]); c.lineWidth=1; c.beginPath(); c.moveTo(tx,ty); c.lineTo(qx,qy); c.stroke(); c.setLineDash([]); arrow(outPhi,Eout*sc,'#fb923c',3); }
+  c.font='bold 11px "Share Tech Mono"'; c.textAlign='left'; c.fillStyle=usP3?'#34d399':'#facc15'; c.fillText(usP3?'E₃':'E₀',tx+6,ty); c.fillStyle='#fb923c';
+  if(hid){ c.font='11px Sarabun'; c.textAlign='center'; c.fillText('❓ แกน P₂ ซ่อน — ดูจากมิเตอร์/ความสว่าง',cx,cy+R+14); } else c.fillText(usP3?'E = E₃cos β':'E = E₀cos θ',qx+6,qy+12);
   /* แท่งเปรียบเทียบ E/E₀ กับ I/I₀ */
   const I0=I_SRC/2, rE=Eout/Eof(I0), rI=detI()/I0, bw=VW*0.2, by=cy+R+26, bh=Math.max(40,H-by-24);
   /* ความสว่างที่จอรับแสง: สีเทาเข้ม → ขาวอุ่นตามความเข้ม (แก้แกมมาให้ตามองเห็นใกล้เคียงจริง) */
@@ -541,9 +632,14 @@ function ringTexture(col){
   for(let a=0;a<360;a+=30){ g.save(); g.translate(cx-Math.sin(a*D2R)*R*0.82, cx-Math.cos(a*D2R)*R*0.82); g.rotate(-a*D2R); g.fillText(a,0,0); g.restore(); }
   return new THREE.CanvasTexture(c);
 }
-function discTexture(col){
+function discTexture(col,myst,phi){
   const S=512, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d');
   g.fillStyle='rgba(60,66,78,0.62)'; g.fillRect(0,0,S,S);
+  if(myst){   /* แผ่นปริศนา: ขีดชี้ที่ขอบ + เครื่องหมาย ? · phi (โหมดอัตโนมัติ) = แกนจริง ทวนเข็มนาฬิกาจากขีดชี้ */
+    g.strokeStyle=col; g.lineWidth=12; g.beginPath(); g.moveTo(S/2,S*0.02); g.lineTo(S/2,S*0.24); g.stroke(); g.fillStyle=col; g.beginPath(); g.moveTo(S/2,0); g.lineTo(S/2-28,52); g.lineTo(S/2+28,52); g.fill();
+    g.fillStyle='rgba(226,232,240,.8)'; g.font='bold 200px Sarabun, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('?',S/2,S/2+10);
+    if(phi!==undefined){ const sn=Math.sin(phi*D2R), cs=Math.cos(phi*D2R), R=S*0.48; g.strokeStyle='#c084fc'; g.lineWidth=8; g.setLineDash([26,18]); g.beginPath(); g.moveTo(S/2+sn*R,S/2+cs*R); g.lineTo(S/2-sn*R,S/2-cs*R); g.stroke(); g.setLineDash([]); }
+    return new THREE.CanvasTexture(c); }
   g.strokeStyle='rgba(210,220,235,0.16)'; g.lineWidth=3; for(let x=0;x<=S;x+=22){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,S); g.stroke(); }
   g.strokeStyle=col; g.lineWidth=12; g.beginPath(); g.moveTo(S/2,S*0.02); g.lineTo(S/2,S*0.98); g.stroke();
   g.fillStyle=col; g.beginPath(); g.moveTo(S/2,0); g.lineTo(S/2-28,52); g.lineTo(S/2+28,52); g.fill();
@@ -560,6 +656,7 @@ function makePolarizer(k,x){
   const lab=makeLabel(POLNAME[k],POLCOL[k]); lab.position.set(0,R_POL*1.35+2.2,0); grp.add(lab);
   grp.userData={k,rot,disc,pickables:[ring,disc]}; ring.userData.k=k; disc.userData.k=k; return grp;   /* จับหมุนได้เฉพาะตัวแผ่น/วงแหวน ไม่รวมป้ายชื่อ */
 }
+function refreshP2Tex(){ if(!P.pol) return; const d=P.pol[2].userData.disc, old=d.material.map; d.material.map= p2Type==='myst' ? discTexture(POLCOL[2],true,mode==='auto'?mOff:undefined) : discTexture(POLCOL[2]); d.material.needsUpdate=true; if(old) old.dispose(); }
 function makeLabel(text,col){ const c=document.createElement('canvas'); c.width=512; c.height=96; const g=c.getContext('2d'); g.font='bold 52px Sarabun, sans-serif'; g.textAlign='center'; g.fillStyle=col; g.fillText(text,256,66); const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false})); s.scale.set(12,2.25,1); return s; }
 function drawDetScreen(m){ const c=P.detCanvas, g=c.getContext('2d'); g.fillStyle='#0b1220'; g.fillRect(0,0,c.width,c.height); g.fillStyle='#94a3b8'; g.font='28px Sarabun, sans-serif'; g.fillText('E (V/m)',20,40); g.fillText('I (W/m²)',20,150);
   g.fillStyle='#facc15'; g.font='bold 64px "Share Tech Mono", monospace'; g.fillText(m.E.toFixed(1),20,108); g.fillStyle='#fb923c'; g.fillText(m.I.toFixed(1),20,218); P.detTex.needsUpdate=true; }
@@ -620,7 +717,7 @@ function update3D(t){
     if(s.pol===null){ phi=hash(Math.floor((x-VPH*t)/LAMBDA))*360; A=Es*sc; } else { phi=s.pol; A=Eof(s.I)*sc; }
     const ey=Math.cos(phi*D2R)*A*cph, ez=Math.sin(phi*D2R)*A*cph;
     const col= s.pol===null?[0.75,0.72,0.55]: s.x0===X_P1?[1.0,0.85,0.2]: s.x0===X_P3?[0.3,0.9,0.6]:[1.0,0.55,0.2];
-    if(gap||A<0.02){ prev=null; continue; }
+    if(gap||A<0.02||(s.x0===X_P2&&hideAx())){ prev=null; continue; }   /* แผ่นปริศนา (วัดเอง): ไม่แสดงทิศ E หลัง P₂ */
     if(i%2===0){ pos.set([x,0,0,x,ey,ez],n*6); colA.set([col[0]*.5,col[1]*.5,col[2]*.5,col[0],col[1],col[2]],n*6); n++; }
     if(prev && prev.pol===s.pol && s.pol!==null){ tp.set([prev.x,prev.y,prev.z,x,ey,ez],m*6); m++; }
     prev={x,y:ey,z:ez,pol:s.pol};
@@ -687,7 +784,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('cbP3').addEventListener('change',e=>setP3(e.target.checked));
   ['in-1','in-2','in-3'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  $('in-m').addEventListener('keydown',e=>{ if(e.key==='Enter') checkMystery(); });
+  mOff=newOff();
   init3D(); resizeAll(); setMode('manual'); setAng(1,0); setAng(3,45); setAng(2,30); renderTables(); drawGraph(); drawTheoryAll();
+  updateGuide(); setInterval(updateGuide,200);
 });
 </script>
 
@@ -743,6 +843,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

@@ -641,9 +641,9 @@ canvas.addEventListener('mousedown',function(e){
   if((currentExp!==3&&currentExp!==4)||!prot.visible)return;
   const rect=canvas.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height;
   const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
-  const dx=mx-prot.cx,dy=my-prot.cy,dist=Math.sqrt(dx*dx+dy*dy);
-  if(dist<20){prot.dragging=true;prot.ox=dx;prot.oy=dy;e.preventDefault();}
-  else if(dist>prot.r-25&&dist<prot.r+15){prot.rotating=true;prot.orot=Math.atan2(dy,dx)-prot.rot;e.preventDefault();}
+  const dx=mx-prot.cx,dy=my-prot.cy,dist=Math.sqrt(dx*dx+dy*dy),tf=e.kpTouch?Math.max(2,sx):1;
+  if(dist<20*tf){prot.dragging=true;prot.ox=dx;prot.oy=dy;e.preventDefault();}
+  else if(dist>prot.r-25*tf&&dist<prot.r+15*tf){prot.rotating=true;prot.orot=Math.atan2(dy,dx)-prot.rot;e.preventDefault();}
 });
 canvas.addEventListener('mousemove',function(e){
   if(!prot.dragging&&!prot.rotating)return;
@@ -992,6 +992,9 @@ window.addEventListener('DOMContentLoaded',()=>{
 window.addEventListener('resize',()=>{resizeCanvas();calcPhysics();if(!isPlaying)draw();});
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script>window.KP_MPANEL={move:['.side-panel > .sp-section:nth-child(1)','.side-panel > .sp-section:nth-child(2) > .sl-row','#strobeSection','#protractorSection','#readoutSection','.side-panel > .sp-section:nth-child(6)','#tblWrap4'], res:['#readoutSection','.data-table-wrap','#tblWrap4'], view:'#canvasWrap', hint:'#modeHint', bp:900};</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 
@@ -1013,6 +1016,34 @@ window.addEventListener('resize',()=>{resizeCanvas();calcPhysics();if(!isPlaying
     }, 50);
     setTimeout(function(){clearInterval(w)}, 5000);
   })();
+</script>
+<!-- KP Touch Bridge: แตะ/ลากด้วยนิ้วบนแคนวาส = เมาส์ -->
+<script>
+(function(){
+  function bridge(cv){
+    if(!cv||cv._kpTouch)return; cv._kpTouch=true;
+    var active=false, grabbed=false;
+    function send(type,t){
+      var ev=new MouseEvent(type,{bubbles:true,cancelable:true,view:window,clientX:t.clientX,clientY:t.clientY,button:0,buttons:type==='mouseup'?0:1});
+      ev.kpTouch=true;
+      return cv.dispatchEvent(ev);
+    }
+    function end(e){ if(!active)return; send('mouseup',e.changedTouches[0]); active=false; grabbed=false; }
+    cv.addEventListener('touchstart',function(e){
+      if(e.touches.length!==1){ end(e); return; }
+      active=true; grabbed=!send('mousedown',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchmove',function(e){
+      if(!active||e.touches.length!==1)return;
+      send('mousemove',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchend',end);
+    cv.addEventListener('touchcancel',end);
+  }
+  ['simCanvas'].forEach(function(id){ bridge(document.getElementById(id)); });
+})();
 </script>
 </body>
 </html>

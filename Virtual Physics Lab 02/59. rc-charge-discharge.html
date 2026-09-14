@@ -62,6 +62,7 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 .hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
 .hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
 .hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
 .sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
 .sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
@@ -192,6 +193,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         </div>
         <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — คายประจุหมด · สวิตช์กลาง · นาฬิกา 0</button>
         <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตาราง ค่าจริงของอุปกรณ์ และตัวเก็บประจุปริศนาไม่ถูกเปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
       </div>
 
       <div class="panel-section">
@@ -433,6 +439,35 @@ function updateHint(){
     $('rd-QU').textContent= C? `${fmt(C*Vc*1e3,2)} mC · ${fmt(0.5*C*Vc*Vc*1e3,2)} mJ` : '?'; $('rd-frac').textContent=fmt(Vc/EMF,3); $('rd-state').textContent=stateText();
     $('hud').innerHTML=`<b>R ${RES[ri].k}Ω · C ${CAPS[ci].label}</b> · สวิตช์ ${({A:'A อัด',B:'B คาย',off:'กลาง'})[sw]} · V = ${Vc.toFixed(2)} V · I = ${fmt(current()*1e6,1)} μA`+(C?` · τ ≈ ${fmt(R*C,1)} s`:''); }
   else $('hud').innerHTML='<b>'+({iso:'มุมเฉียง',top:'มองจากด้านบน',parts:'ตัวต้านทาน · ตัวเก็บประจุ'})[curView]+'</b> — คลิกที่สวิตช์เพื่อสับ A/B · ลากเพื่อหมุนมุมมอง';
+  const [cls,txt]=hintState(); const h=$('hint'); if(h&&h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } if(h) h.className='hint-box '+cls;
+}
+/* ── 🧭 ตอนนี้ต้องทำอะไร: ดูสวิตช์ แรงดันบนโวลต์มิเตอร์ นาฬิกา และชุดข้อมูล แล้วบอกขั้นถัดไป (ไม่บอก τ หรือ C) ── */
+function hintState(){
+  const run=runs[runIdx], n=run.rows.length, v=readV(), Vinf=EMF*R_V/(Ract()+R_V), cn=CAPS[ci].label, isX=CAPS[ci].v===null,
+    good=k=>runs.filter(r=>r.C===ci&&r.kind===k&&r.rows.length>=5).length, sameSet=!n||(run.R===ri&&run.C===ci);
+  const clockOff= !watchOn ? ' — ⚠️ นาฬิกาหยุดอยู่ กด <b>▶ เริ่ม</b>' : '';
+  if(sw==='A'){
+    if(n && run.kind==='charge' && sameSet){
+      if(!watchOn) return ['warn',`กำลังอัดประจุแต่นาฬิกาหยุดอยู่ → กด <b>▶ เริ่ม</b> (หรือเริ่มชุดใหม่แล้วสับสวิตช์ใหม่)`];
+      if(Math.abs(Vc-Vinf)>0.01*Vinf) return ['ok',`ตอน B อัดประจุ: จดแล้ว ${n} ค่า — กด <b>📝 จดค่า (Space)</b> ต่อเป็นระยะ ๆ เช่นทุก 10 s (หรือเปิดบันทึกอัตโนมัติ)`];
+      return ['ok',`โวลต์มิเตอร์เกือบนิ่งแล้ว · จดได้ ${n} ค่า`+(n<5?' (น้อยไป ควรมีอย่างน้อย 5 ค่า)':'')+`<br>เลือกกราฟ <b>ln – t</b> ความชัน = −1/τ → C = τ/R แล้วส่งคำตอบ`];
+    }
+    if(Vc<0.05*Vinf && !n) return ['info',`สวิตช์ A: เริ่มอัดประจุ<br>ตอน B (อัดประจุ): กด <b>📝 จดค่า (Space)</b> ตั้งแต่ตอนนี้ แล้วจดทุก ~10 s · ตอน A (คายประจุ): รอให้อัดเต็มก่อน`];
+    if(Math.abs(Vc-Vinf)>0.01*Vinf) return ['info','กำลังอัดประจุ… รอจนตัวเลขบนโวลต์มิเตอร์นิ่ง (เร่งเวลา ×5 ได้) แล้วค่อยสับไป B'];
+    return ['ok',`อัดประจุเต็มแล้ว (โวลต์มิเตอร์นิ่ง) ✓<br>ตอน A: `+(n?'กด <b>➕ เริ่มชุดข้อมูลใหม่</b> แล้ว':'')+`สับสวิตช์ไป <b>B · คายประจุ</b> — นาฬิกาเริ่มเอง แล้วกด 📝 จดค่า ทันที`];
+  }
+  if(sw==='B'){
+    if(n && run.kind!=='discharge' && sameSet) return ['warn','ชุดข้อมูลนี้เป็นของการ'+(run.kind==='charge'?'อัดประจุ':'สวิตช์กลาง')+' → กด <b>➕ เริ่มชุดข้อมูลใหม่</b> ก่อนจดค่าคายประจุ'];
+    if(!n) return v<0.05? ['warn','ตัวเก็บประจุไม่มีประจุ → สับสวิตช์ไป <b>A · อัดประจุ</b> ให้เต็มก่อน'] : ['ok',`กำลังคายประจุ — กด <b>📝 จดค่า (Space)</b> ทันที แล้วจดทุก ~10 s (หรือเปิดบันทึกอัตโนมัติ)${clockOff}`];
+    if(!watchOn && v>=0.5) return ['warn','นาฬิกาหยุดอยู่ขณะคายประจุ → กด <b>▶ เริ่ม</b> (เวลาที่จดต้องต่อเนื่อง)'];
+    if(v>=0.5) return ['ok',`จดแล้ว ${n} ค่า — จดต่อทุก ~10 s จนแรงดันน้อยกว่า 0.5 V`];
+    if(n<5) return ['warn',`แรงดันเหลือน้อยแล้วแต่จดได้แค่ ${n} ค่า (ควรมีอย่างน้อย 5) → สับ A อัดประจุใหม่ กด ➕ เริ่มชุดข้อมูลใหม่ แล้วทำซ้ำ`];
+    return ['ok',`คายประจุเกือบหมด · จดได้ ${n} ค่า ✓<br>เลือกกราฟ <b>ln – t</b> → τ = −1/ความชัน → C = τ/R แล้วกด <b>ตรวจคำตอบ</b>`];
+  }
+  if(Vc>0.05) return ['info','สวิตช์กลาง: ตัวเก็บประจุยังมีประจุ (รั่วผ่านโวลต์มิเตอร์ช้ามาก)<br>สับ <b>B · คายประจุ</b> เพื่อทำตอน A หรือ <b>A</b> เพื่ออัดต่อ'];
+  if(answered[ci]) return ['ok',`ส่งคำตอบของ ${cn} แล้ว ✓ ลองทำซ้ำด้วยตัวต้านทานค่าอื่น`+(isX?'':' หรือเลือก <b>ตัวเก็บประจุ X (ไม่ทราบค่า)</b>')];
+  if(good('discharge')||good('charge')) return ['ok',`มีข้อมูลของ ${cn} แล้ว ✓ เลือกกราฟ <b>ln – t</b> อ่านความชัน → τ = −1/ความชัน → C = τ/R<br>กรอกใน 🎯 ส่งคำตอบ แล้วกด <b>ตรวจคำตอบ</b>`];
+  return ['info',`① เลือกตัวต้านทานและตัวเก็บประจุ (ตอน C: ตัวเก็บประจุ X ไม่ทราบค่า)<br>② ตอน A คายประจุ: สับ <b>A · อัดประจุ</b> ให้เต็มก่อน · ตอน B อัดประจุ: กด ➕ เริ่มชุดข้อมูลใหม่ แล้วสับ A จดค่าตั้งแต่ t = 0`];
 }
 
 /* ── table/graph ── */
@@ -655,6 +690,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

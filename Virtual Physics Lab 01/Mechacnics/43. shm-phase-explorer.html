@@ -776,8 +776,12 @@ select.t-input{background:var(--panel2);color:var(--text);border:1px solid var(-
   © 2568 KP Science · SHM04 Phase Explorer · ขอบเขต: SHM 1 มิติ + Under-damped · มุมเล็กสำหรับลูกตุ้ม (θ&lt;15°) · ไม่รวม forced oscillation/resonance
 </footer>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<style>/* แผงของฐานย่อยที่ซ่อนอยู่ ให้ซ่อนในแผ่นเลื่อนด้วย (ลำดับ A,B,C) */body:has(#sub-A[style*="none"]) #kpSheet .sb>.side-panel:nth-child(1),body:has(#sub-B[style*="none"]) #kpSheet .sb>.side-panel:nth-child(2),body:has(#sub-C[style*="none"]) #kpSheet .sb>.side-panel:nth-child(3){display:none}</style>
+<script>window.KP_MPANEL={move:['.sub-section .side-panel'], hint:'#kpNoHint', bp:1024};</script>
+<script src="../../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
-<script src="../_shared/watermark.js" defer></script>
+<script src="../../_shared/watermark.js" defer></script>
 
 <script>
 /* ============================================================
@@ -2163,12 +2167,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
       y:(e.clientY-rect.top)*(cv.height/rect.height)
     };
   }
-  function nearDot(mx,my){
+  function nearDot(mx,my,tol){
+    tol=tol||14;
     const dx=mx-(A_state.cx + A_state.R*Math.cos(A_state.dragPhase ?? (2*Math.PI/getA().T)*A_state.t + getA().phi));
     const dy=my-(A_state.cy - A_state.R*Math.sin(A_state.dragPhase ?? (2*Math.PI/getA().T)*A_state.t + getA().phi));
     // Also accept clicks anywhere on the circle ring
     const dr=Math.hypot(mx-A_state.cx, my-A_state.cy) - A_state.R;
-    return Math.hypot(dx,dy)<14 || Math.abs(dr)<14;
+    return Math.hypot(dx,dy)<tol || Math.abs(dr)<tol;
   }
   function setDragFromMouse(mx,my){
     const ang = Math.atan2(-(my-A_state.cy), mx-A_state.cx); // CCW from +x
@@ -2187,7 +2192,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   cvA.addEventListener('mousedown', e=>{
     if(A_state.isPlaying) return;
     const m=getMouse(cvA,e);
-    if(nearDot(m.x,m.y)){
+    if(nearDot(m.x,m.y,e.kpTouch?28:14)){
+      e.preventDefault();
       A_state.dragging=true;
       cvA.style.cursor='grabbing';
       setDragFromMouse(m.x,m.y);
@@ -2237,15 +2243,16 @@ window.addEventListener('DOMContentLoaded', ()=>{
     return { x:(e.clientX-rect.left)*(cvC.width/rect.width),
              y:(e.clientY-rect.top)*(cvC.height/rect.height) };
   }
-  function caliperJawHit(mx,my){
+  function caliperJawHit(mx,my,tol){
+    tol=tol||12;
     const r=C_state.graphRect; if(!r) return null;
     const tWin=6, pxPerSec=r.gW/tWin;
     const rulerY = r.gy0 + r.gH + 30;
     const xA = r.gx0 + C_state.caliperA*pxPerSec;
     const xB = r.gx0 + C_state.caliperB*pxPerSec;
     if(my < rulerY-30 || my > rulerY+30) return null;
-    if(Math.abs(mx-xA) < 12) return 'A';
-    if(Math.abs(mx-xB) < 12) return 'B';
+    if(Math.abs(mx-xA) < tol) return 'A';
+    if(Math.abs(mx-xB) < tol) return 'B';
     return null;
   }
   function setCaliperFromMouse(mx, jaw){
@@ -2261,7 +2268,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if(C_state.isPlaying) return;
     if(!document.getElementById('cb-ruler')?.checked) return;
     const m=getCMouse(e);
-    const jaw=caliperJawHit(m.x,m.y);
+    const jaw=caliperJawHit(m.x,m.y,e.kpTouch?26:12);
     if(jaw){ C_state.dragJaw=jaw; cvC.style.cursor='grabbing'; e.preventDefault(); }
   });
   window.addEventListener('mousemove', e=>{
@@ -2311,7 +2318,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../kp-auth.js"></script>
+<script src="../../kp-auth.js"></script>
 
 <!-- KP Page Access Guard -->
 <script>
@@ -2325,6 +2332,34 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }, 50);
     setTimeout(function(){clearInterval(w)}, 5000);
   })();
+</script>
+<!-- KP Touch Bridge: แตะ/ลากด้วยนิ้วบนแคนวาส = เมาส์ -->
+<script>
+(function(){
+  function bridge(cv){
+    if(!cv||cv._kpTouch)return; cv._kpTouch=true;
+    var active=false, grabbed=false;
+    function send(type,t){
+      var ev=new MouseEvent(type,{bubbles:true,cancelable:true,view:window,clientX:t.clientX,clientY:t.clientY,button:0,buttons:type==='mouseup'?0:1});
+      ev.kpTouch=true;
+      return cv.dispatchEvent(ev);
+    }
+    function end(e){ if(!active)return; send('mouseup',e.changedTouches[0]); active=false; grabbed=false; }
+    cv.addEventListener('touchstart',function(e){
+      if(e.touches.length!==1){ end(e); return; }
+      active=true; grabbed=!send('mousedown',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchmove',function(e){
+      if(!active||e.touches.length!==1)return;
+      send('mousemove',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchend',end);
+    cv.addEventListener('touchcancel',end);
+  }
+  ['cvA', 'cvC'].forEach(function(id){ bridge(document.getElementById(id)); });
+})();
 </script>
 </body>
 </html>

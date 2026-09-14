@@ -49,6 +49,26 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 .diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
 .diag-wrap .diag-head b{color:var(--accent5)}
 #diagCanvas{width:100%;height:320px;background:#0c1424;border-radius:8px;display:block;touch-action:none}
+.rec-form{margin-top:8px;background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-seg{display:flex;gap:4px;flex:1;min-width:240px}
+.rec-form .rf-seg button{flex:1;padding:6px 6px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:7px;cursor:pointer;font-family:inherit;font-size:.76rem;font-weight:600}
+.rec-form .rf-seg button.active{background:#facc15;border-color:#facc15;color:#0a0e1a}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:150px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.8rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.68rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:130px;font-size:1.05rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted)}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
 
 .sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
 .panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
@@ -61,6 +81,8 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 #graphBtns button{font-size:.74rem;padding:6px 4px}
 .hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
 .hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
 .sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
 .sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
@@ -177,6 +199,16 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         <div class="diag-head">🧭 <b>แผนภาพอุปกรณ์ · แว่นขยายสเกลระยะ · จอเครื่องชั่ง</b> — ลากทรงกลม B ขึ้น-ลงในแผนภาพได้
           <span id="diagNote" style="margin-left:auto;color:var(--muted)"></span></div>
         <canvas id="diagCanvas"></canvas>
+        <div class="rec-form" id="recForm">
+          <div class="rf-head">📝 บันทึกผลการวัด
+            <span class="rf-seg" id="setBtns"><button class="active" onclick="setRecSet('A')">ชุด A · เปลี่ยนระยะ r (ประจุคงที่)</button><button onclick="setRecSet('B')">ชุด B · เปลี่ยนประจุ (r คงที่)</button></span></div>
+          <div class="rf-row">
+            <label class="rf-f"><span>① ระยะ r <small id="rfHintR">— อ่านที่ขีดชี้บนสเกลเสาตั้ง (แว่นขยายด้านบน)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-r" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+            <label class="rf-f"><span>② ค่าอ่านเครื่องชั่ง <small id="rfHintM">— อ่านค่ากลางขณะตัวเลขแกว่ง</small></span><span class="rf-in"><input class="val-input" type="number" id="in-m" step="0.0001" inputmode="decimal" placeholder="?"> g</span></label>
+            <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+          </div>
+          <div class="rf-msg" id="recMsg"></div>
+        </div>
       </div>
     </div>
 
@@ -188,7 +220,12 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
         </div>
         <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — คายประจุ · r = 15 cm · 6 kV · ยกเลิก TARE</button>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและค่าประจุปริศนาไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
       </div>
 
       <div class="panel-section">
@@ -212,11 +249,15 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button class="btn btn-outline btn-sm" onclick="act('ground','B')">⏚ ต่อดิน B</button>
         </div>
         <div style="font-size:.7rem;color:var(--muted);line-height:1.5">ทรงกลมเปล่ามีขนาดเท่ากับ A และ B · ก่อนแตะแต่ละครั้งทรงกลมเปล่าถูกคายประจุ</div>
+        <div class="panel-title" style="margin-top:8px">❓ ประจุปริศนา q_X</div>
+        <button class="btn btn-outline btn-sm" style="width:100%" onclick="act('mys','B')">❓ ให้ B มีประจุปริศนา q_X (ไม่ทราบขนาดและชนิด)</button>
+        <button class="btn btn-outline btn-sm" id="btnRandom" style="width:100%;margin-top:5px" onclick="randomMystery()">🎲 สุ่มประจุปริศนาใหม่</button>
+        <div id="mysInfo" style="font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.5"></div>
       </div>
 
       <div class="panel-section">
         <div class="panel-title">📏 ระยะระหว่างจุดศูนย์กลาง r</div>
-        <div class="sl-row"><input class="sl-range" type="range" id="sl-r" min="4.5" max="35" step="0.1" value="15"><input class="val-input ang" type="number" id="vi-r" min="4.5" max="35" step="0.1" value="15"><span class="sl-unit">cm</span></div>
+        <div class="sl-row"><input class="sl-range" type="range" id="sl-r" min="4" max="35" step="0.1" value="15"><input class="val-input ang" type="number" id="vi-r" min="4" max="35" step="0.1" value="15"><span class="sl-unit">cm</span></div>
         <div class="btn-row">
           <button class="btn btn-outline btn-sm" onclick="nudgeR(-1)">−1</button>
           <button class="btn btn-outline btn-sm" onclick="nudgeR(-0.1)">−0.1</button>
@@ -232,12 +273,9 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         <button class="btn btn-outline btn-sm" style="width:100%;margin-top:6px" onclick="tare()">TARE — ตั้งค่าอ่านเป็นศูนย์</button>
       </div>
 
-      <div id="manualCtrl" class="panel-section">
-        <div class="panel-title">🖐 บันทึกผล</div>
-        <div class="hint-box info" id="manualHint"></div>
-        <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="min-width:140px">ระยะ r ที่อ่านได้</span><input class="val-input" type="number" id="in-r" step="0.1" placeholder="?" style="width:74px"><span class="sl-unit">cm</span></div>
-        <div class="sl-row"><span class="sl-label" style="min-width:140px">ค่าอ่านเครื่องชั่ง</span><input class="val-input" type="number" id="in-m" step="0.0001" placeholder="?" style="width:74px"><span class="sl-unit">g</span></div>
-        <div class="btn-row"><button class="btn btn-green btn-sm" onclick="record('A')">📝 ตาราง A (เปลี่ยน r)</button><button class="btn btn-green btn-sm" onclick="record('B')">📝 ตาราง B (เปลี่ยน q)</button></div>
+      <div class="panel-section">
+        <div class="panel-title">📊 ผลที่บันทึกล่าสุด</div>
+        <div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก — กรอกค่าในกรอบ “📝 บันทึกผลการวัด” ใต้แผนภาพ แล้วกดบันทึก</span></div>
       </div>
 
       <div id="autoCtrl" class="panel-section hidden">
@@ -251,7 +289,6 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <div class="readout-box"><div class="label">kq_Aq_B/r² (จุดประจุ)</div><div class="value" id="rd-F0">—</div></div>
           <div class="readout-box" style="grid-column:1/-1"><div class="label">สิ่งที่เกิดขึ้น</div><div class="value" id="rd-state" style="font-size:.8rem;color:var(--text);font-weight:600;font-family:Sarabun">—</div></div>
         </div>
-        <div class="btn-row" style="margin-top:8px"><button class="btn btn-green btn-sm" onclick="record('A')">📝 ตาราง A</button><button class="btn btn-green btn-sm" onclick="record('B')">📝 ตาราง B</button></div>
       </div>
 
       <div class="panel-section">
@@ -293,7 +330,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
     <h2>อุปกรณ์ (เสมือนจริง)</h2>
     <ul>
       <li>ทรงกลมโลหะ A และ B รัศมี a = 2.00 cm บนแท่งอะคริลิก (ฉนวน) · ทรงกลม A ตั้งบนจานเครื่องชั่ง · ทรงกลม B ยึดกับแขนที่เลื่อนขึ้น-ลงบนเสาตั้ง</li>
-      <li>สเกลบนเสาตั้ง อ่านระยะระหว่างจุดศูนย์กลาง r ได้โดยตรงที่ขีดชี้ของแขน (ละเอียด 1 mm)</li>
+      <li>สเกลบนเสาตั้ง อ่านระยะระหว่างจุดศูนย์กลาง r ได้โดยตรงที่ขีดชี้ของแขน (ละเอียด 1 mm) · ผิวทรงกลมแตะกันเมื่อ r = 2a = 4.0 cm (ลองเลื่อน B ลงจนแตะเพื่อตรวจสเกลขณะไม่มีประจุ)</li>
       <li>เครื่องชั่งดิจิทัลละเอียด 0.0001 g มีปุ่ม TARE · แหล่งจ่ายไฟแรงสูง 1–10 kV เลือกขั้ว + / − พร้อมหัวแตะ</li>
       <li>ทรงกลมเปล่าขนาดเท่ากันบนด้ามฉนวน (แบ่งประจุ) · สายต่อดิน</li>
     </ul>
@@ -302,9 +339,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
     <h2>การใช้งาน Simulation</h2>
     <ul>
       <li>ทรงกลมที่แตะหัวแตะของแหล่งจ่ายไฟมีศักย์เท่ากับแรงดันที่ตั้ง จึงมีประจุ q = 4πε₀aV (ทำขณะทรงกลมอยู่ห่างกัน)</li>
+      <li>ถ้าเลื่อน B ลงจน<b>ผิวแตะผิว A</b> (r = 4.0 cm) ประจุจะไหลจนสองลูกมีประจุเท่ากัน q = (q_A + q_B)/2 — เลื่อนขึ้นแล้วประจุยังเท่ากันอยู่ (แตะกันประจุไหล ไม่ใช่แค่ใกล้กัน)</li>
       <li><b>แรงผลัก</b>ดันทรงกลม A ลงบนจาน ค่าอ่านเพิ่มขึ้น · <b>แรงดูด</b>ดึงทรงกลม A ขึ้น ค่าอ่านติดลบ · แรง F = Δm·g</li>
       <li><b>โหมดวัดเอง</b>: ไม่แสดงตัวเลขระยะ อ่าน r จากแว่นขยายสเกล และอ่านค่าเครื่องชั่ง (มีค่าแกว่งเล็กน้อย) · <b>โหมดอัตโนมัติ</b>: แสดงประจุ ลูกศรแรง และค่าแรงจากทั้งสองแบบจำลอง</li>
-      <li><b>↺ รีเซตค่า</b> คายประจุทั้งสองลูก r = 15 cm แรงดัน 6 kV ขั้วบวก และยกเลิก TARE (ต้องกด TARE ใหม่)</li>
+      <li><b>↺ รีเซตค่า</b> คายประจุทั้งสองลูก r = 15 cm แรงดัน 6 kV ขั้วบวก และยกเลิก TARE (ต้องกด TARE ใหม่) · ค่าประจุปริศนา q_X ไม่เปลี่ยน</li>
+      <li><b>❓ ประจุปริศนา</b>: ปุ่มนี้ให้ทรงกลม B มีประจุ q_X ที่สุ่มไว้ (ขนาด 5–18 nC ชนิดบวกหรือลบ) · โหมดวัดเอง<b>ไม่แสดง</b> q_X · โหมดอัตโนมัติแสดงค่าจริงไว้ตรวจคำตอบ · 🎲 สุ่มค่าใหม่ได้</li>
     </ul>
 
     <h2>ตอนที่ A — แรงกับระยะ</h2>
@@ -321,6 +360,10 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li>แตะ A ด้วยทรงกลมเปล่า (q_A เหลือครึ่งหนึ่ง) บันทึก · แตะ A อีกครั้ง (q_A/4) บันทึก</li>
       <li>แตะ B ด้วยทรงกลมเปล่า บันทึก ฯลฯ · เขียนกราฟ F – q_A q_B ควรเป็นเส้นตรง</li>
       <li>ลองทำให้ B มีประจุลบ (เลือกขั้วลบ) ค่าอ่านเครื่องชั่งเปลี่ยนอย่างไร</li>
+    </ol>
+    <h2>ตอนที่ C — หาประจุปริศนา q_X</h2>
+    <ol>
+      <li>กด TARE ขณะไม่มีประจุ · ตั้ง 6 kV ขั้วบวก แตะทรงกลม A (q_A = 4πε₀aV ทราบค่า) · กด <b>❓ ให้ B มีประจุปริศนา q_X</b> · อ่าน r และค่าเครื่องชั่งที่ r ≥ 10 cm อย่างน้อย 5 ระยะ บันทึก <b>ตาราง A</b> แล้วหา q_X จากความชันกราฟ F – 1/r²: q_X = ความชัน / (k q_A) · ค่าอ่านเป็นบวก (ผลัก) แสดงว่า q_X ชนิดเดียวกับ q_A ติดลบ (ดูด) แสดงว่าต่างชนิด</li>
     </ol>
 
     <h2>วิธีบันทึกผล</h2>
@@ -380,15 +423,20 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
    ═══════════════════════════════════════════════════════════ */
 console.log('KP Science VPL02 Lab 55 — build v1.0 3D (2569-09-14)');
 const $ = id => document.getElementById(id);
-const KC=8.988e9, EPS0=8.854e-12, G=9.81, A_R=0.02, M0=18.7426, R_MIN=4.5, R_MAX=35;
+const KC=8.988e9, EPS0=8.854e-12, G=9.81, A_R=0.02, M0=18.7426, R_MIN=4.0, R_MAX=35, R_TOUCH=4.0;   /* R_TOUCH = 2a: ผิวทรงกลมแตะกัน */
 const A_Y=19.5, STAND_X=-22;
 let mode='manual', r=15, Vset=6, pol=1, graph='inv', curView='iso';
-const S={A:{V:0,sgn:1,n:0}, B:{V:0,sgn:1,n:0}};   /* ประจุ = sgn·4πε₀aV/2ⁿ */
+const S={A:{V:0,sgn:1,n:0,mys:false}, B:{V:0,sgn:1,n:0,mys:false}};   /* ประจุ = sgn·4πε₀aV/2ⁿ · mys: ประจุปริศนา q_X/2ⁿ */
+const Q_REF=4*Math.PI*EPS0*A_R*10000;   /* ประจุที่ 10 kV (ใช้กำหนดจำนวนเครื่องหมายประจุในภาพ) */
+const MYS={q:0,id:1};   /* ประจุปริศนา q_X (C) สุ่มครั้งเดียวต่อการโหลดหน้า · ขนาด 5.0–18.0 nC ชนิด ± */
+function rollMys(){ MYS.q=(Math.random()<0.5?-1:1)*Math.round((5+Math.random()*13)*10)/10*1e-9; }
+rollMys();
 let offset=0, noise=0, noiseT=0, anim=null, rowsA=[], rowsB=[];
+let tareBad=false, lastTb='', lastR=null, lastQ='', recSet='A', touchN=0;   /* recSet: ชุดที่จะบันทึก · touchN: นับครั้งที่ A กับ B แตะกัน (ใช้แยกชุดประจุ) */   /* สถานะคำแนะนำ: TARE ขณะมีประจุ · ตาราง/ระยะ/ประจุของการบันทึกล่าสุด */
 const fmt=(v,n)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(n===undefined?1:n);
 
 /* ── physics ── */
-function qOf(k){ const s=S[k]; return s.sgn*4*Math.PI*EPS0*A_R*s.V*1000/Math.pow(2,s.n); }   /* C */
+function qOf(k){ const s=S[k]; if(s.qx!==undefined&&s.V>0) return s.qx/Math.pow(2,s.n); if(s.mys&&s.V>0) return MYS.q/Math.pow(2,s.n); return s.sgn*4*Math.PI*EPS0*A_R*s.V*1000/Math.pow(2,s.n); }   /* C */
 function Fpoint(rr,qa,qb){ const R=rr/100; return KC*qa*qb/(R*R); }
 function Fsphere(rr,qa,qb){ const R=rr/100, a=A_R; return KC*qa*qb/(R*R) - KC*(qa*qa+qb*qb)*a*a*a*(2*R*R-a*a)/(R*R*R*Math.pow(R*R-a*a,2)); }   /* + = ผลัก (A ถูกกดลง) */
 function rawM(){ return M0 + Fsphere(r,qOf('A'),qOf('B'))/G*1000; }   /* g */
@@ -398,68 +446,127 @@ function lcdText(){ const v=reading(); return (Math.abs(v)<0.00005?0:v).toFixed(
 /* ── UI ── */
 function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('nav:not(.kp-topbar) button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
 function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
-  $('manualCtrl').classList.toggle('hidden',m!=='manual'); $('autoCtrl').classList.toggle('hidden',m!=='auto');
+  $('autoCtrl').classList.toggle('hidden',m!=='auto');
+  ['in-r','in-m'].forEach(id=>{ const el=$(id); el.readOnly= m==='auto'; if(m==='manual') el.value=''; });
+  $('rfHintR').textContent= m==='auto'?'— ค่าจากแบบจำลอง (อัตโนมัติ)':'— อ่านที่ขีดชี้บนสเกลเสาตั้ง (แว่นขยายด้านบน)'; $('rfHintM').textContent= m==='auto'?'— ค่าจากแบบจำลอง (อัตโนมัติ)':'— อ่านค่ากลางขณะตัวเลขแกว่ง';
   document.querySelectorAll('.val-input.ang').forEach(el=>el.classList.toggle('hidden',m==='manual'));
   $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงประจุ ลูกศรแรง และค่า r' : 'โหมดวัดเอง: อ่าน r จากสเกลเอง';
+  $('btnRandom').classList.toggle('hidden',m==='auto'); updateMysInfo(); renderTables();
   drawAll(); drawGraph(); }
-function setR(v){ r=Math.max(R_MIN,Math.min(R_MAX,Math.round(v*10)/10)); $('sl-r').value=r; $('vi-r').value=r; }
+function updateMysInfo(){ $('mysInfo').innerHTML= mode==='auto' ? `ประจุปริศนา X${MYS.id}: <b class="mono" style="color:var(--accent3)">q_X = ${MYS.q>0?'+':'−'}${fmt(Math.abs(MYS.q)*1e9,1)} nC</b>` : `ประจุปริศนา X${MYS.id}: ไม่แสดงในโหมดวัดเอง — หาเองจากกราฟ F – 1/r² (ใช้ A ที่มีประจุทราบค่า)`; }
+function randomMystery(){ rollMys(); MYS.id++; if(S.B.mys){ S.B={V:0,sgn:1,n:0,mys:false}; } updateMysInfo(); renderTables(); drawAll(); drawGraph(); }
+function setR(v){ r=Math.max(R_MIN,Math.min(R_MAX,Math.round(v*10)/10)); $('sl-r').value=r; $('vi-r').value=r; if(touching()) shareTouch(); }
+function touching(){ return r<=R_TOUCH+1e-9; }
+/* ผิว A แตะผิว B: ทรงกลมตัวนำขนาดเท่ากัน ประจุไหลจนเท่ากัน q = (q_A + q_B)/2 ทั้งสองลูก */
+function shareTouch(){ const qa=qOf('A'), qb=qOf('B'); if(Math.abs(qa-qb)<1e-15) return; const q=(qa+qb)/2, hid=S.A.hid||S.B.hid||S.A.mys||S.B.mys; touchN++;
+  ['A','B'].forEach(k=>{ S[k]= Math.abs(q)<1e-15 ? {V:0,sgn:1,n:0,mys:false} : {V:1,sgn:q>0?1:-1,n:0,mys:false,qx:q,hid,tn:touchN}; }); }
 function nudgeR(k){ setR(r+k); }
 function setV(v){ Vset=v; $('sl-V').value=v; $('lcdV').textContent=v.toFixed(1); }
 function setPol(p){ pol=p; document.querySelectorAll('#polBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(p>0))); }
-function tare(){ offset=rawM(); }
+function tare(){ offset=rawM(); tareBad= S.A.V>0||S.B.V>0; }
 function act(type,k){ if(anim) return; anim={type,k,t:0,done:false}; }
 function applyAct(a){ const s=S[a.k];
-  if(a.type==='charge'){ s.V=Vset; s.sgn=pol; s.n=0; }
+  if(a.type==='charge'){ s.V=Vset; s.sgn=pol; s.n=0; s.mys=false; delete s.qx; delete s.hid; }
+  if(a.type==='mys'){ s.V=1; s.sgn=MYS.q>0?1:-1; s.n=0; s.mys=true; delete s.qx; delete s.hid; }
   if(a.type==='half'){ if(s.V>0) s.n++; }
-  if(a.type==='ground'){ s.V=0; s.n=0; } }
+  if(a.type==='ground'){ s.V=0; s.n=0; s.mys=false; delete s.qx; delete s.hid; }
+  if(touching()) shareTouch(); }
 function resetLab(){
-  /* คืนค่าเริ่มต้น: คายประจุ · r 15 cm · 6 kV ขั้วบวก · ยกเลิก TARE · มุมมอง · ช่องกรอก (ไม่ลบตาราง) */
-  anim=null; S.A={V:0,sgn:1,n:0}; S.B={V:0,sgn:1,n:0}; offset=0; setR(15); setV(6); setPol(1); setView('iso'); ['in-r','in-m'].forEach(id=>$(id).value=''); drawAll();
+  /* คืนค่าเริ่มต้น: คายประจุ · r 15 cm · 6 kV ขั้วบวก · ยกเลิก TARE · มุมมอง · ช่องกรอก · สถานะคำแนะนำ (ไม่ลบตาราง ไม่เปลี่ยนค่าประจุปริศนา) */
+  anim=null; S.A={V:0,sgn:1,n:0,mys:false}; S.B={V:0,sgn:1,n:0,mys:false}; offset=0; tareBad=false; lastTb=''; lastR=null; lastQ=''; setR(15); setV(6); setPol(1); setView('iso'); ['in-r','in-m'].forEach(id=>$(id).value=''); recMsg('',''); drawAll();
 }
-function qTxt(k){ const s=S[k]; if(s.V===0) return '0'; return `${s.sgn>0?'+':'−'}${fmt(Math.abs(qOf(k))*1e9,2)} nC`; }
-function fracTxt(k){ const s=S[k]; if(s.V===0) return '0'; return `${s.sgn>0?'+':'−'}q(${s.V.toFixed(1)} kV)`+(s.n?`/${Math.pow(2,s.n)}`:''); }
+function qTxt(k){ const s=S[k]; if(s.V===0) return '0'; return `${qOf(k)>0?'+':'−'}${fmt(Math.abs(qOf(k))*1e9,2)} nC`; }
+function fracTxt(k){ const s=S[k]; if(s.V===0) return '0'; if(s.qx!==undefined) return (s.hid?'❓':`${s.sgn>0?'+':'−'}`)+`q แตะกัน#${s.tn}`+(s.n?`/${Math.pow(2,s.n)}`:''); if(s.mys) return `❓q_X${MYS.id}`+(s.n?`/${Math.pow(2,s.n)}`:''); return `${s.sgn>0?'+':'−'}q(${s.V.toFixed(1)} kV)`+(s.n?`/${Math.pow(2,s.n)}`:''); }
+function qKey(){ return fracTxt('A')+'|'+fracTxt('B'); }
+function hintState(){
+  const man=mode==='manual', ch=k=>S[k].V>0, mysB=S.B.mys&&ch('B');
+  if(anim) return ['info', anim.type==='ground'?`⏚ กำลังต่อดินทรงกลม ${anim.k}…`:`กำลังแตะทรงกลม ${anim.k}… รอให้เครื่องมือกลับที่เดิม`];
+  if(touching()) return ['warn','⚠️ ผิวทรงกลม A กับ B <b>แตะกันอยู่</b> (r = 2a = 4.0 cm) — ประจุไหลจนสองลูกมีประจุเท่ากัน และแรงที่อ่านได้ไม่ใช่แรงคูลอมบ์ล้วน<br>เลื่อน B ขึ้นก่อนวัด · ถ้าต้องการประจุเดิมให้ ⏚ ต่อดิน แล้ว ⚡ แตะใหม่'];
+  if(offset===0&&(ch('A')||ch('B'))) return ['warn','⚠️ ยังไม่ได้กด <b>TARE</b> แต่ทรงกลมมีประจุแล้ว → กด <b>⏚ ต่อดิน A</b> และ <b>⏚ ต่อดิน B</b> ก่อน แล้วจึงกด <b>TARE</b>'];
+  if(offset===0) return ['info','① เลื่อน B ขึ้นไปไกล ๆ แล้วกด <b>TARE — ตั้งค่าอ่านเป็นศูนย์</b> ขณะทรงกลมยังไม่มีประจุ<br>(ตอนนี้ค่าอ่านรวมมวลทรงกลม A และแท่งอยู่)'];
+  if(tareBad) return ['warn','⚠️ กด TARE ขณะทรงกลมมีประจุ ค่าศูนย์จึงผิด → <b>⏚ ต่อดิน A</b> และ <b>⏚ ต่อดิน B</b> แล้วกด <b>TARE</b> ใหม่'];
+  if(!ch('A')&&!ch('B')) return ['info','② ตั้งแรงดันและขั้ว แล้วกด <b>⚡ แตะทรงกลม A</b> และ <b>⚡ แตะทรงกลม B</b><br>หาประจุปริศนา: ⚡ แตะ A แล้วกด <b>❓ ให้ B มีประจุปริศนา q_X</b>'];
+  if(!ch('A')) return ['info', S.B.mys ? '② B มีประจุปริศนาแล้ว — ทำให้ A มีประจุที่ทราบค่า: กด <b>⚡ แตะทรงกลม A</b> (q_A = 4πε₀aV)' : '② B มีประจุแล้ว — กด <b>⚡ แตะทรงกลม A</b> ด้วย'];
+  if(!ch('B')) return ['info','② A มีประจุแล้ว — กด <b>⚡ แตะทรงกลม B</b> (หรือ <b>❓ ให้ B มีประจุปริศนา q_X</b>)'];
+  const inR=$('in-r').value.trim(), inM=$('in-m').value.trim();
+  if(man&&(inR||inM)) return inR&&inM ? ['ok',`กด <b>📝 บันทึก</b> ใต้แผนภาพ (ลงชุด ${recSet} — ${recSet==='A'?'เปลี่ยนระยะ r':'เปลี่ยนประจุ'})`] : ['warn', inR?'กรอก ② <b>ค่าอ่านเครื่องชั่ง</b> ใต้แผนภาพด้วย':'กรอก ① <b>ระยะ r</b> ที่อ่านจากสเกลด้วย'];
+  const read= man ? `③ ในกรอบ <b>📝 บันทึกผลการวัด</b> ใต้แผนภาพ: เลือกชุด (ตอนนี้ชุด ${recSet}) · กรอก ① r ที่ขีดชี้ ② ค่าอ่านเครื่องชั่ง · กด <b>📝 บันทึก</b>` : `③ กด <b>📝 บันทึก</b> ใต้แผนภาพ (ชุด ${recSet}) — ค่าจากแบบจำลองกรอกให้แล้ว`;
+  const same=lastQ===qKey(), moved=lastR!==null&&Math.abs(r-lastR)>0.05, mysTip= mysB?'<br>❓ q_X: ใช้จุด r ≥ 10 cm ใน<b>ตาราง A</b> อย่างน้อย 5 ระยะ':'';
+  if(lastTb==='A'){ const n=rowsA.filter(w=>w.key===lastQ).length;
+    if(n&&same&&!moved) return n>=5 ? ['ok',`ตาราง A ได้ ${n} ระยะแล้ว ✓ ดูกราฟ <b>F – 1/r²</b>: ความชัน = k q_A q_B`+(mysB?' → <b>q_X = ความชัน / (k q_A)</b> โดย q_A = 4πε₀aV':' → คำนวณ k')+'<br>เก็บเพิ่มได้ หรือไปตอน B: ตั้ง r คงที่ แล้วแบ่งประจุ'] : ['info',`บันทึกตาราง A แล้ว ${n} ระยะ — เลื่อน B ไประยะใหม่ แล้วอ่านซ้ำ (ควรได้อย่างน้อย 5 ระยะ)`+mysTip]; }
+  if(lastTb==='B'&&rowsB.length){ const n=rowsB.length;
+    if(moved&&n<4) return ['warn','ตาราง B ต้องใช้<b>ระยะ r เดิม</b> — เลื่อน B กลับไประยะที่บันทึกไว้ในตาราง B (ถ้าจะเก็บชุด A ให้เลือก <b>ชุด A</b> ในกรอบบันทึก)'];
+    if(same&&!moved) return n>=4 ? ['ok',`ตาราง B ได้ ${n} ค่าแล้ว ✓ ดูกราฟ <b>F – q_Aq_B</b> ควรเป็นเส้นตรงผ่านจุดกำเนิด · หา k จากความชัน`] : ['info',`บันทึกตาราง B แล้ว ${n} ค่า — r คงที่ · กด <b>⚪ แตะ A (หรือ B) ด้วยทรงกลมเปล่า</b> เพื่อแบ่งประจุ แล้วอ่านซ้ำ (ควรได้อย่างน้อย 4 ค่า)`];
+    if(!same&&!moved) return ['ok','ประจุเปลี่ยนแล้ว (r เดิม) — '+read]; }
+  return ['ok',read+mysTip];
+}
 function updateHint(){
   $('lcdM').textContent=lcdText();
+  const [cls,txt]=hintState(), h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
   const qa=qOf('A'), qb=qOf('B'), F=Fsphere(r,qa,qb), F0=Fpoint(r,qa,qb);
-  if(mode==='auto'){
+  if(mode==='auto'){ $('in-r').value=r.toFixed(1); $('in-m').value=reading().toFixed(4);
     $('rd-qA').textContent=qTxt('A'); $('rd-qB').textContent=qTxt('B'); $('rd-r').textContent=`${fmt(r,1)} cm`;
     $('rd-dm').textContent=`${fmt(F/G*1e6,2)} mg`; $('rd-F').textContent=`${fmt(F*1e3,4)} mN`; $('rd-F0').textContent=`${fmt(F0*1e3,4)} mN`;
     let st;
-    if(anim) st= anim.type==='charge'?`หัวแตะกำลังแตะทรงกลม ${anim.k} → ศักย์ ${Vset.toFixed(1)} kV`: anim.type==='half'?`ทรงกลมเปล่าแตะทรงกลม ${anim.k} → ประจุแบ่งคนละครึ่ง`:`ต่อดินทรงกลม ${anim.k} → ประจุเป็นศูนย์`;
+    if(anim) st= anim.type==='charge'?`หัวแตะกำลังแตะทรงกลม ${anim.k} → ศักย์ ${Vset.toFixed(1)} kV`: anim.type==='mys'?`หัวแตะจากแหล่งประจุปริศนาแตะทรงกลม ${anim.k} → q_X = ${MYS.q>0?'+':'−'}${fmt(Math.abs(MYS.q)*1e9,1)} nC`: anim.type==='half'?`ทรงกลมเปล่าแตะทรงกลม ${anim.k} → ประจุแบ่งคนละครึ่ง`:`ต่อดินทรงกลม ${anim.k} → ประจุเป็นศูนย์`;
+    else if(touching()) st='ผิว A แตะผิว B (r = 2a) · ประจุไหลจนเท่ากัน q_A = q_B = '+qTxt('A')+' · แรงที่อ่านไม่ใช่แรงคูลอมบ์ล้วน';
     else if(qa===0&&qb===0) st='ทรงกลมทั้งสองไม่มีประจุ · ค่าอ่าน = มวลของทรงกลม A และแท่ง (กด TARE เพื่อตั้งศูนย์)';
     else if(qa===0||qb===0) st='มีประจุลูกเดียว · ประจุเหนี่ยวนำบนอีกลูกทำให้เกิดแรงดูดเล็กน้อย (∝ 1/r⁵)';
     else st= F>0 ? `ผลักกัน · แรงจริงน้อยกว่ากฎคูลอมบ์ ${fmt((1-F/F0)*100,1)}% เพราะประจุบนผิวตัวนำกระจายไปด้านไกล` : 'ดูดกัน · ทรงกลม A ถูกยกขึ้น ค่าอ่านติดลบ';
     $('rd-state').textContent=st;
     $('hud').innerHTML=`<b>r = ${fmt(r,1)} cm</b> · q_A ${qTxt('A')} · q_B ${qTxt('B')} · F = ${fmt(F*1e3,4)} mN`;
   } else {
-    $('manualHint').innerHTML= offset===0 ? '⚠️ ยังไม่ได้กด TARE — ค่าอ่านรวมมวลทรงกลม A · กด TARE ขณะทรงกลมไม่มีประจุก่อน' : 'อ่าน r จากแว่นขยายสเกล และค่าเครื่องชั่ง (อ่านค่ากลางขณะตัวเลขแกว่ง) กรอกแล้วเลือกตาราง · ประจุบันทึกตามขั้นตอนที่ทำอัตโนมัติ';
     $('hud').innerHTML='<b>'+({iso:'มุมเฉียง',spheres:'ทรงกลม',scale:'สเกลระยะ',balance:'จอเครื่องชั่ง'})[curView]+'</b> — ลากทรงกลม B ขึ้น-ลง · ลากที่ว่าง = หมุนมุมมอง · ล้อเมาส์ = ซูม';
   }
 }
 
 /* ── tables ── */
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function setRecSet(t){ recSet=t; document.querySelectorAll('#setBtns button').forEach((b,i)=>b.classList.toggle('active',['A','B'][i]===t)); recMsg('', t==='A'?'ชุด A: ประจุคงที่ · เลื่อน B ไปหลาย ๆ ระยะ แล้วบันทึกทีละระยะ':'ชุด B: r คงที่ · แบ่งประจุด้วยทรงกลมเปล่า แล้วบันทึกทีละครั้ง'); $('hint').dataset.t=''; updateHint(); }
+function recordRow(){ record(recSet); }
 function record(tb){
   let rr,m;
-  if(mode==='manual'){ rr=parseFloat($('in-r').value); m=parseFloat($('in-m').value); if(isNaN(rr)||isNaN(m)){ alert('กรอกระยะ r และค่าอ่านเครื่องชั่ง'); return; } }
+  if(mode==='manual'){ rr=parseFloat($('in-r').value); m=parseFloat($('in-m').value);
+    if(isNaN(rr)&&isNaN(m)){ recMsg('warn','⚠️ กรอก ① ระยะ r และ ② ค่าอ่านเครื่องชั่งก่อน'); $('in-r').focus(); return; }
+    if(isNaN(rr)){ recMsg('warn','⚠️ กรอก ① ระยะ r ที่อ่านจากขีดชี้'); $('in-r').focus(); return; }
+    if(isNaN(m)){ recMsg('warn','⚠️ กรอก ② ค่าอ่านเครื่องชั่ง'); $('in-m').focus(); return; }
+    if(rr<=0||rr>60){ recMsg('warn','⚠️ ระยะ r ไม่สมเหตุสมผล — อ่านสเกลใหม่ (หน่วย cm)'); return; } }
   else { rr=r; m=reading(); }
-  const row={r:rr,m,qa:qOf('A'),qb:qOf('B'),fa:fracTxt('A'),fb:fracTxt('B'),tared:offset!==0};
-  (tb==='A'?rowsA:rowsB).push(row); $('in-r').value=''; $('in-m').value=''; renderTables(); drawGraph();
+  if(touching()){ if(mode==='manual'){ $('in-r').value=''; $('in-m').value=''; } recMsg('warn','⚠️ ทรงกลมแตะกันอยู่ — ไม่บันทึกค่านี้ · เลื่อน B ขึ้นก่อนวัด'); return; }
+  const row={r:rr,m,qa:qOf('A'),qb:qOf('B'),fa:fracTxt('A'),fb:fracTxt('B'),tared:offset!==0,key:qKey(),mys:S.B.mys&&S.B.V>0,hid:!!(S.A.hid||S.B.hid),nB:S.B.n,mysId:MYS.id};
+  (tb==='A'?rowsA:rowsB).push(row); lastTb=tb; lastR=r; lastQ=row.key; if(mode==='manual'){ $('in-r').value=''; $('in-m').value=''; }
+  renderTables(); drawGraph(); renderLast(tb,row);
+  recMsg('ok',`✓ บันทึกลงตารางชุด ${tb} แถวที่ ${(tb==='A'?rowsA:rowsB).length} แล้ว — ดูผลที่กรอบ “📊 ผลที่บันทึกล่าสุด” ในแผงด้านข้าง`+(innerWidth<=900?' — จอเล็ก: กด <b>📊 ผล / ตาราง</b> ที่ขอบล่าง':''));
 }
+function renderLast(tb,w){ const F=rowF(w), n=(tb==='A'?rowsA:rowsB).length, R=w.r/100;
+  const qLine= w.hid ? 'ประจุหลังแตะกัน (มีประจุปริศนาปน)' : `${w.fa} · ${w.fb}`;
+  const est= w.mys ? `<span class="k">q_X ≈ Fr²/(k q_A)·2ⁿ</span><span class="v big">${fmt(rowQX(w)*1e9,2)} nC</span>` : (w.hid||!isFinite(rowK(w))) ? `<span class="k">k ≈ Fr²/(q_Aq_B)</span><span class="v">—</span>` : `<span class="k">k ≈ Fr²/(q_Aq_B)</span><span class="v big">${fmt(rowK(w)/1e9,2)} × 10⁹</span>`;
+  $('lastRec').innerHTML=`<span class="k">ชุด / แถว</span><span class="v" style="color:#facc15">${tb} · แถวที่ ${n}</span>`
+   +`<span class="k">① r</span><span class="v">${fmt(w.r,1)} cm = ${fmt(R,3)} m</span>`
+   +`<span class="k">1/r²</span><span class="v">${fmt(1/(R*R),1)} m⁻²</span>`
+   +`<span class="k">② ค่าอ่าน Δm</span><span class="v">${fmt(w.m,4)} g${w.tared?'':' <span style="color:#f87171">(ยังไม่ TARE)</span>'}</span>`
+   +`<span class="k">F = Δm·g</span><span class="v big">${fmt(F*1e3,4)} mN</span>`
+   +`<span class="k">แรง</span><span class="v" style="font-family:Sarabun">${Math.abs(F)<1e-7?'≈ 0':F>0?'ผลักกัน (A ถูกกดลง)':'ดูดกัน (A ถูกยกขึ้น)'}</span>`
+   +`<span class="k">ประจุ</span><span class="v" style="font-family:Sarabun;font-size:.72rem;color:var(--text)">${qLine}</span>`
+   + est
+   +`<span class="k" style="grid-column:1/-1;margin-top:3px">${tb==='A'?(w.r<10?'r < 10 cm: ประจุบนผิวเลื่อนไปด้านไกล ค่า k จะต่ำกว่าจริง':'ต่อไป: เลื่อน B ไประยะใหม่ แล้วบันทึกซ้ำ'):'ต่อไป: r คงที่ · แบ่งประจุ แล้วบันทึกซ้ำ'}</span>`; }
 function rowF(rw){ return rw.m/1000*G; }   /* N */
 function rowK(rw){ const qq=rw.qa*rw.qb; if(Math.abs(qq)<1e-24) return NaN; return rowF(rw)*Math.pow(rw.r/100,2)/qq; }
+function rowQX(rw){ if(Math.abs(rw.qa)<1e-15) return NaN; return rowF(rw)*Math.pow(rw.r/100,2)/(KC*rw.qa)*Math.pow(2,rw.nB); }   /* q_X จากข้อมูลที่บันทึก (ใช้ q_A ที่ทราบ) คิดกลับเป็นประจุเริ่มต้น ×2ⁿ */
 function renderTables(){
-  const head='<table><thead><tr><th>#</th><th>r (cm)</th><th>ค่าอ่าน (g)</th><th>F (mN)</th><th>q_A · q_B</th><th>Fr²/q_Aq_B<br>(×10⁹)</th></tr></thead><tbody>';
-  const rows=(arr,empty)=>arr.length? arr.map((w,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(w.r,1)}</td><td class="mono">${fmt(w.m,4)}${w.tared?'':'<span style="color:#f87171" title="ยังไม่ TARE">*</span>'}</td><td class="mono">${fmt(rowF(w)*1e3,4)}</td><td style="font-size:.64rem">${w.fa}<br>${w.fb}</td><td class="mono">${fmt(rowK(w)/1e9,2)}</td></tr>`).join('') : `<tr><td colspan="6" style="color:var(--muted)">${empty}</td></tr>`;
-  const kavg=arr=>{ const ks=arr.filter(w=>w.r>=10).map(rowK).filter(k=>isFinite(k)); return ks.length? `k เฉลี่ย (r ≥ 10 cm) = <b class="mono" style="color:var(--accent3)">${fmt(ks.reduce((s,k)=>s+k,0)/ks.length/1e9,2)} × 10⁹</b> N·m²/C²` : ''; };
-  $('tableA').innerHTML=head+rows(rowsA,'ยังไม่มีข้อมูล — ทำให้มีประจุแล้วเปลี่ยน r')+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin:4px">q = 4πε₀aV/2ⁿ · * = ยังไม่ได้ TARE · '+kavg(rowsA)+'</div>';
-  $('tableB').innerHTML=head+rows(rowsB,'ยังไม่มีข้อมูล — r คงที่ แล้วแบ่งประจุ')+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin:4px">'+kavg(rowsB)+'</div>';
+  const head='<table><thead><tr><th>#</th><th>r (cm)</th><th>ค่าอ่าน (g)</th><th>F (mN)</th><th>q_A · q_B</th><th>Fr²/q_Aq_B<br>(×10⁹)<br><span style="color:#f0abfc">❓ q_X (nC)</span></th></tr></thead><tbody>';
+  const rows=(arr,empty)=>arr.length? arr.map((w,i)=>`<tr><td>${i+1}</td><td class="mono">${fmt(w.r,1)}</td><td class="mono">${fmt(w.m,4)}${w.tared?'':'<span style="color:#f87171" title="ยังไม่ TARE">*</span>'}</td><td class="mono">${fmt(rowF(w)*1e3,4)}</td><td style="font-size:.64rem">${w.fa}<br>${w.fb}</td>`+(w.mys?`<td class="mono" style="color:#f0abfc">${fmt(rowQX(w)*1e9,2)}</td>`:`<td class="mono">${w.hid?'—':fmt(rowK(w)/1e9,2)}</td>`)+'</tr>').join('') : `<tr><td colspan="6" style="color:var(--muted)">${empty}</td></tr>`;
+  const kavg=arr=>{ const ks=arr.filter(w=>w.r>=10&&!w.mys&&!w.hid).map(rowK).filter(k=>isFinite(k)); return ks.length? `k เฉลี่ย (r ≥ 10 cm) = <b class="mono" style="color:var(--accent3)">${fmt(ks.reduce((s,k)=>s+k,0)/ks.length/1e9,2)} × 10⁹</b> N·m²/C²` : ''; };
+  const qxavg=arr=>{ const ids=[...new Set(arr.filter(w=>w.mys).map(w=>w.mysId))]; return ids.map(id=>{ const qs=arr.filter(w=>w.mys&&w.mysId===id&&w.r>=10).map(rowQX).filter(isFinite); if(!qs.length) return ''; const avg=qs.reduce((s,q)=>s+q,0)/qs.length; return ` · <span style="color:#f0abfc">q_X${id} เฉลี่ย (r ≥ 10 cm) = <b class="mono">${avg>0?'+':'−'}${fmt(Math.abs(avg)*1e9,2)} nC</b></span>`+(mode==='auto'&&id===MYS.id?` (ค่าจริง ${MYS.q>0?'+':'−'}${fmt(Math.abs(MYS.q)*1e9,1)} nC)`:''); }).join(''); };
+  $('tableA').innerHTML=head+rows(rowsA,'ยังไม่มีข้อมูล — ทำให้มีประจุแล้วเปลี่ยน r')+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin:4px">q = 4πε₀aV/2ⁿ · * = ยังไม่ได้ TARE · แถว ❓ = B มีประจุปริศนา: q_X = Fr²/(k q_A) × 2ⁿ · '+kavg(rowsA)+qxavg(rowsA)+'</div>';
+  $('tableB').innerHTML=head+rows(rowsB,'ยังไม่มีข้อมูล — r คงที่ แล้วแบ่งประจุ')+'</tbody></table><div style="font-size:.68rem;color:var(--muted);margin:4px">'+kavg(rowsB)+qxavg(rowsB)+'</div>';
 }
-function exportCSV(){ const csv='﻿table,r_cm,reading_g,F_N,qA_C,qB_C,k_est\n'+[['A',rowsA],['B',rowsB]].flatMap(([t,a])=>a.map(w=>[t,w.r,w.m.toFixed(4),rowF(w).toExponential(4),w.qa.toExponential(4),w.qb.toExponential(4),isFinite(rowK(w))?rowK(w).toExponential(4):''].join(','))).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab55_coulombs_law.csv'; a.click(); }
+function exportCSV(){ const csv='﻿table,r_cm,reading_g,F_N,qA_C,qB_C,k_est,qX_est_C\n'+[['A',rowsA],['B',rowsB]].flatMap(([t,a])=>a.map(w=>[t,w.r,w.m.toFixed(4),rowF(w).toExponential(4),w.qa.toExponential(4),w.mys?w.fb:w.qb.toExponential(4),w.mys?'':(isFinite(rowK(w))?rowK(w).toExponential(4):''),w.mys&&isFinite(rowQX(w))?rowQX(w).toExponential(4):''].join(','))).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab55_coulombs_law.csv'; a.click(); }
 function setGraph(g){ graph=g; document.querySelectorAll('#graphBtns button').forEach((b,i)=>b.classList.toggle('active',['inv','r','q'][i]===g)); drawGraph(); }
 function drawGraph(){
   const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||220; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
   const ml=46,mr=10,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb;
-  const src= graph==='q'?rowsB:rowsA, pts=src.map(w=>{ const F=rowF(w)*1e3; return graph==='inv'?[1e4/(w.r*w.r),F,w]: graph==='r'?[w.r,F,w]:[w.qa*w.qb*1e18,F,w]; });
+  const src= graph==='q'?rowsB.filter(w=>!(w.mys&&mode==='manual')):rowsA, pts=src.map(w=>{ const F=rowF(w)*1e3; return graph==='inv'?[1e4/(w.r*w.r),F,w]: graph==='r'?[w.r,F,w]:[w.qa*w.qb*1e18,F,w]; });
   const qa=qOf('A'), qb=qOf('B'), showTh= mode==='auto' && Math.abs(qa*qb)>0;
   let xmax= graph==='inv'?1e4/(R_MIN*R_MIN): graph==='r'?R_MAX: Math.max(200, ...pts.map(p=>Math.abs(p[0])))*1.1;
   if(graph==='inv' && pts.length) xmax=Math.max(1e4/(R_MIN*R_MIN)*0.25, ...pts.map(p=>p[0]))*1.08;
@@ -479,10 +586,11 @@ function drawGraph(){
   let note='';
   if(graph!=='r' && pts.length>=2){ const fit= graph==='inv'? pts.filter(p=>p[2].r>=10) : pts; const use=fit.length>=2?fit:pts; const k=use.reduce((s,p)=>s+p[0]*p[1],0)/Math.max(1e-12,use.reduce((s,p)=>s+p[0]*p[0],0));
     g.strokeStyle='rgba(56,189,248,.85)'; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(Math.min(0,xmin)),Y(k*Math.min(0,xmin))); g.lineTo(X(xmax),Y(k*xmax)); g.stroke();
-    note= graph==='inv' ? `ความชัน (จุด r ≥ 10 cm) = <b class="mono" style="color:var(--accent3)">${(k*1e-3).toExponential(3)} N·m²</b> = k q_A q_B` : `ความชัน = <b class="mono" style="color:var(--accent3)">${(k*1e-3/1e-18).toExponential(3)} N/C²</b> = k/r²  →  k = ${((k*1e-3/1e-18)*Math.pow(r/100,2)/1e9).toFixed(2)} × 10⁹ (ใช้ r ปัจจุบัน ${r.toFixed(1)} cm)`; }
+    note= graph==='inv' ? `ความชัน (จุด r ≥ 10 cm) = <b class="mono" style="color:var(--accent3)">${(k*1e-3).toExponential(3)} N·m²</b> = k q_A q_B` : `ความชัน = <b class="mono" style="color:var(--accent3)">${(k*1e-3/1e-18).toExponential(3)} N/C²</b> = k/r²  →  k = ${((k*1e-3/1e-18)*Math.pow(r/100,2)/1e9).toFixed(2)} × 10⁹ (ใช้ r ปัจจุบัน ${r.toFixed(1)} cm)`;
+    if(graph==='inv' && use.some(p=>p[2].mys)) note+=' · <span style="color:#f0abfc">❓ ถ้าจุดทั้งหมดเป็นชุดประจุปริศนาเดียวกัน: q_X = ความชัน / (k q_A)</span>'; }
   pts.forEach(p=>{ g.fillStyle= graph==='inv'&&p[2].r<10?'#fb923c':'#facc15'; g.beginPath(); g.arc(X(p[0]),Y(p[1]),3.8,0,Math.PI*2); g.fill(); });
   g.restore();
-  $('graphNote').innerHTML= (pts.length? note : (graph==='q'?'บันทึกตาราง B ที่ r คงที่ แล้วแบ่งประจุ':'บันทึกตาราง A หลายระยะ')) + (graph==='inv'&&pts.length?' · <span style="color:#fb923c">●</span> r < 10 cm':'') + (showTh? (graph==='q'?' · เส้นประ = kq_Aq_B/r²':' · <span style="color:#94a3b8">- - จุดประจุ</span> · <span style="color:#34d399">— ทรงกลมตัวนำ</span> (ประจุปัจจุบัน)') : '');
+  $('graphNote').innerHTML= (pts.length? note : (graph==='q'?'บันทึกตาราง B ที่ r คงที่ แล้วแบ่งประจุ':'บันทึกตาราง A หลายระยะ')) + (graph==='q'&&mode==='manual'&&rowsB.some(w=>w.mys)?' · (แถวประจุปริศนาไม่แสดงในกราฟนี้ในโหมดวัดเอง)':'') + (graph==='inv'&&pts.length?' · <span style="color:#fb923c">●</span> r < 10 cm':'') + (showTh? (graph==='q'?' · เส้นประ = kq_Aq_B/r²':' · <span style="color:#94a3b8">- - จุดประจุ</span> · <span style="color:#34d399">— ทรงกลมตัวนำ</span> (ประจุปัจจุบัน)') : '');
 }
 
 /* ═══════════ 2D DIAGRAM ═══════════ */
@@ -504,6 +612,7 @@ function drawDiag(){
   g.fillStyle='rgba(186,230,253,.55)'; g.fillRect(X(-0.5),Y(A_Y-2),1*s,(A_Y-2-5.6)*s); g.fillRect(X(-0.5),Y(yArm),1*s,10*s);
   [[A_Y,'A'],[yB,'B']].forEach(([yy,k])=>{ const gr=g.createRadialGradient(X(-0.7),Y(yy+0.7),1,X(0),Y(yy),2*s); gr.addColorStop(0,'#f8fafc'); gr.addColorStop(1,'#64748b'); g.fillStyle=gr; g.beginPath(); g.arc(X(0),Y(yy),2*s,0,Math.PI*2); g.fill(); g.fillStyle='#e2e8f0'; g.font='bold 11px Sarabun'; g.textAlign='left'; g.fillText(k,X(2.6),Y(yy)+4);
     if(showQ&&S[k].V>0) signGlyph(g,X(-3.2),Y(yy),S[k].sgn,5); });
+  if(touching()){ g.fillStyle='#facc15'; g.font='bold 11px Sarabun'; g.textAlign='right'; g.fillText('แตะกัน!',X(-2.8),Y(A_Y+2)+4); g.textAlign='left'; }
   if(showQ){ const F=Fsphere(r,qOf('A'),qOf('B')); if(Math.abs(F)>1e-7){ const L=Math.min(40,8+Math.abs(F)*8e4)*(F>0?1:-1); arrowV(g,X(4.8),Y(A_Y),Y(A_Y)+L,'#facc15'); arrowV(g,X(4.8),Y(yB),Y(yB)-L,'#facc15'); g.fillStyle='#facc15'; g.font='10px "Share Tech Mono"'; g.textAlign='left'; g.fillText('F',X(4.8)+7,Y(A_Y)+L/2); }
     g.strokeStyle='rgba(52,211,153,.8)'; g.lineWidth=1; g.beginPath(); g.moveTo(X(7),Y(A_Y)); g.lineTo(X(7),Y(yB)); g.stroke(); g.fillStyle='#34d399'; g.fillText(`r = ${fmt(r,1)}`,X(7.5),Y(A_Y+r/2)+3); }
   /* แว่นขยายสเกล */
@@ -522,8 +631,8 @@ function drawDiag(){
     g.textAlign='left'; g.fillStyle='#94a3b8'; g.font='bold 11px Sarabun'; g.fillText('⚡ แหล่งจ่ายไฟแรงสูง',dx,118);
     g.fillStyle='#1c1917'; g.fillRect(dx,126,dw,44); g.fillStyle='#fca5a5'; g.font='bold 24px "Share Tech Mono"'; g.textAlign='right'; g.fillText(`${pol>0?'+':'−'}${Vset.toFixed(1)} kV`,dx+dw-10,157);
     g.textAlign='left'; g.fillStyle='#94a3b8'; g.font='12px Sarabun'; g.fillText('สถานะประจุ (ตามขั้นตอนที่ทำ):',dx,194);
-    [['A',212],['B',232]].forEach(([k,yy])=>{ g.fillStyle='#e2e8f0'; g.fillText(`ทรงกลม ${k}: `+(S[k].V===0?'ไม่มีประจุ':`${S[k].sgn>0?'+':'−'}q(${S[k].V.toFixed(1)} kV)`+(S[k].n?` ÷ ${Math.pow(2,S[k].n)}`:'')),dx,yy); });
-    if(anim){ g.fillStyle='#facc15'; g.fillText(anim.type==='charge'?`⚡ กำลังแตะ ${anim.k}…`:anim.type==='half'?`⚪ กำลังแบ่งประจุ ${anim.k}…`:`⏚ กำลังต่อดิน ${anim.k}…`,dx,258); }
+    [['A',212],['B',232]].forEach(([k,yy])=>{ g.fillStyle='#e2e8f0'; g.fillText(`ทรงกลม ${k}: `+(S[k].V===0?'ไม่มีประจุ':S[k].qx!==undefined?'ประจุจากการแตะกัน (เท่ากันสองลูก)':(S[k].mys?`❓ ประจุปริศนา q_X${MYS.id}`:`${S[k].sgn>0?'+':'−'}q(${S[k].V.toFixed(1)} kV)`)+(S[k].n?` ÷ ${Math.pow(2,S[k].n)}`:'')),dx,yy); });
+    if(anim){ g.fillStyle='#facc15'; g.fillText(anim.type==='charge'?`⚡ กำลังแตะ ${anim.k}…`: anim.type==='mys'?`❓ กำลังแตะ ${anim.k} ด้วยประจุปริศนา…`:anim.type==='half'?`⚪ กำลังแบ่งประจุ ${anim.k}…`:`⏚ กำลังต่อดิน ${anim.k}…`,dx,258); }
   }
 }
 let drag2=null;
@@ -613,11 +722,11 @@ function update3D(dt){
   /* เครื่องมือ: เคลื่อนจากที่พักไปแตะด้านข้างทรงกลมแล้วกลับ */
   if(anim){ const target=new THREE.Vector3(anim.type==='half'?4.02:0.32, anim.k==='A'?A_Y:A_Y+r, 0);   /* ปลายหัวแตะ (local x 1.7) / ผิวทรงกลมเปล่า (local x 2) แตะผิวทรงกลมที่ x = 2 */ const u=anim.t<0.9? anim.t/0.9 : Math.max(0,1-(anim.t-0.9)/0.9), e=u*u*(3-2*u);
     P.tool.visible=true; P.tool.position.lerpVectors(P.toolHome,target,e);
-    P.toolBall.visible= anim.type==='half'; P.toolTip.visible= anim.type!=='half'; P.toolHandle.material.color.setHex(anim.type==='charge'?0xb91c1c: anim.type==='half'?0x0e7490:0x15803d);
-    P.wire.visible= anim.type!=='half'; if(P.wire.visible){ const a= anim.type==='charge'? new THREE.Vector3(27,6,7): new THREE.Vector3(14,0,10), b=P.tool.position.clone().add(new THREE.Vector3(14.5,0,0)), pts=P.wireGeo.attributes.position; for(let i=0;i<24;i++){ const t=i/23, p=a.clone().lerp(b,t); p.y-=Math.sin(Math.PI*t)*6; pts.setXYZ(i,p.x,p.y,p.z); } pts.needsUpdate=true; P.wire.material.color.setHex(anim.type==='charge'?0xef4444:0x22c55e); }
+    P.toolBall.visible= anim.type==='half'; P.toolTip.visible= anim.type!=='half'; P.toolHandle.material.color.setHex(anim.type==='charge'?0xb91c1c: anim.type==='mys'?0x7c3aed: anim.type==='half'?0x0e7490:0x15803d);
+    P.wire.visible= anim.type==='charge'||anim.type==='ground'; if(P.wire.visible){ const a= anim.type==='charge'? new THREE.Vector3(27,6,7): new THREE.Vector3(14,0,10), b=P.tool.position.clone().add(new THREE.Vector3(14.5,0,0)), pts=P.wireGeo.attributes.position; for(let i=0;i<24;i++){ const t=i/23, p=a.clone().lerp(b,t); p.y-=Math.sin(Math.PI*t)*6; pts.setXYZ(i,p.x,p.y,p.z); } pts.needsUpdate=true; P.wire.material.color.setHex(anim.type==='charge'?0xef4444:0x22c55e); }
   } else { P.tool.visible=false; P.wire.visible=false; }
   const showQ=mode==='auto';
-  const place=(arr,k,cy)=>{ const s=S[k], n= showQ&&s.V>0 ? Math.max(1,Math.min(8,Math.round(8*s.V/10/Math.pow(2,s.n)))) : 0; arr.forEach((sp,i)=>{ if(i<n){ sp.visible=true; sp.material.map= s.sgn>0?P.texP:P.texM; const ang=i/n*Math.PI*2; sp.position.set(Math.cos(ang)*2.25, cy+Math.sin(ang)*2.25, 0.9); } else sp.visible=false; }); };
+  const place=(arr,k,cy)=>{ const s=S[k], n= showQ&&s.V>0 ? Math.max(1,Math.min(8,Math.round(8*Math.abs(qOf(k))/Q_REF))) : 0; arr.forEach((sp,i)=>{ if(i<n){ sp.visible=true; sp.material.map= s.sgn>0?P.texP:P.texM; const ang=i/n*Math.PI*2; sp.position.set(Math.cos(ang)*2.25, cy+Math.sin(ang)*2.25, 0.9); } else sp.visible=false; }); };
   place(P.qA,'A',A_Y); place(P.qB,'B',-12);
   const F=Fsphere(r,qOf('A'),qOf('B')), on= showQ && Math.abs(F)>1e-7, L=Math.min(9,1.5+Math.abs(F)*2.5e4);
   [[P.fA,A_Y,F>0?-1:1],[P.fB,A_Y+r,F>0?1:-1]].forEach(([ar,yc,dir])=>{ ar.visible=on; if(!on) return; const y0=yc+dir*2.2; ar.position.set(0,0,0); ar.userData.sh.scale.y=L; ar.userData.sh.position.set(5,y0+dir*L/2,0); ar.userData.hd.position.set(5,y0+dir*(L+0.7),0); ar.userData.hd.rotation.z= dir>0?0:Math.PI; });
@@ -678,7 +787,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   $('sl-r').addEventListener('input',()=>setR(parseFloat($('sl-r').value)));
   const sync=()=>setR(parseFloat($('vi-r').value)||15); $('vi-r').addEventListener('blur',sync); $('vi-r').addEventListener('keydown',e=>{ if(e.key==='Enter') sync(); });
   $('sl-V').addEventListener('input',()=>setV(parseFloat($('sl-V').value)));
-  ['in-r','in-m'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') record('A'); }));
+  ['in-r','in-m'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter'){ if(id==='in-r'&&!$('in-m').value) $('in-m').focus(); else recordRow(); } }));
+  ['in-r','in-m'].forEach(id=>$(id).addEventListener('input',()=>recMsg('','')));
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   init3D(); resizeAll(); setMode('manual'); setR(15); renderTables(); drawGraph(); fillCorrTable(); drawTheoryAll();
   if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); tick(Math.min(0.05,(now-last)/1000)); last=now; drawDiag(); updateHint(); },33); }
@@ -712,7 +822,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 <script>
 /* ═══ KP Science — แถบปุ่มควบคุมติดใต้ภาพ 2D (กดด้วยนิ้ว/เมาส์) · ปุ่มในแถบกดปุ่มเดียวกันในแผงขวา จึงทำงานเหมือนกันทุกอย่าง ═══ */
-(function(){ const SPEC=[["act('charge','A')", "⚡ A"], ["act('charge','B')", "⚡ B"], ["nudgeR(-1)", "r −1"], ["nudgeR(1)", "r +1"], ["tare()", "TARE", "hot"], ["record('A')", "📝 A", "rec"], ["record('B')", "📝 B", "rec"]];
+(function(){ const SPEC=[["act('charge','A')", "⚡ A"], ["act('charge','B')", "⚡ B"], ["nudgeR(-1)", "r −1"], ["nudgeR(1)", "r +1"], ["tare()", "TARE", "hot"]];
  function init(){ const dc=document.getElementById('diagCanvas'), tab=document.getElementById('tab-sim'); if(!dc||!tab) return;
   const bar=document.createElement('canvas'); bar.id='kpCbar'; bar.style.cssText='width:100%;height:0;display:block;background:#0b1220;border-radius:8px;margin-top:6px;touch-action:manipulation;cursor:pointer'; dc.insertAdjacentElement('afterend',bar);
   const g=bar.getContext('2d'); let items=[];
@@ -737,6 +847,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

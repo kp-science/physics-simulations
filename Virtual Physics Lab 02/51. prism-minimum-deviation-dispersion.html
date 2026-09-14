@@ -200,6 +200,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ · วัสดุปริศนาไม่เปลี่ยน</div>
       </div>
 
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+
       <div class="panel-section">
         <div class="panel-title">🔦 แหล่งกำเนิดแสง</div>
         <div class="liq-grid" id="lightBtns">
@@ -237,8 +239,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div id="manualCtrl" class="panel-section">
         <div class="panel-title">🖐 บันทึกผล</div>
-        <div class="hint-box info" id="manualHint"></div>
-        <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="color:#f87171;min-width:130px">i ที่อ่านได้ (แท่นหมุน)</span><input class="val-input" type="number" id="in-i" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <div class="sl-row"><span class="sl-label" style="color:#f87171;min-width:130px">i ที่อ่านได้ (แท่นหมุน)</span><input class="val-input" type="number" id="in-i" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div class="sl-row"><span class="sl-label" style="color:#facc15;min-width:130px">δ ที่อ่านได้ (โปรแทรกเตอร์)</span><input class="val-input" type="number" id="in-d" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="btn btn-green btn-sm" style="flex:1" onclick="recordA()">📝 บันทึก i, δ</button>
@@ -303,6 +304,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li>เส้นแสงบนกระดาษคำนวณด้วยกฎของสเนลล์ทุกผิว ความสว่างตามสมการเฟรเนล (มีแสงสะท้อนจาง ๆ ที่ผิวรับแสง และสะท้อนกลับหมดเมื่อ i น้อยเกินไป)</li>
       <li>ดรรชนีหักเหขึ้นกับความยาวคลื่นตามสูตรของโคชี n(λ) = A<sub>c</sub> + B<sub>c</sub>/λ² — แสงม่วงหักเหมากกว่าแสงแดง</li>
       <li><b>แว่นขยาย</b> 2 ช่องในแผนภาพ 2D: เข็มชี้บนแท่นหมุน (อ่าน i) และจุดที่รังสีออกตัดวงโปรแทรกเตอร์ (อ่าน δ)</li>
+      <li><b>🧭 ตอนนี้ต้องทำอะไร</b> บอกขั้นถัดไปตามสิ่งที่บันทึกแล้วของแสงและวัสดุที่เลือก (ไม่บอกมุมหรือ n ในโหมดวัดเอง)</li>
       <li><b>โหมดวัดเอง</b> ไม่แสดงค่ามุมและ n · <b>โหมดอัตโนมัติ</b> แสดง i, r₁, r₂, e, δ, δ<sub>min</sub> และกราฟทฤษฎี</li>
       <li><b>↺ รีเซตค่า</b> หมุนปริซึมกลับ i = 40° มุมมองเริ่มต้น (ตารางยังอยู่)</li>
     </ul>
@@ -456,9 +458,32 @@ function updateHint(){
     $('rd-d').textContent= tr.out?fmt(tr.delta,2)+'°':'—'; $('rd-dm').textContent=deltaMinTheory(refLam()).toFixed(2)+'°';
     $('rd-state').textContent=`n = ${tr.n.toFixed(4)} · `+(!tr.out?'สะท้อนกลับหมดที่ผิวที่สอง — ไม่มีรังสีออก':Math.abs(tr.i-tr.e)<0.6?'i ≈ e → มุมเบี่ยงเบนน้อยที่สุด (รังสีในปริซึมขนานฐาน)':'รังสีออกเบนเข้าหาฐาน');
     $('hud').innerHTML=`<b>i = ${fmt(tr.i,1)}°</b> · ${tr.out?'δ = '+fmt(tr.delta,2)+'°':'<b style="color:#f87171">สะท้อนกลับหมด</b>'}`; return; }
-  $('manualHint').innerHTML='อ่าน <b>i</b> จากเข็มชี้บนแท่นหมุน และ <b>δ</b> จากโปรแทรกเตอร์ (ดูแว่นขยาย 2 ช่องในแผนภาพ 2D) กรอกแล้วกดบันทึก<br>หา δ<sub>min</sub>: หมุนปริซึมทางเดียว รังสีออกจะเคลื่อนเข้าหาแนวเดิม หยุด แล้วย้อนกลับ — อ่าน δ ตอนหยุด';
   $('hud').innerHTML='<b>'+LIGHT[light].name+' · '+MAT[mat].name+'</b> — ลากรอบปริซึมเพื่อหมุนแท่นหมุน'+(curView==='top'?'':' · ลากพื้นที่ว่างเพื่อหมุนมุมมอง');
 }
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับตาราง/ช่องกรอกของแสง+วัสดุนี้ · โหมดวัดเองไม่บอกมุม δmin หรือ n) ── */
+function hintState(){
+  const ra=rowsA.filter(r=>r.key===matKey()), mk=matKey().split('|')[0], rbM=rowsB.filter(r=>r.key.split('|')[0]===mk), rb=rbM.filter(r=>r.key===matKey()), nm=MAT[mat].name, ln=LIGHT[light].name, tr=trace(refLam());
+  if(mode==='auto') return ['info', (sweep?'⚡ กำลังหมุนปริซึม — ':'⚡ กด <b>▶ หมุนปริซึมอัตโนมัติ</b> หรือลากหมุนปริซึม · ')+'ดูจุดขาวเลื่อนตามเส้น δ(i) บนกราฟ<br>'+(!tr.out?'ตอนนี้ไม่มีรังสีออก (สะท้อนกลับหมดที่ผิวที่สอง) → เพิ่ม i':Math.abs(tr.i-tr.e)<0.6?'✓ i ≈ e → อยู่ที่มุมเบี่ยงเบนน้อยที่สุด':'δ น้อยที่สุดเมื่อ i = e (รังสีในปริซึมขนานฐาน)')];
+  const vi=$('in-i').value.trim(), vd=$('in-d').value.trim(), i=parseFloat(vi), d=parseFloat(vd);
+  if((vi!==''&&(isNaN(i)||i<0||i>90))||(vd!==''&&(isNaN(d)||d<0||d>90))) return ['warn','มุมที่กรอกต้องอยู่ระหว่าง 0°–90° — อ่านจากสเกลใหม่'];
+  if(!tr.out) return ['warn','ไม่มีรังสีออกจากผิวที่สองของปริซึม (สะท้อนกลับหมด) → หมุนปริซึมให้ i <b>มากขึ้น</b> จนเห็นรังสีออก'];
+  if(!$('cbPen').checked&&(vi!==''||vd!==''||light!=='white')) return ['warn','ติ๊ก <b>✏️ ต่อแนวรังสีด้วยดินสอ + 📐 วางโปรแทรกเตอร์</b> ก่อนอ่าน δ'];
+  if(vi!==''&&vd!=='') return ['ok','พร้อมแล้ว → กด <b>📝 บันทึก i, δ</b>'+(ra.length>=3?'<br>(ถ้า δ นี้อ่านตอนรังสีออกหยุดแล้วเริ่มย้อนกลับ กด <b>📍 บันทึก δ เป็น δ<sub>min</sub></b>)':'')];
+  if(vd!=='') return ra.length>=3||rbM.length ? ['ok','ถ้า δ นี้อ่านตอนรังสีออกหยุดแล้วเริ่มย้อนกลับ → กด <b>📍 บันทึก δ เป็น δ<sub>min</sub></b> (ตาราง A: กรอก i ด้วยแล้วกด 📝)'] : ['info','กรอก i (อ่านจากเข็มชี้บนแท่นหมุน) ด้วย แล้วกด <b>📝 บันทึก i, δ</b>'];
+  if(vi!=='') return ['info','กรอก δ (อ่านจากโปรแทรกเตอร์) ด้วย แล้วกด <b>📝 บันทึก i, δ</b>'];
+  if(light==='white') return ['info','<b>ตอน B</b> แสงขาว: สังเกตสเปกตรัมบนกระดาษ สีใดเบี่ยงเบนมากที่สุด? ลองเปลี่ยนเป็น<b>แก้วฟลินต์</b> แถบสเปกตรัมกว้างขึ้นหรือแคบลง<br>(วัด δ<sub>min</sub> ให้แม่นใช้เลเซอร์สีเดียว)'];
+  const need= rbM.length?3:5;
+  if(!rb.length){
+    if(!ra.length) return ['info', rbM.length ? `<b>ตอน B</b> (${ln}) ① หมุนปริซึมหาจุดที่รังสีออกหยุดแล้วเริ่มย้อนกลับ ② อ่าน i และ δ บันทึกรอบ ๆ จุดนั้น 3 ค่าขึ้นไป (ช่วยให้เห็นจุดต่ำสุด)` : `<b>ตอน A</b> (${ln} · ${nm}) ① หมุนปริซึม (สไลเดอร์ / ลากรอบปริซึม) ให้ i ราว 30°<br>② อ่าน i จากเข็มชี้บนแท่นหมุน และ δ จากโปรแทรกเตอร์ (แว่นขยาย 2 ช่องในแผนภาพ 2D) ③ กรอกแล้วกด <b>📝 บันทึก i, δ</b>`];
+    if(ra.length<need) return ['info',`บันทึกแล้ว <b>${ra.length}</b> ค่า (${ln}) — `+(rbM.length?'หมุนปริซึมรอบจุดที่รังสีออกหยุด แล้วบันทึกเพิ่ม':'เพิ่ม i ครั้งละราว 5° แล้วทำซ้ำจนถึง 80°')+` (ควรได้อย่างน้อย ${need} ค่า)`];
+    return ['info','ดูกราฟ δ กับ i หาช่วงที่ต่ำสุด → หมุนปริซึมไปทางเดียวช้า ๆ (±0.1°) รังสีออกจะเคลื่อนเข้าหาแนวเดิม <b>หยุด</b> แล้วย้อนกลับ<br>อ่าน δ ตอนหยุด กรอกช่อง δ แล้วกด <b>📍 บันทึก δ เป็น δ<sub>min</sub></b>'];
+  }
+  const left=['red','green','violet'].filter(k=>!rbM.some(r=>r.key===mk+'|'+k));
+  if(left.length) return ['ok',`✓ ได้ δ<sub>min</sub> ของ${ln}แล้ว — คำนวณ n = sin((60°+δ<sub>min</sub>)/2)/sin 30°<br><b>ตอน B</b> → เลือก <b>${left.map(k=>LIGHT[k].name).join(' / ')}</b> แล้วหา δ<sub>min</sub> เปรียบเทียบ n แต่ละสี`];
+  return ['ok','✓ ครบ 3 สี ('+nm+') — สีใดมี n มากที่สุด? → เลือก <b>⚪ แสงขาว</b> สังเกตการกระจายแสง<br>'+(mat==='mystery'?'หา n ของวัสดุปริศนาได้แล้ว · กด <b>🎲 สุ่มวัสดุปริศนาใหม่</b> เพื่อฝึกอีก':'ต่อไป → ลอง <b>❓ ปริศนา</b> หรือวัสดุอื่น')];
+}
+function updateGuide(){ const [cls,txt]=hintState(), h=$('hint'); if(!h) return; if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls; }
 
 /* ── tables ── */
 function readInputs(needI){ const i=parseFloat($('in-i').value), d=parseFloat($('in-d').value); if((needI&&(isNaN(i)||i<0||i>90))||isNaN(d)||d<0||d>90){ alert(needI?'กรอกมุม i และ δ ที่อ่านได้จากสเกล (0–90°)':'กรอกมุม δ ที่อ่านได้จากโปรแทรกเตอร์ (0–90°)'); return null; } return {i,d}; }
@@ -721,6 +746,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   MAT.mystery.A=Math.round((1.45+Math.random()*0.17)*1e4)/1e4; MAT.mystery.B=Math.round(3000+Math.random()*9000);
   init3D(); resizeAll(); setMode('manual'); setMat('crown'); setLight('red'); setI(40); renderTables(); drawGraph(); drawTheoryAll();
+  updateGuide(); setInterval(updateGuide,200);
 });
 </script>
 
@@ -776,6 +802,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

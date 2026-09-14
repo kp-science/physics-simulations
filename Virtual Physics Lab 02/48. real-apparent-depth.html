@@ -196,6 +196,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
         <div class="panel-title">🧪 ของเหลวในถัง</div>
         <div class="liq-grid" id="liqBtns">
           <button data-k="water" class="active" onclick="setLiquid('water')">💧 น้ำ</button>
@@ -222,9 +227,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div id="manualCtrl" class="panel-section">
-        <div class="panel-title">🖐 คำแนะนำ</div>
-        <div class="hint-box info" id="manualHint"></div>
-        <button class="btn btn-green btn-sm" style="width:100%;margin-top:6px" onclick="recordRow()">📝 บันทึกผล</button>
+        <div class="panel-title">🖐 บันทึกผล</div>
+        <button class="btn btn-green btn-sm" style="width:100%" onclick="recordRow()">📝 บันทึกผล</button>
       </div>
 
       <div id="autoCtrl" class="panel-section hidden">
@@ -390,7 +394,7 @@ function resetLab(){
   /* คืนค่าเริ่มต้น: ระดับของเหลว · เข็ม S · สายตา · มุมมอง (ไม่ลบตาราง ไม่เปลี่ยน n ของเหลวปริศนา) */
   hLiq=20; yS=manualStartS(); $('cbOffset').checked=false;
   eyeLat=0; eyeGap=10; if(sway) toggleSway(); swayT=0;
-  setView('eye'); updateTank(); syncUI(); drawAll();
+  setView('eye'); updateTank(); syncUI(); drawAll(); G.looked=false; G.lat=null; updateGuide();
 }
 function toggleSway(){ sway=!sway; ['btnSway','btnSway3d'].forEach(id=>$(id).classList.toggle('active',sway)); if(sway&&curView!=='eye') setView('eye'); }
 function syncUI(){ $('sl-h').value=hLiq; $('vi-h').value=hLiq.toFixed(1); $('sl-s').value=yS; $('vi-s').value=yS.toFixed(1); $('sl-lat').value=eyeLat; $('vi-lat').value=eyeLat.toFixed(1); $('sl-eye').value=eyeGap; $('vi-eye').value=Math.round(eyeGap); }
@@ -399,9 +403,28 @@ function setS(v){ if(mode!=='manual') return; yS=Math.max(0,Math.min(27,v)); syn
 function updateHint(){
   if(mode!=='manual'){ const d=hLiq, da=d/nNow(); $('rd-real').textContent=fmt(d,1); $('rd-app').textContent=fmt(da,2); $('rd-n').textContent=nNow().toFixed(2); $('rd-img').textContent=fmt(d-da,2);
     $('hud').innerHTML = '<b>'+LIQ[liq].name+'</b> — S วางที่ระดับภาพ'+($('cbOffset').checked?' <b style="color:#f87171">(เลื่อนขึ้น 3 cm)</b>':'')+' · ส่ายสายตาดู'; return; }
-  $('manualHint').innerHTML = 'ใน <b>👁 มุมจากตา</b> ปลายเข็ม S อยู่ด้านบนของภาพ ภาพของปลายเข็ม O (ผ่านผิวของเหลว) อยู่ด้านล่าง'
-    + '<br>↔ ส่ายสายตา: ถ้าสองปลายเคลื่อนสัมพัทธ์กัน = มีพาราแลกซ์ · <b>สิ่งที่ไกลตากว่า (ต่ำกว่า) เคลื่อนไปทางเดียวกับศีรษะ</b> · เลื่อน S จนเคลื่อนไปพร้อมกันเหมือนเข็มเล่มเดียว แล้วกดบันทึก';
   $('hud').innerHTML = curView==='eye' ? '<b>👁 มุมจากตา</b> — มองลงจากด้านบน · ลากซ้าย-ขวาในภาพ หรือกด ↔ ส่ายสายตา' : '<b>'+LIQ[liq].name+'</b> — ลากเข็ม S ขึ้น-ลงในภาพได้ · กด 👁 มุมจากตาเพื่อสังเกต';
+}
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ไม่บอกตำแหน่งภาพ/ค่า n ในโหมดวัดเอง) ── */
+const G={looked:false,h:null,s:null,k:null,v:null,lat:null};   /* looked = ส่ายสายตา/ลากมุมมองตาแล้ว หลังการจัด h, S ครั้งล่าสุด */
+function hintState(){
+  const rs=rows.filter(r=>r.key===liqKey()), n=rs.length, last=rs[n-1], NM=LIQ[liq].name;
+  if(mode==='auto') return ['info',`⚡ โหมดอัตโนมัติ: เข็ม S วางที่ระดับภาพให้แล้ว<br>กด <b>↔ ส่ายสายตา</b> ดูว่าไม่มีพาราแลกซ์ · ติ๊ก “เลื่อน S ขึ้น 3 cm” เพื่อเทียบ<br>เปลี่ยน h แล้วกด <b>📝 บันทึก</b> (${NM}: ${n} ค่า)`];
+  if(last && Math.abs(last.real-hLiq)<1e-6 && Math.abs(last.s-yS)<1e-6) return n>=5
+    ? ['ok',`✓ ${NM}: บันทึกแล้ว <b>${n}</b> ค่า — ดู<b>ความชันกราฟ</b> ลึกจริง/ลึกปรากฏ = n<br>ต่อไปลองของเหลวชนิดอื่น หรือ <b>❓ ปริศนา</b>`]
+    : ['info',`บันทึกแล้ว <b>${n}</b> ค่า (${NM}) — เปลี่ยนระดับผิวของเหลว <b>h</b> แล้วหาภาพใหม่ (ควรได้อย่างน้อย 5 ค่า)`];
+  const pre = n ? `ค่าที่ ${n+1} · ` : '';
+  if(yS>=hLiq-0.3) return ['warn',`เข็ม S อยู่<b>สูงกว่าผิวของเหลว</b> — ภาพของเข็ม O อยู่ใต้ผิวของเหลวเสมอ → เลื่อน <b>S ลง</b> ให้ต่ำกว่า h`];
+  if(curView!=='eye') return ['info',pre+'① เลือกของเหลว ตั้งระดับผิว h<br>② กด <b>👁 มุมจากตา</b> เพื่อมองลงจากด้านบน'];
+  if(Math.abs(eyeLat)>2.5 && !sway) return ['warn','สายตา<b>เยื้องข้างมากเกินไป</b> — n = ลึกจริง/ลึกปรากฏ ใช้ได้เมื่อมองเกือบตั้งฉาก · ตั้ง “เยื้องข้าง” ให้ใกล้ 0'];
+  if(!G.looked) return ['info',pre+'ปลายเข็ม S อยู่ด้านบนของภาพ · ภาพปลายเข็ม O (ผ่านผิวของเหลว) อยู่ด้านล่าง<br>② กด <b>↔ ส่ายสายตา</b> (หรือลากซ้าย-ขวาในภาพ) ดูว่าสองปลายเคลื่อนสัมพัทธ์กันหรือไม่'];
+  return ['info',pre+'③ ถ้ายังเคลื่อนสัมพัทธ์: <b>สิ่งที่ไกลตากว่า (ต่ำกว่า) เคลื่อนไปทางเดียวกับศีรษะ</b><br>S เคลื่อนตามศีรษะ → เลื่อน <b>S ขึ้น</b> · ภาพ O เคลื่อนตามศีรษะ → เลื่อน <b>S ลง</b><br>เคลื่อนไปพร้อมกันเหมือนเข็มเล่มเดียว → กด <b>📝 บันทึกผล</b>'];
+}
+function updateGuide(){
+  const k=liqKey(); if(G.h!==hLiq||G.s!==yS||G.k!==k||G.v!==curView){ G.looked=false; G.h=hLiq; G.s=yS; G.k=k; G.v=curView; }
+  if(curView==='eye' && (sway || (G.lat!==null && eyeLat!==G.lat))) G.looked=true; G.lat=eyeLat;
+  const [cls,txt]=hintState(), h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
 }
 
 /* ── table ── */
@@ -657,6 +680,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   LIQ.mystery.n=Math.round((1.30+Math.random()*0.28)*100)/100;
   init3D(); resizeAll(); setMode('manual'); setLiquid('water'); renderTable(); drawTheoryAll();
+  setInterval(updateGuide,200); updateGuide();
 });
 </script>
 
@@ -712,6 +736,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

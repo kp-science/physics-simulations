@@ -61,6 +61,8 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 #graphBtns button.active{background:var(--accent);border-color:var(--accent)}
 .hint-box{border-radius:8px;padding:8px 10px;font-size:.78rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
 .hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
 .sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
 .sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
@@ -196,6 +198,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
         <div class="panel-title">📟 เครื่องวัด</div>
         <div class="meter-grid">
           <div class="lcd red"><span class="lb">แหล่งจ่าย</span><span id="lcdS">50.0</span> <small>V</small></div>
@@ -254,9 +261,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div class="panel-section">
         <div class="panel-title">📝 บันทึกผล</div>
-        <div class="hint-box info" id="hint"></div>
         <div id="manualIn">
-          <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="min-width:150px">ระยะ d ที่อ่านได้</span><input class="val-input" type="number" id="in-d" step="0.1" placeholder="?" style="width:70px"><span class="sl-unit">mm</span></div>
+          <div class="sl-row"><span class="sl-label" style="min-width:150px">ระยะ d ที่อ่านได้</span><input class="val-input" type="number" id="in-d" step="0.1" placeholder="?" style="width:70px"><span class="sl-unit">mm</span></div>
           <div class="sl-row"><span class="sl-label" style="min-width:150px">แรงดัน V (แหล่งจ่าย/อิเล็กโทรมิเตอร์)</span><input class="val-input" type="number" id="in-v" step="0.1" placeholder="?" style="width:70px"><span class="sl-unit">V</span></div>
           <div class="sl-row"><span class="sl-label" style="min-width:150px">ประจุ Q (ตาราง A)</span><input class="val-input" type="number" id="in-q" step="0.01" placeholder="?" style="width:70px"><span class="sl-unit">nC</span></div>
         </div>
@@ -389,6 +395,7 @@ const EPS0=8.854e-12, C_STRAY=12e-12, C_EM=15e-12, T_SLAB=3.0, PLATE_Y=20;
 const DIEL={air:{name:'อากาศ',k:1,col:null}, acr:{name:'อะคริลิก',k:2.8,col:0xbae6fd}, gls:{name:'แก้ว',k:6.2,col:0x99f6e4}, mys:{name:'แผ่นปริศนา',k:2+Math.random()*6,col:0xf0abfc}};
 let mode='manual', sw='open', Vs=50, R_cm=12.5, d=4, diel='air', graph='C', curView='iso';
 let Qn=0, Qmeter=0, noise=0, noiseT=0, mysRevealed=false, rowsA=[], rowsB=[], slabPos=0;
+let meterStartQ=0, lastRecA=NaN, lastRecB='';   /* สถานะสำหรับ 🧭 ตอนนี้ต้องทำอะไร: ประจุบนมิเตอร์ตอนเริ่มคายประจุ · ค่ามิเตอร์/สถานะที่บันทึกล่าสุด */
 const fmt=(v,n)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(n===undefined?1:n);
 
 /* ── physics ── */
@@ -412,17 +419,17 @@ function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEa
   document.querySelectorAll('.val-input.ang').forEach(el=>el.classList.toggle('hidden',m==='manual'));
   $('diagNote').textContent = m==='auto' ? 'โหมดอัตโนมัติ: แสดงประจุบนแผ่นและค่า d' : 'โหมดวัดเอง: อ่าน d จากสเกลบนราง';
   drawAll(); drawGraph(); }
-function setSw(s){ sw=s; document.querySelectorAll('#swBtns button').forEach((b,i)=>b.classList.toggle('active',['charge','open','meter'][i]===s)); }
+function setSw(s){ if(s==='meter'&&sw!=='meter') meterStartQ=Qmeter; sw=s;document.querySelectorAll('#swBtns button').forEach((b,i)=>b.classList.toggle('active',['charge','open','meter'][i]===s)); }
 function setV(v){ Vs=v; $('sl-V').value=v; $('lcdS').textContent=v.toFixed(1); }
 function dMin(){ return diel==='air'?1.0:T_SLAB; }
 function setD(v){ d=Math.max(dMin(),Math.min(20,Math.round(v*10)/10)); $('sl-d').value=d; $('vi-d').value=d; }
 function nudgeD(k){ setD(d+k); }
 function setPlate(r){ R_cm=r; document.querySelectorAll('#plateBtns button').forEach((b,i)=>b.classList.toggle('active',[8,12.5][i]===r)); if(scene) buildPlates(); }
 function setDiel(k){ if(k!=='air' && d<T_SLAB-1e-6){ setD(T_SLAB); } diel=k; document.querySelectorAll('#dielBtns button').forEach((b,i)=>b.classList.toggle('active',['air','acr','gls','mys'][i]===k)); if(scene&&P.slab){ P.slab.material.color.setHex(DIEL[k].col||0xffffff); } setD(d); }
-function zeroQ(){ Qmeter=0; }
+function zeroQ(){ Qmeter=0; meterStartQ=0; }
 function resetLab(){
   /* คืนค่าเริ่มต้น: คายประจุ · ตั้งศูนย์มิเตอร์ · สวิตช์ ② · 50 V · R 12.5 cm · อากาศ · d 4 mm · มุมมอง · ช่องกรอก (ไม่ลบตาราง ไม่เปลี่ยน κ แผ่นปริศนา) */
-  Qn=0; Qmeter=0; setSw('open'); setV(50); setDiel('air'); setPlate(12.5); setD(4); $('cbEM').checked=true; setView('iso'); ['in-d','in-v','in-q'].forEach(id=>$(id).value=''); drawAll();
+  Qn=0; Qmeter=0; meterStartQ=0; lastRecA=NaN; lastRecB=''; setSw('open'); setV(50); setDiel('air'); setPlate(12.5); setD(4); $('cbEM').checked=true; setView('iso'); ['in-d','in-v','in-q'].forEach(id=>$(id).value=''); drawAll();
 }
 function stateText(){ const V=Vnode();
   if(sw==='charge') return `ต่อแหล่งจ่าย: V = ${Vs.toFixed(1)} V คงที่ · เปลี่ยน d แล้ว Q = CV เปลี่ยนตาม (ประจุไหลเข้า-ออกแหล่งจ่าย)`;
@@ -440,7 +447,44 @@ function updateHint(){
   } else {
     $('hud').innerHTML='<b>'+({iso:'มุมเฉียง',gap:'ช่องว่างระหว่างแผ่น',scale:'สเกลบนราง',meters:'เครื่องวัด'})[curView]+'</b> — ลากแผ่นขวาเพื่อเปลี่ยนระยะ · ลากที่ว่าง = หมุนมุมมอง';
   }
-  $('hint').innerHTML= mode==='manual' ? 'ตาราง A: ① อัดประจุ → ตั้งศูนย์ → ③ คายประจุ แล้วอ่าน Q · กรอก d, V (แหล่งจ่าย) และ Q<br>ตาราง B: ② แยกวงจร → กรอก d และ V จากอิเล็กโทรมิเตอร์' : 'บันทึกจากเครื่องวัดอัตโนมัติ: ตาราง A ใช้ V แหล่งจ่ายและค่าคูลอมบ์มิเตอร์ · ตาราง B ใช้ค่าอิเล็กโทรมิเตอร์';
+  const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+}
+/* ── 🧭 ตอนนี้ต้องทำอะไร: ดูสถานะสวิตช์/ประจุ/ตาราง แล้วบอกขั้นถัดไป (ไม่บอกค่าที่ต้องวัด) ── */
+function recKeyB(){ return `${d}|${diel}|${R_cm}|${$('cbEM').checked}|${Qn.toExponential(3)}`; }
+function hintState(){
+  const auto=mode==='auto', C=Cnode(), noQ=Math.abs(Qn)<2e-12, nA=rowsA.filter(r=>r.diel==='air').length, nB=rowsB.filter(r=>r.diel==='air').length,
+    dl=diel==='air'?'':` (${DIEL[diel].name})`, sameA=Math.abs(Qmeter-lastRecA)<=0.01*Math.abs(Qmeter), wantB= nA>=5 && nB<5 && diel==='air', meterIn=Math.abs(Qmeter)>2e-12;
+  const fillA= auto? 'กด <b>📝 ตาราง A (Q, V)</b>' : 'กรอก d (อ่านสเกลบนราง), V (แหล่งจ่าย) และ Q แล้วกด <b>📝 ตาราง A (Q, V)</b>';
+  const fillB= auto? 'กด <b>📝 ตาราง B (d, V)</b>' : 'กรอก d และ V จากอิเล็กโทรมิเตอร์ แล้วกด <b>📝 ตาราง B (d, V)</b>';
+  if(sw==='charge'){
+    if(Vs<=0) return ['warn','แรงดันแหล่งจ่ายเป็น 0 → เลื่อน <b>แรงดันแหล่งจ่าย</b> ให้มากกว่า 0 ก่อนอัดประจุ'];
+    if(Math.abs(Qn)<0.97*C*Vs) return ['info','กำลังอัดประจุ… รอสักครู่'];
+    if(wantB) return ['ok','อัดประจุแล้ว ✓ ตอน B: โยกสวิตช์ <b>② แยกวงจร</b> (ประจุคงที่) แล้วอ่านอิเล็กโทรมิเตอร์'];
+    if(meterIn) return ['warn','อัดประจุแล้ว แต่คูลอมบ์มิเตอร์ยังมีค่าค้าง → กด <b>0 ตั้งศูนย์คูลอมบ์มิเตอร์</b> ก่อนคายประจุ'];
+    return ['ok',`อัดประจุแล้ว · มิเตอร์เป็นศูนย์ ✓<br>โยกสวิตช์ <b>③ คายประจุ</b> แล้วอ่าน Q${dl}`];
+  }
+  if(sw==='meter'){
+    if(Math.abs(Qn)>Math.max(2e-12,0.005*Math.abs(Qmeter))) return ['info','กำลังคายประจุผ่านคูลอมบ์มิเตอร์… รอให้ตัวเลขนิ่ง'];
+    if(!meterIn) return ['warn','คูลอมบ์มิเตอร์อ่านได้ 0 — แผ่นยังไม่มีประจุ<br>โยก <b>① อัดประจุ</b> → กด 0 ตั้งศูนย์ → <b>③ คายประจุ</b>'];
+    if(sameA) return nA<5||diel!=='air' ? ['info',`บันทึกตาราง A แล้ว ${rowsA.length} ค่า — เปลี่ยน d แล้วทำซ้ำ: ① อัดประจุ → 0 ตั้งศูนย์ → ③ คายประจุ`+(diel==='air'?' (ควรได้อย่างน้อย 5 ค่า)':'')]
+      : ['ok',`ตาราง A ครบ ${nA} ค่า ✓ ดูกราฟ <b>C – 1/d (A)</b> ความชัน = ε₀A<br>ตอน B: ตั้ง d = 3.0 mm → ① อัดประจุ → <b>② แยกวงจร</b>`];
+    if(meterStartQ>2e-12) return ['warn','ค่าบนคูลอมบ์มิเตอร์รวมประจุจากครั้งก่อนด้วย (ไม่ได้ตั้งศูนย์ก่อนคาย)<br>ทำใหม่: ① อัดประจุ → <b>0 ตั้งศูนย์</b> → ③ คายประจุ'];
+    return ['ok',`คายประจุหมดแล้ว ✓ อ่าน Q จากคูลอมบ์มิเตอร์<br>${fillA}${dl}`];
+  }
+  /* ② แยกวงจร */
+  if(!noQ){
+    if(!$('cbEM').checked) return ['warn','แยกวงจรแล้วแต่ยังไม่ได้ต่ออิเล็กโทรมิเตอร์ → ติ๊ก <b>ต่ออิเล็กโทรมิเตอร์คร่อมแผ่น</b>'];
+    if(diel!=='air' && d>T_SLAB+0.05) return ['warn',`สอด${DIEL[diel].name}แล้วแต่ยังมีช่องอากาศเหลือ → ลดระยะ d ให้แผ่นแนบฉนวน (3.0 mm) แล้วอ่านแรงดัน`];
+    if(recKeyB()===lastRecB) return nB<5||diel!=='air' ? ['info',`บันทึกตาราง B แล้ว ${rowsB.length} ค่า — เปลี่ยน d (ลากแผ่นขวา / ปุ่ม +1) หรือสอดฉนวน แล้วบันทึกซ้ำ`+(diel==='air'?' (ควรได้อย่างน้อย 5 ค่า)':'')]
+      : ['ok',`ตาราง B ครบ ${nB} ค่า ✓ ดูกราฟ <b>V – d (B)</b><br>ต่อไป: กลับ d = 3.0 mm แล้วสอดฉนวน (อะคริลิก / แก้ว / ปริศนา) อ่านแรงดันเทียบกับอากาศ`];
+    return ['ok',`แยกวงจรแล้ว ประจุคงที่ ✓ อ่านอิเล็กโทรมิเตอร์<br>${fillB}${dl}`+(wantB||nA<5?'':'<br><span style="opacity:.8">(ถ้าจะวัด Q: กด 0 ตั้งศูนย์ → ③ คายประจุ)</span>')];
+  }
+  if(meterIn && !sameA && meterStartQ<=2e-12) return ['ok',`อ่าน Q จากคูลอมบ์มิเตอร์ แล้ว${auto?'':'กรอก d, V, Q แล้ว'}กด <b>📝 ตาราง A (Q, V)</b>${dl}`];
+  if(diel!=='air') return ['info',`สอด${DIEL[diel].name}แล้ว — หา κ: ที่ d = 3.0 mm ทำ ① อัดประจุ → 0 ตั้งศูนย์ → ③ คายประจุ แล้วบันทึกตาราง A<br>เทียบกับอากาศที่ d เดียวกัน: κ = (C_ฉนวน − C_แฝง)/(C_อากาศ − C_แฝง)`];
+  if(!rowsA.length && !rowsB.length) return ['info','ตอน A (หา ε₀): ① ตั้งระยะ d (ดู 🔍 สเกลบนราง) และแรงดันแหล่งจ่าย<br>② โยกสวิตช์ <b>① อัดประจุ</b>'];
+  if(nA<5) return ['info',`ตาราง A บันทึกแล้ว ${nA} ค่า — เปลี่ยน d แล้วทำซ้ำ: ① อัดประจุ → 0 ตั้งศูนย์ → ③ คายประจุ (ควรได้อย่างน้อย 5 ค่า)`];
+  if(nB<5) return ['info',`ตาราง A ครบ ${nA} ค่า ✓ ดูกราฟ <b>C – 1/d (A)</b> หา ε₀ = ความชัน/A<br>ตอน B`+(nB?` (บันทึกแล้ว ${nB} ค่า)`:'')+': ตั้ง d = 3.0 mm → ① อัดประจุ → <b>② แยกวงจร</b> แล้วเพิ่ม d ทีละขั้น'];
+  return ['ok','ครบตอน A และ B ✓ ดูกราฟ C – 1/d และ V – d<br>ตอนท้าย: สอดฉนวน (อะคริลิก / แก้ว / ปริศนา) ที่ d = 3.0 mm บันทึกตาราง A เทียบกับอากาศ → หา κ ของแผ่นปริศนา'];
 }
 
 /* ── tables ── */
@@ -448,7 +492,7 @@ function record(tb){ let dd,v,q;
   if(mode==='manual'){ dd=parseFloat($('in-d').value); v=parseFloat($('in-v').value); q=parseFloat($('in-q').value); if(isNaN(dd)||isNaN(v)||(tb==='A'&&isNaN(q))){ alert(tb==='A'?'กรอก d, V และ Q':'กรอก d และ V'); return; } }
   else { dd=d; if(tb==='A'){ v=Vs; q=qReading(); } else { v=emReading(); if(isNaN(v)){ alert('ต่ออิเล็กโทรมิเตอร์ก่อน'); return; } } }
   const row={d:dd,V:v,Q:q,R:R_cm,diel};
-  if(tb==='A') rowsA.push(row); else rowsB.push(row);
+  if(tb==='A'){ rowsA.push(row); lastRecA=Qmeter; } else { rowsB.push(row); lastRecB=recKeyB(); }
   if(diel==='mys') mysRevealed=true;
   ['in-d','in-v','in-q'].forEach(id=>$(id).value=''); renderTables(); drawGraph(); }
 function renderTables(){
@@ -683,6 +727,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

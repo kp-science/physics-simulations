@@ -1596,6 +1596,61 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 
+<script>
+/* ═══ KP Science — ท่าทางนิ้วบนภาพ 3D (เสริม): 2 นิ้วถ่าง/หนีบ = ซูม · 2 นิ้วลาก = เลื่อนภาพ · เมาส์คลิกขวา/Shift+ลาก = เลื่อน
+   ทำงานที่กรอบ #view3d แบบ capture จึงไม่รบกวนการลากวัตถุด้วยนิ้วเดียวของเดิม ═══ */
+(function(){ function init(){ const cv=document.getElementById('glCanvas'), box=document.getElementById('view3d'); if(!cv||!box||typeof camera==='undefined'||!camera) return;
+  const O=(typeof orbit!=='undefined'&&orbit&&orbit.target)?orbit:((typeof cam!=='undefined'&&cam&&cam.target)?cam:null); if(!O) return;
+  const DMIN=25, DMAX=600, PT=()=>O.target;
+  const zoom=f=>{ O.dist=Math.max(DMIN,Math.min(DMAX,O.dist*f)); };
+  const pan=(dx,dy)=>{ const T=PT(), k=O.dist*2*Math.tan(camera.fov*Math.PI/360)/(box.clientHeight||300), ca=Math.cos(O.az), sa=Math.sin(O.az), ce=Math.cos(O.el), se=Math.sin(O.el); T.x+=(-dx*ca-dy*se*sa)*k; T.y+=dy*ce*k; T.z+=(dx*sa-dy*se*ca)*k; };
+  let mode=null, d0=0, mx=0, my=0, lx=0, ly=0, passing=false;
+  const mid=e=>{ const a=e.touches[0], b=e.touches[1]; return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2, d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}; };
+  box.addEventListener('touchstart',e=>{ if(passing) return; if(e.target!==cv && mode!=='pinch') return; if(e.touches.length<2) return;
+    if(mode!=='pinch'){ passing=true; try{ cv.dispatchEvent(new TouchEvent('touchend',{touches:[],targetTouches:[],changedTouches:Array.from(e.touches),bubbles:true,cancelable:true})); }catch(_){ } passing=false; }
+    const m=mid(e); mode='pinch'; d0=m.d; mx=m.x; my=m.y; e.preventDefault(); e.stopPropagation(); },{capture:true,passive:false});
+  box.addEventListener('touchmove',e=>{ if(mode!=='pinch') return; e.preventDefault(); e.stopPropagation(); if(e.touches.length>=2){ const m=mid(e); if(d0>10&&m.d>10) zoom(d0/m.d); pan(m.x-mx,m.y-my); d0=m.d; mx=m.x; my=m.y; } },{capture:true,passive:false});
+  const end=e=>{ if(passing||mode!=='pinch') return; e.stopPropagation(); if(e.touches.length===0) mode=null; };
+  box.addEventListener('touchend',end,true); box.addEventListener('touchcancel',end,true);
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  box.addEventListener('mousedown',e=>{ if(e.target!==cv||!(e.button===2||e.shiftKey)) return; e.preventDefault(); e.stopPropagation(); mode='mpan'; lx=e.clientX; ly=e.clientY; cv.style.cursor='move'; },true);
+  window.addEventListener('mousemove',e=>{ if(mode!=='mpan') return; if(e.buttons===0){ mode=null; cv.style.cursor='grab'; return; } pan(e.clientX-lx,e.clientY-ly); lx=e.clientX; ly=e.clientY; },true);
+  window.addEventListener('mouseup',()=>{ if(mode==='mpan'){ mode=null; cv.style.cursor='grab'; } },true);
+  window.__kpGesture={zoom,pan,O};
+ }
+ if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
+</script>
+
+<script>
+/* ═══ KP Science — แถบปุ่มควบคุมติดใต้แว่นขยายสเกล (กดด้วยนิ้ว/เมาส์) · ปุ่มในแถบกดปุ่มเดียวกันในแผงขวา จึงทำงานเหมือนกันทุกอย่าง ═══ */
+(function(){ const SPEC=[["snapContact()", "🎯 แตะวัตถุ", "hot"], ["rotateRing()", "🔄 หมุนวงแหวน", null], ["openJaws()", "↔ เปิดออก", null], ["checkReading()", "✅ ตรวจค่าที่อ่าน", null], ["recordReading()", "➕ บันทึก", "rec"]];
+ function init(){ const dc=document.getElementById('magCanvas'), tab=document.getElementById('tab-sim'); if(!dc||!tab) return;
+  const bar=document.createElement('canvas'); bar.id='kpCbar'; bar.style.cssText='width:100%;height:0;display:block;background:#0b1220;border-radius:8px;margin-top:6px;touch-action:manipulation;cursor:pointer'; dc.insertAdjacentElement('afterend',bar);
+  const g=bar.getContext('2d'); let items=[];
+  const short=t=>t.replace(/\s+/g,' ').replace(/\s*\([^)]*\)\s*/g,' ').split(' — ')[0].trim();
+  function collect(){ const bs=Array.from(tab.querySelectorAll('button[onclick]')).filter(b=>b.offsetParent!==null&&!b.disabled&&b.id!=='kpCbar'), out=[];
+    SPEC.forEach(([m,lab,kind])=>{ const pre=m.endsWith('*'), key=pre?m.slice(0,-1):m; const hits=bs.filter(b=>{ const oc=(b.getAttribute('onclick')||'').trim(); return pre? oc.startsWith(key) : oc===key; }); (pre?hits:hits.slice(0,1)).forEach(b=>{ if(!out.some(o=>o.b===b)) out.push({b,lab,kind}); }); }); return out; }
+  function draw(){ if(!tab.classList.contains('active')) return; const list=collect(), W=bar.clientWidth||dc.clientWidth; if(!W) return;
+    const per=W<520?4:8, rows=list.length?Math.ceil(list.length/per):0, rh=46, H=rows? rows*rh+8 : 0;
+    if(bar.style.height!==H+'px') bar.style.height=H+'px'; if(!H){ items=[]; return; }
+    if(bar.width!==Math.round(W*devicePixelRatio)||bar.height!==Math.round(H*devicePixelRatio)){ bar.width=Math.round(W*devicePixelRatio); bar.height=Math.round(H*devicePixelRatio); }
+    g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.fillStyle='#0b1220'; g.fillRect(0,0,W,H); items=[];
+    list.forEach((it,i)=>{ const r=Math.floor(i/per), n=Math.min(per,list.length-r*per), c=i-r*per, gap=6, w=(W-12-gap*(n-1))/n, x=6+c*(w+gap), y=4+r*rh+3, h=rh-6;
+      const txt=it.lab||short(it.b.textContent), on=it.b.classList.contains('active')||it.b.classList.contains('on');
+      g.fillStyle= it.kind==='rec'?'#15803d': it.kind==='hot'?'#b45309':'#334155'; g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,8); else g.rect(x,y,w,h); g.fill();
+      g.strokeStyle= on?'#facc15':'rgba(255,255,255,.25)'; g.lineWidth= on?2.5:1.5; g.stroke();
+      let fs=15; g.font=`bold ${fs}px Sarabun, sans-serif`; while(fs>9&&g.measureText(txt).width>w-8){ fs--; g.font=`bold ${fs}px Sarabun, sans-serif`; }
+      g.fillStyle='#fff'; g.textAlign='center'; g.fillText(txt,x+w/2,y+h/2+fs*0.36,w-6); items.push({x,y,w,h,b:it.b}); }); }
+  const hit=e=>{ const rc=bar.getBoundingClientRect(), t=e.touches&&e.touches.length?e.touches[0]:e, x=t.clientX-rc.left, y=t.clientY-rc.top; return items.find(o=>x>=o.x&&x<=o.x+o.w&&y>=o.y&&y<=o.y+o.h); };
+  const press=e=>{ const o=hit(e); if(!o) return; e.preventDefault(); o.b.click(); setTimeout(draw,40); };
+  bar.addEventListener('mousedown',press); bar.addEventListener('touchstart',press,{passive:false});
+  setInterval(draw,150); window.addEventListener('resize',draw); draw(); window.__kpBar={draw,items:()=>items}; }
+ if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
+</script>
+
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script>window.KP_MPANEL={move:['#tab-sim .side','#tab-sim > .card'], res:['#dataTable'], view:'#view3d', hint:'#kpNoHint', bp:980};</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

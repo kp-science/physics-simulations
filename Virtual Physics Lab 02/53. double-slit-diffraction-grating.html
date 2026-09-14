@@ -201,6 +201,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
         <div class="panel-title">🔴 เลเซอร์</div>
         <div class="liq-grid" id="lamBtns">
           <button data-k="red" class="active" onclick="setLaser('red')">🔴 แดง 650 nm</button>
@@ -245,7 +250,6 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div id="manualCtrl" class="panel-section">
         <div class="panel-title">🖐 บันทึกผล</div>
-        <div class="hint-box info" id="manualHint"></div>
         <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="min-width:150px" id="lbl-n">ลำดับแถบสว่าง n</span><input class="val-input" type="number" id="in-n" min="1" max="20" step="1" placeholder="?" style="width:70px"></div>
         <div class="sl-row"><span class="sl-label" style="color:#facc15;min-width:150px">ระยะจากแถบกลาง x (cm)</span><input class="val-input" type="number" id="in-x" step="0.01" placeholder="?" style="width:70px"></div>
         <button class="btn btn-green btn-sm" style="width:100%;margin-top:4px" onclick="recordRow()">📝 บันทึก (ใช้ L และ d ปัจจุบัน)</button>
@@ -450,9 +454,36 @@ function updateHint(){
     const x1=fringePos(1); $('rd-t1').textContent= isNaN(x1)?'—':`${(Math.atan(x1/L)/D2R).toFixed(2)}° · ${x1.toFixed(2)} cm`;
     const ps=[]; for(let n=1;n<=(type==='grating'?6:5);n++){ const x=fringePos(n); if(isNaN(x)||x>60) break; ps.push(`${type==='single'?'มืด':'n'}${n}: ${x.toFixed(2)}`); } $('rd-pos').textContent=ps.join(' · ')||'—';
     $('hud').innerHTML=`<b>${type==='single'?'สลิตเดี่ยว':type==='double'?'สลิตคู่':'เกรตติง'}</b> · λ ${lam()} nm · L ${L} cm · แว่นขยาย ${cur.toFixed(2)} cm`; return; }
-  $('manualHint').innerHTML= type==='single' ? 'หาตำแหน่ง<b>แถบมืด</b>ลำดับ n จากแถบสว่างกลาง อ่านจากสเกลในแว่นขยาย · x = ระยะจากกึ่งกลางแถบสว่างกลาง' : (isWhite()?'แสงขาว: เลื่อนแว่นขยายไปที่<b>สีที่ต้องการ</b>ในสเปกตรัมลำดับ n (เช่น ขอบม่วง กลางเขียว ขอบแดง) อ่านตำแหน่งจากสเกล กรอก n และ x → ได้ λ ของสีนั้น':'เลื่อนแว่นขยายไปที่<b>กึ่งกลางแถบสว่าง</b>ลำดับ n อ่านตำแหน่งจากสเกลบนฉาก · x = ระยะจากกึ่งกลางแถบกลาง (n = 0) · ปรับความสว่างเพื่อดูแถบที่จาง');
   $('hud').innerHTML=`<b>${curView==='screen'?'มองที่ฉาก':curView==='iso'?'มุมเฉียง':'มุมข้าง'}</b> — ${curView==='screen'?'กล้องตามตำแหน่งแว่นขยาย':'ลากเพื่อหมุนมุมมอง'}`;
 }
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับสถานะจริง · โหมดวัดเองไม่บอกตำแหน่งแถบหรือ λ) ── */
+function hintState(){
+  const partN= type==='double'?'ตอน A · สลิตคู่': type==='grating'?'ตอน B · เกรตติง':'ตอน C · สลิตเดี่ยว', fr= type==='single'?'แถบมืด':'แถบสว่าง',
+    pre= (laser==='mystery'?'❓ <b>เลเซอร์ปริศนา</b> · ':'')+partN, rs=rows.filter(r=>r.key===setupKey()&&r.L===L);
+  if(mode==='auto') return ['info',pre+' · โหมดอัตโนมัติ: ตำแหน่งแถบแสดงใน <b>⚡ ผลการคำนวณ</b> — เลื่อนแว่นขยายไปดูแถบนั้นบนสเกล · เปลี่ยน L, d, λ แล้วสังเกตระยะแถบ<br>ฝึกอ่านค่าและบันทึกเอง → กด <b>🖐 วัดค่าเอง</b>'];
+  const inN=$('in-n').value.trim(), inX=$('in-x').value.trim(), vn=parseInt(inN), vx=parseFloat(inX);
+  if(inN||inX){
+    if(inN&&!(vn>=1)) return ['warn','ลำดับ n ต้องเป็นจำนวนเต็มตั้งแต่ 1 (แถบกลาง n = 0 ไม่ต้องบันทึก)'];
+    if(inX&&(isNaN(vx)||vx<=0||vx>60)) return ['warn','x = ระยะจากกึ่งกลางแถบกลาง ต้องเป็นค่าบวกไม่เกิน 60 cm (หน่วย cm)'];
+    if(!inN||!inX) return ['info','กรอกให้ครบทั้งลำดับ <b>n</b> และระยะ <b>x</b> แล้วกด <b>📝 บันทึก</b>'];
+    if(!isWhite()&&rs.some(r=>r.n===vn)) return ['warn',`ลำดับ n = ${vn} บันทึกแล้วด้วยการตั้งค่านี้ — ตรวจการนับลำดับ${fr}อีกครั้ง หรือวัดลำดับอื่น`];
+    return ['ok',`พร้อมบันทึก — กด <b>📝 บันทึก</b> (ใช้ L = ${L} cm และแผ่นสลิตปัจจุบัน)`]; }
+  if(isWhite()){
+    if(!rs.length) return ['info',pre+' · แสงขาว<br>① เลื่อนแว่นขยายไปที่<b>ขอบม่วง</b>ของสเปกตรัมลำดับ n = 1 (ม่วงอยู่ด้านใกล้แถบกลาง)<br>② อ่าน x จากสเกล กรอก n = 1 และ x → <b>📝 บันทึก</b><br>③ ทำซ้ำที่<b>ขอบแดง</b>ของลำดับเดียวกัน'];
+    if(rs.length<2) return ['info','บันทึกแล้ว 1 ค่า — วัดขอบอีกด้านของสเปกตรัมลำดับเดียวกัน แล้วบันทึก'];
+    return ['ok','✓ ได้ขอบทั้งสองด้านแล้ว — λ คำนวณในตาราง = ช่วงความยาวคลื่นของแสงขาว · ลองดูลำดับ n = 2 และ 3 ว่าซ้อนทับกันหรือไม่']; }
+  if(!rs.length) return Math.abs(cur)<0.005
+    ? ['info',pre+`<br>① ตั้งระยะสลิต–ฉาก L (สไลเดอร์ / ปุ่ม ±)<br>② เลื่อนแว่นขยาย (ลากในแผนภาพล่าง / ปุ่ม ±1 mm, ±5 cm) ให้เส้นประฟ้ากลางแว่นขยายอยู่ที่<b>กึ่งกลาง${fr}</b>ลำดับ n = 1`+(type==='single'?' (นับจากแถบสว่างกลาง)':'')]
+    : ['info',pre+`<br>ดูว่าเส้นประฟ้ากลางแว่นขยายอยู่<b>กึ่งกลาง${fr}</b>ที่ต้องการหรือยัง (แถบจาง → เพิ่ม "ความสว่างที่แสดง")<br>③ อ่าน x = ระยะจากกึ่งกลาง${type==='single'?'แถบสว่างกลาง':'แถบกลาง (n = 0)'} บนสเกล · กรอก n และ x แล้วกด <b>📝 บันทึก</b>`];
+  const vis=[...Array(12)].map((_,k)=>fringePos(k+1)).filter(x=>!isNaN(x)&&x<=60).length, need=Math.max(1,Math.min(type==='grating'?3:4,vis));   /* จำนวนลำดับที่อยู่บนฉาก (มองเห็นได้เองจากฉาก) */
+  if(rs.length<need) return ['info',pre+`<br>บันทึกแล้ว <b>${rs.length}</b> ค่า — เลื่อนแว่นขยายไปที่${fr}ลำดับถัดไป แล้วบันทึก (ควรได้อย่างน้อย ${need} ลำดับ ด้วย L และแผ่นสลิตเดียวกัน)`+(type==='grating'?'':'<br>ลดความคลาดเคลื่อน: วัดระยะระหว่างลำดับ +n กับ −n แล้วหารสอง')];
+  const myst= laser==='mystery'?'<br>❓ λ ของเลเซอร์ปริศนา = ค่าเฉลี่ยของ λ คำนวณ · ตรวจกับคอลัมน์ λ จริง':'';
+  if(type==='double') return ['ok',pre+`<br>✓ ครบ ${rs.length} ลำดับ — ดูกราฟ x กับ n: ความชัน = Δx → λ = (ความชัน)·d/L`+myst+'<br>ต่อไป: เปลี่ยน L หรือ d แล้วทำซ้ำ · จากนั้นไปตอน B กด <b>เกรตติง</b>'];
+  if(type==='grating') return ['ok',pre+`<br>✓ ครบ ${rs.length} ลำดับ — λ = d sin(tan⁻¹(x/L))/n ในตาราง`+myst+'<br>ต่อไป: ลอง <b>⚪ แสงขาว</b> หรือกด <b>สลิตเดี่ยว</b> (ตอน C)'];
+  return ['ok',pre+`<br>✓ ครบ ${rs.length} ลำดับ — ดูกราฟ: ความชัน → λ = (ความชัน)·a/L · สังเกตแถบสว่างกลางกว้างเป็นสองเท่าของแถบอื่น`+myst];
+}
+function updateGuide(){ const h=$('hint'); if(!h) return; const [cls,txt]=hintState(); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls; }
 
 /* ── table ── */
 function recordRow(){ const n=parseInt($('in-n').value), x=parseFloat($('in-x').value); if(!(n>=1)||isNaN(x)||x<=0||x>60){ alert('กรอก n (≥ 1) และ x (cm) ที่อ่านได้'); return; }
@@ -687,6 +718,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   ['in-n','in-x'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   LASERS.mystery.lam=Math.round(420+Math.random()*260);
+  setInterval(updateGuide,250);
   init3D(); if(renderer) setupPointer($('glCanvas')); resizeAll(); setType('double'); setMode('manual'); setLaser('red'); renderTables(); drawTheoryAll();
 });
 </script>
@@ -743,6 +775,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

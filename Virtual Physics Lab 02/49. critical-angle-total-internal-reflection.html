@@ -194,6 +194,8 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลไม่ถูกลบ · วัสดุปริศนาไม่เปลี่ยน</div>
       </div>
 
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+
       <div class="panel-section">
         <div class="panel-title">🧊 วัสดุแท่งครึ่งวงกลม</div>
         <div class="liq-grid" id="matBtns">
@@ -220,8 +222,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div id="manualCtrl" class="panel-section">
         <div class="panel-title">🖐 บันทึกผล</div>
-        <div class="hint-box info" id="manualHint"></div>
-        <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="color:#f87171;min-width:150px">θ₁ ที่อ่านได้ (รังสีตกกระทบ)</span><input class="val-input" type="number" id="in-a" min="0" max="90" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
+        <div class="sl-row"><span class="sl-label" style="color:#f87171;min-width:150px">θ₁ ที่อ่านได้ (รังสีตกกระทบ)</span><input class="val-input" type="number" id="in-a" min="0" max="90" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div class="sl-row"><span class="sl-label" style="color:#fbbf24;min-width:150px">θ₂ ที่อ่านได้ (รังสีหักเห)</span><input class="val-input" type="number" id="in-b" min="0" max="90" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="btn btn-green btn-sm" style="flex:1" onclick="recordSnell()">📝 บันทึก θ₁, θ₂</button>
@@ -287,6 +288,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <li>แผนภาพ 2D มี<b>แว่นขยายสเกล 2 ช่อง</b> — ตรงจุดที่รังสีตกกระทบตัดวงสเกล (อ่าน θ₁) และจุดที่รังสีหักเหตัดวงสเกล (อ่าน θ₂) · โหมดวัดเองไม่แสดงค่ามุมเป็นตัวเลข</li>
       <li>ความสว่างของรังสีสะท้อนและรังสีหักเหคำนวณตามสมการของเฟรเนล — รังสีหักเหจางลงเรื่อย ๆ เมื่อเข้าใกล้มุมวิกฤต</li>
       <li><b>↺ รีเซตค่า</b> คืนมุมเลเซอร์เป็น 20° และมุมมองเริ่มต้น (ตารางยังอยู่)</li>
+      <li><b>🧭 ตอนนี้ต้องทำอะไร</b> บอกขั้นถัดไปตามสิ่งที่บันทึกแล้วของวัสดุที่เลือก (ไม่บอกมุมหรือ n ในโหมดวัดเอง)</li>
       <li><b>โหมดวัดเอง</b> ไม่แสดง θ₂, n และ θc · <b>โหมดอัตโนมัติ</b> แสดงค่าทั้งหมด พร้อมกราฟร้อยละของแสงสะท้อน/หักเห</li>
     </ul>
 
@@ -422,9 +424,28 @@ function updateHint(){
     $('rd-r').textContent=(o.R*100).toFixed(1)+'%'; $('rd-t').textContent=(o.T*100).toFixed(1)+'%';
     $('rd-state').textContent = o.tir ? 'θ₁ > θc → สะท้อนกลับหมด' : Math.abs(th1-thetaC())<0.3 ? 'θ₁ ≈ θc → รังสีหักเหเลียดผิว' : 'θ₁ < θc → หักเหออก + สะท้อนบางส่วน';
     $('hud').innerHTML='<b>'+MAT[mat].name+'</b> — θ₁ = '+th1.toFixed(1)+'° · '+(o.tir?'<b style="color:#f87171">สะท้อนกลับหมด</b>':'θ₂ = '+o.th2.toFixed(1)+'°'); return; }
-  $('manualHint').innerHTML='<b>ตอน A:</b> อ่านมุม θ₁ (รังสีตกกระทบ) และ θ₂ (รังสีหักเห) จากสเกล — ดูแว่นขยาย 2 ช่องในแผนภาพ 2D กรอกแล้วกดบันทึก<br><b>ตอน B:</b> หมุนเลเซอร์ละเอียดจนรังสีหักเหเลียดผิวราบและกำลังจะหายไป อ่าน θ₁ แล้วกด 📍';
   $('hud').innerHTML='<b>'+MAT[mat].name+'</b> — ลากในภาพเพื่อหมุนเลเซอร์'+(curView==='top'?'':' · ลากพื้นที่ว่างเพื่อหมุนมุมมอง');
 }
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับตาราง/ช่องกรอกของวัสดุนี้ · โหมดวัดเองไม่บอกมุม n หรือ θc) ── */
+function hintState(){
+  const ra=rowsA.filter(r=>r.key===matKey()), rb=rowsB.filter(r=>r.key===matKey()), nm=MAT[mat].name;
+  if(mode==='auto'){ const tc=thetaC(); return ['info', (sweep?'⚡ กำลังกวาดมุม — ':'⚡ กด <b>▶ กวาดมุม θ₁ อัตโนมัติ</b> หรือหมุนเลเซอร์ · ')+`ดูกราฟร้อยละแสงสะท้อน/หักเห<br>${nm}: θ₁ = ${th1.toFixed(1)}° ${Math.abs(th1-tc)<0.3?'≈':th1<tc?'&lt;':'&gt;'} θc = ${tc.toFixed(1)}°`+(th1>tc+0.3?' → สะท้อนกลับหมด':'')]; }
+  const va=$('in-a').value.trim(), vb=$('in-b').value.trim(), a=parseFloat(va), b=parseFloat(vb), partB= ra.length>=5||rb.length>0;
+  if((va!==''&&(isNaN(a)||a<0||a>90))||(vb!==''&&(isNaN(b)||b<0||b>90))) return ['warn','มุมที่กรอกต้องอยู่ระหว่าง 0°–90° (วัดจากเส้นแนวฉาก) — อ่านจากสเกลใหม่'];
+  if(va!==''&&vb!==''){
+    if(a<0.5) return ['warn','θ₁ ใกล้ 0° คำนวณ n ไม่ได้ — หมุนเลเซอร์ให้ θ₁ ประมาณ 10° ขึ้นไป'];
+    if(b<a) return ['warn','แสงจากแก้วออกสู่อากาศเบน<b>ออกจาก</b>เส้นแนวฉาก θ₂ จึงต้องมากกว่า θ₁ — ตรวจว่าอ่านรังสีถูกเส้น/ถูกฝั่ง'];
+    return ['ok','พร้อมแล้ว → กด <b>📝 บันทึก θ₁, θ₂</b>']; }
+  if(vb!=='') return ['info','กรอก θ₁ (รังสีตกกระทบ) ด้วย แล้วกด <b>📝 บันทึก θ₁, θ₂</b>'];
+  if(va!=='') return partB ? ['ok','ถ้า θ₁ นี้อ่านตอนรังสีหักเหเลียดผิวราบ → กด <b>📍 บันทึก θ₁ ที่อ่านได้เป็นมุมวิกฤต</b><br>(ตอน A: กรอก θ₂ ด้วยแล้วกด 📝)'] : ['info','กรอก θ₂ (รังสีหักเห) ด้วย แล้วกด <b>📝 บันทึก θ₁, θ₂</b>'];
+  if(!ra.length&&!rb.length) return ['info',`<b>ตอน A</b> (${nm}) ① หมุนเลเซอร์ (สไลเดอร์ / ลากในภาพ) ให้รังสีตกกระทบทำมุมราว 10° กับเส้นแนวฉาก<br>② อ่าน θ₁ และ θ₂ จากแว่นขยาย 2 ช่องในแผนภาพ 2D ③ กรอกแล้วกด <b>📝 บันทึก θ₁, θ₂</b>`];
+  if(!partB) return ['info',`บันทึกแล้ว <b>${ra.length}</b> ค่า (${nm}) — เพิ่ม θ₁ ราว 5° แล้วทำซ้ำ (ควรได้อย่างน้อย 5 ค่า)`];
+  if(!rb.length) return ['info','✓ ตอน A ครบ — ดูกราฟ sin θ₂ กับ sin θ₁ ความชัน = n<br><b>ตอน B</b> ค่อย ๆ เพิ่ม θ₁ (ปุ่ม ±0.1°) จนรังสีหักเห<b>เลียดผิวราบและกำลังจะหายไป</b> → อ่าน θ₁ กรอกช่อง θ₁ แล้วกด <b>📍</b>'];
+  if(rb.length<3) return ['info',`บันทึกมุมวิกฤตแล้ว <b>${rb.length}</b> ครั้ง — ทำซ้ำโดยเริ่มจากมุมที่<b>ไม่มี</b>รังสีหักเหออก แล้วลด θ₁ จนรังสีหักเหเริ่มปรากฏ (ควรได้ 3 ครั้ง แล้วหาค่าเฉลี่ย)`];
+  return ['ok','✓ ครบแล้ว — เทียบ n เฉลี่ยจากตาราง A กับ n = 1/sin θc ในตาราง B<br>'+(mat==='mystery'?'หา n ของวัสดุปริศนาได้แล้ว · กด <b>🎲 สุ่มวัสดุปริศนาใหม่</b> เพื่อฝึกอีก':'ต่อไป → เปลี่ยนวัสดุ แล้วลอง <b>❓ ปริศนา</b>')];
+}
+function updateGuide(){ const [cls,txt]=hintState(), h=$('hint'); if(!h) return; if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls; }
 
 /* ── tables ── */
 function recordSnell(){
@@ -686,6 +707,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   MAT.mystery.n=Math.round((1.40+Math.random()*0.35)*100)/100;
   init3D(); resizeAll(); setMode('manual'); setMat('acrylic'); setTh(20); renderTables(); drawGraph(); drawTheoryAll();
+  updateGuide(); setInterval(updateGuide,200);
 });
 </script>
 
@@ -741,6 +763,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 

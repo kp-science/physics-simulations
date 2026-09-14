@@ -834,12 +834,13 @@ const Caliper = (() => {
     const W = canvas.width;
     const pxA = metersToPx(s.jawA, marginL, marginR, W, ropeLen);
     const pxB = metersToPx(s.jawB, marginL, marginR, W, ropeLen);
-    const threshold = 15;
+    const threshold = e.kpTouch ? 15 * Math.max(2, canvas.width / rect.width) : 15;
     if (Math.abs(mx - pxA) < threshold) {
       s.dragging = 'A';
     } else if (Math.abs(mx - pxB) < threshold) {
       s.dragging = 'B';
     }
+    if (s.dragging) e.preventDefault();
   }
 
   function handleMouseMove(e, canvasId, canvas, marginL, marginR, ropeLen) {
@@ -2269,6 +2270,13 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script>window.KP_MPANEL={move:['#tab-sim > .controls-panel','.exp-panel > .controls-panel','.exp-panel > .data-section'], res:['.data-section'], view:'.exp-panel.active .canvas-wrap', hint:'.exp-panel.active .hint-box', bp:900};</script>
+<script>/* แผงย่อยของการทดลองที่ไม่ได้เลือก: ย้ายเข้าแผงเลื่อนแล้วยังคงซ่อนตามกล่องการทดลองเดิม */
+addEventListener('load',function(){var st=document.createElement('style');st.textContent='#kpSheet .kp-pane-off{display:none!important}';document.head.appendChild(st);
+var it=[].map.call(document.querySelectorAll('.exp-panel > .controls-panel, .exp-panel > .data-section'),function(el){return [el,el.closest('.exp-panel')];});
+function sync(){it.forEach(function(p){p[0].classList.toggle('kp-pane-off',getComputedStyle(p[1]).display==='none');});}sync();setInterval(sync,200);});</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 
@@ -2290,6 +2298,34 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 50);
     setTimeout(function(){clearInterval(w)}, 5000);
   })();
+</script>
+<!-- KP Touch Bridge: แตะ/ลากด้วยนิ้วบนแคนวาส = เมาส์ -->
+<script>
+(function(){
+  function bridge(cv){
+    if(!cv||cv._kpTouch)return; cv._kpTouch=true;
+    var active=false, grabbed=false;
+    function send(type,t){
+      var ev=new MouseEvent(type,{bubbles:true,cancelable:true,view:window,clientX:t.clientX,clientY:t.clientY,button:0,buttons:type==='mouseup'?0:1});
+      ev.kpTouch=true;
+      return cv.dispatchEvent(ev);
+    }
+    function end(e){ if(!active)return; send('mouseup',e.changedTouches[0]); active=false; grabbed=false; }
+    cv.addEventListener('touchstart',function(e){
+      if(e.touches.length!==1){ end(e); return; }
+      active=true; grabbed=!send('mousedown',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchmove',function(e){
+      if(!active||e.touches.length!==1)return;
+      send('mousemove',e.touches[0]);
+      if(grabbed) e.preventDefault();
+    },{passive:false});
+    cv.addEventListener('touchend',end);
+    cv.addEventListener('touchcancel',end);
+  }
+  ['c1', 'c2'].forEach(function(id){ bridge(document.getElementById(id)); });
+})();
 </script>
 </body>
 </html>

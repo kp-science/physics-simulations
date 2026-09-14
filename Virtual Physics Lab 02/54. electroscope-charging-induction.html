@@ -192,6 +192,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       </div>
 
       <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
         <div class="panel-title">🧪 แท่งวัตถุ + ผ้าที่ใช้ถู</div>
         <div class="mode-btns" id="rodBtns">
           <button class="active" onclick="setRod('pvc')">แท่ง PVC<br><small>ผ้าขนสัตว์</small></button>
@@ -225,7 +230,6 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div id="manualCtrl" class="panel-section">
         <div class="panel-title">🖐 ตาราง A — บันทึกมุมกางกับระยะ</div>
-        <div class="hint-box info" id="manualHint"></div>
         <div class="sl-row" style="margin-top:8px"><span class="sl-label" style="min-width:150px">ระยะ d ที่อ่านได้</span><input class="val-input" type="number" id="in-d" step="0.1" placeholder="?" style="width:70px"><span class="sl-unit">cm</span></div>
         <div class="sl-row"><span class="sl-label" style="min-width:150px">มุมกาง θ ของแผ่นโลหะ</span><input class="val-input" type="number" id="in-th" step="0.5" placeholder="?" style="width:70px"><span class="sl-unit">°</span></div>
         <button class="btn btn-green btn-sm" style="width:100%;margin-top:4px" onclick="recordA()">📝 บันทึกลงตาราง A</button>
@@ -407,6 +411,7 @@ const RODS={
 let mode='manual', cur='pvc', d=30, grounded=false, Q=0, thVis=0, mystRevealed=false, curView='iso';
 let contact=false, q0=0, dQdt=0, rubQ=null, flutter=0, flutterT=0;
 let rowsA=[], rowsB=[];
+let gNearGnd=false, gLifted=false;   /* สถานะคู่มือ: นิ้วแตะจานขณะแท่งมีประจุอยู่ใกล้ · ยกนิ้วออกขณะแท่งยังอยู่ใกล้ (ขั้นการเหนี่ยวนำ) */
 const fmt=(v,n)=>(v===undefined||v===null||isNaN(v))?'—':v.toFixed(n===undefined?1:n);
 const sgnTxt=v=>Math.abs(v)<0.05?'0':v>0?'+':'−';
 
@@ -444,10 +449,10 @@ function rub(n){ if(rubQ) return; if(grounded&&d<6) toggleGround(); if(d<8) setD
 function neutralRod(){ rubQ=null; RODS[cur].q=0; q0=0; drawAll(); }
 function setD(v){ d=Math.max(0,Math.min(D_MAX,Math.round(v*10)/10)); $('sl-d').value=d; $('vi-d').value=d; }
 function nudgeD(k){ setD(d+k); }
-function toggleGround(){ grounded=!grounded; $('btnGround').classList.toggle('active',grounded); $('btnGround').textContent= grounded?'☝️ ยกนิ้วออกจากจาน':'👆 แตะนิ้วที่จาน (ต่อลงดิน)'; }
+function toggleGround(){ if(grounded&&gNearGnd&&d<25) gLifted=true; grounded=!grounded; if(!grounded) gNearGnd=false; $('btnGround').classList.toggle('active',grounded); $('btnGround').textContent= grounded?'☝️ ยกนิ้วออกจากจาน':'👆 แตะนิ้วที่จาน (ต่อลงดิน)'; }
 function resetLab(){
   /* คืนค่าเริ่มต้น: คายประจุทุกแท่งและอิเล็กโทรสโคป · ยกนิ้ว · แท่งกลับ 30 cm · มุมมอง · ช่องกรอก (ไม่ลบตาราง ไม่เปลี่ยนชนิดประจุแท่งปริศนา) */
-  rubQ=null; Object.values(RODS).forEach(r=>r.q=0); Q=0; q0=0; contact=false; thVis=0; if(grounded) toggleGround(); setD(30); setView('iso');
+  rubQ=null; Object.values(RODS).forEach(r=>r.q=0); Q=0; q0=0; contact=false; thVis=0; if(grounded) toggleGround(); gNearGnd=gLifted=false; setD(30); setView('iso');
   ['in-d','in-th'].forEach(id=>$(id).value=''); ['selES','selObs','selRod'].forEach(id=>$(id).value=''); drawAll();
 }
 function newMystery(){ const m=RODS.myst; m.sign=Math.random()<0.5?-1:1; m.k=0.7+Math.random()*0.5; m.q=0; mystRevealed=false; rowsB=rowsB.map(r=>r); renderTables(); drawAll(); alert('สุ่มแท่งปริศนา X ใหม่แล้ว — ชนิดประจุถูกซ่อนจนกว่าจะบันทึกผลทดสอบ'); }
@@ -464,6 +469,7 @@ function stateText(s){
 }
 function updateHint(){
   const s=state(), rod=RODS[cur], hq=hideQ();
+  updateGuide();
   if(mode==='auto'){
     const hid=cur==='myst'&&!mystRevealed;
     $('rd-q').textContent= hid?'? (ซ่อน)':`${fmt(rod.q,2)} nC`;
@@ -474,11 +480,45 @@ function updateHint(){
     $('rd-state').textContent= hid ? 'แท่งปริศนา: ประจุและคำอธิบายถูกซ่อน — ทดสอบแล้วบันทึกตาราง B เพื่อดูเฉลย' : stateText(s);
     $('hud').innerHTML=`<b>d = ${fmt(d,1)} cm · θ = ${fmt(leafAngle(),1)}°</b>`+(hid?' · แท่งปริศนา (ซ่อนประจุ)':` · Q = ${fmt(Q,2)} nC · V = ${fmt(s.V,0)} V`)+(grounded?' · ต่อลงดิน':'');
   } else {
-    $('manualHint').innerHTML= Math.abs(Q)<0.05&&!grounded ? 'อิเล็กโทรสโคปยังไม่มีประจุ — ถูแท่งแล้วนำเข้าใกล้ อ่าน d จากไม้บรรทัดและ θ จากสเกลมุม (ดูแว่นขยาย)' : 'อ่าน d จากไม้บรรทัดและ θ ที่แผ่นขวาจากสเกลมุม กรอกแล้วกดบันทึก · ถ้าต้องการเริ่มใหม่ แตะนิ้วที่จานเพื่อคายประจุ';
     $('hud').innerHTML='<b>'+({iso:'มุมเฉียง',front:'มองตรงที่แผ่นโลหะ',top:'มองไม้บรรทัด'})[curView]+'</b> — ลากแท่งเข้า-ออก · แตะจาน = วาง/ยกนิ้ว · ลากที่ว่าง = หมุนมุมมอง';
   }
   const r=RODS[cur]; $('rodNote').innerHTML=`<b style="color:${r.css}">${r.name}</b> ถูกับ${r.cloth} · `+(rubQ?'กำลังถู…':(hq?'ประจุบนแท่งดูไม่ได้ในโหมดนี้':`q = ${fmt(r.q,2)} nC`));
 }
+
+/* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับสถานะจริง · โหมดวัดเองไม่บอกชนิดประจุ) ── */
+function hintState(){
+  const rod=RODS[cur], rq=Math.abs(rod.q)>0.05, chg=Math.abs(Q)>0.05, near=d<25, rn=rod.name,
+    es=$('selES').value, ob=$('selObs').value, cl=$('selRod').value, nB=[es,ob,cl].filter(Boolean).length,
+    nA=rowsA.filter(r=>r.rod===cur&&!r.charged).length, inD=$('in-d').value.trim(), inT=$('in-th').value.trim();
+  if(grounded&&rq&&near&&!contact) gNearGnd=true;
+  if(gLifted&&(!near||grounded||!chg)) gLifted=false;
+  if(rubQ) return ['info',`🧣 กำลังถู${rn}กับ${rod.cloth}… รอให้ถูเสร็จ`];
+  if(nB>0&&nB<3) return ['warn','ตาราง B: เลือกให้ครบทั้ง 3 ช่อง (ประจุบนอิเล็กโทรสโคป · ผลที่เห็น · สรุปชนิดประจุของแท่ง) แล้วกด <b>📝 บันทึกผลทดสอบ</b>'];
+  if(nB===3) return ['ok','พร้อมบันทึก — กด <b>📝 บันทึกผลทดสอบ (เฉลยหลังบันทึก)</b>'];
+  if(mode==='manual'&&(inD||inT)){ if(!inD||!inT) return ['info','กรอกให้ครบทั้งระยะ <b>d</b> และมุมกาง <b>θ</b> แล้วกด <b>📝 บันทึกลงตาราง A</b>'];
+    const vd=parseFloat(inD), vt=parseFloat(inT); if(isNaN(vd)||vd<0||vd>D_MAX) return ['warn','d ต้องอยู่ในช่วง 0–40 cm — อ่านที่ไม้บรรทัดใต้ปลายแท่ง'];
+    if(isNaN(vt)||vt<0||vt>SC_MAX) return ['warn','θ ต้องอยู่ในช่วง 0–60° — อ่านที่สเกลมุมตรงแผ่นโลหะด้านขวา'];
+    return ['ok','พร้อมบันทึก — กด <b>📝 บันทึกลงตาราง A</b>']; }
+  if(grounded&&contact) return ['warn','แท่งแตะจานขณะนิ้วแตะจานอยู่ — ประจุไหลลงดินหมด · กด <b>↩ ถอยออกไกล</b> และ <b>☝️ ยกนิ้วออกจากจาน</b>'];
+  if(grounded&&rq&&near) return ['info','ตอน C · ขั้นที่ 2: นิ้วแตะจานขณะแท่งอยู่ใกล้ (สังเกตแผ่นโลหะ)<br>ขั้นต่อไป: กด <b>☝️ ยกนิ้วออกจากจาน</b> โดยให้แท่งอยู่ที่เดิม แล้วค่อย <b>↩ ถอยออกไกล</b>'];
+  if(grounded&&gNearGnd) return ['info','ถอยแท่งออกทั้งที่นิ้วยังแตะจาน — สังเกตแผ่นโลหะ แล้ว <b>☝️ ยกนิ้วออก</b><br>เปรียบเทียบกับลำดับ: ยกนิ้วออกก่อน แล้วค่อยถอยแท่ง (วิธีการทดลอง ตอน C ข้อ 3)'];
+  if(grounded) return ['info','นิ้วแตะจานอยู่ (ต่อลงดิน) — กด <b>☝️ ยกนิ้วออกจากจาน</b>'+(rq?'':'<br>ตอน C: ถูแท่ง แล้วนำเข้าใกล้จาน (d ≈ 3 cm ห้ามแตะ) ก่อนแตะนิ้ว')];
+  if(contact) return rq ? ['info','ตอน B: ปลายแท่งแตะจานอยู่ — รอครู่หนึ่ง แล้วกด <b>↩ ถอยออกไกล</b> สังเกตว่าแผ่นโลหะยังกางอยู่หรือไม่']
+    : ['info','แท่งแตะจานอยู่ — กด <b>↩ ถอยออกไกล</b> · ถ้าจะทำตอน B ให้ถูแท่งใหม่ก่อนแตะ'];
+  if(gLifted) return ['info','ตอน C · ขั้นที่ 3: ยกนิ้วออกแล้ว (แท่งยังอยู่ใกล้) — กด <b>↩ ถอยออกไกล</b> แล้วสังเกตแผ่นโลหะ'];
+  const nBtxt= rowsB.length?`<br>บันทึกผลทดสอบแล้ว ${rowsB.length} ครั้ง — ลองกับอิเล็กโทรสโคปที่มีประจุชนิดตรงข้าม หรือ 🎲 สุ่มแท่งปริศนาใหม่`:'';
+  if(chg){
+    if(rq&&near) return ['info',`ตอน D · ทดสอบชนิดประจุของ${rn}: สังเกตแผ่นโลหะขณะแท่งเข้าใกล้ (อย่าแตะ) — <b>กางมากขึ้น</b> หรือ <b>หุบลง</b>?<br>กรอกตาราง B ทั้ง 3 ช่อง (ชนิดประจุของอิเล็กโทรสโคปคิดจากวิธีที่ทำให้มีประจุ) แล้วกดบันทึก`+nBtxt];
+    if(cur==='myst') return ['info',(rq?'ค่อย ๆ นำแท่งปริศนา X เข้าใกล้จาน (ปุ่ม −5 / −1 หรือลากแท่ง) อย่าแตะ':'กด <b>🧣 ถู</b> แท่งปริศนา X ก่อน แล้วค่อย ๆ นำเข้าใกล้จาน (อย่าแตะ)')+' · สังเกตแผ่นโลหะ'+nBtxt];
+    return ['info','อิเล็กโทรสโคปมีประจุค้างอยู่ (แผ่นโลหะกางแม้แท่งอยู่ไกล)<br>ตอน D: เลือก <b>แท่งปริศนา X</b> → 🧣 ถู → ค่อย ๆ นำเข้าใกล้ (อย่าแตะ) · หรือทดสอบด้วยแท่ง PVC/แก้วที่ถูแล้ว<br>เริ่มใหม่: <b>👆 แตะนิ้วที่จาน</b> เพื่อคายประจุ'+nBtxt];
+  }
+  if(!rq) return ['info',(rowsA.length||rowsB.length?'':'ตอน A ① นำแท่งที่ยังไม่ถูเข้าใกล้จาน สังเกตแผ่นโลหะ<br>② ')+`กด <b>🧣 ถู 5 ครั้ง</b> ให้${rn} มีประจุ แล้วนำเข้าใกล้จานอีกครั้ง`];
+  if(cur==='myst') return ['info','แท่ง X ทำให้แผ่นโลหะกางได้ แต่ยังบอกชนิดประจุไม่ได้ — ต้องทำให้อิเล็กโทรสโคปมีประจุที่รู้ชนิดก่อน (สัมผัสหรือเหนี่ยวนำด้วยแท่ง PVC/แก้ว ตอน B/C) แล้วค่อยนำแท่ง X เข้าใกล้'];
+  const how= mode==='auto'?'กด <b>📝 บันทึก d, θ ลงตาราง A</b>':'อ่าน <b>d</b> ที่ไม้บรรทัด (📏 มองไม้บรรทัด) และ <b>θ</b> ของแผ่นขวาที่สเกลมุม (🔍 มองตรงที่แผ่นโลหะ / แว่นขยาย) → กรอก → <b>📝 บันทึกลงตาราง A</b>';
+  if(nA<5) return ['info',`ตอน A · ${rn}: วางแท่งที่ระยะต่าง ๆ (d = 30, 25, 20, 15, 10, 7, 5, 3, 2, 1 cm) ด้วยปุ่ม −5 / −1 หรือลากแท่ง<br>${how}`+(nA?`<br>บันทึกแล้ว <b>${nA}</b> ค่า — เปลี่ยน d แล้วทำซ้ำ (ควรได้อย่างน้อย 5 ค่า)`:'')];
+  return ['ok',`✓ ตาราง A ของ${rn}ได้ ${nA} ค่า — ดูกราฟ θ–d · ทำซ้ำกับแท่งอื่นเพื่อเปรียบเทียบ<br>ตอน B: กด <b>👉 แตะจาน (d = 0)</b> ค้างไว้ครู่หนึ่ง แล้ว <b>↩ ถอยออกไกล</b> · ตอน C: นำแท่งเข้าใกล้ (d ≈ 3 cm) แล้ว <b>👆 แตะนิ้วที่จาน</b>`];
+}
+function updateGuide(){ const h=$('hint'); if(!h) return; const [cls,txt]=hintState(); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls; }
 
 /* ── tables ── */
 function recordA(){
@@ -806,6 +846,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
 </script>
 
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 
