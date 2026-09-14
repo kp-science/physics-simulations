@@ -178,7 +178,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <div class="diag-wrap">
         <div class="diag-head">📐 <b>ภาพด้านข้าง (ไม้บรรทัดวัดความสูง) · เซนเซอร์</b>
           <span id="diagNote" style="margin-left:auto;color:var(--muted)"></span></div>
-        <canvas id="diagCanvas"></canvas>
+        <canvas id="diagCanvas" style="height:340px;cursor:default"></canvas>
       </div>
     </div>
 
@@ -219,10 +219,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
       <div class="panel-section">
         <div class="panel-title">▶ ปล่อย</div>
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="release()">▶ ปล่อยวัตถุ</button>
-          <button class="btn btn-outline btn-sm" style="flex:0 0 auto" onclick="placeBack()">⟲ วางกลับที่จุดปล่อย</button>
-        </div>
+        <div style="font-size:.74rem;color:var(--muted);line-height:1.5;margin-bottom:6px">กดปุ่ม <b style="color:#86efac">▶ ปล่อยวัตถุ</b> ในภาพด้านข้าง (ใต้เซนเซอร์) หรือแป้น Space</div>
         <div style="font-size:.74rem;color:var(--muted);margin:4px 0 3px">ความเร็วภาพ:</div>
         <div class="mode-btns" id="spdBtns"><button onclick="setSpeed(0.2)">×0.2 ช้ามาก</button><button class="active" onclick="setSpeed(0.5)">×0.5</button><button onclick="setSpeed(1)">×1 จริง</button></div>
       </div>
@@ -283,7 +280,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>การใช้งาน Simulation</h2>
     <ul>
-      <li>เลือกวัตถุ ตั้ง R และความสูงปล่อย h (แถบเลื่อนหรือปุ่ม ±0.5, ±5 cm) แล้วกด <b>▶ ปล่อยวัตถุ</b></li>
+      <li>เลือกวัตถุ ตั้ง R และความสูงปล่อย h (แถบเลื่อนหรือปุ่ม ±0.5, ±5 cm) แล้วกดปุ่ม <b>▶ ปล่อยวัตถุ</b> ในภาพด้านข้าง (หรือแป้น Space)</li>
       <li>ผลที่เป็นไปได้: <b>ผ่านวงรอบ</b> · <b>หลุดจากราง</b> (แรงปฏิกิริยาลดเป็นศูนย์ก่อนถึงจุดบน วัตถุตกแบบโพรเจกไทล์) · <b>ไถลกลับ</b> (ขึ้นไปไม่ถึงครึ่งวง)</li>
       <li>เซนเซอร์แสดงค่าที่วัดได้ขณะวัตถุผ่าน กด <b>📝 บันทึก</b> หลังการปล่อยแต่ละครั้ง · ปรับความเร็วภาพให้ช้าลงเพื่อดูการหลุดจากราง</li>
       <li><b>โหมดวัดเอง</b>: ไม่บอก h ต่ำสุดตามทฤษฎีและค่า k · <b>โหมดอัตโนมัติ</b>: แสดง k, h ต่ำสุด, v และ N ตามทฤษฎี และแรงปฏิกิริยาตลอดเวลา</li>
@@ -415,7 +412,7 @@ function setR(x){ if(st==='run'){ $('sl-R').value=R0; lockWarn(); return; } R0=x
 function setH(x){ if(st==='run'){ $('sl-h').value=h0; lockWarn(); return; } h0=Math.max(5,Math.min(125,Math.round(x*2)/2)); $('sl-h').value=h0; $('vh').textContent=h0.toFixed(1)+' cm'; placeBack(); }
 function nudgeH(k){ setH(h0+k); }
 function setSpeed(k){ spd=k; document.querySelectorAll('#spdBtns button').forEach((b,i)=>b.classList.toggle('active',[0.2,0.5,1][i]===k)); }
-function placeBack(){ st='ready'; fly=null; settle=false; sPos=sOfHeight(h0); dir=1; Eh=h0; liveN=0; drawAll(); }
+function placeBack(){ st='ready'; sens={Ntop:null,vtop:null,Nbot:null,result:null,hRel:null,Robj:null,obj:null,phiLeave:null}; fly=null; settle=false; sPos=sOfHeight(h0); dir=1; Eh=h0; liveN=0; drawAll(); }
 function release(){ placeBack(); st='run'; runT=0; sens={Ntop:null,vtop:null,Nbot:null,result:null,hRel:h0,Robj:R0,obj,phiLeave:null}; }
 function resetLab(){ obj=0; setSpeed(0.5); updateObjLabels(); if(P.obj) makeObjMesh(); $('sl-R').value=20; R0=20; $('vR').textContent='20 cm'; buildPath(); rebuildTrack(); setH(60); setView('iso'); $('recMsg').textContent=''; placeBack(); }
 function hintState(){
@@ -483,9 +480,12 @@ function drawDiag(){ if(!dctx||!PATH) return; const g=dctx,{W,H}=LY; g.clearRect
   /* วัตถุ */
   let bx,by; if(fly){ bx=fly.x; by=fly.y; } else { const p=at(sPos); bx=p.x-p.ty*2.2; by=p.y+p.tx*2.2; }
   g.fillStyle= obj===0?'#ef4444':obj===1?'#e2e8f0':'#f472b6'; g.beginPath(); g.arc(X(bx),Y(by),Math.max(4,2.2*sc),0,Math.PI*2); g.fill();
-  if(narrow) return;
+  /* ปุ่มปล่อยในแคนวาส */
+  const btnLab= st==='run'? '⟲ หยุด · วางกลับที่จุดปล่อย' : st==='done'? '▶ ปล่อยอีกครั้ง' : '▶ ปล่อยวัตถุ';
+  const drawBtn=(x,y,w,h)=>{ LY.btn={x,y,w,h}; const on=st!=='run'; g.fillStyle= on?'#15803d':'#334155'; g.beginPath(); g.roundRect? g.roundRect(x,y,w,h,8) : g.rect(x,y,w,h); g.fill(); g.strokeStyle= on?'#4ade80':'#64748b'; g.lineWidth=2; g.stroke(); g.fillStyle='#fff'; g.font=`bold ${on?17:14}px Sarabun`; g.textAlign='center'; g.fillText(btnLab,x+w/2,y+h/2+6); };
+  if(narrow){ drawBtn(W-178,8,170,42); return; }
   /* กล่องเซนเซอร์ */
-  const bx0=pw+14, bw=W-bx0-8; if(bw<150) return;
+  const bx0=pw+14, bw=W-bx0-8; if(bw<150){ drawBtn(W-178,8,170,42); return; }
   const box=(y,col,bg,lab,val)=>{ g.fillStyle=bg; g.fillRect(bx0,y,bw,50); g.strokeStyle=col; g.lineWidth=1; g.strokeRect(bx0,y,bw,50); g.fillStyle=col; g.font='10px Sarabun'; g.textAlign='left'; g.fillText(lab,bx0+6,y+14); g.font=`bold ${Math.min(24,bw/8)}px "Share Tech Mono"`; g.textAlign='right'; g.fillText(val,bx0+bw-8,y+42); };
   box(6,'#67e8f9','#061a1f','ประตูแสงที่จุดบน: ความเร็ว',sens.vtop!==null?sens.vtop.toFixed(2)+' m/s':'— m/s');
   box(62,'#c4b5fd','#120f22','เซนเซอร์แรงที่จุดบน N_บน',sens.Ntop!==null?sens.Ntop.toFixed(3)+' N':(sens.result==='หลุดจากราง'?'ไม่แตะ':'— N'));
@@ -493,7 +493,7 @@ function drawDiag(){ if(!dctx||!PATH) return; const g=dctx,{W,H}=LY; g.clearRect
   const res=st==='run'?(fly?'หลุดจากราง…':'กำลังเคลื่อนที่'):st==='ready'?'พร้อมปล่อย':(sens.result||'หยุด'), ok=res==='ผ่านวงรอบ';
   g.fillStyle= ok?'rgba(52,211,153,.1)':st==='done'?'rgba(248,113,113,.1)':'rgba(56,189,248,.06)'; g.fillRect(bx0,176,bw,38); g.strokeStyle= ok?'#34d399':st==='done'?'#f87171':'#38bdf8'; g.strokeRect(bx0,176,bw,38);
   g.fillStyle=g.strokeStyle; g.font='bold 15px Sarabun'; g.textAlign='center'; g.fillText(res+(sens.phiLeave&&st==='done'&&sens.result==='หลุดจากราง'?` ที่ φ ≈ ${sens.phiLeave.toFixed(0)}°`:''),bx0+bw/2,201);
-  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left'; g.fillText(`m = 50 g · mg = ${(MASS*9.81).toFixed(3)} N`,bx0+2,234); g.fillText(`${OBJS[obj].k} · R = ${R0} cm`,bx0+2,252);
+  g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left'; drawBtn(bx0,222,bw,50); g.fillStyle='#94a3b8'; g.font='11px Sarabun'; g.textAlign='left'; g.fillText(`m = 50 g · mg = ${(MASS*9.81).toFixed(3)} N`,bx0+2,294); g.fillText(`${OBJS[obj].k} · R = ${R0} cm`,bx0+2,312);
 }
 
 /* ═══════════ 3D SCENE ═══════════ */
@@ -584,6 +584,9 @@ function drawAll(){ drawDiag(); updateHint(); }
 function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
 window.addEventListener('DOMContentLoaded',()=>{
   DC=$('diagCanvas'); dctx=DC.getContext('2d'); buildPath();
+  const hitBtn=e=>{ const b=LY.btn; if(!b) return false; const rc=DC.getBoundingClientRect(), t=e.touches?e.touches[0]:e, x=t.clientX-rc.left, y=t.clientY-rc.top; return x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h; };
+  const onBtn=e=>{ if(!hitBtn(e)) return; e.preventDefault(); if(st==='run') placeBack(); else release(); drawAll(); };
+  DC.addEventListener('mousedown',onBtn); DC.addEventListener('touchstart',onBtn,{passive:false}); DC.addEventListener('mousemove',e=>{ DC.style.cursor= hitBtn(e)?'pointer':'default'; });
   $('sl-R').addEventListener('input',()=>setR(parseInt($('sl-R').value)));
   $('sl-h').addEventListener('input',()=>setH(parseFloat($('sl-h').value)));
   window.addEventListener('keydown',e=>{ if(!$('tab-sim').classList.contains('active')||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; if(e.code==='Space'){ release(); e.preventDefault(); } });
