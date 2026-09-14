@@ -13,11 +13,13 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('waves','〰️','คลื่นกล','Mechanical Waves','accent2'),
  ('sound','🔊','เสียง','Sound','accent3'),
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
+ ('electro','🎈','ไฟฟ้าสถิต','Electrostatics','accent4'),
  ('astro','🌌','ดาราศาสตร์และจักรวาลวิทยา','Astronomy & Cosmology','accent4'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
  ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','shm']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
+ ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
 ]
 # (access, href, num, title_th, desc, topic, level, series, tags)
@@ -45,6 +47,14 @@ LABS=[
  ('vlab:vpl01:lab-10', V1+'10. spinning_disc_sim.html','10','จานหมุน (Spinning Disc)','ความเร็วเชิงมุมและโมเมนต์ความเฉื่อย','projectile','ม.4','vpl01',['Circular']),
  ('vlab:vpl01:lab-12', V1+'12. turntable_gravity_simulation.html','12','แรงโน้มถ่วงบนจานหมุน (Turntable Gravity)','แรงเหวี่ยงและแรงสู่ศูนย์กลาง','projectile','ม.4','vpl01',['Circular']),
  ('vlab:vpl01:lab-17', V1+'17. centripetal_force_simulation.html','17','แรงสู่ศูนย์กลาง (Centripetal Force)','F = mv²/r ปรับรัศมีและความเร็ว','projectile','ม.4','vpl01',['Circular']),
+    ('vlab:vpl02:lab-62', V2+'62. centripetal-force-whirling-stopper.html','62','แรงสู่ศูนย์กลาง: แกว่งจุกยางผ่านหลอดแก้ว (3D)','แกว่งจุกยางเป็นวงกลม ตุ้มถ่วงให้แรง F = Mg · รักษาคลิปใต้หลอด · จับเวลา N รอบหาคาบ · เปลี่ยน L และ M · กราฟ F กับ 4π²L/T² ความชัน = m · หามวลจุกยางปริศนา','projectile','ม.4','vpl02',['Circular','Centripetal','3D']),
+    ('vlab:vpl02:lab-63', V2+'63. conical-pendulum.html','63','ลูกตุ้มกรวย (Conical Pendulum) (3D)','ผลักลูกตุ้มให้วิ่งทับวงกลมอ้างอิง (เบาไป/แรงไปเป็นวงรี) · จับเวลา N รอบ · T = 2π√(h/g) · กราฟ T² กับ h หา g · มวลไม่มีผล · ดาวปริศนา','projectile','ม.4','vpl02',['Circular','Conical pendulum','3D']),
+    ('vlab:vpl02:lab-64', V2+'64. banked-curve.html','64','รถเข้าโค้งบนถนนเอียง (Banked Curve) (3D)','สนามทดสอบวงกลมปรับมุมเอียง/รัศมี · เครื่องวัดแรงด้านข้างที่ยาง · หาความเร็วที่ f = 0 ตรวจ tan θ = v²/Rg · เร่งจนยางไถลหา μ · ผิวแห้ง เปียก น้ำแข็ง ปริศนา','projectile','ม.4','vpl02',['Circular','Banked curve','Friction','3D']),
+    ('vlab:vpl02:lab-65', V2+'65. vertical-loop.html','65','วงกลมแนวดิ่ง: รางวงรอบ Loop-the-Loop (3D)','ปล่อยรถเข็น/ลูกเหล็กกลิ้งจากความสูง h ลงรางวงรอบรัศมี R · ผ่าน/หลุดจากราง/ไถลกลับ · เซนเซอร์แรงจุดบน-ล่าง + ประตูแสง · หา h_min = 2.5R, 2.7R · กราฟ N_บน กับ h · วัตถุปริศนาหา k','projectile','ม.4','vpl02',['Circular','Vertical circle','Energy','3D']),
+    ('vlab:vpl02:lab-66', V2+'66. turntable-friction.html','66','วัตถุบนแผ่นหมุน: แรงเสียดทานเป็นแรงสู่ศูนย์กลาง (3D)','วางเหรียญ ยางลบ ก้อนไม้ วัตถุปริศนาบนแผ่นหมุนที่มีไม้บรรทัด · เร่งรอบช้า ๆ จนวัตถุเริ่มไถล · μₛ = ω²r/g · กราฟ ω² กับ 1/r · วาง 3 ชิ้นดูชิ้นนอกไถลก่อน · ไถลแล้วเคลื่อนเป็นเส้นโค้งตกจากแผ่น','projectile','ม.4','vpl02',['Circular','Friction','3D']),
+    ('vlab:vpl02:lab-67', V2+'67. angular-linear-speed-gears.html','67','อัตราเร็วเชิงมุมกับเชิงเส้น: แกนร่วม สายพาน เฟือง จักรยาน (3D)','ประตูแสงวัดคาบของแต่ละล้อ · เครื่องวัดความเร็วผิวที่ขอบ · ตรวจ v = ωr · แกนร่วม ω เท่ากัน · สายพาน/เฟือง v เท่ากัน ω_A r_A = ω_B r_B · หารัศมีล้อปริศนา · ความเร็วจักรยานจากเฟือง','projectile','ม.4','vpl02',['Circular','Angular speed','Gears','3D']),
+    ('vlab:vpl02:lab-68', V2+'68. circular-motion-vectors-strobe.html','68','เวกเตอร์ความเร็วและความเร่งในวงกลม: ภาพแฟลชบนโต๊ะลม (3D)','ลูกยางบนโต๊ะลมหมุนด้วยแขนหมุน · ถ่ายภาพแฟลช · สร้าง v₁ v₂ Δv จากภาพ · a = Δv/Δt ชี้เข้าศูนย์กลาง = v²/r · เซนเซอร์แรง F/m · เร่งรอบ a เอียงไปข้างหน้า · ปลดลูกยางแล้วเคลื่อนที่ตามแนวสัมผัส','projectile','ม.4','vpl02',['Circular','Vectors','Strobe','3D']),
+    ('vlab:vpl02:lab-69', V2+'69. satellite-orbits-kepler.html','69','ดาวเทียมโคจร: ความเร็ววงโคจรและกฎของเคปเลอร์ (3D)','ปล่อยดาวเทียมที่ความสูง h ด้วยความเร็วแนวระดับ · เรดาร์ความสูงต่ำสุด-สูงสุด หาความเร็ววงกลม v = √(GM/r) · วัดคาบ · กราฟ T² กับ r³ หามวลโลก · ดาวเทียมค้างฟ้า · ดาวเคราะห์ปริศนา · ตก/วงรี/หลุดพ้น','projectile','ม.4','vpl02',['Circular','Satellite','Kepler','3D']),
  ('vlab:vpl01:lab-19', V1+'19.pendulum_energy_sim.html','19','พลังงานของลูกตุ้ม (Pendulum Energy)','พลังงานจลน์-ศักย์ และการอนุรักษ์พลังงาน','energy','ม.4','vpl01',['Energy']),
  ('vlab:vpl01:lab-21', V1+'21. SHM_Linear_Air_Track.html','21','SHM บนรางลม (SHM — Linear Air Track)','การสั่นของมวลติดสปริงบนรางลม','shm','ม.5','vpl01',['SHM']),
  ('vlab:vpl01:lab-42', V1+'42. shm-spring-builder.html','42','SHM03 Spring Builder','ประกอบสปริงเอง อนุกรม/ขนาน · ดิ่ง/ระดับ · กราฟ x, v, a · โหมดสุ่ม k','shm','ม.5','vpl01',['SHM']),
@@ -74,6 +84,14 @@ LABS=[
     ('vlab:vpl02:lab-51', V2+'51. prism-minimum-deviation-dispersion.html','51','ปริซึม: มุมเบี่ยงเบนน้อยที่สุดและการกระจายแสง (3D)','ปริซึมแก้ว 3 มิติหักเหแสงจริง · หมุนแท่นหา δmin · n = sin((A+δmin)/2)/sin(A/2) · เลเซอร์ 3 สี + แสงขาวแยกเป็นสเปกตรัม','light','ม.5','vpl02',['Prism','Dispersion','3D']),
     ('vlab:vpl02:lab-52', V2+'52. rainbow-primary-secondary.html','52','รุ้งปฐมภูมิและทุติยภูมิในห้องทดลอง (3D)','ทรงกระบอกใสบรรจุน้ำ · เลเซอร์หามุมรุ้ง θ–b (42° / 51°) · แสงขาวลำกว้างเกิดแถบรุ้งจริงบนกระดาษ (ติดตามรังสีหลายพันเส้น) · ลำดับสีกลับกัน','light','ม.5','vpl02',['Rainbow','Dispersion','3D']),
     ('vlab:vpl02:lab-53', V2+'53. double-slit-diffraction-grating.html','53','การแทรกสอดของแสง: สลิตคู่และเกรตติง (3D)','ลวดลายบนฉากคำนวณจากการแทรกสอด+เลี้ยวเบนจริง · วัดระยะแถบด้วยสเกลบนฉาก หาความยาวคลื่น · สลิตเดี่ยว/คู่/เกรตติง · เลเซอร์ปริศนา','light','ม.5','vpl02',['Interference','Diffraction','3D']),
+    ('vlab:vpl02:lab-54', V2+'54. electroscope-charging-induction.html','54','อิเล็กโทรสโคปและการทำให้วัตถุมีประจุ (3D)','ถูแท่ง PVC/แก้วกับผ้า · การเหนี่ยวนำ การสัมผัส การต่อลงดิน · อ่านมุมกางแผ่นโลหะ θ–d · ทดสอบชนิดประจุแท่งปริศนา','electro','ม.5','vpl02',['Electrostatics','Induction','3D']),
+    ('vlab:vpl02:lab-55', V2+'55. coulombs-law-balance.html','55','กฎของคูลอมบ์ด้วยเครื่องชั่ง (3D)','ทรงกลมตัวนำ 2 ลูก · แหล่งจ่ายไฟแรงสูง · เครื่องชั่ง 0.1 mg · F–1/r² และ F–q₁q₂ (แบ่งประจุ) · หาค่า k · ผลคลาดที่ระยะใกล้','electro','ม.5','vpl02',['Coulomb','Electrostatics','3D']),
+    ('vlab:vpl02:lab-56', V2+'56. electric-field-lines-plates.html','56','สนามไฟฟ้า: เส้นสนามในน้ำมัน และแผ่นขนาน (3D)','ผงเซโมลินาเรียงตามสนามจากขั้ว 6 แบบ (คำนวณจากตัวนำจริง) · ทำนาย-สังเกตลวดลาย · กรงฟาราเดย์ · ลูกบอลมีประจุระหว่างแผ่นขนาน tan θ–V/d · E = V/d','electro','ม.5','vpl02',['Electric field','Field lines','3D']),
+    ('vlab:vpl02:lab-57', V2+'57. equipotential-mapping.html','57','เส้นศักย์เท่ากันบนกระดาษนำไฟฟ้า (3D)','กระดาษคาร์บอน + ขั้วเงิน 6 แบบ · โวลต์มิเตอร์หาจุดศักย์เท่ากัน ทำเครื่องหมาย เชื่อมเส้น · ตรวจความแม่น · เส้นสนามตั้งฉาก · V–x ระหว่างแท่งขนาน E = ΔV/Δx','electro','ม.5','vpl02',['Equipotential','Potential','3D']),
+    ('vlab:vpl02:lab-58', V2+'58. parallel-plate-capacitor.html','58','ตัวเก็บประจุแผ่นขนาน (3D)','แผ่นวงกลมบนราง ปรับ d · อัดประจุ/แยกวงจร/คายผ่านคูลอมบ์มิเตอร์ · C = Q/V · กราฟ C–1/d หา ε₀ · ประจุคงที่ V–d · ฉนวนอะคริลิก/แก้ว/ปริศนา หา κ','electro','ม.5','vpl02',['Capacitor','ε₀','3D']),
+    ('vlab:vpl02:lab-59', V2+'59. rc-charge-discharge.html','59','การอัดและคายประจุตัวเก็บประจุ RC (3D)','วงจรจริงบนแผ่นต่อวงจร · ตัวต้านทานแถบสี ±5% · ตัวเก็บประจุ ±20% และตัวปริศนา X · โวลต์มิเตอร์ ไมโครแอมมิเตอร์ นาฬิกาจับเวลา/บันทึกอัตโนมัติ · ln V–t หา τ = RC และ C','electro','ม.5','vpl02',['RC circuit','Capacitor','3D']),
+    ('vlab:vpl02:lab-60', V2+'60. millikan-oil-drop.html','60','การทดลองหยดน้ำมันของมิลลิแกน (3D)','พ่นละอองระหว่างแผ่นขนาน · ภาพกล้องจุลทรรศน์มีสเกล การเคลื่อนที่แบบบราวน์ · จับเวลาตก (สโตกส์ + คันนิงแฮม) · ปรับแรงดันลอยนิ่ง q = mgd/V · ฉายรังสีเปลี่ยนประจุ · หาค่า e','electro','ม.6','vpl02',['Millikan','Charge quantization','3D']),
+    ('vlab:vpl02:lab-61', V2+'61. capacitor-combinations.html','61','การต่อตัวเก็บประจุแบบอนุกรม ขนาน และผสม (3D)','ต่อ 8 แบบบนแผ่นต่อวงจร · วัดความจุทีละตัวและ C สมมูลด้วยมิเตอร์ · อัดประจุ วัดแรงดันคร่อมแต่ละตัว Q = CV · พลังงาน · การแบ่งประจุและพลังงานที่หายไป','electro','ม.5','vpl02',['Capacitor','Series/Parallel','3D']),
  ('vlab:vpl02:lab-43', V2+'43. big-bang-theory.html','43','ทฤษฎีบิกแบง (Big Bang Theory)','Hubble · BBN · CMB · Build Lab','astro','ม.6','vpl02',['Cosmology']),
  ('vlab:vpl02:lab-45', V2+'45. expanding-universe-balloon.html','45','แบบจำลองการขยายตัวของเอกภพ','ลูกโป่ง = เอกภพ · วัดระยะ-ความเร็ว · กราฟ Hubble v = H·d (กิจกรรม 1.2)','astro','ม.6','vpl02',['Cosmology','Hubble']),
 ]
