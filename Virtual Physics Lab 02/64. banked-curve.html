@@ -48,7 +48,7 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 .diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
 .diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
 .diag-wrap .diag-head b{color:var(--accent5)}
-#diagCanvas{width:100%;height:300px;background:#05070c;border-radius:8px;display:block;touch-action:none}
+#diagCanvas{width:100%;height:352px;background:#05070c;border-radius:8px;display:block;touch-action:none}
 
 .sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
 .panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
@@ -406,7 +406,7 @@ function setSurf(i){ if(moving()){ lockWarn(); return; } surf=i; skids=[]; updat
 function syncV(){ $('sl-v').value=Math.round(vT*3.6); $('vv').textContent=Math.round(vT*3.6)+' km/h'; }
 function setTarget(kmh){ vT=Math.max(0,Math.min(180,kmh))/3.6; syncV(); }
 function nudge(k){ setTarget(Math.round(vT*3.6)+k); }
-function resetLab(){ v=0; vT=0; s=0; sd=0; crash=0; skids=[]; thDeg=20; R0=50; surf=0; $('sl-th').value=20; $('vth').textContent='20°'; $('sl-R').value=50; $('vR').textContent='50 m'; syncV(); updateSurfLabels(); rebuildTrack(); setView('chase'); $('recMsg').textContent=''; drawAll(); }
+function resetLab(){ camK=1; overPan.x=overPan.y=overPan.z=0; v=0; vT=0; s=0; sd=0; crash=0; skids=[]; thDeg=20; R0=50; surf=0; $('sl-th').value=20; $('vth').textContent='20°'; $('sl-R').value=50; $('vR').textContent='50 m'; syncV(); updateSurfLabels(); rebuildTrack(); setView('chase'); $('recMsg').textContent=''; drawAll(); }
 function slipText(){ return crash>0? crashMsg : slip>0? 'ยางไถลออก (ขึ้นเนิน)' : slip<0? 'ยางไถลลง (เข้าใน)' : v<0.3? 'รถจอด' : 'ยางยึดเกาะ'; }
 function hintState(){
   const kmh=v*3.6, fr=fSide/(MASS*G);
@@ -466,7 +466,7 @@ function drawGraph(){
 
 /* ═══════════ 2D: ภาพตัดขวาง + มาตรความเร็ว + เครื่องวัดแรง ═══════════ */
 let DC,dctx,LY={};
-function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,H=DC.clientHeight||300; DC.width=W*devicePixelRatio; DC.height=H*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); LY={W,H}; }
+function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,HF=DC.clientHeight||352,H=HF-CBAR_H; DC.width=W*devicePixelRatio; DC.height=HF*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); LY={W,H}; }
 function arrow(g,x0,y0,x1,y1,col,lab,lw){ const L=Math.hypot(x1-x0,y1-y0); if(L<3) return; g.strokeStyle=col; g.fillStyle=col; g.lineWidth=lw||3; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-10*Math.cos(a)+5*Math.sin(a),y1-10*Math.sin(a)-5*Math.cos(a)); g.lineTo(x1-10*Math.cos(a)-5*Math.sin(a),y1-10*Math.sin(a)+5*Math.cos(a)); g.fill(); if(lab){ g.font='bold 12px Sarabun'; g.textAlign='left'; g.fillText(lab,x1+6,y1+4); } }
 function drawDiag(){ if(!dctx) return; const g=dctx,{W,H}=LY; g.clearRect(0,0,W,H); const narrow=W<600;
   /* 1) ภาพตัดขวาง: มองจากด้านหลังรถ ศูนย์กลางโค้งอยู่ทางซ้าย */
@@ -557,21 +557,31 @@ function update3D(dt){ if(!scene) return; if(!_m) _m=new THREE.Matrix4();
   setA(P.vecs[0],B.up,Nn); setA(P.vecs[1],B.slope.clone().multiplyScalar(-Math.sign(fSide)||1),Math.abs(fSide)); setA(P.vecs[2],new THREE.Vector3(0,-1,0),MASS*G);
   /* กล้อง */
   let wantPos, wantLook;
-  if(curView==='chase'){ wantPos=pos.clone().addScaledVector(B.fwd,-11).addScaledVector(B.up,4.2).addScaledVector(B.slope,1.5); wantLook=pos.clone().addScaledVector(B.fwd,8).addScaledVector(B.up,0.8); }
-  else if(curView==='rear'){ wantPos=pos.clone().addScaledVector(B.fwd,-9).add(new THREE.Vector3(0,1.6,0)); wantLook=pos.clone().add(new THREE.Vector3(0,0.9,0)); }
-  else { const dd=R0*2.6+40; wantPos=new THREE.Vector3(Math.sin(0.7+orbitOff)*dd*Math.cos(0.55+orbitEl), dd*Math.sin(0.55+orbitEl), Math.cos(0.7+orbitOff)*dd*Math.cos(0.55+orbitEl)); wantLook=new THREE.Vector3(0,0,0); }
+  if(curView==='chase'){ wantPos=pos.clone().addScaledVector(B.fwd,-11*camK).addScaledVector(B.up,4.2*camK).addScaledVector(B.slope,1.5); wantLook=pos.clone().addScaledVector(B.fwd,8).addScaledVector(B.up,0.8); }
+  else if(curView==='rear'){ wantPos=pos.clone().addScaledVector(B.fwd,-9*camK).add(new THREE.Vector3(0,1.6*camK,0)); wantLook=pos.clone().add(new THREE.Vector3(0,0.9,0)); }
+  else { const dd=(R0*2.6+40)*camK; wantPos=new THREE.Vector3(overPan.x+Math.sin(0.7+orbitOff)*dd*Math.cos(0.55+orbitEl), dd*Math.sin(0.55+orbitEl), Math.cos(0.7+orbitOff)*dd*Math.cos(0.55+orbitEl)); wantPos.y+=overPan.y; wantPos.z+=overPan.z; wantLook=new THREE.Vector3(overPan.x,overPan.y,overPan.z); }
   cam.pos.copy(wantPos); cam.look.copy(wantLook);
   camera.position.copy(cam.pos); camera.up.set(0,1,0); camera.lookAt(cam.look); }
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ curView=vw; if(cam.pos && scene){ const B=carBasis(), pos=trackPoint(psi,s); if(vw!=='over'){ cam.pos.copy(pos).addScaledVector(B.fwd,-11).addScaledVector(B.up,4); cam.look.copy(pos); } } }
-function setupPointer(cv){ let dm=null,lx=0,ly=0;
-  const down=(x0,y0)=>{ dm=true; lx=x0; ly=y0; cv.style.cursor='grabbing'; };
-  const move=(x0,y0)=>{ if(!dm) return; if(curView!=='over') setView('over'); orbitOff-=(x0-lx)*0.006; orbitEl=Math.max(-0.45,Math.min(0.95,orbitEl+(y0-ly)*0.006)); lx=x0; ly=y0; };
-  const up=()=>{ dm=null; cv.style.cursor='grab'; };
-  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) dm=null; move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
-  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
-  cv.addEventListener('touchmove',e=>{ if(e.touches.length===1&&dm){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
-  cv.addEventListener('touchend',up); cv.addEventListener('touchcancel',up); }
+/* ═══════════ นิ้วบนภาพ 3D: 1 นิ้วลาก = หมุน · 2 นิ้วถ่าง/หนีบ = ซูม · 2 นิ้วลาก = เลื่อน · เมาส์: ลาก = หมุน · คลิกขวา/Shift+ลาก = เลื่อน · ล้อ = ซูม ═══════════ */
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); T.mode=(e.button===2||e.shiftKey)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ T.mode=null; cv.style.cursor='grab'; return; } const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode!=='pinch') T.mode=null; cv.style.cursor='grab'; }; window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(T.mode==='rot'&&e.touches.length===1){ const t=e.touches[0]; camRotate(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0) T.mode=null; };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function panOrbit(o,dx,dy,dist){ if(!o.target||!camera) return; const k=dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+= (-dx*ca + dy*(-se*sa))*k; o.target.y+= dy*ce*k; o.target.z+= (dx*sa + dy*(-se*ca))*k; }
+function camRotate(dx,dy){ if(curView!=='over') setView('over'); orbitOff-=dx*0.006; orbitEl=Math.max(-0.45,Math.min(0.95,orbitEl+dy*0.006)); }
+function camZoom(f){ camK=Math.max(0.35,Math.min(4,camK*f)); }
+function camPan(dx,dy){ if(curView!=='over') return;   /* มุมตามรถ: สองนิ้วใช้ซูมอย่างเดียว */ const dd=(R0*2.6+40)*camK, o={target:overPan,az:0.7+orbitOff,el:0.55+orbitEl}; panOrbit(o,dx,dy,dd); }
+let camK=1; const overPan={x:0,y:0,z:0};
 
 /* ═══════════ THEORY ═══════════ */
 function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
@@ -592,8 +602,25 @@ function drawTheoryAll(){ bankDiagram('theoryCanvas0',false); bankDiagram('theor
 /* ═══════════ DRAW ALL / INIT ═══════════ */
 function drawAll(){ drawDiag(); updateHint(); }
 function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
+/* ═══════════ ปุ่มควบคุมในแคนวาส 2D (แถบล่าง — กดได้ทั้งเมาส์และนิ้ว) ═══════════ */
+const CBAR_H=52; let CBAR=[];
+function drawCanvasBar(){ if(!dctx||!LY.W) return; const g=dctx, W=LY.W, y0=LY.H, bs=canvasButtons(), gap=6, n=bs.length, tot=W-12, ws=bs.map(b=>b.w||1), sw=ws.reduce((a,b)=>a+b,0);
+  g.fillStyle='#0b1220'; g.fillRect(0,y0,W,CBAR_H); g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.beginPath(); g.moveTo(0,y0+0.5); g.lineTo(W,y0+0.5); g.stroke();
+  let x=6; CBAR=[]; bs.forEach((b,i)=>{ const w=(tot-gap*(n-1))*ws[i]/sw, y=y0+7, h=CBAR_H-13, col=b.col||'#15803d';
+    g.fillStyle= b.dis?'#1e293b':col; g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,8); else g.rect(x,y,w,h); g.fill(); g.strokeStyle= b.dis?'#334155':'rgba(255,255,255,.28)'; g.lineWidth=1.5; g.stroke();
+    let fs=15; g.font=`bold ${fs}px Sarabun`; while(fs>9 && g.measureText(b.label).width>w-8){ fs--; g.font=`bold ${fs}px Sarabun`; }
+    g.fillStyle= b.dis?'#64748b':'#fff'; g.textAlign='center'; g.fillText(b.label,x+w/2,y+h/2+fs*0.36); CBAR.push({x,y,w,h,fn:b.fn,dis:b.dis}); x+=w+gap; }); }
+function hitCanvasBar(e){ const rc=DC.getBoundingClientRect(), t=e.touches&&e.touches.length?e.touches[0]:e, x=t.clientX-rc.left, y=t.clientY-rc.top; return CBAR.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)||null; }
+function setupCanvasBar(){ const on=e=>{ const b=hitCanvasBar(e); if(!b) return; e.preventDefault(); e.stopImmediatePropagation(); if(!b.dis){ b.fn(); drawAll(); } };
+  DC.addEventListener('mousedown',on); DC.addEventListener('touchstart',on,{passive:false}); DC.addEventListener('mousemove',e=>{ DC.style.cursor= hitCanvasBar(e)?'pointer':''; }); }
+const _drawDiagBase=drawDiag; drawDiag=function(){ _drawDiagBase(); drawCanvasBar(); };
+function canvasButtons(){ return [
+  {label:'−5', col:'#334155', fn:()=>nudge(-5), w:0.7}, {label:'−1', col:'#334155', fn:()=>nudge(-1), w:0.7},
+  {label:'+1', col:'#334155', fn:()=>nudge(1), w:0.7}, {label:'+5', col:'#334155', fn:()=>nudge(5), w:0.7},
+  {label:'⏹ จอด', col:'#b91c1c', fn:()=>setTarget(0), w:0.9},
+  {label: part==='A'?'📝 จด f≈0':'📝 จดตอนไถล', fn:()=>{ part==='A'?recordA():recordB(); }, w:1.3} ]; }
 window.addEventListener('DOMContentLoaded',()=>{
-  DC=$('diagCanvas'); dctx=DC.getContext('2d');
+  DC=$('diagCanvas'); dctx=DC.getContext('2d'); setupCanvasBar();
   $('sl-th').addEventListener('input',()=>setTh(parseInt($('sl-th').value)));
   $('sl-R').addEventListener('input',()=>setR(parseInt($('sl-R').value)));
   $('sl-v').addEventListener('input',()=>setTarget(parseInt($('sl-v').value)));

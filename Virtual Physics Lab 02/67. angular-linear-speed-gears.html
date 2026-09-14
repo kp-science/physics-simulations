@@ -48,7 +48,7 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 .diag-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px}
 .diag-wrap .diag-head{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
 .diag-wrap .diag-head b{color:var(--accent5)}
-#diagCanvas{width:100%;height:300px;background:#05070c;border-radius:8px;display:block;touch-action:none}
+#diagCanvas{width:100%;height:352px;background:#05070c;border-radius:8px;display:block;touch-action:none}
 
 .sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto}
 .panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
@@ -375,7 +375,7 @@ function drawGraph(){ renderTable();
 
 /* ═══════════ 2D ═══════════ */
 let DC,dctx,LY={};
-function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,H=DC.clientHeight||300; DC.width=W*devicePixelRatio; DC.height=H*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); LY={W,H}; }
+function resizeDiag(){ if(!DC) return; const W=DC.clientWidth||800,HF=DC.clientHeight||352,H=HF-CBAR_H; DC.width=W*devicePixelRatio; DC.height=HF*devicePixelRatio; dctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); LY={W,H}; }
 function layout(){ /* ตำแหน่งศูนย์กลาง (cm) ในระนาบ x-y */ const b=rB();
   if(cfg===0) return [{x:0,y:0},{x:0,y:0}];
   if(cfg===1) return [{x:-18,y:0},{x:18,y:0}];
@@ -449,10 +449,23 @@ function update3D(){ if(!scene||!P3.w) return; P3.w.forEach((w,i)=>{ w.rotation.
   const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ curView=vw; if(!orbit.target) return; const V0=VIEWS[vw](); orbit.target.set(...V0.t); orbit.dist=V0.d; orbit.az=V0.az; orbit.el=V0.el; }
-function setupPointer(cv){ let dm=null,lx=0,ly=0; const down=(x0,y0)=>{ dm=true; lx=x0; ly=y0; cv.style.cursor='grabbing'; }; const move=(x0,y0)=>{ if(!dm) return; orbit.az-=(x0-lx)*0.006; orbit.el=Math.max(-1.2,Math.min(1.4,orbit.el+(y0-ly)*0.006)); lx=x0; ly=y0; }; const up=()=>{ dm=null; cv.style.cursor='grab'; };
-  cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) dm=null; move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
-  cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false}); cv.addEventListener('touchmove',e=>{ if(e.touches.length===1&&dm){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false}); cv.addEventListener('touchend',up); cv.addEventListener('touchcancel',up);
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); orbit.dist=Math.max(20,Math.min(500,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false}); }
+/* ═══════════ นิ้วบนภาพ 3D: 1 นิ้วลาก = หมุน · 2 นิ้วถ่าง/หนีบ = ซูม · 2 นิ้วลาก = เลื่อน · เมาส์: ลาก = หมุน · คลิกขวา/Shift+ลาก = เลื่อน · ล้อ = ซูม ═══════════ */
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); T.mode=(e.button===2||e.shiftKey)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ T.mode=null; cv.style.cursor='grab'; return; } const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode!=='pinch') T.mode=null; cv.style.cursor='grab'; }; window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(T.mode==='rot'&&e.touches.length===1){ const t=e.touches[0]; camRotate(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0) T.mode=null; };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function panOrbit(o,dx,dy,dist){ if(!o.target||!camera) return; const k=dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+= (-dx*ca + dy*(-se*sa))*k; o.target.y+= dy*ce*k; o.target.z+= (dx*sa + dy*(-se*ca))*k; }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-1.2,Math.min(1.4,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(20,Math.min(500,orbit.dist*f)); }
+function camPan(dx,dy){ panOrbit(orbit,dx,dy,orbit.dist); }
 
 /* ═══════════ THEORY ═══════════ */
 function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
@@ -473,7 +486,22 @@ function drawTheoryAll(){ drawTheory0(); drawTheory1(); }
 
 function drawAll(){ drawDiag(); updateHint(); }
 function resizeAll(){ resize3D(); resizeDiag(); drawGraph(); }
-window.addEventListener('DOMContentLoaded',()=>{ DC=$('diagCanvas'); dctx=DC.getContext('2d');
+/* ═══════════ ปุ่มควบคุมในแคนวาส 2D (แถบล่าง — กดได้ทั้งเมาส์และนิ้ว) ═══════════ */
+const CBAR_H=52; let CBAR=[];
+function drawCanvasBar(){ if(!dctx||!LY.W) return; const g=dctx, W=LY.W, y0=LY.H, bs=canvasButtons(), gap=6, n=bs.length, tot=W-12, ws=bs.map(b=>b.w||1), sw=ws.reduce((a,b)=>a+b,0);
+  g.fillStyle='#0b1220'; g.fillRect(0,y0,W,CBAR_H); g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.beginPath(); g.moveTo(0,y0+0.5); g.lineTo(W,y0+0.5); g.stroke();
+  let x=6; CBAR=[]; bs.forEach((b,i)=>{ const w=(tot-gap*(n-1))*ws[i]/sw, y=y0+7, h=CBAR_H-13, col=b.col||'#15803d';
+    g.fillStyle= b.dis?'#1e293b':col; g.beginPath(); if(g.roundRect) g.roundRect(x,y,w,h,8); else g.rect(x,y,w,h); g.fill(); g.strokeStyle= b.dis?'#334155':'rgba(255,255,255,.28)'; g.lineWidth=1.5; g.stroke();
+    let fs=15; g.font=`bold ${fs}px Sarabun`; while(fs>9 && g.measureText(b.label).width>w-8){ fs--; g.font=`bold ${fs}px Sarabun`; }
+    g.fillStyle= b.dis?'#64748b':'#fff'; g.textAlign='center'; g.fillText(b.label,x+w/2,y+h/2+fs*0.36); CBAR.push({x,y,w,h,fn:b.fn,dis:b.dis}); x+=w+gap; }); }
+function hitCanvasBar(e){ const rc=DC.getBoundingClientRect(), t=e.touches&&e.touches.length?e.touches[0]:e, x=t.clientX-rc.left, y=t.clientY-rc.top; return CBAR.find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)||null; }
+function setupCanvasBar(){ const on=e=>{ const b=hitCanvasBar(e); if(!b) return; e.preventDefault(); e.stopImmediatePropagation(); if(!b.dis){ b.fn(); drawAll(); } };
+  DC.addEventListener('mousedown',on); DC.addEventListener('touchstart',on,{passive:false}); DC.addEventListener('mousemove',e=>{ DC.style.cursor= hitCanvasBar(e)?'pointer':''; }); }
+const _drawDiagBase=drawDiag; drawDiag=function(){ _drawDiagBase(); drawCanvasBar(); };
+function canvasButtons(){ return [
+  {label:'−10 rpm', col:'#334155', fn:()=>nudge(-10)}, {label:'+10 rpm', col:'#334155', fn:()=>nudge(10)},
+  {label:'📝 จดคาบและความเร็ว', fn:record, w:2} ]; }
+window.addEventListener('DOMContentLoaded',()=>{ DC=$('diagCanvas'); dctx=DC.getContext('2d'); setupCanvasBar();
   $('sl-rB').addEventListener('input',()=>setRB(parseFloat($('sl-rB').value)));
   $('sl-rpm').addEventListener('input',()=>setRpm(parseInt($('sl-rpm').value)));
   window.addEventListener('keydown',e=>{ if(!$('tab-sim').classList.contains('active')||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; if(e.code==='Space'){ record(); e.preventDefault(); } });
