@@ -187,8 +187,10 @@ def check_file(filepath):
     # 4b. Topbar in wrong position (inside script)
     tp = content.find('kp-topbar')
     cs = content.find('<meta charset')
-    if tp != -1 and cs != -1 and tp < cs:
-        issues.append('TOPBAR_POS')
+    tb = content.find('<!-- KP Topbar -->')
+    he = content.find('</head>')
+    if (tp != -1 and cs != -1 and tp < cs) or (tb != -1 and he != -1 and tb < he):
+        issues.append('TOPBAR_POS')   # เคยแทรกผิดที่ เช่น ในข้อความ '<body ...>' ของสคริปต์กันโดเมน
 
     # 5. Escaped comments
     if '<\\!--' in content:
@@ -269,7 +271,8 @@ def fix_file(filepath, issues=None):
     # Fix topbar position
     if 'TOPBAR_POS' in issues:
         # Remove topbar from wrong position
-        content = re.sub(r'<!-- KP Topbar -->.*?</nav>\s*', '', content, flags=re.DOTALL)
+        # ลบช่องว่างก่อนหน้าด้วย ไม่ให้เหลือขึ้นบรรทัดใหม่ค้างในข้อความ JS
+        content = re.sub(r'\s*<!-- KP Topbar -->.*?</nav>[ \t]*\n?', '', content, count=1, flags=re.DOTALL)
         # Re-insert after real <body>
         head_end = content.find('</head>')
         if head_end != -1:
