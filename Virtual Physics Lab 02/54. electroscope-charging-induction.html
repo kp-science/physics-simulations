@@ -754,6 +754,31 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 
+<script>
+/* ═══ KP Science — ท่าทางนิ้วบนภาพ 3D (เสริม): 2 นิ้วถ่าง/หนีบ = ซูม · 2 นิ้วลาก = เลื่อนภาพ · เมาส์คลิกขวา/Shift+ลาก = เลื่อน
+   ทำงานที่กรอบ #view3d แบบ capture จึงไม่รบกวนการลากวัตถุด้วยนิ้วเดียวของเดิม ═══ */
+(function(){ function init(){ const cv=document.getElementById('glCanvas'), box=document.getElementById('view3d'); if(!cv||!box||typeof camera==='undefined'||!camera) return;
+  const O=(typeof orbit!=='undefined'&&orbit&&orbit.target)?orbit:((typeof cam!=='undefined'&&cam&&cam.target)?cam:null); if(!O) return;
+  const DMIN=18, DMAX=180, PT=()=>O.target;
+  const zoom=f=>{ O.dist=Math.max(DMIN,Math.min(DMAX,O.dist*f)); };
+  const pan=(dx,dy)=>{ const T=PT(), k=O.dist*2*Math.tan(camera.fov*Math.PI/360)/(box.clientHeight||300), ca=Math.cos(O.az), sa=Math.sin(O.az), ce=Math.cos(O.el), se=Math.sin(O.el); T.x+=(-dx*ca-dy*se*sa)*k; T.y+=dy*ce*k; T.z+=(dx*sa-dy*se*ca)*k; };
+  let mode=null, d0=0, mx=0, my=0, lx=0, ly=0, passing=false;
+  const mid=e=>{ const a=e.touches[0], b=e.touches[1]; return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2, d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}; };
+  box.addEventListener('touchstart',e=>{ if(passing) return; if(e.target!==cv && mode!=='pinch') return; if(e.touches.length<2) return;
+    if(mode!=='pinch'){ passing=true; try{ cv.dispatchEvent(new TouchEvent('touchend',{touches:[],targetTouches:[],changedTouches:Array.from(e.touches),bubbles:true,cancelable:true})); }catch(_){ } passing=false; }
+    const m=mid(e); mode='pinch'; d0=m.d; mx=m.x; my=m.y; e.preventDefault(); e.stopPropagation(); },{capture:true,passive:false});
+  box.addEventListener('touchmove',e=>{ if(mode!=='pinch') return; e.preventDefault(); e.stopPropagation(); if(e.touches.length>=2){ const m=mid(e); if(d0>10&&m.d>10) zoom(d0/m.d); pan(m.x-mx,m.y-my); d0=m.d; mx=m.x; my=m.y; } },{capture:true,passive:false});
+  const end=e=>{ if(passing||mode!=='pinch') return; e.stopPropagation(); if(e.touches.length===0) mode=null; };
+  box.addEventListener('touchend',end,true); box.addEventListener('touchcancel',end,true);
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  box.addEventListener('mousedown',e=>{ if(e.target!==cv||!(e.button===2||e.shiftKey)) return; e.preventDefault(); e.stopPropagation(); mode='mpan'; lx=e.clientX; ly=e.clientY; cv.style.cursor='move'; },true);
+  window.addEventListener('mousemove',e=>{ if(mode!=='mpan') return; if(e.buttons===0){ mode=null; cv.style.cursor='grab'; return; } pan(e.clientX-lx,e.clientY-ly); lx=e.clientX; ly=e.clientY; },true);
+  window.addEventListener('mouseup',()=>{ if(mode==='mpan'){ mode=null; cv.style.cursor='grab'; } },true);
+  window.__kpGesture={zoom,pan,O};
+ }
+ if(document.readyState==='complete') setTimeout(init,0); else window.addEventListener('load',init); })();
+</script>
+
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
 
