@@ -2291,3 +2291,59 @@ match /settings/{docId} {
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
 - รอผู้ใช้ลองบนโทรศัพท์/ไอแพดจริง
 - ข้อ 2 (ยกระดับแลปรุ่นเก่า) · ข้อ 4 (เลข 42–44 ซ้ำ) · ข้อ 9–10 ชุดวงกลม (VPL02/VPL03) ยังไม่ทำ
+
+## [2026-09-15 18:00] — ออกแบบหน้าแรกใหม่ (ต้นแบบใน _preview/) · Opus 5
+
+### ทำอะไรไปบ้าง
+- ผู้ใช้ไม่ชอบ index.html (ยาว ≈ 12,000 px · canvas 53 ตัว · เมนูซ้ำ 3 ชุด · ตัวเลข "40+" เก่า)
+- ต้นแบบ v1/v2 (`_preview/index-redesign-v1.html`, `index-redesign.html`): แนวคู่มือแล็บ + motion infographic (treemap, กายวิภาคแลป, กราฟลูกตุ้ม g, วงจร POE) + โซนสี → ผู้ใช้: "เหมือนนำเสนอน้ำ ๆ เกินไป"
+- v3 (`_preview/index-content.html`): รายการแลป 70 + Demo 48 แบ่งโซนสีตามบท มีค้นหา → ผู้ใช้ให้ดู PhET เป็นตัวอย่าง
+- ดู PhET + Brilliant → **v4 (`_preview/index-v4.html`)**: หัวหน้าสั้น (ปุ่ม นักเรียน/ครู + ภาพหน้าจอจริง 3 แลป) · ตัวเลข · การ์ดวิชาพาสเทล 5 ใบ · การ์ดระดับชั้น ม.4/ม.5/ม.6/มหาวิทยาลัย (ลิงก์ virtual-lab.html?level=) · แลปแนะนำ 8 + Demo 6 พร้อมภาพหน้าจอจริง · ส่วนครู + สมัครสมาชิก
+  - ภาพหน้าจอ: `assets/thumbs/` 14 ไฟล์ (puppeteer จาก localhost) — Demo ที่ถ่ายแล้วว่าง/ติดหน้าคำถามเปลี่ยนเป็นสนามแม่เหล็ก คลื่นกล กาแล็กซี วงโคจร
+  - พบว่า Demo/index.html ลิงก์ Demo แค่ 27 จาก 48 ไฟล์จริง (ดาราศาสตร์ 14 เรื่องไม่อยู่ในหน้ารวม)
+- ผู้ใช้ถามฟอนต์ที่ดีกว่า → ทำแถบเลือก 6 ชุดบนหน้า v4 → **ผู้ใช้เลือก B: IBM Plex Sans Thai (หัว) + IBM Plex Sans Thai Looped (เนื้อหา)** · ใส่เป็นค่าเริ่มต้นแล้ว เอาแถบเลือกออก
+
+### ไฟล์ที่แก้
+- ใหม่ (ยังไม่ commit): `_preview/index-redesign-v1.html`, `_preview/index-redesign.html`, `_preview/index-content.html`, `_preview/index-v4.html`, `assets/thumbs/*.jpg`
+- `SESSION_LOG.md`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ย้าย v4 ไปเป็น index.html จริง: ต่อ kp-auth/modal ล็อกอิน สมัครสมาชิก GA · ปรับ build_virtual_lab.py (เดิมเขียน QM:START/END ใน index.html) ให้สร้างตัวเลข/การ์ดจาก labs_data.py
+- ถามผู้ใช้ว่าจะเปลี่ยนฟอนต์ในแลปทั้งหมดเป็นชุด B ด้วยหรือไม่
+- ตัวสร้างหน้า v3/v4 อยู่ใน scratchpad ของ session นี้ (build_home_v4.py + home_v4_template.html)
+
+## [2026-09-15 19:10] — หน้าแรกใหม่ขึ้นจริง (build อัตโนมัติ) · Demo/index ครบ 48 · ฟอนต์ IBM Plex ทั้งเว็บ · Opus 5
+
+### ทำอะไรไปบ้าง
+- ผู้ใช้ตอบ "โอเคครับ" ต่อข้อเสนอ 3 ข้อ (ย้าย v4 เป็นหน้าแรก · เปลี่ยนฟอนต์ทั้งเว็บ · แก้ Demo/index)
+- **Demo/index.html**: เดิมลิงก์ 27 เรื่อง (ลิงก์ SHM เสีย 1) → ครบ 48 เรื่อง: เพิ่มคลื่น 5 (แยกคลื่นผิวน้ำ), แสง 1, แม่เหล็ก 1, ดาราศาสตร์ 14 (ดวงอาทิตย์/ดาวฤกษ์/เอกภพ) · แก้ SHM → SHM01 · ตัวเลขหัวหน้า 48 · เมนู Collections → Virtual Lab
+- **index.html ใหม่** = v4 แบบ PhET: สร้างด้วย `_admin/build_home.py` จาก `_admin/home_template.html` (build_virtual_lab.py เรียกแทน write_quickmenu เดิม)
+  - ย้ายจากหน้าเดิม: ปุ่ม `#kp-login-btn` + `#kp-user-menu` (โปรไฟล์/ออก) · CSS โปรไฟล์/โมดัล (ตรึงสีมืดในโมดัล) · `#kp-auth-modal` + Firebase + kp-auth.js · KP-DOMAIN-PROTECTION · GA
+  - ปุ่มสมัครสมาชิกเรียก `showModal('register')` · header ใช้ class `topbar` (protect ไม่ใส่ KP topbar ซ้ำ)
+  - ใส่จุดปลายทาง `#collections #vpl #about #why #early-access #contact` ให้ลิงก์ในเมนูแลปเดิม (index.html#about ฯลฯ ~480 ลิงก์) ยังใช้ได้
+  - ตัดออก: Early Access (Google Form), pricing, canvas 53 ตัว · ขนาด 251 KB → ~50 KB
+  - **ตรวจ**: showModal/kpLogout/showProfile มี · โมดัลเปิดได้ ตัวหนังสืออ่านได้ · ลิงก์ในหน้าไม่เสีย ภาพครบ · มือถือ 375 px ไม่ล้น ปุ่มเข้าสู่ระบบอยู่ในจอ · ไม่มี console error
+- **ฟอนต์ชุด B ทั้งเว็บ** (`_admin/switch_font_plex.py`): วัดความกว้างก่อน — Plex Sans Thai กว้างกว่า Sarabun ~1–2% · Looped ~8.5% → CSS ใช้ `IBM Plex Sans Thai Looped,IBM Plex Sans Thai` · ข้อความใน canvas/SVG ใช้ `IBM Plex Sans Thai` (ไม่ให้ป้ายในแคนวาสล้น) · ลิงก์ Google Fonts เปลี่ยนเป็น Plex 300–700
+  - 149 ไฟล์ (VPL01/02/03, Demo, หน้ารวม, `_shared/kp-mobile-panel.js`, `_shared/watermark.js`, `protect_new_file.py` TOPBAR_CSS, `build_virtual_lab.py`) · rebuild virtual-lab.html + library.html · ลบชื่อเพี้ยน "TH … New" จาก fallback `TH Sarabun New` (112 จุด)
+  - **ตรวจ**: เหลือคำว่า Sarabun 0 ไฟล์ (ไม่นับ _preview/_marketing) · node --check สคริปต์ inline 656 ชุด ผ่านทั้งหมด · Lab 55/62 และ virtual-lab.html โหลด Plex แสดงผลปกติ ป้ายในแคนวาสไม่ล้น
+- CLAUDE.md: อัปเดตคำอธิบาย index.html (generate), เลิก QM, ฟอนต์ใหม่
+
+### ไฟล์ที่แก้
+- ใหม่: `_admin/home_template.html`, `_admin/build_home.py`, `_admin/switch_font_plex.py`, `assets/thumbs/*.jpg` (14)
+- `index.html` (สร้างใหม่ทั้งหน้า), `Demo/index.html`, `_admin/build_virtual_lab.py`, `CLAUDE.md`, ~149 ไฟล์ HTML/JS (ฟอนต์), `SESSION_LOG.md`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ commit / ยังไม่ขึ้นเว็บ · `_preview/` เป็นต้นแบบ ไม่ต้อง commit
+- หน้ารวมอื่น (virtual-lab.html, library.html, Demo/index.html) ยังเป็นธีมมืดแบบเดิม — ถ้าผู้ใช้อยากให้เข้ากับหน้าแรกใหม่ ต้องปรับต่อ
+
+## [2026-09-15 19:40] — deploy หน้าแรกใหม่ + ฟอนต์ IBM Plex + Demo/index ครบ 48
+
+### ทำอะไรไปบ้าง
+- ภาพ hero บนหน้าแรกเพิ่ม onerror (ถ้าโหลดภาพไม่ได้จะไม่โชว์ alt text ทับกรอบ)
+- commit + push main (ไม่รวม `_preview/`)
+
+### ไฟล์ที่แก้
+- `_admin/build_home.py` — hero img alt="" + onerror · `index.html` build ใหม่
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- virtual-lab.html / library.html / Demo/index.html ยังธีมมืดเดิม (เสนอปรับให้เข้ากับหน้าแรก)
