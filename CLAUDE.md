@@ -38,11 +38,11 @@
 
 ## 📂 โครงสร้างโปรเจกต์ (โดยย่อ)
 
-- `index.html` — หน้าแรก มี Featured Demos (canvas animations) + Virtual Physics Lab 01 section + Collections (accordion)
+- `index.html` — หน้าแรก (แบบ PhET: หัวหน้าสั้น · การ์ดวิชา · การ์ดระดับชั้น · แลป/Demo แนะนำพร้อมภาพหน้าจอ · สมัครสมาชิก) — **generate จาก `_admin/home_template.html` ด้วย `python3 _admin/build_home.py`** (build_virtual_lab.py เรียกให้อัตโนมัติ) · ห้ามแก้ index.html ตรง ๆ · แลป/Demo แนะนำแก้ที่ `FEAT`/`DEMOS` ใน build_home.py · ภาพการ์ดอยู่ `assets/thumbs/<ชื่อ>.jpg`
 - `virtual-physics-lab-01.html` — หน้ารวม 22 simulations ของ VPL (ใช้ canvas previews)
 - `library.html` — หน้ารวมไฟล์ทั้งหมด มี search
 - `virtual-lab.html` — **catalog รวม Virtual Lab ทุกชุด (46) จัดตามบทเรียน สสวท.** มี filter กลุ่ม/บทเรียน/ระดับ + search + deep link (`?level=uni`, `?topic=waves`, `#g-mech`) — **ไฟล์นี้ generate จาก `_admin/labs_data.py` ด้วย `python3 _admin/build_virtual_lab.py`** (สคริปต์เขียนหมวด Virtual Lab ใน library.html ใหม่ด้วย และรัน protect ให้เอง) → **เพิ่ม lab ใหม่ = เพิ่ม entry ใน labs_data.py แล้ว build** ห้ามแก้ virtual-lab.html ตรง ๆ · build ยังฝัง `LAB_META`/`TOPIC_META` ลง `_admin/admin.html` (modal สิทธิ์แสดง checkbox ราย lab เป็นชื่อไทย จัดกลุ่มตามบทเรียน — ค่า access string ไม่เปลี่ยน) → **เพิ่ม lab ใหม่ยังต้องเพิ่มใน `VLAB_SERIES` ของ kp-auth.js + admin.html ตามเดิม** แล้วค่อย build
-- หน้าแรก: เมนูทางลัด "🚀 ไปที่ต้องการทันที" (ใต้ topbar — **generate อัตโนมัติ** ระหว่าง `<!-- QM:START -->`…`<!-- QM:END -->` ใน index.html โดย `build_virtual_lab.py` · นับจำนวนตามกลุ่มใน labs_data.py · แก้ไอคอน/คำอธิบาย/ป้าย NEW ที่ `QM_STYLE`/`QM_NEW` ในสคริปต์) และ section Virtual Lab ใช้ chips กรองตามบทเรียน (การ์ดมี `data-topic`) — ชื่อชุด VPL01/02/03 ยังคงอยู่ในระดับไฟล์/สิทธิ์ (ผู้ใช้เลือกปรับเฉพาะหน้าเว็บ)
+- หน้าแรกเดิมมีเมนูทางลัด QM:START/QM:END — **เลิกใช้แล้ว** (2026-09-15) ตัวเลขจำนวนแลป/Demo บนหน้าแรกนับจาก labs_data.py และไฟล์ใน Demo/ อัตโนมัติ · `Demo/index.html` แก้มือ (ครบ 48 เรื่อง ณ 2026-09-15)
 - `mechanics.html` — บทเรียนกลศาสตร์ (ปลดล็อก password แล้ว — free preview)
 - `Virtual Physics Lab 01/Mechacnics/` — 22 ไฟล์ simulation (มี frame-busting + back button)
 - `Virtual Physics Lab 02/` — Lab 30–46 (คลื่น · แสง · การวัด · จักรวาลวิทยา) · Lab 46 กระจกเว้า = 3D (three.js)
@@ -51,7 +51,7 @@
 
 ## 🎨 Design tokens
 
-- Font: Sarabun (ไทย) + Share Tech Mono (ตัวเลข)
+- Font: **IBM Plex Sans Thai Looped** (ข้อความบนหน้า) + **IBM Plex Sans Thai** (หัวเรื่อง และข้อความที่วาดใน canvas/SVG — กว้างใกล้ Sarabun เดิม) + Share Tech Mono (ตัวเลข) · เปลี่ยนจาก Sarabun ทั้งเว็บด้วย `_admin/switch_font_plex.py` · ไฟล์ใหม่ห้ามใช้ Sarabun
 - Dark theme: bg `#06090f`, accent `#38bdf8` (cyan)
 - CSS vars: `--accent`, `--accent2` (purple), `--accent3` (green), `--accent4` (orange), `--accent5` (pink)
 

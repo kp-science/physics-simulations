@@ -81,9 +81,9 @@
     ctx.fillStyle   = BRAND_COLOR;
     ctx.translate(cw / 2, ch / 2);
     ctx.rotate(ANGLE);
-    ctx.font = 'bold ' + Math.round(fs.main) + 'px Sarabun, sans-serif';
+    ctx.font = 'bold ' + Math.round(fs.main) + 'px IBM Plex Sans Thai, sans-serif';
     ctx.fillText('KP Science', 0, -fs.gap / 2);
-    ctx.font = Math.round(fs.sub) + 'px Sarabun, sans-serif';
+    ctx.font = Math.round(fs.sub) + 'px IBM Plex Sans Thai, sans-serif';
     ctx.fillText('Virtual Physics Lab', 0, fs.gap / 2 + fs.sub * 0.3);
     ctx.restore();
   }

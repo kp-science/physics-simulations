@@ -48,12 +48,12 @@ def build_page():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KP Science — Virtual Lab ทั้งหมด จัดตามบทเรียน</title>
 <meta name="description" content="ห้องปฏิบัติการฟิสิกส์เสมือน {total} การทดลอง จัดตามบทเรียนฟิสิกส์ ม.ปลาย (สสวท.) — การวัด การเคลื่อนที่ แรงและกฎนิวตัน SHM คลื่น เสียง แสง ดาราศาสตร์">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{{--bg:#06090f;--bg2:#0d1117;--bg3:#161b27;--bg4:#1c2333;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
 --accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;--text:#f0f4f8;--muted:#7c8fa6;--card:#0d1421}}
 *{{box-sizing:border-box;margin:0;padding:0}} html{{scroll-behavior:smooth}}
-body{{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;line-height:1.6;min-height:100vh}}
+body{{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;line-height:1.6;min-height:100vh}}
 nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 5%;display:flex;align-items:center;gap:1rem;height:52px}}
 .nav-logo{{font-size:1rem;font-weight:700;color:var(--accent)}} .nav-logo span{{color:var(--accent2)}}
 .nav-back{{margin-left:auto;color:var(--muted);text-decoration:none;font-size:.85rem}} .nav-back:hover{{color:var(--accent)}}
@@ -247,7 +247,8 @@ def write_quickmenu():
 
 if __name__=='__main__':
     build_admin_meta()
-    write_quickmenu()
+    # หน้าแรก index.html สร้างใหม่ทั้งหน้าจาก _admin/home_template.html (แทนเมนูทางลัด QM เดิม)
+    os.system('python3 "%s"' % os.path.join(BASE,'_admin','build_home.py'))
     open(os.path.join(BASE,'virtual-lab.html'),'w',encoding='utf-8').write(build_page())
     p=os.path.join(BASE,'library.html'); s=open(p,encoding='utf-8').read()
     start=s.find('<!-- ═════ Virtual Physics Lab 01'); 
