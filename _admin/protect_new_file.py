@@ -206,6 +206,13 @@ def check_file(filepath):
     if is_sim and 'watermark.js' not in content and fname != 'index.html':
         issues.append('WATERMARK')
 
+    # 7b. ปุ่มปรับความเร็วการแสดงผล (แลป VPL01/02/03 ที่มี animation loop · ยกเว้นไฟล์ที่มีปุ่มของตัวเอง)
+    is_vlab_file = '/Virtual Physics Lab 0' in filepath
+    if (is_vlab_file and fname != 'index.html' and 'kp-speed.js' not in content
+            and 'setSimSpeed' not in content
+            and ('requestAnimationFrame' in content or 'setInterval' in content)):
+        issues.append('SPEED')
+
     # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
     is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Virtual Physics Lab 03/' in filepath
     is_demo_sim = '/Demo/' in filepath  # Demo ก็ต้องการ page guard
@@ -289,6 +296,15 @@ def fix_file(filepath, issues=None):
         body_end = content.rfind('</body>')
         if body_end != -1:
             content = content[:body_end] + wm_tag + content[body_end:]
+            changed = True
+
+    # Add speed control script (แลป VPL)
+    if 'SPEED' in issues and 'kp-speed.js' not in content:
+        sp_root = get_root_path(filepath)
+        sp_tag = f'\n<!-- KP Speed (ปุ่มปรับความเร็วการแสดงผล) -->\n<script src="{sp_root}_shared/kp-speed.js"></script>\n'
+        body_end = content.rfind('</body>')
+        if body_end != -1:
+            content = content[:body_end] + sp_tag + content[body_end:]
             changed = True
 
     # Add Firebase CDN + kp-auth.js + access guard (VPL01/VPL02 files)

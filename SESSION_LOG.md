@@ -2553,3 +2553,14 @@ match /settings/{docId} {
 
 ### ไฟล์ที่แก้
 - `Virtual Physics Lab 02/62–78` (17 ไฟล์)
+
+## [2026-09-17 11:20] — ปุ่ม 🐢 ความเร็ว ครบทุกแลป (79 แลป)
+
+### ทำอะไรไปบ้าง
+- สร้าง `_shared/kp-speed.js` — ชะลอ timestamp ของ requestAnimationFrame + performance.now() (นาฬิกาเสมือน) แล้วแทรกปุ่มเองข้างปุ่มมุมมอง หรือสร้างแถบใต้ canvas ถ้าไม่มีปุ่มมุมมอง · ข้ามไฟล์ที่มี setSimSpeed ของตัวเอง
+- แทรก `<script src=".../_shared/kp-speed.js">` ให้แลป 62 ไฟล์ (VPL01 ทั้งหมด · VPL02 30–61 · VPL03) — Lab 62–78 ใช้ปุ่มในตัวเหมือนเดิม
+- `_admin/protect_new_file.py` เพิ่มเช็ก SPEED → ไฟล์แลปใหม่จะได้สคริปต์นี้อัตโนมัติ · CLAUDE.md เพิ่มหัวข้ออธิบาย
+- ทดสอบ: VPL01 Lab 11 รางลม, VPL02 Lab 31 ถังคลื่น, Lab 55, VPL03 Lab 1 → ปุ่มขึ้นและกดวนค่าได้ · นาฬิกาจำลองเดิน 250 ms ต่อ 1 วินาทีจริงเมื่อตั้ง ×¼ และกลับมา 1001 ms เมื่อตั้ง ×1 · ไม่มี error
+
+### ไฟล์ที่แก้
+- ใหม่ `_shared/kp-speed.js` · แลป 62 ไฟล์ใน VPL01/02/03 · `_admin/protect_new_file.py` · `CLAUDE.md`
