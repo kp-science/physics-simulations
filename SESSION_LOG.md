@@ -2564,3 +2564,12 @@ match /settings/{docId} {
 
 ### ไฟล์ที่แก้
 - ใหม่ `_shared/kp-speed.js` · แลป 62 ไฟล์ใน VPL01/02/03 · `_admin/protect_new_file.py` · `CLAUDE.md`
+
+## [2026-09-17 12:00] — โลโก้หน้าแรกให้ตรงกับโลโก้บนแถบเมนู
+
+### ทำอะไรไปบ้าง
+- `_admin/home_template.html`: `.brand-mark` เปลี่ยนเป็นไล่สี 135° #38bdf8 → #818cf8 ตัวอักษร KP หนา 900 สีเข้ม · ข้อความเป็น "KPScience" ติดกัน โดย KP สี accent และ Science สี --text (สลับตามธีมสว่าง/มืดเอง) เหมือน `.tb-logo` ในสคริปต์ protect
+- build index.html ใหม่
+
+### ไฟล์ที่แก้
+- `_admin/home_template.html` · `index.html` (generate)
