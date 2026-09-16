@@ -43,7 +43,7 @@ const VLAB_SERIES = {
   vpl02: {
     label: 'Virtual Lab 02',
     labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
-           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42','lab-43','lab-44','lab-45','lab-46','lab-47','lab-48','lab-49','lab-50','lab-51','lab-52','lab-53','lab-54','lab-55','lab-56','lab-57','lab-58','lab-59','lab-60','lab-61','lab-62','lab-63','lab-64','lab-65','lab-66','lab-67','lab-68','lab-69','lab-70','lab-71','lab-72','lab-73','lab-74','lab-75']
+           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42','lab-43','lab-44','lab-45','lab-46','lab-47','lab-48','lab-49','lab-50','lab-51','lab-52','lab-53','lab-54','lab-55','lab-56','lab-57','lab-58','lab-59','lab-60','lab-61','lab-62','lab-63','lab-64','lab-65','lab-66','lab-67','lab-68','lab-69','lab-70','lab-71','lab-72','lab-73','lab-74','lab-75','lab-76','lab-77','lab-78']
   },
   vpl03: {
     label: 'Virtual Lab 03 (ปฏิบัติการฟิสิกส์ ม.)',
