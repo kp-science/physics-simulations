@@ -190,6 +190,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <div class="view3d" id="view3d">
         <canvas id="glCanvas"></canvas>
         <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง เพื่อดูการเคลื่อนที่ให้ทัน (ค่าที่เครื่องมือวัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
           <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
           <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
           <button data-vw="front" onclick="setView('front')">👁 ตรงหน้าไม้เมตร</button>
@@ -703,7 +704,7 @@ function init3D(){
   P.mys=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,2.45,28),[new THREE.MeshStandardMaterial({map:mtex,roughness:.6}),new THREE.MeshStandardMaterial({color:0x7c3aed}),new THREE.MeshStandardMaterial({color:0x7c3aed})]); P.mys.visible=false; hg.add(P.mys);
   syncHanger(); setupPointer(cv); resize3D(); setView('iso');
   let last=performance.now();
-  (function loop(now){ requestAnimationFrame(loop); const dt=Math.min(0.05,(now-last)/1000); last=now; if(!$('tab-sim').classList.contains('active')) return; tick(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%2; if(fr===0) drawAll(); })(last);
+  (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; tick(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%2; if(fr===0) drawAll(); })(last);
 }
 let fr=0;
 function syncHanger(){ if(!P.hanger) return; P.slots.forEach(d=>d.visible=false); P.mys.visible=false; let k=0;
@@ -725,6 +726,14 @@ let panMode=false;
 function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
   if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
   const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
+/* ── 🐢 ปรับความเร็วการแสดงผล (ช้าลงเพื่อดูให้ทัน · ไม่กระทบค่าที่วัดได้) ── */
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1];
+function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=document.getElementById('spdBtn');
+  if(b){ b.classList.toggle('active',v!==1); b.innerHTML='🐢 '+spdLabel(v); } }
+function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); }
+function simDt(dt){ try{ if(typeof HD!=='undefined'&&HD&&HD.on) return dt; }catch(_){}
+  return dt*simSpeed; }   /* ขณะลากด้วยมือใช้เวลาจริง กล่องจะได้ตามนิ้วทัน */
 function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
   const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
   cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -777,7 +786,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
   applyLoad(); s=sTarget();
   init3D(); resizeAll(); setMode('manual'); syncLoad(); drawGraph(); drawTheoryAll();
-  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); tick(Math.min(0.05,(now-last)/1000)); last=now; drawAll(); },40); }
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); tick(simDt(Math.min(0.05,(now-last)/1000))); last=now; drawAll(); },40); }
 });
 </script>
 
