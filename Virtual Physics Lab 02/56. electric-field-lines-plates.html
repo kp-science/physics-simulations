@@ -834,5 +834,40 @@ window.addEventListener('DOMContentLoaded',()=>{
     setTimeout(function(){clearInterval(w)}, 5000);
   })();
 </script>
+<!-- ═══ KP Pan Mode — ปุ่ม ✋ เลื่อนภาพ (ลาก 1 นิ้ว/เมาส์ = เลื่อนภาพขึ้น-ลง ซ้าย-ขวา) ═══ -->
+<script>
+(function(){ function init(){
+  const cv=document.getElementById('glCanvas'), box=document.getElementById('view3d');
+  if(!cv||!box||typeof camera==='undefined'||!camera) return false;
+  const O=(typeof orbit!=='undefined'&&orbit&&orbit.target)?orbit:((typeof cam!=='undefined'&&cam&&cam.target)?cam:null);
+  if(!O) return false;
+  if(document.getElementById('panBtn')) return true;
+  let host=null, ref=null;
+  document.querySelectorAll('button').forEach(b=>{ if(host) return; if(/^\s*setView\(/.test(b.getAttribute('onclick')||'')){ host=b.parentNode; ref=b; } });
+  if(!host) return false;
+  const pan=(dx,dy)=>{ const T=O.target, k=O.dist*2*Math.tan(camera.fov*Math.PI/360)/(box.clientHeight||300),
+    ca=Math.cos(O.az), sa=Math.sin(O.az), ce=Math.cos(O.el), se=Math.sin(O.el);
+    T.x+=(-dx*ca-dy*se*sa)*k; T.y+=dy*ce*k; T.z+=(dx*sa-dy*se*ca)*k; };
+  const btn=document.createElement('button'); btn.id='panBtn'; btn.type='button';
+  btn.title='เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว';
+  host.insertBefore(btn,ref);
+  let on=false, drag=false, lx=0, ly=0;
+  const paint=()=>{ btn.classList.toggle('active',on); btn.innerHTML= on?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; cv.style.cursor= on?'move':'grab'; };
+  btn.addEventListener('click',()=>{ on=!on; drag=false; paint(); });
+  const start=(x,y,e)=>{ e.preventDefault(); e.stopPropagation(); drag=true; lx=x; ly=y; };
+  box.addEventListener('pointerdown',e=>{ if(!on||e.target!==cv||(e.button!==0&&e.button!==undefined)) return; start(e.clientX,e.clientY,e); },true);
+  window.addEventListener('pointermove',e=>{ if(!drag) return; e.stopPropagation(); pan(e.clientX-lx,e.clientY-ly); lx=e.clientX; ly=e.clientY; },true);
+  const stop=()=>{ drag=false; };
+  window.addEventListener('pointerup',stop,true); window.addEventListener('pointercancel',stop,true);
+  box.addEventListener('mousedown',e=>{ if(on&&e.target===cv&&e.button===0){ e.preventDefault(); e.stopPropagation(); } },true);
+  box.addEventListener('touchstart',e=>{ if(!on||e.target!==cv||e.touches.length!==1) return; start(e.touches[0].clientX,e.touches[0].clientY,e); },{capture:true,passive:false});
+  box.addEventListener('touchmove',e=>{ if(!drag||e.touches.length!==1) return; e.preventDefault(); e.stopPropagation(); const t=e.touches[0]; pan(t.clientX-lx,t.clientY-ly); lx=t.clientX; ly=t.clientY; },{capture:true,passive:false});
+  const tend=e=>{ if(drag){ drag=false; e.stopPropagation(); } };
+  box.addEventListener('touchend',tend,true); box.addEventListener('touchcancel',tend,true);
+  paint(); return true;
+ }
+ let n=0; const boot=()=>{ if(init()) return; if(++n<80) setTimeout(boot,100); };
+ if(document.readyState==='complete') setTimeout(boot,0); else window.addEventListener('load',()=>setTimeout(boot,0)); })();
+</script>
 </body>
 </html>

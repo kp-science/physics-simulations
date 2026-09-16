@@ -166,6 +166,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <div class="view3d" id="view3d">
         <canvas id="glCanvas"></canvas>
         <div class="viewbtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
           <button onclick="setView('iso')">มุมเฉียง</button>
           <button onclick="setView('top')">⬇ มองจากด้านบน (กล้องถ่ายภาพ)</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
@@ -433,15 +434,20 @@ function update3D(){ if(!scene) return; /* ฟิสิกส์ใช้ (x,y) 
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ curView=vw; if(!orbit.target) return; const V0=VIEWS[vw]; orbit.target.set(...V0.t); orbit.dist=V0.d; orbit.az=V0.az; orbit.el=V0.el; }
 /* ═══════════ นิ้วบนภาพ 3D: 1 นิ้วลาก = หมุน · 2 นิ้วถ่าง/หนีบ = ซูม · 2 นิ้วลาก = เลื่อน · เมาส์: ลาก = หมุน · คลิกขวา/Shift+ลาก = เลื่อน · ล้อ = ซูม ═══════════ */
+/* ── ✋ โหมดเลื่อนภาพ: ลากแล้วภาพเลื่อนขึ้น-ลง ซ้าย-ขวา (ปกติลาก = หมุนรอบจุดกลาง) ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
 function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
   const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
   cv.addEventListener('contextmenu',e=>e.preventDefault());
-  cv.addEventListener('mousedown',e=>{ e.preventDefault(); T.mode=(e.button===2||e.shiftKey)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
   window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ T.mode=null; cv.style.cursor='grab'; return; } const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
   const up=()=>{ if(T.mode!=='pinch') T.mode=null; cv.style.cursor='grab'; }; window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ T.mode=null; });
-  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } },{passive:false});
-  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(T.mode==='rot'&&e.touches.length===1){ const t=e.touches[0]; camRotate(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
-  const tend=e=>{ if(e.touches.length===1){ T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0) T.mode=null; };
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(e.touches.length===1){ T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0) T.mode=null; };
   cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
 function panOrbit(o,dx,dy,dist){ if(!o.target||!camera) return; const k=dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
