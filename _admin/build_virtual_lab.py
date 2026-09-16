@@ -64,7 +64,10 @@ nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);ba
 .hero p{{color:var(--muted);font-size:.98rem;max-width:640px;line-height:1.7}}
 .series-links{{margin-top:.8rem;font-size:.82rem;color:var(--muted)}} .series-links a{{color:var(--accent);text-decoration:none;margin-left:.4rem}}
 /* filter bar */
-.fbar{{position:sticky;top:102px;z-index:90;background:rgba(6,9,15,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.7rem 5%}}
+.fbar.fhide{{transform:translateY(calc(-100% - 120px));pointer-events:none}}
+.fpeek{{position:fixed;top:112px;right:4%;z-index:95;display:flex;align-items:center;gap:.35rem;background:rgba(13,20,33,.95);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:20px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.25s}}
+.fpeek.show{{opacity:1;transform:none;pointer-events:auto}}
+.fbar{{position:sticky;top:102px;z-index:90;transition:transform .28s ease;background:rgba(6,9,15,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.7rem 5%}}
 .fbar-inner{{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:.5rem}}
 .frow{{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}}
 .flabel{{font-size:.72rem;color:var(--muted);font-weight:700;min-width:54px;text-transform:uppercase;letter-spacing:.5px}}
@@ -100,7 +103,14 @@ nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);ba
 .dc-arrow{{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--muted);transition:.2s;flex-shrink:0}}
 .empty{{display:none;text-align:center;color:var(--muted);padding:3rem 0}} .empty.show{{display:block}}
 footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;color:var(--muted);font-size:.85rem}} footer a{{color:var(--accent);text-decoration:none}}
-@media(max-width:768px){{.fbar{{top:100px}}.fsearch{{margin-left:0;width:100%}}.flabel{{min-width:100%}}.demo-grid{{grid-template-columns:1fr}}.hero{{padding:28px 5% 20px}}}}
+.fhead{{display:flex;gap:.5rem;align-items:center}} .fhead .fsearch{{margin-left:0;flex:1;max-width:360px}} .fhead .fcount{{margin-left:auto}}
+.ftog{{display:none;align-items:center;gap:.35rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;max-width:48%;overflow:hidden;text-overflow:ellipsis}}
+.ftog .fsum{{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis}} .ftog .car{{transition:.2s;font-size:.7rem}} .fbar.open .ftog .car{{transform:rotate(180deg)}}
+@media(max-width:1024px){{nav.topnav{{position:static}} .fpeek{{top:58px}} .fbar{{top:50px;padding:.5rem 4%}} .fhead .fsearch{{max-width:none;min-width:0;padding:7px 10px}} .fhead .fcount{{display:none}} .ftog{{display:inline-flex}}
+  .fbar:not(.open) .frow{{display:none}} .fbar.open .fbar-inner{{max-height:62vh;overflow-y:auto}}
+  .frow{{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}} .frow::-webkit-scrollbar{{display:none}} .flabel{{min-width:auto;flex-shrink:0;position:sticky;left:0;background:rgba(6,9,15,.96);padding-right:6px;z-index:1}}
+  .group-anchor{{scroll-margin-top:104px}} .topic-section{{scroll-margin-top:110px}}}}
+@media(max-width:768px){{.demo-grid{{grid-template-columns:1fr}} .hero{{padding:28px 5% 20px}}}}
 /* === KP Access Lock Overlay === */
 [data-locked="true"].kp-locked{{position:relative;pointer-events:all}}
 [data-locked="true"].kp-locked::after{{content:'🔒  สมาชิกเท่านั้น';position:absolute;inset:0;background:rgba(6,9,15,0.75);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:.9rem;border-radius:14px;z-index:5}}
@@ -117,19 +127,24 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
   <div class="series-links">ดูแบบชุดเดิม: <a href="virtual-physics-lab-01.html">VPL 01 กลศาสตร์</a> · <a href="virtual-physics-lab-02.html">VPL 02 คลื่น แสง เสียง</a></div>
 </div></div>
 
-<div class="fbar"><div class="fbar-inner">
+<div class="fbar" id="fbar"><div class="fbar-inner">
+  <div class="fhead">
+    <input class="fsearch" id="q" type="search" placeholder="🔍 ค้นหา เช่น เลนส์, นิวตัน, Exp 37" oninput="applyFilter()">
+    <button class="ftog" id="ftog" type="button" onclick="toggleFbar()" aria-expanded="false">⚙️ ตัวกรอง<span class="fsum" id="fsum"></span><span class="car">▼</span></button>
+    <span class="fcount" id="fcount">{total} / {total}</span>
+  </div>
   <div class="frow"><span class="flabel">กลุ่ม</span>
     <button class="fchip active" data-f="topic" data-v="all" onclick="setFilter(this)">ทั้งหมด</button>
     {''.join(f'<button class="fchip" data-f="group" data-v="{g[0]}" onclick="setFilter(this)">{g[1]} {esc(g[2])}</button>' for g in GROUPS)}
-    <input class="fsearch" id="q" type="search" placeholder="🔍 ค้นหา เช่น เลนส์, นิวตัน, Exp 37" oninput="applyFilter()">
   </div>
   <div class="frow"><span class="flabel">บทเรียน</span>{topic_chips}</div>
   <div class="frow"><span class="flabel">ระดับ</span>
     <button class="fchip active" data-f="level" data-v="all" onclick="setFilter(this)">ทุกระดับ</button>
     {level_chips}
-    <span class="fcount" id="fcount">{total} / {total}</span>
   </div>
 </div></div>
+
+<button class="fpeek" id="fpeek" type="button" onclick="showFbar(true)">🔍 ค้นหา · ตัวกรอง ▾</button>
 
 <div class="wrap" id="catalog">
 {sections}
@@ -147,7 +162,11 @@ function setFilter(btn){{
   document.querySelectorAll('.fchip[data-f="topic"],.fchip[data-f="group"]').forEach(b=>b.classList.toggle('active',(F.group? (b.dataset.f==='group'&&b.dataset.v===F.group) : (b.dataset.f==='topic'&&b.dataset.v===F.topic))));
   document.querySelectorAll('.fchip[data-f="level"]').forEach(b=>b.classList.toggle('active',b.dataset.v===F.level));
   applyFilter();
-  if(f==='group'||f==='topic'){{ const tgt = f==='group'? document.getElementById('g-'+v) : (v==='all'? null : document.getElementById('t-'+v)); if(tgt) tgt.scrollIntoView({{behavior:'smooth',block:'start'}}); }}
+  toggleFbar(false);
+  // เลือกตัวกรองแล้วเลื่อนลงไปที่ผลลัพธ์เสมอ (ระดับชั้น/ทั้งหมด → หัวรายการแรกที่เหลือ)
+  let tgt = f==='group'? document.getElementById('g-'+v) : (f==='topic'&&v!=='all'? document.getElementById('t-'+v) : null);
+  if(!tgt) tgt=[...document.querySelectorAll('.group-anchor')].find(g=>g.style.display!=='none') || document.getElementById('catalog');
+  tgt.scrollIntoView({{behavior:'smooth',block:'start'}});
 }}
 function applyFilter(){{
   const q=(document.getElementById('q').value||'').trim().toLowerCase();
@@ -162,7 +181,35 @@ function applyFilter(){{
   document.querySelectorAll('.group-anchor').forEach(g=>{{ const gid=g.id.replace('g-',''); const n=[...document.querySelectorAll('.lab-card')].filter(c=>GROUPS[gid].includes(c.dataset.topic)&&c.style.display!=='none').length; g.style.display=n?'':'none'; g.querySelector('.ga-count').textContent=n+' การทดลอง'; }});
   document.getElementById('fcount').textContent=shown+' / {total}';
   document.getElementById('empty').classList.toggle('show',shown===0);
+  const a=[...document.querySelectorAll('.fchip.active')].filter(b=>b.dataset.v!=='all').map(b=>b.textContent.replace(/^[^\\p{{L}}\\p{{N}}]+/u,'').trim());
+  document.getElementById('fsum').textContent=a.length? ' · '+a.join(' · ') : '';
 }}
+// มือถือ: แถบตัวกรองพับเก็บได้
+function toggleFbar(force){{
+  const b=document.getElementById('fbar'), on= force===undefined ? !b.classList.contains('open') : force;
+  b.classList.toggle('open',on); document.getElementById('ftog').setAttribute('aria-expanded',on);
+}}
+// เลื่อนหน้าลง = แถบตัวกรองเลื่อนเก็บขึ้นไป · เลื่อนขึ้น/กดปุ่มลอย = กลับมา · ปัดแถบขึ้นก็เก็บได้
+let lastY=scrollY;
+function showFbar(on){{
+  const b=document.getElementById('fbar');
+  if(!on) toggleFbar(false);
+  b.classList.toggle('fhide',!on);
+  document.getElementById('fpeek').classList.toggle('show',!on);
+}}
+addEventListener('scroll',()=>{{
+  const dy=scrollY-lastY; if(Math.abs(dy)<8) return; lastY=scrollY;
+  const b=document.getElementById('fbar'), hero=document.querySelector('.hero');
+  const past=scrollY > hero.offsetTop+hero.offsetHeight;
+  if(document.activeElement.id==='q') return;
+  if(dy>0&&past) showFbar(false); else if(dy<0||!past) showFbar(true);
+}},{{passive:true}});
+(function(){{
+  const b=document.getElementById('fbar'); let y0=null,x0=0;
+  b.addEventListener('touchstart',e=>{{ y0=e.touches[0].clientY; x0=e.touches[0].clientX; }},{{passive:true}});
+  b.addEventListener('touchend',e=>{{ if(y0===null) return; const t=e.changedTouches[0], dy=y0-t.clientY, dx=Math.abs(t.clientX-x0); y0=null;
+    if(dy>40&&dy>dx*1.5&&scrollY>0) showFbar(false); }},{{passive:true}});
+}})();
 // deep links: ?level=uni | ?topic=waves | ?group=mech | ?q=...
 (function(){{
   const p=new URLSearchParams(location.search);
