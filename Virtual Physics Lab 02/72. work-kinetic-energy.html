@@ -191,6 +191,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
       <div class="view3d" id="view3d">
         <canvas id="glCanvas"></canvas>
         <div class="viewbtns" id="viewBtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
           <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
           <button data-vw="front" onclick="setView('front')">👁 ด้านหน้าราง</button>
           <button data-vw="g1" onclick="setView('g1')">🔍 เกต 1</button>
@@ -1024,12 +1025,17 @@ function stepHand(dt){
   if(k==='gl'){ xRel=nx; if(phase!=='run') gx=xRel; } else gate[k==='g0'?0:1]=nx;
   syncCtl();
 }
+/* ── ✋ โหมดเลื่อนภาพ: ลากแล้วภาพเลื่อนขึ้น-ลง ซ้าย-ขวา (ปกติลาก = หมุนรอบจุดกลาง) ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
 function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
   const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
   cv.addEventListener('contextmenu',e=>e.preventDefault());
   cv.addEventListener('mousedown',e=>{ e.preventDefault();
-    if(e.button===0&&!e.shiftKey&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
-    T.mode=(e.button===2||e.shiftKey)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+    if(e.button===0 && !e.shiftKey && !panMode && hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
   cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
   window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
     if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; cv.style.cursor='move'; return; }
@@ -1041,12 +1047,12 @@ function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
     if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
     else if(e.touches.length===1){ const t=e.touches[0];
       if(hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; }
-      T.mode='rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+      T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
   cv.addEventListener('touchmove',e=>{ e.preventDefault();
     if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
     else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); }
-    else if(T.mode==='rot'&&e.touches.length===1){ const t=e.touches[0]; camRotate(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
-  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode='rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
     else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
   cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
