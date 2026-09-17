@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ข้อมูลกลาง Virtual Lab ทุกชุด จัดตามบทเรียน สสวท. — ใช้ generate virtual-lab.html และ library.html
    (แก้ที่นี่ที่เดียว แล้วรัน python3 _admin/build_virtual_lab.py)"""
-V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'
+V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'
 TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับหลัก
  ('measure','📏','การวัดและความคลาดเคลื่อน','Measurement & Uncertainty','accent5'),
  ('kinematics','🏃','การเคลื่อนที่แนวตรง','Linear Motion & Kinematics','accent3'),
@@ -16,12 +16,14 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
  ('electro','🎈','ไฟฟ้าสถิต','Electrostatics','accent4'),
  ('astro','🌌','ดาราศาสตร์และจักรวาลวิทยา','Astronomy & Cosmology','accent4'),
+ ('atomic','⚛️','ฟิสิกส์อะตอมและควอนตัม','Atomic & Quantum Physics','accent2'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
  ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
  ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
+ ('modern','⚛️','ฟิสิกส์ยุคใหม่',['atomic']),
 ]
 # (access, href, num, title_th, desc, topic, level, series, tags)
 LABS=[
@@ -112,5 +114,7 @@ LABS=[
     ('vlab:vpl02:lab-61', V2+'61. capacitor-combinations.html','61','การต่อตัวเก็บประจุแบบอนุกรม ขนาน และผสม (3D)','ต่อ 8 แบบบนแผ่นต่อวงจร · วัดความจุทีละตัวและ C สมมูลด้วยมิเตอร์ · อัดประจุ วัดแรงดันคร่อมแต่ละตัว Q = CV · พลังงาน · การแบ่งประจุและพลังงานที่หายไป','electro','ม.5','vpl02',['Capacitor','Series/Parallel','3D']),
  ('vlab:vpl02:lab-43', V2+'43. big-bang-theory.html','43','ทฤษฎีบิกแบง (Big Bang Theory)','Hubble · BBN · CMB · Build Lab','astro','ม.6','vpl02',['Cosmology']),
  ('vlab:vpl02:lab-45', V2+'45. expanding-universe-balloon.html','45','แบบจำลองการขยายตัวของเอกภพ','ลูกโป่ง = เอกภพ · วัดระยะ-ความเร็ว · กราฟ Hubble v = H·d (กิจกรรม 1.2)','astro','ม.6','vpl02',['Cosmology','Hubble']),
+ ('vlab:vpl04:lab-87', V4+'87. hydrogen-spectrum-grating.html','87','สเปกโตรมิเตอร์เกรตติง: สเปกตรัมเส้นของไฮโดรเจน (3D)','หมุนกล้องเล็งเส้นสเปกตรัมให้ตรงกากบาท อ่านมุมจากสเกลวงกลม 1° + เวอร์เนียร์ 0.1° ทั้งสองข้างของแนวตรง · λ = d sin θ / m · วิเคราะห์อนุกรมบัลเมอร์หาค่าคงตัวริดเบิร์ก · ระบุแก๊สปริศนา X จากเส้นสเปกตรัม','atomic','ม.6','vpl04',['3D','Spectrometer','Balmer','Rydberg']),
+ ('vlab:vpl04:lab-88', V4+'88. photoelectric-planck.html','88','ปรากฏการณ์โฟโตอิเล็กทริก: หาค่าคงตัวของพลังค์ (3D)','ฉายแสงจากหลอดปรอทผ่านฟิลเตอร์ 6 เส้นลงบนหลอดโฟโต · หมุนปุ่มเพิ่มความต่างศักย์ต้านจนแอมมิเตอร์อ่าน 0 อ่านศักย์หยุดยั้งจากโวลต์มิเตอร์ · กราฟ V_s – f ความชัน h/e → หา h · จุดตัดแกน → ฟังก์ชันงานและระบุโลหะแคโทดปริศนา · ทดสอบว่าความเข้มแสงไม่เปลี่ยน V_s','atomic','ม.6','vpl04',['3D','Photoelectric','Planck','Work function']),
 ]
-SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.')}
+SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม')}

@@ -48,6 +48,10 @@ const VLAB_SERIES = {
   vpl03: {
     label: 'Virtual Lab 03 (ปฏิบัติการฟิสิกส์ ม.)',
     labs: ['lab-1']
+  },
+  vpl04: {
+    label: 'Virtual Lab 04 (ฟิสิกส์อะตอมและควอนตัม)',
+    labs: ['lab-87','lab-88']
   }
 };
 
@@ -84,16 +88,16 @@ const ACCESS_SCHEMA = [
 // Role defaults (preset)
 const ROLE_ACCESS_PRESETS = {
   blocked:  [],
-  member:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*'],                  // free member = anon + ฟรี
-  pro:      ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'manual:vpl01:*'],  // + คู่มือ VPL01
-  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
+  member:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*'],                  // free member = anon + ฟรี
+  pro:      ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'manual:vpl01:*'],  // + คู่มือ VPL01
+  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
   ultimate: ['*'],
   admin:    ['*']
 };
 
 // 👁️ Anonymous (ยังไม่ login) — fallback default ถ้า Firestore ยังไม่มี settings/public
 // admin เปลี่ยนค่านี้ได้ใน admin panel → เขียนไปที่ settings/public.anonymous_access
-const ANONYMOUS_ACCESS_FALLBACK = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*'];
+const ANONYMOUS_ACCESS_FALLBACK = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*'];
 
 // state: ดึงมาจาก Firestore (null = ยังไม่โหลด/ไม่มี → ใช้ fallback)
 let publicSettings = null;
@@ -248,6 +252,9 @@ function migrateAccess(userData) {
       if (!access.includes(k)) access.push(k);
     } else if (VLAB_SERIES.vpl03.labs.includes(labId) && !access.includes('vlab:vpl03:*')) {
       const k = 'vlab:vpl03:' + labId;
+      if (!access.includes(k)) access.push(k);
+    } else if (VLAB_SERIES.vpl04.labs.includes(labId) && !access.includes('vlab:vpl04:*')) {
+      const k = 'vlab:vpl04:' + labId;
       if (!access.includes(k)) access.push(k);
     }
   });
