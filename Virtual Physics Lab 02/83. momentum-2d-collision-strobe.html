@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 83 — การชนใน 2 มิติ: ภาพแฟลชบนโต๊ะลม (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.9rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:560px){.actbar{grid-template-columns:repeat(3,1fr)}.actbar button{font-size:.82rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
+.sl-val{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700;font-size:.85rem;min-width:62px;text-align:right}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.lcd{background:#1a1406;border:1px solid #713f12;border-radius:6px;padding:4px 8px;text-align:right;font-family:'Share Tech Mono',monospace;color:#fcd34d;font-size:1.2rem;line-height:1.2}
+.lcd .lb{display:block;text-align:left;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai;font-size:.66rem;color:#fbbf24}
+.lcd small{font-size:.7rem}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline.on{background:#a78bfa;border-color:#a78bfa;color:#0a0e1a}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl02:lab-83">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🥏</div>
+  <div>
+    <h1>Lab 83 — การชนใน 2 มิติ: ภาพแฟลชบนโต๊ะลม (3D)</h1>
+    <p>ยิงลูกยางแบน A ชนลูกยาง B ที่วางเยื้องแนว · กล้องถ่ายภาพแฟลชทุก 0.04 s ลงบนพื้นโต๊ะ · วัดความยาวการกระจัดใน 4 ช่วงแฟลชด้วยไม้บรรทัดใส และวัดมุมด้วยโปรแทรกเตอร์ใส · รวมเวกเตอร์โมเมนตัมแกน x และแกน y · มุมระหว่างแนวเคลื่อนที่หลังชน · หามวลลูกยางปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ภาพแฟลชและค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="top" onclick="setView('top')">📸 ภาพแฟลช (มองจากบน)</button>
+          <button data-vw="hit" onclick="setView('hit')">🔍 จุดชน</button>
+          <button data-vw="tool" onclick="setView('tool')">🔍 ไม้บรรทัด</button>
+          <button onclick="bringTools()" title="ย้ายไม้บรรทัดและโปรแทรกเตอร์มาไว้กลางภาพที่กำลังดู">🧰 เรียกเครื่องมือมาที่นี่</button>
+          <button onclick="stowTools()" title="เก็บไม้บรรทัดและโปรแทรกเตอร์กลับถาดหน้าโต๊ะ">📥 เก็บเครื่องมือ</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 ลาก <b>ลูกยาง B</b> ให้เยื้องแนวยิง · ลาก <b>ไม้บรรทัด</b> / <b>โปรแทรกเตอร์</b> ไปวางบนจุดแฟลช · ลาก<b>จุดแดงปลายไม้บรรทัด</b> เพื่อหมุน<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงอ่านภาพแฟลชในภาพ 3D ไม่ได้ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b> ในแผงด้านข้างเพื่อให้ระบบอ่านค่าให้</div>
+      </div>
+
+      <div class="actbar" id="actBar">
+        <button id="ab-fire" style="background:#b45309" onclick="fireRun()">▶ ยิง + ถ่ายแฟลช</button>
+        <button id="ab-arm"  style="background:#334155" onclick="rearm()">↩ วางใหม่</button>
+        <button id="ab-mB"   style="background:#c2410c" onclick="cycleB()">🟠 B 150 g</button>
+        <button id="ab-spd"  style="background:#0e7490" onclick="cycleSpd()">🔧 แรงยิง กลาง</button>
+        <button id="ab-top"  style="background:#7c3aed" onclick="setView('top')">📸 ดูภาพ</button>
+        <button id="ab-rec"  style="background:#16a34a" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="status-line" id="statusLine"></div>
+
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด — ความยาวการกระจัดใน <b style="color:#fde047">4 ช่วงแฟลช</b> (จุดที่ 1 → จุดที่ 5) · มุมวัดจากทิศยิง: เหนือแนว = + · ใต้แนว = −
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① มวล · ช่วงแฟลช <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.78rem"></span></label>
+          <label class="rf-f"><span>② A ก่อนชน ความยาว <small id="h1">— ไม้บรรทัด A1 → A5</small></span><span class="rf-in"><input class="val-input" type="number" id="in-aL" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+          <label class="rf-f"><span>③ A หลังชน ความยาว <small id="h2">— ไม้บรรทัด A′1 → A′5</small></span><span class="rf-in"><input class="val-input" type="number" id="in-a2L" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+          <label class="rf-f"><span>④ A หลังชน มุม θ <small id="h3">— โปรแทรกเตอร์ (ใต้แนว = −)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-a2T" step="1" inputmode="decimal" placeholder="?"> °</span></label>
+          <label class="rf-f"><span>⑤ B หลังชน ความยาว <small id="h4">— ไม้บรรทัด B′1 → B′5</small></span><span class="rf-in"><input class="val-input" type="number" id="in-b2L" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+          <label class="rf-f"><span>⑥ B หลังชน มุม θ <small id="h5">— โปรแทรกเตอร์ (เหนือแนว = +)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-b2T" step="1" inputmode="decimal" placeholder="?"> °</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — วางลูกยางใหม่ · ล้างภาพแฟลช · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและมวลลูกยางปริศนา X ที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🥏 ลูกยาง B (เป้า) <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="bBtns">
+          <button class="active" onclick="setB(0)">🟠 150 g<br><small>เท่ากับ A</small></button>
+          <button onclick="setB(1)">🟤 300 g<br><small>หนักเป็น 2 เท่า</small></button>
+          <button onclick="setB(2)">❓ X<br><small>ไม่ทราบมวล</small></button>
+        </div>
+        <div class="panel-title" style="margin-top:10px">🔧 แรงยิงลูกยาง A (150 g)</div>
+        <div class="mode-btns" id="spdBtns">
+          <button onclick="setSpd(0)">เบา</button>
+          <button class="active" onclick="setSpd(1)">กลาง</button>
+          <button onclick="setSpd(2)">แรง</button>
+        </div>
+        <div class="readout-grid" style="margin-top:8px">
+          <div class="readout-box"><div class="label">ตำแหน่ง B (x, y)</div><div class="value" id="roB">—</div></div>
+          <div class="readout-box"><div class="label">ระยะเยื้อง b</div><div class="value" id="roOff">—</div></div>
+        </div>
+        <div class="note">ลากลูกยาง B ในภาพ 3D ให้เยื้องจากแนวยิง (y = 25.0 cm) · เยื้องมาก → A เบี่ยงน้อย B พุ่งออกด้านข้างมาก · ลูกยางเส้นผ่านศูนย์กลาง 5.0 cm (เยื้องเกิน 5 cm จะไม่ชน) · ขอบลูกยางเป็นแม่เหล็กผลักกัน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">▶ ยิง / วางใหม่</div>
+        <div class="btn-row">
+          <button class="btn btn-amber btn-sm" onclick="fireRun()">▶ ยิง + ถ่ายแฟลช</button>
+          <button class="btn btn-outline btn-sm" onclick="rearm()">↩ วางใหม่</button>
+        </div>
+        <div class="note">ภาพแฟลช: ไฟแฟลชทุก Δt = 0.040 s · ภาพลูกยางแต่ละครั้งมีหมายเลข A1, A2 … (ก่อนชน) · A′1, A′2 … และ B′1, B′2 … (หลังชน) · วัดจาก<b>กากบาทกลางลูก</b> · 📏 ไม้บรรทัดใส 30 cm ขีดละ 1 mm (ขีดศูนย์ดูดติดกากบาทเมื่อวางใกล้) · 📐 โปรแทรกเตอร์ใสเต็มวง 0° ถึง ±180° ขีดละ 1° เส้นฐาน 0° ขนานทิศยิงเสมอ</div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ค่าจากแบบจำลอง</div>
+        <div class="readout-grid" id="autoGrid"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📊 ผลที่บันทึกล่าสุด</div>
+        <div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก — ยิงแล้วอ่านภาพแฟลช กรอกในกรอบ “📝 บันทึกผลการวัด” ใต้ภาพ</span></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">① ความเร็ว (m/s) = การกระจัด ÷ (4 × 0.040 s)</div>
+        <div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-cap">② โมเมนตัมแกน x · แกน y · มุม · พลังงานจลน์</div>
+        <div class="tbl-wrap" id="tableB"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📈 กราฟจากข้อมูลที่บันทึก</div>
+        <div class="mode-btns" id="graphBtns" style="margin-bottom:6px">
+          <button class="active" onclick="setGraph('vec')">เวกเตอร์ p (แถวล่าสุด)</button>
+          <button onclick="setGraph('pp')">Σp หลัง – p ก่อน</button>
+          <button onclick="setGraph('ang')">มุมแยก · Ek</button>
+        </div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">มวลลูกยางปริศนา X =<input class="val-input" type="number" id="ans-m" step="1" inputmode="decimal" placeholder="?"> g <button class="btn btn-green btn-sm" onclick="checkM()">ตรวจมวล X</button></div>
+        <div class="ans-msg" id="ansMMsg"></div>
+        <div class="ans-row" style="line-height:1.5">ทำนาย: ลูกยางมวลเท่ากัน ชนแบบยืดหยุ่นสมบูรณ์ (ไม่ตรงศูนย์กลาง) มุมระหว่างแนวเคลื่อนที่ของ A และ B หลังชน =<input class="val-input" type="number" id="ans-k" step="1" inputmode="decimal" placeholder="?"> องศา <button class="btn btn-green btn-sm" onclick="checkK()">ตรวจคำทำนาย</button></div>
+        <div class="ans-msg" id="ansKMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">มวล X: ถือว่าถูกเมื่อคลาดไม่เกิน 6% · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <ul>
+      <li>ตรวจสอบกฎการอนุรักษ์โมเมนตัมในการชน 2 มิติ โดยพิจารณาโมเมนตัมแยกแกน x และแกน y</li>
+      <li>หาความเร็วจากภาพแฟลช (การกระจัดในช่วงเวลาเท่ากัน) และรวมเวกเตอร์โมเมนตัม</li>
+      <li>หามุมระหว่างแนวเคลื่อนที่หลังชน และหามวลลูกยางที่ไม่ทราบค่า</li>
+    </ul>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>โต๊ะลมขนาด 80 × 50 cm พื้นเรียบ (มีเส้นประแนวยิงจาง ๆ) · ลูกยางลอยบนเบาะลม แรงเสียดทานน้อยมาก</li>
+      <li>📏 ไม้บรรทัดใสยาว 30 cm และ 📐 โปรแทรกเตอร์ วางอยู่บน<b>ถาดเครื่องมือหน้าโต๊ะ</b> (ไม่บังภาพแฟลช) · ไม้บรรทัดขีดละ 1 mm (ลากย้าย · ลากจุดแดงที่ปลายเพื่อหมุนรอบขีดศูนย์) · 📐 โปรแทรกเตอร์ใสเต็มวง 0° ถึง ±180° ขีดละ 1° เส้นฐาน 0° ขนานทิศยิง (ลากย้ายได้ ไม่หมุน)</li>
+      <li>ลูกยางแบน A มวล 150 g (น้ำเงิน) ยิงด้วยเครื่องยิงสปริงตามแนว y = 25.0 cm · ลูกยาง B 150 g / 300 g / ปริศนา X · เส้นผ่านศูนย์กลาง 5.0 cm ขอบเป็นแม่เหล็ก</li>
+      <li>กล้องและไฟแฟลชเหนือโต๊ะ แฟลชทุก Δt = 0.040 s ภาพแฟลชพิมพ์ลงบนพื้นโต๊ะพร้อมหมายเลขจุด</li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>เลือกลูกยาง B 150 g · <b>ลากลูกยาง B</b> ให้เยื้องจากแนวยิงเล็กน้อย (ประมาณ 1–3 cm)</li>
+      <li>กด <b>▶ ยิง + ถ่ายแฟลช</b> แล้วกด <b>📸 ภาพแฟลช</b> · หยิบไม้บรรทัดและโปรแทรกเตอร์จาก<b>ถาดหน้าโต๊ะ</b> (หรือกด <b>🧰 เรียกเครื่องมือมาที่นี่</b>) · วัดเสร็จกด <b>📥 เก็บเครื่องมือ</b></li>
+      <li><b>ความยาว:</b> ลากไม้บรรทัดให้ขีดศูนย์อยู่ที่กากบาทของจุดที่ 1 ลากจุดแดงหมุนไม้บรรทัดให้ขอบผ่านจุดที่ 5 แล้วอ่านความยาวที่จุดที่ 5 (ทำกับ A1→A5 · A′1→A′5 · B′1→B′5)</li>
+      <li><b>มุม:</b> ลากโปรแทรกเตอร์ให้จุดกลางอยู่ที่จุดที่ 1 ของ A′ (หรือ B′) อ่านมุมที่แนวไปยังจุดที่ 5 ตัดขอบโปรแทรกเตอร์ · อยู่เหนือแนว 0° ใส่บวก ใต้แนวใส่ลบ</li>
+      <li>กรอกแล้วกด <b>📝 บันทึก</b> · ทำซ้ำโดยเปลี่ยนระยะเยื้อง (อย่างน้อย 3 แถว) · เปลี่ยนเป็นลูกยาง 300 g และลูกยาง ❓ X</li>
+    </ol>
+    <div class="note-box">⚠️ ต้องใช้จุดที่ห่างกัน <b>4 ช่วงแฟลช</b> เสมอ (จุดที่ 1 กับจุดที่ 5) · ถ้าภาพลูกยางหลังชนออกนอกโต๊ะก่อนครบ 5 จุด ให้ลดแรงยิงหรือเปลี่ยนระยะเยื้อง · จุด A′1 และ B′1 เป็นภาพแรกหลังชน (อาจยังชิดกันอยู่)</div>
+    <h2>ตารางบันทึกผล (ตัวอย่างหัวตาราง)</h2>
+    <div class="formula-box">m_B | |d_A| | |d_A′| · θ_A′ | |d_B′| · θ_B′ | v = |d|/(4Δt) | v_x = v cos θ · v_y = v sin θ | p_x ก่อน | Σp_x หลัง | Σp_y หลัง | มุม A′ | มุม B′ | มุมแยก | Ek หลัง/ก่อน</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>โมเมนตัมแกน x หลังชนเท่ากับก่อนชนหรือไม่ · โมเมนตัมแกน y หลังชนรวมกันได้เท่าใด เพราะเหตุใด</li>
+      <li>เมื่อลูกยางมวลเท่ากัน มุมระหว่างแนวเคลื่อนที่หลังชนประมาณเท่าใด ตรงกับทฤษฎีการชนแบบยืดหยุ่นหรือไม่</li>
+      <li>เมื่อลูกยาง B หนักกว่า มุมแยกมากกว่าหรือน้อยกว่า 90°</li>
+      <li>วาดรูปรวมเวกเตอร์ p_A′ + p_B′ แล้วเทียบกับ p_A</li>
+      <li>อธิบายวิธีหามวลลูกยาง X จากโมเมนตัมแกน y</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. โมเมนตัมเป็นเวกเตอร์</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="280"></canvas></div>
+    <p>ในการชน 2 มิติ โมเมนตัมอนุรักษ์ทั้งขนาดและทิศ จึงแยกคิดทีละแกนได้</p>
+    <div class="formula-box">แกน x:  m_A v_A = m_A v_A′x + m_B v_B′x<br>แกน y:  0 = m_A v_A′y + m_B v_B′y     (ก่อนชนไม่มีโมเมนตัมแกน y)</div>
+    <h2>2. ความเร็วจากภาพแฟลช</h2>
+    <div class="formula-box">แฟลชทุก Δt → จุดที่ 1 ถึงจุดที่ 5 ห่างกัน 4Δt<br>|v| = |d| / (4Δt)     (|d| = ความยาวที่วัดด้วยไม้บรรทัด)<br>แตกเวกเตอร์ด้วยมุม θ จากทิศยิง:   v_x = |v| cos θ     v_y = |v| sin θ</div>
+    <h2>3. มุมแยก 90° ของมวลเท่ากัน</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="240"></canvas></div>
+    <p>ถ้ามวลเท่ากันและชนแบบยืดหยุ่นสมบูรณ์: p_A = p_A′ + p_B′ และ p_A² = p_A′² + p_B′² (จากพลังงานจลน์) ทั้งสองสมการเป็นจริงพร้อมกันได้เมื่อ p_A′ ตั้งฉากกับ p_B′ (ทฤษฎีบทพีทาโกรัส) มุมแยกจึงเป็น 90° · ถ้ามีพลังงานสูญเสีย มุมจะน้อยกว่า 90° เล็กน้อย · ถ้า B หนักกว่า A มุมแยกมากกว่า 90°</p>
+    <h2>4. หามวลลูกยาง X</h2>
+    <div class="formula-box">จากแกน y:  m_X = − m_A |d_A′| sin θ_A′ / ( |d_B′| sin θ_B′ )<br>จากแกน x:  m_X = m_A ( |d_A| − |d_A′| cos θ_A′ ) / ( |d_B′| cos θ_B′ )     (ใช้เฉลี่ยทั้งสองแกน)</div>
+    <div class="note-box">💡 แบบจำลอง: ขอบแม่เหล็กของลูกยางให้สัมประสิทธิ์การกระดอนราว 0.95 (ซ่อนไว้) · ไม่มีแรงเสียดทานระหว่างผิวลูกยางขณะชน · เบาะลมมีความหน่วงเหลือเล็กน้อย · แรงยิงแต่ละนัดแกว่ง ±2% · มวลลูกยาง X สุ่ม 100–350 g · ภาพแฟลชคำนวณตำแหน่งทีละ 0.5 ms</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.4 (สสวท.) — โมเมนตัมและการชน · การชนใน 2 มิติ · เทียบเคียง Two-dimensional collisions on an air table with strobe photography (PSSC / A-level / IB Physics)<br>
+  Lab 83 — 2D Collisions on an Air Table · Strobe Photography (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 83 การชนใน 2 มิติ: ภาพแฟลชบนโต๊ะลม (3D)
+   พิกัดภาพแฟลช (cm): x ขวา · y ขึ้น (บนจอเมื่อมองจากบน) · โต๊ะ 80 × 50 cm
+   โลก 3D: world x = x · world z = 25 − y · พื้นโต๊ะสูง y = TBL
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL02 Lab 83 — build v1.0 3D-only (2569-09-18)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+/* ปริศนา: มวลลูกยาง X · สัมประสิทธิ์การกระดอนของขอบแม่เหล็ก — สุ่มต่อการเปิดหน้า */
+const M_XP = Math.round(rnd(100,350));
+const E_REST = rnd(0.93,0.97);
+const DECEL = 0.5;                                   /* cm/s² ความหน่วงเบาะลม */
+const M_A=150, MB_OPT=[150,300,'X'], SPEEDS=[35,50,65], SPD_N=['เบา','กลาง','แรง'];
+const TW_CM=80, TH_CM=50, RAD=2.5, DIA=5.0, Y_LINE=25.0, X_START=4.0, DT_F=0.040, T0_F=0.020, NSTEP=4;
+const HD_LAG=0.25, HD_VMAX=60;
+
+let bI=0, spdI=1, xB=38.0, yB=26.5;
+/* เครื่องมือวัดบนโต๊ะ: ไม้บรรทัด (ขีดศูนย์ x,y · มุม rad) · โปรแทรกเตอร์ (จุดกลาง x,y) */
+const RUL_L=30, PRO_R=10;
+const RUL_HOME={x:8,y:-15,ang:0}, PRO_HOME={x:60,y:-20};
+let rul={...RUL_HOME}, pro={...PRO_HOME};
+let phase='armed', RUN=null, runT=0, lastRun=null;
+let mode='manual', rows=[], graph='vec', curView='iso';
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+const fmtS=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':(Math.abs(x)<5e-4?'0':((x>0?'+':'')+x.toFixed(n)));
+const isX=()=>MB_OPT[bI]==='X';
+const mBg=()=>isX()?M_XP:MB_OPT[bI];
+function clampB(){ xB=Math.max(28,Math.min(52,xB)); yB=Math.max(17,Math.min(33,yB)); }
+
+/* ═══════════ ฟิสิกส์ + ภาพแฟลช ═══════════ */
+function buildRun(){
+  const mA=M_A, mB=mBg(), v0=SPEEDS[spdI]*(1+(Math.random()*2-1)*0.02);
+  const DT=0.0005, SUB=8, TMAX=4.0;
+  let pa={x:X_START,y:Y_LINE,vx:v0,vy:0,stop:false}, pb={x:xB,y:yB,vx:0,vy:0,stop:false}, hitT=null, hit=null;
+  const smp=[], flashes=[]; let nextF=T0_F;
+  const edge=p=>{ if(p.stop) return; if(p.x<RAD||p.x>TW_CM-RAD||p.y<RAD||p.y>TH_CM-RAD){ p.x=Math.max(RAD,Math.min(TW_CM-RAD,p.x)); p.y=Math.max(RAD,Math.min(TH_CM-RAD,p.y)); p.vx=0; p.vy=0; p.stop=true; } };
+  let t=0, n=0;
+  for(n=0;t<TMAX;n++){
+    t=n*DT;
+    if(n%SUB===0) smp.push(pa.x,pa.y,pb.x,pb.y);
+    if(t>=nextF-1e-9){ flashes.push({t,ax:pa.x,ay:pa.y,bx:pb.x,by:pb.y,aStop:pa.stop,bStop:pb.stop,after:hitT!==null}); nextF+=DT_F; }
+    [pa,pb].forEach(p=>{ if(p.stop) return; const s=Math.hypot(p.vx,p.vy); if(s>0){ const ns=Math.max(0,s-DECEL*DT); p.vx*=ns/s; p.vy*=ns/s; } p.x+=p.vx*DT; p.y+=p.vy*DT; });
+    const dx=pb.x-pa.x, dy=pb.y-pa.y, dist=Math.hypot(dx,dy);
+    if(dist<=DIA&&!pb.stop){ const nx=dx/dist, ny=dy/dist, vrel=(pa.vx-pb.vx)*nx+(pa.vy-pb.vy)*ny;
+      if(vrel>0){ const J=(1+E_REST)*vrel/(1/mA+1/mB); pa.vx-=J/mA*nx; pa.vy-=J/mA*ny; pb.vx+=J/mB*nx; pb.vy+=J/mB*ny;
+        const ov=DIA-dist; pa.x-=nx*ov*mB/(mA+mB); pa.y-=ny*ov*mB/(mA+mB); pb.x+=nx*ov*mA/(mA+mB); pb.y+=ny*ov*mA/(mA+mB);
+        if(hitT===null){ hitT=t; hit={vA0:v0, vA:[pa.vx,pa.vy], vB:[pb.vx,pb.vy]}; } } }
+    edge(pa); edge(pb);
+    if(pa.stop&&pb.stop) break;
+    if(hitT===null&&pa.x>pb.x+DIA+1) { /* พลาด */ }
+  }
+  smp.push(pa.x,pa.y,pb.x,pb.y);
+  /* แยกชุดจุด: A ก่อนชน · A หลังชน · B หลังชน (ตัดจุดหลังชนขอบโต๊ะ) */
+  const A1=flashes.filter(f=>!f.after&&!f.aStop).map(f=>({x:f.ax,y:f.ay}));
+  const A2=flashes.filter(f=>f.after&&!f.aStop).map(f=>({x:f.ax,y:f.ay}));
+  const B2=flashes.filter(f=>f.after&&!f.bStop).map(f=>({x:f.bx,y:f.by}));
+  const tEnd=Math.min(t, TMAX);
+  return {mA,mB,v0,hitT,hit,A1,A2,B2,bStart:{x:xB,y:yB},smp,dts:DT*SUB,tEnd,flashT:flashes.map(f=>f.t)};
+}
+function posAt(t){ const R=RUN; if(!R) return [X_START,Y_LINE,xB,yB]; const f=t/R.dts, i=Math.floor(f), N=R.smp.length/4-1;
+  const g=k=>R.smp[4*Math.min(i,N)+k]; if(i>=N) return [g(0),g(1),g(2),g(3)]; const u=f-i; return [0,1,2,3].map(k=>R.smp[4*i+k]+(R.smp[4*i+4+k]-R.smp[4*i+k])*u); }
+function seg(L){ if(L.length<NSTEP+1) return null; const dx=L[NSTEP].x-L[0].x, dy=L[NSTEP].y-L[0].y; return {dx,dy,L:Math.hypot(dx,dy),T:Math.atan2(dy,dx)*180/Math.PI}; }
+function fireRun(){
+  if(phase==='run'){ lockWarn('รอให้ลูกยางหยุดก่อน'); return; }
+  if(phase==='done'){ lockWarn('กด ↩ วางใหม่ ก่อนยิงอีกครั้ง'); return; }
+  RUN=buildRun(); runT=0; phase='run';
+  const sA=seg(RUN.A1), sA2=seg(RUN.A2), sB2=seg(RUN.B2);
+  lastRun={mB:MB_OPT[bI], X:isX(), spd:spdI, hit:RUN.hitT!==null, ok:!!(RUN.hitT!==null&&sA&&sA2&&sB2), sA,sA2,sB2, nA:RUN.A1.length,nA2:RUN.A2.length,nB2:RUN.B2.length, rec:false};
+  if(mode==='manual') ['in-aL','in-a2L','in-a2T','in-b2L','in-b2T'].forEach(id=>$(id).value='');
+  updPhoto(); recMsg(''); drawAll();
+}
+function rearm(){ if(phase==='run'){ lockWarn('รอให้ลูกยางหยุดก่อน'); return; } phase='armed'; RUN=null; runT=0; updPhoto(); drawAll(); }
+function stepRun(dt){
+  if(phase!=='run') return; runT+=dt;
+  if(RUN.flashT.some(ft=>ft>runT-dt&&ft<=runT)) flashPulse=1;
+  if(runT>=RUN.tEnd){ runT=RUN.tEnd; phase='done'; updPhoto(); drawAll(); }
+}
+let flashPulse=0;
+
+/* ═══════════ UI actions ═══════════ */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto') $('autoGrid').innerHTML='';   /* ไม่ทิ้งค่าเฉลยไว้ใน DOM */
+  ['in-aL','in-a2L','in-a2T','in-b2L','in-b2T'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; });
+  const au=m==='auto', H=['— ไม้บรรทัด A1 → A5','— ไม้บรรทัด A′1 → A′5','— โปรแทรกเตอร์ (ใต้แนว = −)','— ไม้บรรทัด B′1 → B′5','— โปรแทรกเตอร์ (เหนือแนว = +)'];
+  ['h1','h2','h3','h4','h5'].forEach((id,i)=>$(id).textContent= au?'— โหมดอัตโนมัติ':H[i]);
+  $('modeNote').textContent= au?'โหมดอัตโนมัติ: แสดงมวล X และความเร็วจริง':'โหมดวัดเอง: วัดด้วยไม้บรรทัดและโปรแทรกเตอร์ในภาพ 3D';
+  $('ansMMsg').innerHTML=''; $('ansKMsg').innerHTML=''; renderAll(); }
+function busy(){ if(phase==='run'){ lockWarn('รอให้ลูกยางหยุดก่อน'); return true; } return false; }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function afterChange(){ clampB(); if(phase==='done') rearm(); syncCtl(); drawAll(); }
+function setB(i){ if(busy()) return; bI=i; markBtns('#bBtns',i); afterChange(); }
+function setSpd(i){ if(busy()) return; spdI=i; markBtns('#spdBtns',i); afterChange(); }
+function cycleB(){ setB((bI+1)%MB_OPT.length); }
+function cycleSpd(){ setSpd((spdI+1)%SPEEDS.length); }
+function resetLab(){ if(busy()) return; bI=0; spdI=1; xB=38.0; yB=26.5; rul={...RUL_HOME}; pro={...PRO_HOME}; phase='armed'; RUN=null; runT=0; lastRun=null;
+  markBtns('#bBtns',0); markBtns('#spdBtns',1); if(mode==='manual') ['in-aL','in-a2L','in-a2T','in-b2L','in-b2T'].forEach(id=>$(id).value='');
+  updPhoto(); recMsg(''); setView('iso'); syncCtl(); drawAll(); }
+function syncCtl(){
+  const kn=`A ${M_A} g · B ${isX()?'X (?)':mBg()+' g'} · Δt = 0.040 s × 4`; if($('in-known').value!==kn) $('in-known').value=kn;
+  $('roB').textContent=`(${xB.toFixed(1)}, ${yB.toFixed(1)}) cm`; $('roOff').textContent=`${(yB-Y_LINE).toFixed(1)} cm`+(Math.abs(yB-Y_LINE)>=DIA?' · ไม่ชน':'');
+  const s=(id,t)=>{ const b=$(id); if(b&&b.textContent!==t) b.textContent=t; };
+  s('ab-mB',isX()?'❓ B = X':(bI===0?'🟠 B 150 g':'🟤 B 300 g')); s('ab-spd','🔧 แรงยิง '+SPD_N[spdI]);
+  if(P.labB) P.labB.redraw();
+}
+
+/* ═══════════ คำแนะนำทีละขั้น ═══════════ */
+function goodRows(){ return rows.map(derive).filter(q=>q); }
+function hintState(){
+  const G=goodRows(), E=G.filter(q=>!q.X&&q.mB===150), H2=G.filter(q=>!q.X&&q.mB===300), Xr=G.filter(q=>q.X);
+  if(phase==='run') return ['info','④ ลูกยาง A พุ่งไปชน B — ไฟแฟลชทุก 0.040 s (กด 🐢 ให้ช้าลงได้)'];
+  if(phase==='done'&&lastRun&&!lastRun.rec){
+    if(!lastRun.hit) return ['warn','⚠️ ลูกยาง A ไม่ชน B (เยื้องเกิน 5 cm) — กด <b>↩ วางใหม่</b> แล้ว<b>ลากลูกยาง B</b> ให้ใกล้แนวยิง y = 25 cm มากขึ้น'];
+    if(!lastRun.ok) return ['warn','⚠️ ภาพแฟลชไม่ครบ 5 จุด (A ก่อนชน '+lastRun.nA+' · A′ '+lastRun.nA2+' · B′ '+lastRun.nB2+') — ลูกยางชนขอบโต๊ะเร็วเกินไป<br>กด <b>↩ วางใหม่</b> ลดแรงยิง หรือเปลี่ยนระยะเยื้อง'];
+    return ['ok','⑤ วัดภาพแฟลช! หยิบเครื่องมือจากถาดหน้าโต๊ะ (หรือกด <b>🧰 เรียกเครื่องมือมาที่นี่</b>) · ลาก<b>ไม้บรรทัด</b>ให้ขีดศูนย์อยู่ที่จุดที่ 1 หมุน (ลากจุดแดง) ให้ผ่านจุดที่ 5 อ่านความยาว<br>ลาก<b>โปรแทรกเตอร์</b>ให้จุดกลางอยู่ที่ A′1 / B′1 อ่านมุมไปยังจุดที่ 5 (ใต้แนวยิงเป็นลบ)<br>② A1→A5 · ③④ A′1→A′5 · ⑤⑥ B′1→B′5 → <b>📝 บันทึก</b>'];
+  }
+  if(!rows.length) return ['info','① ลูกยาง B 150 g · <b>ลากลูกยาง B</b> ให้เยื้องจากแนวยิงเล็กน้อย (1–3 cm)<br>② กด <b>▶ ยิง + ถ่ายแฟลช</b>'];
+  if(E.length<3) return ['info','⑥ มวลเท่ากัน บันทึกแล้ว '+E.length+'/3 แถว → กด <b>↩ วางใหม่</b> <b>ลากลูกยาง B</b> ให้เยื้องต่างจากเดิม แล้วยิงอีกครั้ง — ดูมุมแยกในตาราง ②'];
+  if(H2.length<2) return ['info','⑦ เปลี่ยนลูกยาง B เป็น <b>🟤 300 g</b> บันทึกอย่างน้อย 2 แถว ('+H2.length+'/2) — มุมแยกเปลี่ยนไปอย่างไร'];
+  if(Xr.length<2) return ['info','⑧ เปลี่ยนลูกยาง B เป็น <b>❓ X</b> บันทึกอย่างน้อย 2 แถว ('+Xr.length+'/2) — m_X = −m_A Δy_A′/Δy_B′'];
+  return ['ok','⑨ ข้อมูลพอแล้ว ✓ ตาราง ② Σp_x หลัง ≈ p_x ก่อน · Σp_y หลัง ≈ 0 · กราฟเวกเตอร์ p<br>⑩ กรอกมวลลูกยาง X และคำทำนายมุมใน 🎯'];
+}
+function updateHint(){
+  const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const ph={armed:'<span style="color:#6ee7b7">✓ พร้อมยิง</span>',run:'<span style="color:#fde047">⏳ กำลังถ่ายแฟลช</span>',done:'<span style="color:#93c5fd">■ ได้ภาพแฟลชแล้ว</span>'}[phase];
+  const sl=`<b>A 150 g</b> → <b>B ${isX()?'X':mBg()+' g'}</b> · แรงยิง${SPD_N[spdI]} · B ที่ (${xB.toFixed(1)}, ${yB.toFixed(1)}) · เยื้อง ${(yB-Y_LINE).toFixed(1)} cm · ${ph}`;
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){
+    const R=RUN, H=R&&R.hit;
+    const html=`<div class="readout-box"><div class="label">มวลลูกยาง X (จริง)</div><div class="value">${M_XP} g</div></div>`
+     +`<div class="readout-box"><div class="label">e ขอบแม่เหล็ก</div><div class="value">${E_REST.toFixed(3)}</div></div>`
+     +`<div class="readout-box"><div class="label">v_A ก่อนชน</div><div class="value">${R?(R.v0/100).toFixed(3)+' m/s':'—'}</div></div>`
+     +`<div class="readout-box"><div class="label">v_A′ · v_B′ (x, y)</div><div class="value" style="font-size:.72rem">${H?'('+(H.vA[0]/100).toFixed(3)+', '+(H.vA[1]/100).toFixed(3)+') · ('+(H.vB[0]/100).toFixed(3)+', '+(H.vB[1]/100).toFixed(3)+')':'—'}</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    if(phase==='done'&&lastRun&&lastRun.ok){ const L=lastRun; $('in-aL').value=L.sA.L.toFixed(1); $('in-a2L').value=L.sA2.L.toFixed(1); $('in-a2T').value=L.sA2.T.toFixed(0); $('in-b2L').value=L.sB2.L.toFixed(1); $('in-b2T').value=L.sB2.T.toFixed(0); }
+  } else $('autoGrid').dataset.t='';
+}
+
+/* ═══════════ การบันทึกผล ═══════════ */
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+(cls||''); el.innerHTML=txt||''; }
+function recordRow(){
+  if(phase==='run'){ recMsg('warn','⚠️ รอให้ลูกยางหยุดก่อน'); return; }
+  if(!lastRun||phase!=='done'){ recMsg('warn','⚠️ ยังไม่ได้ยิง — กด <b>▶ ยิง + ถ่ายแฟลช</b> ก่อน'); return; }
+  if(lastRun.rec){ recMsg('warn','⚠️ ภาพนี้บันทึกไปแล้ว — กด <b>↩ วางใหม่</b> แล้วยิงใหม่'); return; }
+  if(!lastRun.ok){ recMsg('warn','⚠️ ภาพแฟลชไม่สมบูรณ์ บันทึกไม่ได้ — ดูคำแนะนำ 🧭'); return; }
+  const ids=['in-aL','in-a2L','in-a2T','in-b2L','in-b2T']; let v;
+  if(mode==='auto'){ const L=lastRun; v=[Math.round(L.sA.L*10)/10, Math.round(L.sA2.L*10)/10, Math.round(L.sA2.T), Math.round(L.sB2.L*10)/10, Math.round(L.sB2.T)]; }
+  else{ v=ids.map(id=>parseFloat($(id).value)); const bad=v.findIndex(x=>isNaN(x));
+    const names=['② ความยาว A1→A5','③ ความยาว A′1→A′5','④ มุมของ A หลังชน','⑤ ความยาว B′1→B′5','⑥ มุมของ B หลังชน'];
+    if(bad>=0){ recMsg('warn','⚠️ กรอก '+names[bad]+(bad===2||bad===4?' (องศา)':' (cm)')); $(ids[bad]).focus(); return; }
+    if(v[0]<=0||v[1]<0||v[3]<0){ recMsg('warn','⚠️ ความยาวต้องเป็นบวก — ทิศบอกด้วยมุม'); return; }
+    if([v[0],v[1],v[3]].some(x=>x>60)){ recMsg('warn','⚠️ ความยาวใน 4 ช่วงแฟลชไม่ควรเกิน 60 cm — ตรวจหน่วย cm'); return; }
+    if(Math.abs(v[2])>180||Math.abs(v[4])>180){ recMsg('warn','⚠️ มุมอยู่ระหว่าง −180° ถึง +180° (เหนือแนวยิงเป็นบวก ใต้แนวยิงเป็นลบ)'); return; } }
+  const c=Math.PI/180;
+  const row={mB:lastRun.mB, X:lastRun.X, spd:lastRun.spd, aL:v[0], a2L:v[1], a2T:v[2], b2L:v[3], b2T:v[4],
+    ax:v[0], a2x:v[1]*Math.cos(v[2]*c), a2y:v[1]*Math.sin(v[2]*c), b2x:v[3]*Math.cos(v[4]*c), b2y:v[3]*Math.sin(v[4]*c)};
+  rows.push(row); lastRun.rec=true;
+  if(mode==='manual') ids.forEach(id=>$(id).value='');
+  renderAll(); renderLast(rows.length-1);
+  recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว — ดูผลที่กรอบ “📊 ผลที่บันทึกล่าสุด”`+(innerWidth<=900?' — จอเล็ก: กด <b>📊 ผล / ตาราง</b> ที่ขอบล่าง':' ในแผงด้านข้าง'));
+}
+const DEG=180/Math.PI;
+function derive(r){
+  const T=NSTEP*DT_F, k=1/(100*T), mA=M_A/1000;
+  const vA=r.ax*k, vA2=[r.a2x*k,r.a2y*k], vB2=[r.b2x*k,r.b2y*k];
+  const q={X:r.X, mB:r.mB, vA, vA2, vB2, pA:mA*vA, thA:Math.atan2(vA2[1],vA2[0])*DEG, thB:Math.atan2(vB2[1],vB2[0])*DEG};
+  let sep=Math.abs(q.thA-q.thB); if(sep>180) sep=360-sep; q.sep=sep;
+  if(r.X){ const ests=[]; if(Math.abs(r.b2y)>=0.5) ests.push(-M_A*r.a2y/r.b2y); if(Math.abs(r.b2x)>=0.5) ests.push(M_A*(r.ax-r.a2x)/r.b2x);
+    q.mEstY= Math.abs(r.b2y)>=0.5? -M_A*r.a2y/r.b2y : null; q.mEstX= Math.abs(r.b2x)>=0.5? M_A*(r.ax-r.a2x)/r.b2x : null;
+    const ok=ests.filter(e=>e>0); q.mEst= ok.length? ok.reduce((a,b)=>a+b,0)/ok.length : null; }
+  else { const mB=r.mB/1000; q.px2=mA*vA2[0]+mB*vB2[0]; q.py2=mA*vA2[1]+mB*vB2[1]; q.pxR=q.px2/q.pA; q.pyR=q.py2/q.pA;
+    q.pA2=[mA*vA2[0],mA*vA2[1]]; q.pB2=[mB*vB2[0],mB*vB2[1]];
+    q.E1=0.5*mA*vA*vA; q.E2=0.5*mA*(vA2[0]**2+vA2[1]**2)+0.5*mB*(vB2[0]**2+vB2[1]**2); q.eR=q.E2/q.E1; }
+  return q;
+}
+function renderLast(i){ const r=rows[i]; if(!r) return; const q=derive(r);
+  let h=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">m_A · m_B</span><span class="v">150 g · ${r.X?'X (ไม่ทราบ)':r.mB+' g'}</span>`
+   +`<span class="k">|d| · θ  A · A′ · B′</span><span class="v">${fmt(r.aL,1)} cm · ${fmt(r.a2L,1)} cm ${fmtS(r.a2T,0)}° · ${fmt(r.b2L,1)} cm ${fmtS(r.b2T,0)}°</span>`
+   +`<span class="k">v_A = Δx/(4Δt)</span><span class="v">${fmt(q.vA,3)} m/s</span>`
+   +`<span class="k">v_A′ · มุม</span><span class="v">(${fmtS(q.vA2[0],3)}, ${fmtS(q.vA2[1],3)}) m/s · ${fmtS(q.thA,1)}°</span>`
+   +`<span class="k">v_B′ · มุม</span><span class="v">(${fmtS(q.vB2[0],3)}, ${fmtS(q.vB2[1],3)}) m/s · ${fmtS(q.thB,1)}°</span>`
+   +`<span class="k">มุมระหว่างแนว A′ กับ B′</span><span class="v big">${fmt(q.sep,1)}°</span>`;
+  if(r.X) h+=`<span class="k">m_X จากแกน y · แกน x</span><span class="v">${fmt(q.mEstY,0)} g · ${fmt(q.mEstX,0)} g</span><span class="k">m_X เฉลี่ย</span><span class="v big">${fmt(q.mEst,0)} g</span>`;
+  else h+=`<span class="k">p_x ก่อน</span><span class="v">${fmt(q.pA,4)} kg·m/s</span><span class="k">Σp_x หลัง · Σp_y หลัง</span><span class="v big">${fmtS(q.px2,4)} · ${fmtS(q.py2,4)}</span><span class="k">Σp_x/p ก่อน · Σp_y/p ก่อน</span><span class="v">${fmt(q.pxR*100,1)} % · ${fmtS(q.pyR*100,1)} %</span><span class="k">Ek หลัง/ก่อน</span><span class="v">${fmt(q.eR*100,1)} %</span>`;
+  $('lastRec').innerHTML=h; }
+function renderTable(){
+  let h='<table><thead><tr><th>#</th><th>m_B<br>(g)</th><th>|d_A|<br>(cm)</th><th>|d_A′|<br>(cm)</th><th>θ_A′<br>(°)</th><th>|d_B′|<br>(cm)</th><th>θ_B′<br>(°)</th><th>v_A<br>(m/s)</th><th>v_A′x</th><th>v_A′y</th><th>v_B′x</th><th>v_B′y</th></tr></thead><tbody>';
+  h+=rows.map((r,i)=>{ const q=derive(r); return `<tr style="${r.X?'color:#d8b4fe':''}"><td>${i+1}</td><td class="mono">${r.X?'X':r.mB}</td><td class="mono">${fmt(r.aL,1)}</td><td class="mono">${fmt(r.a2L,1)}</td><td class="mono">${fmtS(r.a2T,0)}</td><td class="mono">${fmt(r.b2L,1)}</td><td class="mono">${fmtS(r.b2T,0)}</td><td class="mono">${fmt(q.vA,3)}</td><td class="mono">${fmtS(q.vA2[0],3)}</td><td class="mono">${fmtS(q.vA2[1],3)}</td><td class="mono">${fmtS(q.vB2[0],3)}</td><td class="mono">${fmtS(q.vB2[1],3)}</td></tr>`; }).join('');
+  if(!rows.length) h+='<tr><td colspan="12" style="color:var(--muted)">ยังไม่มีข้อมูล — ยิง อ่านภาพแฟลช แล้วกดบันทึก</td></tr>';
+  $('tableA').innerHTML=h+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">|v| = |d| (cm) ÷ 100 ÷ (4 × 0.040 s) · v_x = |v| cos θ · v_y = |v| sin θ · θ วัดจากทิศยิง (เหนือแนว +) · <span style="color:#d8b4fe">สีม่วง</span> = ลูกยาง X</div>';
+  let h2='<table><thead><tr><th>#</th><th>m_B</th><th>p_x ก่อน<br>(kg·m/s)</th><th>Σp_x หลัง</th><th>Σp_y หลัง</th><th>Σp_x/p<br>(%)</th><th>Σp_y/p<br>(%)</th><th>มุมแยก<br>(°)</th><th>Ek หลัง/ก่อน<br>(%)</th><th>m_X<br>(g)</th></tr></thead><tbody>';
+  h2+=rows.map((r,i)=>{ const q=derive(r); return `<tr style="${r.X?'color:#d8b4fe':''}"><td>${i+1}</td><td class="mono">${r.X?'X':r.mB}</td><td class="mono">${fmt(q.pA,4)}</td><td class="mono">${r.X?'—':fmtS(q.px2,4)}</td><td class="mono">${r.X?'—':fmtS(q.py2,4)}</td><td class="mono" style="color:#facc15">${r.X?'—':fmt(q.pxR*100,1)}</td><td class="mono" style="color:#facc15">${r.X?'—':fmtS(q.pyR*100,1)}</td><td class="mono">${fmt(q.sep,1)}</td><td class="mono">${r.X?'—':fmt(q.eR*100,1)}</td><td class="mono">${r.X?fmt(q.mEst,0):'—'}</td></tr>`; }).join('');
+  if(!rows.length) h2+='<tr><td colspan="10" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const G=goodRows(), E=G.filter(q=>!q.X&&q.mB===150), H2=G.filter(q=>!q.X&&q.mB===300), Xr=G.filter(q=>q.X&&q.mEst); let foot='';
+  if(E.length) foot+=`มวลเท่ากัน (${E.length} แถว): มุมแยกเฉลี่ย <b class="mono" style="color:var(--accent3)">${fmt(E.reduce((a,q)=>a+q.sep,0)/E.length,1)}°</b><br>`;
+  if(H2.length) foot+=`B 300 g (${H2.length} แถว): มุมแยกเฉลี่ย <b class="mono">${fmt(H2.reduce((a,q)=>a+q.sep,0)/H2.length,1)}°</b><br>`;
+  if(Xr.length) foot+=`ค่าเฉลี่ย m_X (${Xr.length} แถว) = <b class="mono" style="color:#d8b4fe">${fmt(Xr.reduce((a,q)=>a+q.mEst,0)/Xr.length,0)} g</b>`+(mode==='auto'?` · ค่าจริง ${M_XP} g`:'')+'<br>';
+  $('tableB').innerHTML=h2+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">ก่อนชนมีแต่ p_x = m_A v_A · Σp_x หลัง = m_A v_A′x + m_B v_B′x (ควรเท่า p_x ก่อน) · Σp_y หลัง = m_A v_A′y + m_B v_B′y (ควรเป็น 0) · ลูกยาง X: m_X = −m_A v_A′y/v_B′y เฉลี่ยกับ m_A(v_A − v_A′x)/v_B′x<br>'+foot+'</div>';
+}
+function exportCSV(){
+  const csv='﻿row,mB_g,dA_cm,dA2_cm,thA2_deg,dB2_cm,thB2_deg,vA,vA2x,vA2y,vB2x,vB2y,px_before,px_after,py_after,sep_deg,Ek_ratio,mX_est_g\n'+rows.map((r,i)=>{ const q=derive(r);
+    return [i+1,r.X?'X':r.mB,r.aL,r.a2L,r.a2T,r.b2L,r.b2T,q.vA.toFixed(4),q.vA2[0].toFixed(4),q.vA2[1].toFixed(4),q.vB2[0].toFixed(4),q.vB2[1].toFixed(4),q.pA.toFixed(5),r.X?'':q.px2.toFixed(5),r.X?'':q.py2.toFixed(5),q.sep.toFixed(1),r.X?'':q.eR.toFixed(4),r.X&&q.mEst?q.mEst.toFixed(0):''].join(','); }).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab83_2D_collision.csv'; a.click(); }
+function setGraph(g0){ graph=g0; document.querySelectorAll('#graphBtns button').forEach((b,i)=>b.classList.toggle('active',['vec','pp','ang'][i]===g0)); drawGraph(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCbar(); syncCtl(); }
+
+/* ═══════════ กราฟ ═══════════ */
+function axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,lx,ly,ymin){
+  ymin=ymin||0; g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"';
+  const nice=m=>{ const r=m/5, p=Math.pow(10,Math.floor(Math.log10(r||1))), f=r/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; };
+  const sx=nice(xmax), sy=nice(ymax-ymin); g.textAlign='center';
+  for(let v=0;v<=xmax+1e-9;v+=sx){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),X(v),H-mb+12); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(X(v),mt); g.lineTo(X(v),mt+gh); g.stroke(); }
+  g.textAlign='right';
+  for(let v=Math.ceil(ymin/sy-1e-9)*sy;v<=ymax+1e-9;v+=sy){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),ml-4,Y(v)+3); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(ml,Y(v)); g.lineTo(ml+gw,Y(v)); g.stroke(); }
+  g.fillStyle='#94a3b8'; g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText(lx,ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText(ly,0,0); g.restore(); }
+function garrow(g,x0,y0,x1,y1,col,lab,dash){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=2.4; g.setLineDash(dash?[6,4]:[]); g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); g.setLineDash([]);
+  const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-10*Math.cos(a-0.4),y1-10*Math.sin(a-0.4)); g.lineTo(x1-10*Math.cos(a+0.4),y1-10*Math.sin(a+0.4)); g.closePath(); g.fill();
+  if(lab){ g.font='bold 11px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(lab,(x0+x1)/2+6,(y0+y1)/2-6); } }
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=52,mr=10,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, notes=[];
+  const G=goodRows(), K=G.filter(q=>!q.X);
+  if(graph==='vec'){
+    const q=K[K.length-1];
+    if(!q){ g.fillStyle='#64748b'; g.font='13px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('บันทึกการชนกับลูกยางที่ทราบมวลก่อน',W/2,H/2); notes.push('แผนภาพนี้วาดเวกเตอร์โมเมนตัมของแถวล่าสุด (ลูกยางที่ทราบมวล)'); }
+    else{ const pts=[[0,0],[q.pA,0],q.pA2,[q.pA2[0]+q.pB2[0],q.pA2[1]+q.pB2[1]]];
+      const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]), x0=Math.min(0,...xs), x1=Math.max(...xs), y0=Math.min(0,...ys), y1=Math.max(0,...ys), span=Math.max(x1-x0,(y1-y0)*gw/gh)*1.25||1;
+      const sc=Math.min(gw/span, gh/span*gw/gh), cx=ml+gw/2-((x0+x1)/2)*sc, cy=mt+gh/2+((y0+y1)/2)*sc, X=v=>cx+v*sc, Y=v=>cy-v*sc;
+      g.strokeStyle='rgba(30,58,95,.6)'; g.lineWidth=1; g.beginPath(); g.moveTo(ml,Y(0)); g.lineTo(ml+gw,Y(0)); g.stroke();
+      garrow(g,X(0),Y(0),X(q.pA),Y(0),'#94a3b8','p_A ก่อนชน',true);
+      garrow(g,X(0),Y(0),X(q.pA2[0]),Y(q.pA2[1]),'#38bdf8','p_A′');
+      garrow(g,X(q.pA2[0]),Y(q.pA2[1]),X(q.pA2[0]+q.pB2[0]),Y(q.pA2[1]+q.pB2[1]),'#fb923c','p_B′');
+      garrow(g,X(0),Y(0),X(q.pA2[0]+q.pB2[0]),Y(q.pA2[1]+q.pB2[1]),'#34d399','Σp หลัง');
+      notes.push(`แถวล่าสุด (m_B = ${q.mB} g): <span style="color:#94a3b8">p_A ก่อนชน (ประเทา)</span> · <span style="color:#38bdf8">p_A′</span> ต่อหัว-ท้ายด้วย <span style="color:#fb923c">p_B′</span> · <span style="color:#34d399">ผลรวมหลังชน (เขียว)</span> ควรทับเส้นประเทา`);
+      notes.push(`Σp หลัง = ${fmt(Math.hypot(q.px2,q.py2),4)} kg·m/s เทียบ p ก่อน ${fmt(q.pA,4)} kg·m/s · มุมแยก ${fmt(q.sep,1)}°`); }
+  } else if(graph==='pp'){
+    const mx=Math.max(0.05,...K.map(q=>Math.max(q.pA,q.px2)))*1.15, ymin=-mx*0.25, X=v=>ml+v/mx*gw, Y=v=>mt+gh-(v-ymin)/(mx-ymin)*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,mx,mx,X,Y,'p_x ก่อนชน (kg·m/s)','ผลรวมโมเมนตัมหลังชน (kg·m/s)',ymin);
+    g.strokeStyle='#64748b'; g.setLineDash([5,4]); g.lineWidth=1.3; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(mx),Y(mx)); g.stroke(); g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(mx),Y(0)); g.stroke(); g.setLineDash([]);
+    K.forEach(q=>{ g.fillStyle=q.mB===150?'#38bdf8':'#fb923c'; g.beginPath(); g.arc(X(q.pA),Y(q.px2),4,0,Math.PI*2); g.fill();
+      g.beginPath(); g.moveTo(X(q.pA),Y(q.py2)-5); g.lineTo(X(q.pA)+5,Y(q.py2)+4); g.lineTo(X(q.pA)-5,Y(q.py2)+4); g.closePath(); g.fill(); });
+    notes.push('● = Σp_x หลังชน (ควรอยู่บนเส้นประทแยง) · ▲ = Σp_y หลังชน (ควรอยู่บนเส้นประศูนย์) · <span style="color:#38bdf8">ฟ้า</span> B 150 g · <span style="color:#fb923c">ส้ม</span> B 300 g');
+    if(K.length) notes.push(`เฉลี่ย Σp_x/p = <b class="mono" style="color:var(--accent3)">${fmt(K.reduce((a,q)=>a+q.pxR,0)/K.length*100,1)} %</b> · Σp_y/p = <b class="mono" style="color:var(--accent3)">${fmtS(K.reduce((a,q)=>a+q.pyR,0)/K.length*100,1)} %</b>`);
+  } else {
+    const X=v=>ml+v/2.5*gw, ymax=150, Y=v=>mt+gh-v/ymax*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,2.5,ymax,X,Y,'m_B / m_A','มุมแยก (องศา)');
+    g.strokeStyle='#facc15'; g.setLineDash([5,4]); g.beginPath(); g.moveTo(ml,Y(90)); g.lineTo(ml+gw,Y(90)); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#fde68a'; g.font='10px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('90°',ml+4,Y(90)-4);
+    K.forEach(q=>{ g.fillStyle=q.mB===150?'#38bdf8':'#fb923c'; g.beginPath(); g.arc(X(q.mB/150),Y(q.sep),4,0,Math.PI*2); g.fill(); });
+    [150,300].forEach(m=>{ const L=K.filter(q=>q.mB===m); if(L.length) notes.push(`B ${m} g: มุมแยกเฉลี่ย <b class="mono">${fmt(L.reduce((a,q)=>a+q.sep,0)/L.length,1)}°</b> · Ek หลัง/ก่อน เฉลี่ย <b class="mono">${fmt(L.reduce((a,q)=>a+q.eR,0)/L.length*100,1)} %</b> (${L.length} แถว)`); });
+    notes.push('มวลเท่ากันและชนแบบยืดหยุ่น → มุมแยก 90° · มีพลังงานสูญเสีย → น้อยกว่า 90° เล็กน้อย · B หนักกว่า → มากกว่า 90°');
+  }
+  $('graphNote').innerHTML=notes.join('<br>');
+}
+
+/* ═══════════ ตรวจคำตอบ ═══════════ */
+function checkM(){ const val=parseFloat($('ans-m').value), el=$('ansMMsg');
+  if(isNaN(val)||val<=0){ el.innerHTML='<span style="color:#fde047">กรอกมวลลูกยาง X ที่หาได้ (g)</span>'; return; }
+  const act=M_XP, err=(val-act)/act*100, ok=Math.abs(err)<=6;
+  el.innerHTML= mode==='auto'
+    ? `<span style="color:${ok?'#86efac':'#fca5a5'}">มวลจริง = <b class="mono">${act} g</b> · คำตอบคลาด ${err>=0?'+':''}${err.toFixed(1)}% ${ok?'✓':''}</span>`
+    : ok? '<span style="color:#86efac">✓ ถูกต้อง! มวลลูกยาง X ที่หาได้คลาดไม่เกิน 6%</span>'
+        : '<span style="color:#fca5a5">✗ ยังไม่ถูก — จากแกน y: m_X = −m_A |d_A′| sin θ_A′ / (|d_B′| sin θ_B′) · ระวังเครื่องหมายมุม (ใต้แนวยิงเป็นลบ) · ใช้จุดห่างกัน 4 ช่วงแฟลชเสมอ · บันทึกหลายแถวแล้วเฉลี่ย</span>'; }
+function checkK(){ const val=parseFloat($('ans-k').value), el=$('ansKMsg');
+  if(isNaN(val)){ el.innerHTML='<span style="color:#fde047">กรอกมุม (องศา)</span>'; return; }
+  const ok=Math.abs(val-90)<=4;
+  el.innerHTML= ok? '<span style="color:#86efac">✓ ถูกต้อง! 90° — p_A = p_A′ + p_B′ และ p_A² = p_A′² + p_B′² จึงเป็นสามเหลี่ยมมุมฉาก · ลองดูมุมแยกในตาราง ② ของลูกยางมวลเท่ากัน</span>'
+    : '<span style="color:#fca5a5">✗ ยังไม่ถูก — รวมเวกเตอร์ p_A′ + p_B′ = p_A และพลังงานจลน์อนุรักษ์ p_A² = p_A′² + p_B′² → นึกถึงทฤษฎีบทพีทาโกรัส</span>'; }
+
+/* ═══════════ แถบปุ่มหลักใต้ภาพ 3D ═══════════ */
+function cbarState(){ return { 'ab-fire':{dis:phase!=='armed'}, 'ab-arm':{dis:phase!=='done'}, 'ab-mB':{dis:phase==='run'}, 'ab-spd':{dis:phase==='run'}, 'ab-top':{dis:false}, 'ab-rec':{dis:phase!=='done'} }; }
+function syncCbar(){ const st=cbarState(); for(const id in st){ const b=$(id); if(!b) continue; if(b.disabled!==st[id].dis) b.disabled=st[id].dis; } }
+
+/* ═══════════ 3D (หน่วย cm) ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const TBL=90;
+const W3=(x,y)=>[x, 25-y];                           /* พิกัดภาพแฟลช → (world x, world z) */
+const orbit={target:null,dist:160,az:0.4,el:0.7};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360);
+  return Math.max(14,Math.min(460, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={
+  iso :{t:[40,TBL,12], d:()=>fitDist(110,95), az:0.45, el:0.80},
+  top :{t:[40,TBL,0], d:()=>fitDist(86,56), az:0.0001, el:1.5},
+  hit :{follow:()=>[xB,TBL,25-yB], d:()=>fitDist(28,18), az:0.0001, el:1.45},
+  tool:{follow:()=>[rul.x+10*Math.cos(rul.ang), TBL, 25-(rul.y+10*Math.sin(rul.ang))], d:()=>fitDist(30,20), az:0.0001, el:1.5}};
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function texText(g,str,x,y,sy){ g.save(); g.translate(x,y); g.scale(1,sy); g.fillText(str,0,0); g.restore(); }
+
+
+
+/* ── พื้นโต๊ะ: ตาราง 1 cm + ภาพแฟลช (หลังยิง) ── */
+const PX_CM=51.2;
+function drawTableTop(g,w,h){
+  const s=w/TW_CM, X=x=>x*s, Y=y=>(TH_CM-y)*s;
+  g.fillStyle='#e8edf3'; g.fillRect(0,0,w,h);
+  /* พื้นเรียบ (ภาพแฟลชจริงไม่มีตาราง) · จุดรูเบาะลมจาง ๆ */
+  g.fillStyle='rgba(100,116,139,.18)'; for(let x=2.5;x<TW_CM;x+=5) for(let y=2.5;y<TH_CM;y+=5){ g.beginPath(); g.arc(X(x),Y(y),4,0,Math.PI*2); g.fill(); }
+  /* แนวยิง */
+  g.strokeStyle='rgba(37,99,235,.35)'; g.setLineDash([18,12]); g.lineWidth=3; g.beginPath(); g.moveTo(X(0),Y(Y_LINE)); g.lineTo(X(TW_CM),Y(Y_LINE)); g.stroke(); g.setLineDash([]);
+  const R=RUN; if(!R||phase!=='done') return;
+  const mark=(p,col,lab,i,outline,L)=>{ const cx=X(p.x), cy=Y(p.y);
+    if(outline){ g.strokeStyle=col; g.globalAlpha=.5; g.lineWidth=3; g.beginPath(); g.arc(cx,cy,RAD*s,0,Math.PI*2); g.stroke(); g.globalAlpha=1; }
+    g.fillStyle=col; g.globalAlpha=.8; g.beginPath(); g.arc(cx,cy,13,0,Math.PI*2); g.fill(); g.globalAlpha=1;
+    g.strokeStyle='#0b0f18'; g.lineWidth=2.4; g.beginPath(); g.moveTo(cx-24,cy); g.lineTo(cx+24,cy); g.moveTo(cx,cy-24); g.lineTo(cx,cy+24); g.stroke();
+    /* ป้ายหมายเลขวางตั้งฉากกับแนวการเคลื่อนที่ สลับข้าง */
+    const a=L[Math.max(0,i-2)], b=L[Math.min(L.length-1,i)]; let dx=b.x-a.x, dy=b.y-a.y; const dl=Math.hypot(dx,dy)||1; dx/=dl; dy/=dl;
+    const sd=(i%2?1:-1), nx=-dy*sd, ny=dx*sd, off=46;
+    g.fillStyle=col; g.font='bold 34px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(lab+i,cx+nx*off,cy-ny*off); g.textBaseline='alphabetic'; };
+  /* ตำแหน่งเริ่มของ B */
+  g.fillStyle='rgba(234,88,12,.15)'; g.beginPath(); g.arc(X(R.bStart.x),Y(R.bStart.y),RAD*s,0,Math.PI*2); g.fill();
+  R.A1.forEach((p,i)=>mark(p,'#1d4ed8','A',i+1,i===0,R.A1));
+  R.A2.forEach((p,i)=>mark(p,'#0891b2','A′',i+1,i===0,R.A2));
+  const bc= isXrun()?'#7c3aed':'#c2410c';
+  R.B2.forEach((p,i)=>mark(p,bc,'B′',i+1,i===0,R.B2));
+}
+function isXrun(){ return lastRun&&lastRun.X; }
+function updPhoto(){ if(!P.topTex) return; const c=P.topTex.image; drawTableTop(c.getContext('2d'),c.width,c.height); P.topTex.needsUpdate=true; }
+function makePuck(which){
+  const G0=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color: which===0?0x2563eb:0xea580c, metalness:.25, roughness:.5});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(RAD,RAD,1.0,36),mat); body.position.y=0.5; G0.add(body);
+  const top2=new THREE.Mesh(new THREE.CylinderGeometry(RAD*0.92,RAD*0.92,0.9,36),new THREE.MeshStandardMaterial({color:0x92400e,metalness:.3,roughness:.5})); top2.position.y=1.45; top2.visible=false; G0.add(top2);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(RAD,0.18,8,40),new THREE.MeshStandardMaterial({color:0x475569,metalness:.8,roughness:.3})); ring.rotation.x=Math.PI/2; ring.position.y=0.5; G0.add(ring);
+  const drawLab=(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#fff'; g.font='bold 120px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(which===0?'A':(isX()?'?':'B'),w/2,h/2+6); };
+  const tex=canvasTex(256,256,drawLab);
+  const lab=new THREE.Mesh(new THREE.CircleGeometry(RAD*0.75,32),new THREE.MeshBasicMaterial({map:tex,transparent:true})); lab.rotation.x=-Math.PI/2; lab.position.y=1.02; G0.add(lab);
+  const cross=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.02,1.2),new THREE.MeshBasicMaterial({color:0x0b0f18})); cross.position.y=1.03; G0.add(cross);
+  G0.userData={mat,top2,lab};
+  return [G0,{redraw:()=>{ const c=tex.image; drawLab(c.getContext('2d'),c.width,c.height); tex.needsUpdate=true; }}];
+}
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(40,TBL,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.5,2000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95)); const d1=new THREE.DirectionalLight(0xffffff,0.5); d1.position.set(40,200,80); scene.add(d1);
+  P.flash=new THREE.PointLight(0xffffff,0,300); P.flash.position.set(40,TBL+70,0); scene.add(P.flash);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45});
+  const maxTS=(renderer.capabilities&&renderer.capabilities.maxTextureSize)||4096, TW=Math.min(4096,maxTS);
+  /* โต๊ะลม */
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(TW_CM+8,6,TH_CM+8),new THREE.MeshStandardMaterial({color:0x334155,metalness:.4,roughness:.5})); frame.position.set(TW_CM/2,TBL-3.1,0); scene.add(frame);
+  P.topTex=canvasTex(TW,Math.round(TW*TH_CM/TW_CM),drawTableTop);
+  const top=new THREE.Mesh(new THREE.PlaneGeometry(TW_CM,TH_CM),new THREE.MeshStandardMaterial({map:P.topTex,emissive:0xffffff,emissiveMap:P.topTex,emissiveIntensity:.12,roughness:.95}));
+  top.rotation.x=-Math.PI/2; top.position.set(TW_CM/2,TBL,0); scene.add(top);
+  [[TW_CM/2,-TH_CM/2-1.5,TW_CM+6,2],[TW_CM/2,TH_CM/2+1.5,TW_CM+6,2]].forEach(([x,z,w,d])=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(w,2,d),met); r.position.set(x,TBL+0.5,z); scene.add(r); });
+  [[-1.5,0],[TW_CM+1.5,0]].forEach(([x,z])=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(2,2,TH_CM+6),met); r.position.set(x,TBL+0.5,z); scene.add(r); });
+  [[3,-25],[3,25],[77,-25],[77,25]].forEach(([x,z])=>{ const lg=new THREE.Mesh(new THREE.BoxGeometry(4,TBL-6,4),new THREE.MeshStandardMaterial({color:0x1f2937})); lg.position.set(x,(TBL-6)/2,z); scene.add(lg); });
+  /* เครื่องยิง */
+  const lb=new THREE.Mesh(new THREE.BoxGeometry(6,4,8),new THREE.MeshStandardMaterial({color:0x1e293b,metalness:.4})); lb.position.set(-5,TBL+2,0); scene.add(lb);
+  P.plunger=new THREE.Mesh(new THREE.BoxGeometry(1,2,5),met); scene.add(P.plunger);
+  /* กล้อง + แฟลชเหนือโต๊ะ */
+  P.rig=new THREE.Group(); scene.add(P.rig);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(1,1,90,12),met); pole.position.set(40,TBL+40,-TH_CM/2-10); P.rig.add(pole);
+  const armC=new THREE.Mesh(new THREE.BoxGeometry(2,2,TH_CM/2+10),met); armC.position.set(40,TBL+84,-(TH_CM/2+10)/2); P.rig.add(armC);
+  const cam=new THREE.Mesh(new THREE.BoxGeometry(8,6,6),new THREE.MeshStandardMaterial({color:0x111827})); cam.position.set(40,TBL+80,0); P.rig.add(cam);
+  P.bulb=new THREE.Mesh(new THREE.SphereGeometry(1.4,16,12),new THREE.MeshBasicMaterial({color:0x475569})); P.bulb.position.set(46,TBL+77,0); P.rig.add(P.bulb);
+  /* 📏 ไม้บรรทัดใส 30 cm: ขอบวัดอยู่ที่ local z = 0 ตัวไม้อยู่ฝั่ง −z (ฝั่ง +y ของภาพ) */
+  const rTex=canvasTex(TW,Math.round(TW*4/RUL_L),(g,w,h)=>{ const s2=w/RUL_L; g.clearRect(0,0,w,h); g.fillStyle='rgba(224,242,254,.42)'; g.fillRect(0,0,w,h);
+    g.fillStyle='rgba(2,132,199,.9)'; g.fillRect(0,h-5,w,5);
+    for(let mm=0;mm<=RUL_L*10;mm++){ const x=Math.min(w-2,Math.max(1,mm*s2/10)), L= mm%10===0?h*0.42: mm%5===0?h*0.28:h*0.17; g.fillStyle='#0f172a'; g.fillRect(x-(mm%10===0?2:1),h-L,mm%10===0?4:2,L); }
+    g.font='bold '+Math.round(h*0.26)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.fillStyle='#0f172a';
+    for(let c=0;c<=RUL_L;c++) g.fillText(String(c),Math.min(w-20,Math.max(20,c*s2)),h*0.42);
+    g.fillStyle='rgba(15,23,42,.55)'; g.font='bold '+Math.round(h*0.14)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('cm · ขีดละ 1 mm',s2*0.6,h*0.16); });
+  P.rul=new THREE.Group(); scene.add(P.rul);
+  const rMesh=new THREE.Mesh(new THREE.PlaneGeometry(RUL_L,4),new THREE.MeshBasicMaterial({map:rTex,transparent:true,depthWrite:false}));
+  rMesh.rotation.x=-Math.PI/2; rMesh.position.set(RUL_L/2,0,-2); P.rul.add(rMesh); P.rulBody=rMesh;
+  P.rulHandle=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.4,24),new THREE.MeshBasicMaterial({color:0xdc2626})); P.rulHandle.position.set(RUL_L-1.2,0.2,-2); P.rul.add(P.rulHandle);
+  const zeroMk=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,0.3,16),new THREE.MeshBasicMaterial({color:0x0284c7})); zeroMk.position.set(0,0.15,0); P.rul.add(zeroMk);
+  /* 📐 โปรแทรกเตอร์ใสครึ่งวง เส้นฐาน 0° ขนานทิศยิง */
+  const pTex=canvasTex(2048,2048,(g,w,h)=>{ const cx=w/2, cy=h/2, R=w/2*(PRO_R/11); g.clearRect(0,0,w,h);
+    g.fillStyle='rgba(254,243,199,.34)'; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fill();
+    const P2=(a,r)=>[cx+r*Math.cos(a*Math.PI/180), cy-r*Math.sin(a*Math.PI/180)];
+    for(let a=-179;a<=180;a++){ const big=a%10===0, mid=a%5===0, [x0,y0]=P2(a,R*(big?0.80:mid?0.87:0.92)), [x1,y1]=P2(a,R); g.strokeStyle='#0f172a'; g.lineWidth=big?5:mid?3.4:2.2; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); }
+    g.fillStyle='#0f172a'; g.textAlign='center'; g.textBaseline='middle'; g.font='bold 54px "Share Tech Mono",monospace';
+    for(let a=-170;a<=180;a+=10){ const [x,y]=P2(a,R*0.70); g.fillText(a===180?'±180':(a>0?'+':a<0?'−':'')+Math.abs(a),x,y); }
+    g.strokeStyle='rgba(15,23,42,.7)'; g.lineWidth=3; g.beginPath(); g.moveTo(cx-R,cy); g.lineTo(cx+R,cy); g.stroke(); g.setLineDash([10,10]); g.beginPath(); g.moveTo(cx,cy-R); g.lineTo(cx,cy+R); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#b45309'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; const [lx,ly]=P2(45,R*0.42); g.fillText('เหนือแนว +',lx,ly); const [mx,my]=P2(-45,R*0.42); g.fillText('ใต้แนว −',mx,my);
+    g.strokeStyle='#dc2626'; g.lineWidth=4; g.beginPath(); g.moveTo(cx-22,cy); g.lineTo(cx+22,cy); g.moveTo(cx,cy-22); g.lineTo(cx,cy+22); g.stroke(); });
+  /* ถาดวางเครื่องมือหน้าโต๊ะ (นอกพื้นโต๊ะลม) */
+  const tray=new THREE.Mesh(new THREE.BoxGeometry(84,1.6,30),new THREE.MeshStandardMaterial({color:0x3b2a1e,roughness:.85})); tray.position.set(40,TBL-0.8,25+20+0.5); scene.add(tray);
+  const lip=new THREE.Mesh(new THREE.BoxGeometry(84,1.2,1.2),new THREE.MeshStandardMaterial({color:0x2a1f16})); lip.position.set(40,TBL+0.1,25+35); scene.add(lip);
+  const trLab=canvasTex(512,96,(g,w,h)=>{ g.fillStyle='#1f150e'; g.fillRect(0,0,w,h); g.fillStyle='#fcd34d'; g.font='bold 52px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('ถาดเครื่องมือวัด',w/2,66); });
+  const trP=new THREE.Mesh(new THREE.PlaneGeometry(18,3.4),new THREE.MeshBasicMaterial({map:trLab})); trP.rotation.x=-Math.PI/2; trP.position.set(34,TBL+0.02,25+31.5); scene.add(trP);
+  [[3,59],[77,59]].forEach(([x,z])=>{ const lg=new THREE.Mesh(new THREE.BoxGeometry(3,TBL-6,3),new THREE.MeshStandardMaterial({color:0x1f2937})); lg.position.set(x,(TBL-6)/2,z); scene.add(lg); });
+  P.pro=new THREE.Mesh(new THREE.PlaneGeometry(22,22),new THREE.MeshBasicMaterial({map:pTex,transparent:true,depthWrite:false}));
+  P.pro.rotation.x=-Math.PI/2; scene.add(P.pro);
+  const pa=makePuck(0), pb=makePuck(1); P.pucks=[pa[0],pb[0]]; P.labB=pb[1]; P.pucks.forEach(o=>scene.add(o));
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); updPhoto(); }).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now();
+  (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now;
+    if(!$('tab-sim').classList.contains('active')) return;
+    stepRun(dt); stepHand(dt); update3D(); flashPulse=Math.max(0,flashPulse-dt0*12); renderer.render(scene,camera);
+    fr=(fr+1)%3; if(fr===0) drawAll(); })(last);
+}
+let fr=0;
+function update3D(){ if(!scene) return;
+  const p= phase==='armed'? [X_START,Y_LINE,xB,yB] : posAt(runT);
+  const wa=W3(p[0],p[1]), wb=W3(p[2],p[3]);
+  P.pucks[0].position.set(wa[0],TBL,wa[1]); P.pucks[1].position.set(wb[0],TBL,wb[1]);
+  const u=P.pucks[1].userData; u.mat.color.setHex(isX()?0x7c3aed:(bI===1?0xb45309:0xea580c)); u.top2.visible= bI===1;
+  const head=Math.min(X_START-RAD, p[0]-RAD); P.plunger.position.set(Math.max(-1.5,head)-0.5,TBL+1,0);
+  P.rul.position.set(rul.x,TBL+0.35,25-rul.y); P.rul.rotation.y=rul.ang; P.pro.position.set(pro.x,TBL+0.25,25-pro.y);
+  P.rig.visible= orbit.el<1.15;   /* มองจากบนเหนือกล้อง: ซ่อนขาตั้งกล้องไม่ให้บังภาพแฟลช */
+  P.flash.intensity=flashPulse*2.2; P.bulb.material.color.setHex(flashPulse>0.2?0xfffbe6:0x475569);
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y=t[1]; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return; const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+
+/* ═══════════ ลากลูกยาง B ด้วยมือ ═══════════ */
+const HD={on:false,what:null,offx:0,offy:0,tx:0,ty:0};
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){
+  if(!P.pucks) return null; const rc=setRay(cx,cy); if(!rc) return null;
+  const proj=(wx,wy,wz)=>{ const V=new THREE.Vector3(wx,wy,wz); V.project(camera); return [rc.left+(V.x*0.5+0.5)*rc.width, rc.top+(-V.y*0.5+0.5)*rc.height]; };
+  const hw=new THREE.Vector3(); P.rulHandle.getWorldPosition(hw); const hs=proj(hw.x,hw.y,hw.z);
+  if(Math.hypot(cx-hs[0],cy-hs[1])<=Math.max(30,Math.min(rc.width,rc.height)*0.06)) return 'rot';
+  if(phase==='armed'){ const ms=[]; P.pucks[1].traverse(o=>{ if(o.isMesh) ms.push(o); }); if(RAY.intersectObjects(ms,false).length) return 'b'; }
+  if(RAY.intersectObject(P.rulBody,false).length) return 'rul';
+  if(RAY.intersectObject(P.pro,false).length){ const tp=tablePoint(cx,cy); if(tp&&Math.hypot(tp.x-pro.x,tp.y-pro.y)<=PRO_R+0.5) return 'pro'; }
+  const R=Math.max(40,Math.min(rc.width,rc.height)*0.10);
+  if(phase==='armed'){ const V=new THREE.Vector3(); P.pucks[1].getWorldPosition(V); const s2=proj(V.x,V.y+0.5,V.z); if(Math.hypot(cx-s2[0],cy-s2[1])<=R) return 'b'; }
+  return null;
+}
+function tablePoint(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; if(Math.abs(r.y)<1e-4) return null;
+  const s=(TBL+0.5-o.y)/r.y; if(s<0) return null; const x=o.x+r.x*s, z=o.z+r.z*s; return {x, y:25-z}; }
+function hdStart(cx,cy){
+  const k=pickAt(cx,cy); if(!k) return false;
+  if(k==='b'&&phase!=='armed') return false;
+  const tp=tablePoint(cx,cy); if(!tp) return false;
+  const cur= k==='b'?{x:xB,y:yB}: k==='pro'?{x:pro.x,y:pro.y}:{x:rul.x,y:rul.y};
+  HD.on=true; HD.what=k; HD.offx=cur.x-tp.x; HD.offy=cur.y-tp.y; HD.tx=cur.x; HD.ty=cur.y;
+  if(k==='rot'){ HD.tx=tp.x; HD.ty=tp.y; }
+  return true;
+}
+function hdMove(cx,cy){ if(!HD.on) return; const tp=tablePoint(cx,cy); if(!tp) return; if(HD.what==='rot'){ HD.tx=tp.x; HD.ty=tp.y; } else { HD.tx=tp.x+HD.offx; HD.ty=tp.y+HD.offy; } }
+function hdEnd(){ if(!HD.on) return;
+  /* ขีดศูนย์ของไม้บรรทัด / จุดกลางโปรแทรกเตอร์ ดูดติดกากบาทของจุดแฟลชที่ใกล้ที่สุด (ภายใน 0.8 cm) */
+  if((HD.what==='rul'||HD.what==='pro')&&RUN&&phase==='done'){ const t=HD.what==='rul'?rul:pro; let best=null,bd=0.8;
+    [...RUN.A1,...RUN.A2,...RUN.B2].forEach(p=>{ const d=Math.hypot(p.x-t.x,p.y-t.y); if(d<bd){ bd=d; best=p; } }); if(best){ t.x=best.x; t.y=best.y; } }
+  HD.on=false; HD.what=null; drawAll(); }
+function stepHand(dt){
+  if(!HD.on) return;
+  const k=1-Math.exp(-dt/HD_LAG), step=HD_VMAX*dt;
+  const mv=(cur,tgt)=>{ let n=cur+(tgt-cur)*k; if(n-cur>step) n=cur+step; if(cur-n>step) n=cur-step; return n; };
+  if(HD.what==='b'){ xB=Math.round(mv(xB,Math.max(28,Math.min(52,HD.tx)))*10)/10; yB=Math.round(mv(yB,Math.max(17,Math.min(33,HD.ty)))*10)/10; }
+  else if(HD.what==='rul'){ rul.x=mv(rul.x,Math.max(-5,Math.min(TW_CM+5,HD.tx))); rul.y=mv(rul.y,Math.max(-34,Math.min(TH_CM+5,HD.ty))); }
+  else if(HD.what==='pro'){ pro.x=mv(pro.x,Math.max(-5,Math.min(TW_CM+5,HD.tx))); pro.y=mv(pro.y,Math.max(-34,Math.min(TH_CM+5,HD.ty))); }
+  else if(HD.what==='rot'){ const tgt=Math.atan2(HD.ty-rul.y,HD.tx-rul.x); let d=tgt-rul.ang; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; rul.ang+=d*Math.min(1,k*2); }
+  syncCtl();
+}
+function stowTools(){ if(HD.on) return; rul={...RUL_HOME}; pro={...PRO_HOME}; drawAll(); }
+function bringTools(){ let c=null; if(renderer){ const rc=renderer.domElement.getBoundingClientRect(); c=tablePoint(rc.left+rc.width/2, rc.top+rc.height/2); }
+  if(!c) c={x:40,y:25}; rul={x:Math.max(0,Math.min(TW_CM,c.x-12)),y:Math.max(0,Math.min(TH_CM,c.y-6)),ang:0}; pro={x:Math.max(0,Math.min(TW_CM,c.x+6)),y:Math.max(0,Math.min(TH_CM,c.y+4))}; drawAll(); }
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
+/* ── 🐢 ปรับความเร็วการแสดงผล (ช้าลงเพื่อดูให้ทัน · ไม่กระทบค่าที่วัดได้) ── */
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1];
+function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=document.getElementById('spdBtn');
+  if(b){ b.classList.toggle('active',v!==1); b.innerHTML='🐢 '+spdLabel(v); } }
+function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); }
+function simDt(dt){ try{ if(typeof HD!=='undefined'&&HD&&HD.on) return dt; }catch(_){}
+  return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault();
+    if(e.button===0 && !e.shiftKey && !panMode && hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; cv.style.cursor='move'; return; }
+    if(T.mode==='hand'){ hdMove(e.clientX,e.clientY); return; }
+    const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode==='hand') hdEnd(); if(T.mode!=='pinch') T.mode=null; cv.style.cursor='move'; };
+  window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault();
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0];
+      if(!panMode && hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; }
+      T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.35,Math.min(1.45,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(8,Math.min(500,orbit.dist*f)); }
+function camPan(dx,dy){ if(VIEWS[curView]&&VIEWS[curView].follow) { curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); }
+  const o=orbit; if(!o.target||!camera) return;
+  const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+
+
+
+
+
+/* ═══════════ THEORY ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function arrow(g,x0,y0,x1,y1,col,lab,lx,ly){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=2.4; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+  const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-9*Math.cos(a-0.4),y1-9*Math.sin(a-0.4)); g.lineTo(x1-9*Math.cos(a+0.4),y1-9*Math.sin(a+0.4)); g.closePath(); g.fill();
+  if(lab){ g.font='bold 12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(lab,x1+(lx||6),y1+(ly||0)); } }
+function cartDraw(g,x,y,w,col,lab){ g.fillStyle=col; g.fillRect(x,y,w,22); g.fillStyle='#fff'; g.font='bold 12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText(lab,x+w/2,y+15); }
+
+
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p;
+  const ox=W*0.10, oy=H*0.55;
+  g.fillStyle='#2563eb'; g.beginPath(); g.arc(ox+60,oy,16,0,Math.PI*2); g.fill(); garrow(g,ox,oy,ox+44,oy,'#94a3b8','v_A');
+  g.fillStyle='rgba(234,88,12,.5)'; g.beginPath(); g.arc(ox+120,oy-14,16,0,Math.PI*2); g.fill();
+  const cx=ox+104, cy=oy-5;
+  garrow(g,cx,cy,cx+120,cy+70,'#38bdf8','v_A′'); garrow(g,cx+16,cy-10,cx+120,cy-100,'#fb923c','v_B′');
+  g.strokeStyle='#facc15'; g.lineWidth=1.5; g.beginPath(); g.arc(cx+8,cy-4,40,-0.72,0.53); g.stroke(); g.fillStyle='#fde68a'; g.font='12px IBM Plex Sans Thai'; g.fillText('มุมแยก',cx+52,cy-4);
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['แกน x: m_A v_A = m_A v_A′x + m_B v_B′x','แกน y: 0 = m_A v_A′y + m_B v_B′y','','เวกเตอร์: p_A = p_A′ + p_B′'].forEach((t,i)=>g.fillText(t,W*0.52,H*0.28+i*24)); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p;
+  const ox=W*0.12, oy=H*0.78, L=W*0.40;
+  garrow(g,ox,oy,ox+L,oy,'#94a3b8','p_A',true);
+  const a=0.6, px=ox+L*Math.cos(a)*Math.cos(a), py=oy-L*Math.cos(a)*Math.sin(a);
+  garrow(g,ox,oy,px,py,'#38bdf8','p_A′'); garrow(g,px,py,ox+L,oy,'#fb923c','p_B′');
+  g.strokeStyle='#facc15'; g.strokeRect(px-8,py,8,8);
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['มวลเท่ากัน + ยืดหยุ่นสมบูรณ์','p_A² = p_A′² + p_B′²','→ สามเหลี่ยมมุมฉาก','→ มุมแยก 90°'].forEach((t,i)=>g.fillText(t,W*0.62,H*0.25+i*24)); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); }
+
+/* ═══════════ INIT ═══════════ */
+function drawAll(){ updateHint(); syncCbar(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  ['in-aL','in-a2L','in-a2T','in-b2L','in-b2T'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); setMode('manual'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); const dt=simDt(Math.min(0.05,(now-last)/1000)); last=now; stepRun(dt); drawAll(); },40); }
+});
+</script>
+
+
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-83", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
