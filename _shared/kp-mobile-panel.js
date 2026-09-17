@@ -7,7 +7,10 @@
    แลปที่ไม่ได้ใช้ .sim-panel: ตั้งค่าก่อนโหลดสคริปต์ เช่น
      <script>window.KP_MPANEL={move:['.side-panel','#manualSection'], res:['.data-section'], view:'#simCanvas', hint:'#hintBox', tab:'#tab-sim', bp:900};</script>
      move = element ที่ย้ายทั้งก้อนเข้าแผง (ตามลำดับ) · res = ส่วนที่นับเป็น "ผล/ตาราง" · view = ภาพหลักที่ต้องเห็นครึ่งบน
-     hint = กล่องคำแนะนำ (ถ้ามี) · tab = ส่วนหน้า simulation · bp = ความกว้างสูงสุดที่เปิดใช้ ═══ */
+     hint = กล่องคำแนะนำ (ถ้ามี) · tab = ส่วนหน้า simulation · bp = ความกว้างสูงสุดที่เปิดใช้
+   ตัวเลือกเสริม (opt-in): canvasBtn:true = ปุ่ม ⚙️ ตั้งค่า / 📊 ผล ลอยบนมุมขวาบนของภาพหลัก กดได้ทันทีไม่ต้องเลื่อนจอ
+     · btnBar:'#viewBar' = ใส่ปุ่มในแถบเครื่องมือเหนือภาพแทนการลอยทับภาพ (ไม่บังอุปกรณ์)
+     · ถ้า bp > 900 และจอกว้างกว่า 900 px แผงจะเลื่อนออกมาจากขอบขวา (drawer) แทนแผ่นจากขอบล่าง ภาพการทดลองจึงเต็มความกว้าง ═══ */
 (function(){
   'use strict';
   var CFG = {}, BP = 900;
@@ -29,9 +32,15 @@
   + '#kpSheet .sh button{margin-top:8px;border:1px solid #334155;background:#1a2235;color:#e2e8f0;border-radius:8px;padding:6px 10px;font:700 .8rem IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}'
   + '#kpSheet .sb{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px;display:flex;flex-direction:column;gap:10px}#kpSheet .sb>*{flex-shrink:0;min-width:0}'
   + '.kp-flash{animation:kpFlash 1.1s ease 2}@keyframes kpFlash{0%,100%{box-shadow:0 0 0 0 rgba(250,204,21,0)}50%{box-shadow:0 0 0 4px rgba(250,204,21,.95)}}'
-  + 'body.kp-m-on{padding-bottom:var(--kpMBarH,112px)}body.kp-m-on.kp-m-def .sim-panel{display:none!important}';
+  + 'body.kp-m-on{padding-bottom:var(--kpMBarH,112px)}body.kp-m-on.kp-m-def .sim-panel{display:none!important}body.kp-m-on.kp-m-def .sim-layout{grid-template-columns:minmax(0,1fr)!important}'
+  + '#kpSheet.side{left:auto;right:0;top:56px;width:min(390px,92vw);height:auto!important;max-height:none!important;border-top:none;border-left:2px solid #38bdf8;border-radius:16px 0 0 16px;box-shadow:-12px 0 32px rgba(0,0,0,.6);transform:translateX(110%)}#kpSheet.side.open{transform:none}#kpSheet.side [data-a="tall"]{display:none}#kpSheet.side .grip{display:none}'
+  + '.kp-vbtns{position:absolute;right:10px;top:10px;z-index:20;display:none;flex-direction:column;gap:6px}body.kp-m-on .kp-vbtns{display:flex}'
+  + '.kp-vbtns button{min-width:92px;padding:9px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.35);background:rgba(14,116,144,.92);color:#fff;font:700 .9rem IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}'
+  + '.kp-vbtns button.res{background:rgba(51,65,85,.92)}.kp-vbtns button.on{background:#38bdf8;border-color:#38bdf8;color:#06090f}'
+  + 'body.kp-m-on .kp-vbtn-host .viewbtns{max-width:calc(100% - 128px)!important}'
+  + '.kp-vbtns.inbar{position:static;flex-direction:row;margin-left:auto;flex-shrink:0}.kp-vbtns.inbar button{min-width:0;padding:7px 12px;font-size:.86rem;box-shadow:none}';
 
-  var panel, tab, sheet, sbody, bar, peekBox, peekTxt, goBtn, tabSet, tabRes, ttl, active=false, slots=[], lastPeek='';
+  var panel, tab, sheet, sbody, bar, peekBox, peekTxt, goBtn, tabSet, tabRes, ttl, vbtns=null, active=false, slots=[], lastPeek='';
 
   function $(sel, root){ return (root||document).querySelector(sel); }
   function isRes(el){ if(!el||!el.querySelector) return false;
@@ -57,6 +66,13 @@
     goBtn.addEventListener('click', doStep);
     tabSet.addEventListener('click', function(){ toggle('set'); });
     tabRes.addEventListener('click', function(){ toggle('res'); });
+    /* ปุ่มลอยบนภาพหลัก (opt-in) */
+    var inBar= CFG.canvasBtn && CFG.btnBar ? $(CFG.btnBar) : null, host= inBar || (CFG.canvasBtn ? viewEl() : null);
+    if(host){ if(!inBar){ if(getComputedStyle(host).position==='static') host.style.position='relative'; host.classList.add('kp-vbtn-host'); }
+      vbtns=document.createElement('div'); vbtns.className='kp-vbtns'+(inBar?' inbar':'');
+      vbtns.innerHTML='<button type="button" data-t="set">⚙️ ตั้งค่า</button><button type="button" class="res" data-t="res">📊 ผล</button>';
+      host.appendChild(vbtns);
+      ['set','res'].forEach(function(k){ var b=$('[data-t="'+k+'"]', vbtns); ['mousedown','touchstart','pointerdown'].forEach(function(ev){ b.addEventListener(ev, function(e){ e.stopPropagation(); }, {passive:true}); }); b.addEventListener('click', function(e){ e.stopPropagation(); toggle(k); }); }); }
     $('[data-a="close"]', sheet).addEventListener('click', close);
     $('[data-a="tall"]', sheet).addEventListener('click', function(){ sheet.classList.toggle('tall'); this.textContent= sheet.classList.contains('tall')?'↕ ย่อ':'↕ ขยาย'; });
     /* ปัดแถบหัวลง = ปิด · ปัดขึ้น = ขยาย */
@@ -65,10 +81,11 @@
     sh.addEventListener('touchend', function(e){ if(y0===null) return; var dy=e.changedTouches[0].clientY-y0; y0=null; if(dy>40){ if(sheet.classList.contains('tall')){ sheet.classList.remove('tall'); $('[data-a="tall"]', sheet).textContent='↕ ขยาย'; } else close(); } else if(dy<-40){ sheet.classList.add('tall'); $('[data-a="tall"]', sheet).textContent='↕ ย่อ'; } });
   }
 
+  function viewEl(){ return (CFG.view&&$(CFG.view))||document.getElementById('view3d')||$('.diag-wrap')||Array.prototype.slice.call(tab.querySelectorAll('canvas')).filter(function(c){ return c.offsetHeight>120 && (!sheet||!sheet.contains(c)); })[0]; }
   function enter(){
     if(active) return; active=true; slots=[];
     sources().forEach(function(el){ var mark=document.createComment('kp-slot'); el.parentNode.insertBefore(mark, el); slots.push([mark, el]); sbody.appendChild(el); });
-    tabRes.style.display= Array.prototype.slice.call(sbody.children).some(isRes) ? '' : 'none';
+    tabRes.style.display= Array.prototype.slice.call(sbody.children).some(isRes) ? '' : 'none'; if(vbtns) $('[data-t="res"]', vbtns).style.display=tabRes.style.display;
     document.body.classList.add('kp-m-on'); if(!CFG.move) document.body.classList.add('kp-m-def'); bar.style.display='block'; fitBody();
   }
   function leave(){
@@ -76,19 +93,20 @@
     slots.forEach(function(p){ if(p[0].parentNode) { p[0].parentNode.insertBefore(p[1], p[0]); p[0].parentNode.removeChild(p[0]); } }); slots=[];
     document.body.classList.remove('kp-m-on','kp-m-def'); bar.style.display='none';
   }
-  function fitBody(){ var h=bar.offsetHeight||112; document.body.style.setProperty('--kpMBarH', (h+8)+'px'); sheet.style.bottom=h+'px'; sheet.style.maxHeight='calc(100vh - '+(h+50)+'px)'; }
+  function fitBody(){ var h=bar.offsetHeight||112; sheet.classList.toggle('side', BP>900 && window.innerWidth>900); document.body.style.setProperty('--kpMBarH', (h+8)+'px'); sheet.style.bottom=h+'px'; sheet.style.maxHeight='calc(100vh - '+(h+50)+'px)'; }
 
   function firstOf(kind){ var kids=Array.prototype.slice.call(sbody.children).filter(function(el){ return !el.classList.contains('hidden') && el.offsetHeight>0; }); for(var i=0;i<kids.length;i++){ if((kind==='res')===isRes(kids[i])) return kids[i]; } return kids[0]; }
   function open(kind, target){
     fitBody(); sheet.classList.add('open'); tabSet.classList.toggle('on', kind==='set'); tabRes.classList.toggle('on', kind==='res');
+    if(vbtns){ $('[data-t="set"]', vbtns).classList.toggle('on', kind==='set'); $('[data-t="res"]', vbtns).classList.toggle('on', kind==='res'); }
     ttl.textContent= kind==='res' ? '📊 ผลการวัด · ตาราง · กราฟ' : '⚙️ ตั้งค่าการทดลอง';
     var el= target || firstOf(kind);
     requestAnimationFrame(function(){ if(el){ var top=el.getBoundingClientRect().top - sbody.getBoundingClientRect().top + sbody.scrollTop - (target?60:6); sbody.scrollTo({top:Math.max(0,top), behavior:'smooth'}); } });
     if(kind==='res') setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 60);
     /* ให้ครึ่งบนของจอเห็นภาพการทดลอง */
-    var v=(CFG.view&&$(CFG.view))||document.getElementById('view3d')||$('.diag-wrap')||Array.prototype.slice.call(tab.querySelectorAll('canvas')).filter(function(c){ return c.offsetHeight>120 && !sheet.contains(c); })[0]; if(v){ var r=v.getBoundingClientRect(); if(r.bottom<60 || r.top>window.innerHeight*0.35) window.scrollTo({top:window.scrollY+r.top-60, behavior:'smooth'}); }
+    var v=viewEl(); if(v){ var r=v.getBoundingClientRect(); if(r.bottom<60 || r.top>window.innerHeight*0.35) window.scrollTo({top:window.scrollY+r.top-60, behavior:'smooth'}); }
   }
-  function close(){ sheet.classList.remove('open'); tabSet.classList.remove('on'); tabRes.classList.remove('on'); }
+  function close(){ sheet.classList.remove('open'); tabSet.classList.remove('on'); tabRes.classList.remove('on'); if(vbtns) Array.prototype.forEach.call(vbtns.children, function(b){ b.classList.remove('on'); }); }
   function toggle(kind){ var on= sheet.classList.contains('open') && (kind==='set'?tabSet:tabRes).classList.contains('on'); if(on) close(); else open(kind); }
 
   function topIn(el){ while(el && el.parentElement!==sbody) el=el.parentElement; return el; }

@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 80 — การชนแบบติดกันใน 1 มิติ (รางลม 3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.9rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:560px){.actbar{grid-template-columns:repeat(3,1fr)}.actbar button{font-size:.82rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.sl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.sl-label{font-size:.76rem;color:var(--muted);flex-shrink:0}
+.sl-range{flex:1;accent-color:var(--accent);cursor:pointer;min-width:50px}
+.sl-val{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700;font-size:.85rem;min-width:62px;text-align:right}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.lcd{background:#1a1406;border:1px solid #713f12;border-radius:6px;padding:4px 8px;text-align:right;font-family:'Share Tech Mono',monospace;color:#fcd34d;font-size:1.2rem;line-height:1.2}
+.lcd .lb{display:block;text-align:left;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai;font-size:.66rem;color:#fbbf24}
+.lcd small{font-size:.7rem}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-outline.on{background:#a78bfa;border-color:#a78bfa;color:#0a0e1a}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl02:lab-80">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">💥</div>
+  <div>
+    <h1>Lab 80 — การชนแบบติดกันใน 1 มิติ (รางลม · 3D)</h1>
+    <p>กฎการอนุรักษ์โมเมนตัม · ยิงรถ A ด้วยสปริงเข้าชนรถ B ที่จอดนิ่ง · สลับกันชนได้: 🔗 ตีนตุ๊กแก (ชนแล้วติดกันไป) หรือ 🧲 แม่เหล็ก (ชนแล้วแยกกัน) · อ่านเวลาบังลำแสงก่อนชนและหลังชนจากเครื่องจับเวลา · เทียบโมเมนตัมและพลังงานจลน์ก่อน–หลังชน · หามวลรถปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+            <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง เพื่อดูการชนให้ทัน (ค่าที่เครื่องมือวัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+            <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+            <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+            <button data-vw="front" onclick="setView('front')">👁 ด้านหน้าราง</button>
+            <button data-vw="hit" onclick="setView('hit')">🔍 จุดชน</button>
+            <button data-vw="tm" onclick="setView('tm')">🔍 จอจับเวลา</button>
+            <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+          </div>
+        <div class="viewhint">🖐 จับ <b>โฟโตเกต</b> หรือ <b>รถ B</b> ในภาพแล้วลากไปตามรางได้<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงอ่านจอจับเวลาในภาพ 3D ไม่ได้ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b> ในแผงด้านข้างเพื่อให้ระบบอ่านค่าให้</div>
+      </div>
+
+      <div class="actbar" id="actBar">
+        <button id="ab-fire" style="background:#b45309" onclick="fireRun()">▶ ยิงรถ A</button>
+        <button id="ab-arm"  style="background:#334155" onclick="rearm()">↩ ตั้งรถใหม่</button>
+        <button id="ab-mA"   style="background:#1d4ed8" onclick="cycleA()">🚙 A 200 g</button>
+        <button id="ab-mB"   style="background:#c2410c" onclick="cycleB()">🚗 B 200 g</button>
+        <button id="ab-bump" style="background:#0e7490" onclick="cycleBump()">🔗 ตีนตุ๊กแก</button>
+        <button id="ab-rec"  style="background:#16a34a" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="status-line" id="statusLine"></div>
+
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① การ์ดบังแสง d <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-d" readonly> cm</span></label>
+          <label class="rf-f"><span>② มวลรถ A <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-mA" readonly> g</span></label>
+          <label class="rf-f"><span>③ มวลรถ B <small>— ทราบค่า (X = ไม่ทราบ)</small></span><span class="rf-in"><input class="val-input" type="text" id="in-mB" readonly> g</span></label>
+          <label class="rf-f"><span>④ t₁ ก่อนชน <small id="rfHint1">— จอจับเวลา เกต 1 ครั้งที่ 1 (รถ A)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-t1" step="0.1" inputmode="decimal" placeholder="?"> ms</span></label>
+          <label class="rf-f"><span><span id="lblT2">⑤ t₂ หลังชน</span> <small id="rfHint2">— จอจับเวลา เกต 2 ครั้งที่ 1 (รถที่ติดกัน)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-t2" step="0.1" inputmode="decimal" placeholder="?"> ms</span></label>
+          <label class="rf-f hidden" id="fDir"><span>⑥ รถ A หลังชน <small>— ดูในภาพ 3D</small></span><span class="rf-in"><select id="in-dir" class="val-input" style="width:100%;max-width:190px;text-align:left;font-family:inherit;font-size:.8rem" onchange="dirChanged()">
+            <option value="">— เลือก —</option>
+            <option value="fwd">วิ่งต่อไปทางขวา (เกต 2 ครั้งที่ 2)</option>
+            <option value="back">กระดอนกลับซ้าย (เกต 1 ครั้งที่ 2)</option>
+            <option value="stop">หยุด/เกือบหยุด ไม่ผ่านเกต</option>
+          </select></span></label>
+          <label class="rf-f hidden" id="fTA"><span>⑦ t_A รถ A หลังชน <small id="rfHintA">— ช่องตามที่เลือกในข้อ ⑥</small></span><span class="rf-in"><input class="val-input" type="number" id="in-tA" step="0.1" inputmode="decimal" placeholder="?"> ms</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — คืนตำแหน่งเกตและรถ · ตั้งรถใหม่ · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและมวลรถปริศนา X ที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🚙 รถ A (ถูกยิง) <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="aBtns">
+          <button class="active" onclick="setA(0)">200 g</button>
+          <button onclick="setA(1)">300 g</button>
+          <button onclick="setA(2)">400 g</button>
+        </div>
+        <div class="panel-title" style="margin-top:10px">🚗 รถ B (จอดนิ่งรอถูกชน)</div>
+        <div class="mode-btns" id="bBtns">
+          <button class="active" onclick="setB(0)">200 g</button>
+          <button onclick="setB(1)">300 g</button>
+          <button onclick="setB(2)">400 g</button>
+          <button onclick="setB(3)">❓ X</button>
+        </div>
+        <div class="note">รถเปล่ามวล 200 g · ก้อนเหล็กบนรถก้อนละ 100 g · รถ X สีม่วงมีฝาปิด ไม่ทราบมวล</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧲 กันชนที่ปลายรถ</div>
+        <div class="mode-btns" id="bumpBtns">
+          <button class="active" onclick="setBump(0)">🔗 ตีนตุ๊กแก<br><small>ชนแล้วติดกัน</small></button>
+          <button onclick="setBump(1)">🧲 แม่เหล็ก<br><small>ชนแล้วแยกกัน</small></button>
+        </div>
+        <div class="note" style="margin-bottom:8px">แม่เหล็กผลักกันก่อนรถแตะกัน (ยืดหยุ่นเกือบสมบูรณ์) · ใช้แม่เหล็กต้องบันทึกเวลาของรถ A หลังชนเพิ่ม</div>
+        <div class="panel-title">🔧 ระยะอัดสปริงของเครื่องยิง</div>
+        <div class="mode-btns" id="compBtns">
+          <button onclick="setComp(0)">1.0 cm</button>
+          <button onclick="setComp(1)">1.5 cm</button>
+          <button class="active" onclick="setComp(2)">2.0 cm</button>
+        </div>
+        <div class="panel-title" style="margin-top:10px">📏 การ์ดบังแสง (ติดบนรถทั้งสองคัน)</div>
+        <div class="mode-btns" id="cardBtns">
+          <button onclick="setCard(0)">2.5 cm</button>
+          <button class="active" onclick="setCard(1)">5.0 cm</button>
+          <button onclick="setCard(2)">10.0 cm</button>
+        </div>
+        <div class="note">อัดสปริงมาก → รถ A วิ่งเร็ว · เครื่องจับเวลาจำเวลาบังแสงได้เกตละ 2 ครั้ง (ครั้งที่ 1 · ครั้งที่ 2)</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">▶ ยิงรถ / ตั้งรถใหม่</div>
+        <div class="btn-row">
+          <button class="btn btn-amber btn-sm" onclick="fireRun()">▶ ยิงรถ A</button>
+          <button class="btn btn-outline btn-sm" onclick="rearm()">↩ ตั้งรถใหม่</button>
+        </div>
+        <div class="readout-grid">
+          <div class="readout-box"><div class="label">ตำแหน่งรถ B</div><div class="value" id="roB">—</div></div>
+          <div class="readout-box"><div class="label">เกต 1 · เกต 2</div><div class="value" id="roGates">—</div></div>
+        </div>
+        <div class="note">ลากรถ B และโฟโตเกตในภาพ 3D ได้ · เกต 1 ต้องอยู่ระหว่างรถ A กับรถ B · เกต 2 ต้องอยู่หน้ารถ B · วางเกตให้ใกล้จุดชน แรงต้านอากาศเล็กน้อยของรางจะมีผลน้อยลง</div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ค่าจากแบบจำลอง</div>
+        <div class="readout-grid" id="autoGrid"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📊 ผลที่บันทึกล่าสุด</div>
+        <div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก — ยิงรถ อ่านเวลา แล้วกรอกในกรอบ “📝 บันทึกผลการวัด” ใต้ภาพ</span></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">① ความเร็วและโมเมนตัม (คำนวณจากตัวเลขที่กรอกเอง)</div>
+        <div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-cap">② พลังงานจลน์ก่อนและหลังชน</div>
+        <div class="tbl-wrap" id="tableB"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📈 กราฟจากข้อมูลที่บันทึก</div>
+        <div class="mode-btns" id="graphBtns" style="margin-bottom:6px">
+          <button class="active" onclick="setGraph('pp')">p หลัง – p ก่อน</button>
+          <button onclick="setGraph('ek')">Ek หลัง/ก่อน – มวล</button>
+          <button onclick="setGraph('mx')">v₁/v₂ – m_B/m_A</button>
+        </div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">มวลรถปริศนา X =<input class="val-input" type="number" id="ans-m" step="1" inputmode="decimal" placeholder="?"> g <button class="btn btn-green btn-sm" onclick="checkM()">ตรวจมวล X</button></div>
+        <div class="ans-msg" id="ansMMsg"></div>
+        <div class="ans-row" style="line-height:1.5">ทำนาย: รถ A 200 g ชนรถ B 400 g ที่จอดนิ่งแล้วติดกัน พลังงานจลน์หลังชนเหลือกี่ % ของก่อนชน =<input class="val-input" type="number" id="ans-k" step="0.1" inputmode="decimal" placeholder="?"> % <button class="btn btn-green btn-sm" onclick="checkK()">ตรวจคำทำนาย</button></div>
+        <div class="ans-msg" id="ansKMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">มวล X: ถือว่าถูกเมื่อคลาดไม่เกิน 5% · คำทำนาย: คลาดไม่เกิน 2 จุดเปอร์เซ็นต์ (ลองยิงจริงเพื่อยืนยันได้) · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <ul>
+      <li>ตรวจสอบกฎการอนุรักษ์โมเมนตัมในการชนแบบติดกัน (perfectly inelastic collision) ใน 1 มิติ</li>
+      <li>เปรียบเทียบพลังงานจลน์ก่อนชนและหลังชน และอธิบายว่าพลังงานส่วนที่หายไปไปอยู่ในรูปใด</li>
+      <li>ใช้กฎการอนุรักษ์โมเมนตัมหามวลของรถที่ไม่ทราบค่า</li>
+    </ul>
+
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>รางลมยาว 120 cm มีสเกลพิมพ์ไว้ (cm · ขีดเล็ก 1 mm) · แรงต้านที่เหลืออยู่น้อยมาก</li>
+      <li>เครื่องยิงสปริงที่ปลายรางซ้าย อัดได้ 1.0 / 1.5 / 2.0 cm</li>
+      <li>รถ A (สีน้ำเงิน) และรถ B (สีส้ม) มวลเปล่า 200 g เพิ่มก้อนเหล็กก้อนละ 100 g · รถ X (สีม่วง มีฝาปิด) ไม่ทราบมวล · ปลายที่ชนกันเลือกได้ 2 แบบ: <b>🔗 แผ่นตีนตุ๊กแก</b> ชนแล้วติดกันไป · <b>🧲 แม่เหล็กผลักกัน</b> ชนแล้วแยกจากกัน</li>
+      <li>การ์ดบังแสงกว้าง 2.5 / 5.0 / 10.0 cm ติดบนรถทุกคัน (กว้างเท่ากัน)</li>
+      <li>โฟโตเกต 2 ตัว ต่อกับเครื่องจับเวลา จำเวลาบังแสงได้เกตละ 2 ครั้ง · ตัวรับรถที่ปลายรางขวา</li>
+    </ul>
+
+    <h2>การอ่านค่าในภาพ 3 มิติ</h2>
+    <ul>
+      <li><b>ลากอุปกรณ์ได้ด้วยมือ</b> — จับ <b>โฟโตเกต</b> หรือ <b>รถ B</b> แล้วลากไปตามราง (เลื่อนตามมือแบบหน่วง ๆ) · ลากที่ว่าง = หมุนภาพ</li>
+      <li>ปุ่มมุมมอง: <b>ทั้งชุด</b> · <b>👁 ด้านหน้าราง</b> · <b>🔍 จุดชน</b> (ตามรถ B) · <b>🔍 จอจับเวลา</b> · ปุ่ม <b>🐢</b> ทำให้ภาพช้าลงเพื่อดูการชน (เวลาที่วัดได้ไม่เปลี่ยน)</li>
+      <li>จอจับเวลามี 4 ช่อง: <b>เกต 1 ครั้งที่ 1</b> · <b>เกต 1 ครั้งที่ 2</b> · <b>เกต 2 ครั้งที่ 1</b> · <b>เกต 2 ครั้งที่ 2</b> — ต้องดูเองว่าการ์ดของรถคันไหนผ่านเกตในแต่ละครั้ง</li>
+    </ul>
+
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>เลือกมวลรถ A และรถ B (เริ่มที่ 200 g ทั้งคู่) เลือกระยะอัดสปริง</li>
+      <li>ลาก <b>รถ B</b> ไปจอดกลางราง ลาก <b>เกต 1</b> ไว้ระหว่างรถ A กับรถ B และลาก <b>เกต 2</b> ไว้หน้ารถ B ใกล้ ๆ</li>
+      <li>กด <b>▶ ยิงรถ A</b> — รถ A ผ่านเกต 1 ชนรถ B ติดกันแล้ววิ่งผ่านเกต 2</li>
+      <li>กด <b>🔍 จอจับเวลา</b> อ่าน t₁ (เกต 1 ครั้งที่ 1 = การ์ดรถ A ก่อนชน) และ t₂ (เกต 2 ครั้งที่ 1 = การ์ดรถ B ที่ติดกับรถ A แล้ว) กรอกแล้วกด <b>📝 บันทึก</b></li>
+      <li>กด <b>↩ ตั้งรถใหม่</b> เปลี่ยนมวลรถ B (หรือรถ A) แล้วทำซ้ำ — บันทึกอย่างน้อย <b>3 แถว</b> ที่อัตราส่วน m_B/m_A ต่างกันอย่างน้อย 2 ค่า</li>
+      <li>เปลี่ยนรถ B เป็น <b>❓ X</b> ยิงแล้วบันทึกอย่างน้อย 2 แถว หามวลของรถ X</li>
+      <li>เปลี่ยนกันชนเป็น <b>🧲 แม่เหล็ก</b> ยิงรถที่ทราบมวลอย่างน้อย 2 แถว · หลังชนดูว่ารถ A วิ่งต่อ หยุด หรือกระดอนกลับ แล้วเลือกในข้อ ⑥ และอ่าน t_A จากช่องที่ตรงกัน (วิ่งต่อ = เกต 2 ครั้งที่ 2 · กระดอน = เกต 1 ครั้งที่ 2) · เทียบโมเมนตัมและพลังงานจลน์กับตอนติดกัน</li>
+      <li>ดูตารางและกราฟ 3 แบบ แล้วกรอกคำตอบใน 🎯</li>
+    </ol>
+    <div class="note-box">⚠️ ช่อง “เกต 2 ครั้งที่ 2” คือการ์ดของรถ A ที่ติดมากับรถ B — ควรได้เวลาใกล้เคียงครั้งที่ 1 (ใช้ตรวจว่าติดกันจริง) · ถ้าวางเกตไกลจุดชนมาก แรงต้านเล็กน้อยของรางจะทำให้ความเร็วที่วัดได้ลดลง โมเมนตัมหลังชนจะดูน้อยกว่าก่อนชนเกินจริง</div>
+
+    <h2>ตารางบันทึกผล (ตัวอย่างหัวตาราง)</h2>
+    <div class="formula-box">m_A (g) | m_B (g) | t₁ (ms) | t₂ (ms) | v₁ = d/t₁ | v₂ = d/t₂ | p ก่อน = m_A v₁ | p หลัง = (m_A+m_B) v₂ | Ek ก่อน | Ek หลัง | Ek หลัง/ก่อน</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>โมเมนตัมก่อนชนและหลังชนต่างกันกี่ % และความต่างนั้นเกิดจากอะไร</li>
+      <li>พลังงานจลน์หลังชนน้อยกว่าก่อนชนเท่าไร พลังงานที่หายไปเปลี่ยนเป็นพลังงานรูปใด</li>
+      <li>ถ้ารถ B มีมวลมากขึ้น สัดส่วนพลังงานจลน์ที่เหลือหลังชนจะมากขึ้นหรือน้อยลง ตรงกับ m_A/(m_A+m_B) หรือไม่</li>
+      <li>ระยะอัดสปริงมีผลต่ออัตราส่วน v₁/v₂ หรือไม่ เพราะเหตุใด</li>
+      <li>อธิบายวิธีหามวลรถ X โดยใช้เพียงเวลา 2 ค่าและมวลรถ A</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. โมเมนตัมและการอนุรักษ์โมเมนตัม</h2>
+    <p>โมเมนตัมของวัตถุคือผลคูณของมวลกับความเร็ว เป็นปริมาณเวกเตอร์ มีทิศเดียวกับความเร็ว</p>
+    <div class="formula-box">p = m v     (หน่วย kg·m/s)</div>
+    <p>ขณะรถสองคันชนกัน แรงที่รถ A กระทำต่อรถ B กับแรงที่รถ B กระทำต่อรถ A เป็นคู่กิริยา–ปฏิกิริยา ขนาดเท่ากัน ทิศตรงข้าม และกระทำในช่วงเวลาเดียวกัน การดลที่รถทั้งสองได้รับจึงหักล้างกัน ถ้าไม่มีแรงภายนอกลัพธ์ (รางลมระดับเสมอ แรงเสียดทานน้อยมาก) โมเมนตัมรวมของระบบจึงคงตัว</p>
+    <div class="formula-box">m_A u_A + m_B u_B = m_A v_A + m_B v_B</div>
+
+    <h2>2. การชนแบบติดกัน</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="260"></canvas></div>
+    <p>เมื่อรถ B จอดนิ่ง (u_B = 0) และหลังชนรถทั้งสองติดกันไปด้วยความเร็ว v₂ เท่ากัน</p>
+    <div class="formula-box">m_A v₁ = (m_A + m_B) v₂<br>v₁ / v₂ = 1 + m_B / m_A</div>
+    <p>ความเร็ววัดจากโฟโตเกต: v₁ = d ⁄ t₁ และ v₂ = d ⁄ t₂ เมื่อการ์ดกว้างเท่ากัน จะได้ v₁/v₂ = t₂/t₁ ความกว้างการ์ดจึงตัดกันไปเอง</p>
+
+    <h2>3. พลังงานจลน์ไม่อนุรักษ์</h2>
+    <div class="formula-box">Ek ก่อน = ½ m_A v₁²<br>Ek หลัง = ½ (m_A + m_B) v₂²<br>Ek หลัง / Ek ก่อน = m_A / (m_A + m_B)</div>
+    <p>การชนแบบติดกันเสียพลังงานจลน์มากที่สุดเท่าที่กฎการอนุรักษ์โมเมนตัมยอมให้ พลังงานส่วนที่หายไปเปลี่ยนเป็นพลังงานความร้อนและเสียงขณะแผ่นตีนตุ๊กแกเกี่ยวกัน และงานที่ทำให้แผ่นเสียรูป</p>
+
+    <h2>4. สลับเป็นกันชนแม่เหล็ก — การชนแบบยืดหยุ่น</h2>
+    <p>แม่เหล็กขั้วเดียวกันผลักกันก่อนรถแตะกัน พลังงานจลน์เกือบไม่หายไป รถจึงแยกจากกัน ให้ทิศขวาเป็นบวก</p>
+    <div class="formula-box">m_A v₁ = m_A v_A′ + m_B v₂     (v₂ = รถ B หลังชน · v_A′ เป็นลบถ้ารถ A กระดอนกลับ)<br>e = (v₂ − v_A′) / v₁     (ติดกัน e = 0 · ยืดหยุ่นสมบูรณ์ e = 1)<br>m_A = m_B และ e ≈ 1 → รถ A หยุด · m_A &gt; m_B → รถ A วิ่งตาม · m_A &lt; m_B → รถ A กระดอนกลับ</div>
+    <p>โมเมนตัมอนุรักษ์ทั้งสองแบบ แต่พลังงานจลน์ต่างกันมาก — ดูกราฟ Ek หลัง/ก่อน: จุดของตีนตุ๊กแกอยู่บนเส้น m_A/(m_A+m_B) ส่วนจุดของแม่เหล็กอยู่ใกล้ 100% · การชนแบบยืดหยุ่นแยกเป็น Lab 81 (มีสปริงแผ่นและยางปริศนาเพิ่ม)</p>
+
+    <h2>5. หามวลรถปริศนา X</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="260"></canvas></div>
+    <div class="formula-box">m_X = m_A ( v₁ / v₂ − 1 ) = m_A ( t₂ / t₁ − 1 )<br><br>หรือใช้กราฟ v₁/v₂ กับ m_B/m_A ของรถที่ทราบมวล (ควรเป็นเส้นตรงความชัน 1 จุดตัดแกนตั้ง 1)<br>แล้วอ่านค่า m_X/m_A จากระดับ v₁/v₂ ที่วัดได้กับรถ X</div>
+    <div class="note-box">💡 แบบจำลอง: กันชนแม่เหล็กมี e สุ่ม 0.95–0.99 ต่อการเปิดหน้า · ค่าคงตัวสปริงของเครื่องยิงประมาณ 120 N/m (ความเร็วแต่ละนัดแกว่ง ±1.5%) · รางลมมีความหน่วงเหลือ 0.0004–0.0008 m/s² (ซ่อนไว้) · มวลรถ X สุ่ม 250–550 g ต่อการเปิดหน้า · เครื่องจับเวลาอ่านละเอียด 0.1 ms และมีสัญญาณรบกวน ±0.2 ms · คำนวณการเคลื่อนที่ทีละ 0.5 ms และหาเวลาขอบการ์ดตัดลำแสงแบบประมาณค่าในช่วง</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.4 (สสวท.) — โมเมนตัมและการชน · เทียบเคียง Conservation of momentum on an air track (A-level / IB Physics)<br>
+  Lab 80 — Perfectly Inelastic Collision on an Air Track (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 80 การชนแบบติดกันใน 1 มิติ (รางลม 3D)
+   โลก 3D หน่วย cm · ตำแหน่งรถ = จุดกึ่งกลางรถ (cm บนสเกลราง)
+   การ์ดบังแสงอยู่กึ่งกลางรถ · คำนวณการเคลื่อนที่ล่วงหน้าทีละ 0.5 ms
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL02 Lab 80 — build v1.1 3D-only · ตีนตุ๊กแก/แม่เหล็ก (2569-09-17)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+/* ปริศนา: มวลรถ X (kg) · e ของกันชนแม่เหล็ก · ความหน่วงที่เหลือของราง (m/s²) — สุ่มต่อการเปิดหน้า */
+const M_X   = Math.round(rnd(250,550))/1000;
+const DECEL = rnd(0.0004,0.0008);
+const K_SPR = 120;                          /* N/m */
+const BUMPS=[{n:'ตีนตุ๊กแก',ic:'🔗',stick:true,e:0},{n:'แม่เหล็ก',ic:'🧲',stick:false,e:rnd(0.95,0.99)}];
+
+const CARDS=[2.5,5.0,10.0];                 /* cm */
+const MA_OPT=[200,300,400];                 /* g */
+const MB_OPT=[200,300,400,'X'];
+const COMPS=[1.0,1.5,2.0];                  /* cm */
+const TRK_L=120;
+const X_LEFT=4;                             /* หน้าลูกสูบเครื่องยิง (ขอบซ้ายรถ A) */
+const X_RIGHT=118;                          /* หน้าตัวรับรถปลายขวา */
+const CART_L=14, BUMP=1, DC=CART_L+2*BUMP;  /* ระยะจุดกึ่งกลางรถตอนแตะกัน */
+const T_NOISE=0.2;
+const HD_LAG=0.30, HD_VMAX=70;
+
+let cardI=1, aI=0, bI=0, compI=2, bumpI=0;
+let gate=[34.0,72.0];
+let cB=58.0;
+let phase='armed';                          /* armed | run | done */
+let RUN=null, runT=0;
+let tMs=[[null,null],[null,null]], tShow=[[null,null],[null,null]];
+let lastRun=null;
+let mode='manual', rows=[], graph='pp', curView='iso', simT=0;
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+const fmtS=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':(x===0?'0':((x>0?'+':'')+x.toFixed(n)));
+const cardW=()=>CARDS[cardI];
+const mAg=()=>MA_OPT[aI];
+const isX=()=>MB_OPT[bI]==='X';
+const mBg=()=>isX()?null:MB_OPT[bI];
+const mBkg=()=>isX()?M_X:MB_OPT[bI]/1000;
+const isMag=()=>bumpI===1;
+const cA0=()=>X_LEFT+CART_L/2-COMPS[compI];   /* ตำแหน่งรถ A ขณะอัดสปริง */
+const cAfree=()=>X_LEFT+CART_L/2;
+
+/* ── ขอบเขตการวางอุปกรณ์ ── */
+const g0Min=()=>cAfree()+cardW()/2+1.5;
+const g1Max=()=>X_RIGHT-CART_L/2-cardW()/2-1.5;
+function bLo(){ return gate[0]+cardW()/2+1.5+DC; }
+function bHi(){ return gate[1]-cardW()/2-1.5; }
+function clampAll(){
+  const d=cardW();
+  gate[1]=Math.max(g0Min()+DC+d+3, Math.min(gate[1], g1Max()));
+  gate[0]=Math.max(g0Min(), Math.min(gate[0], gate[1]-DC-d-3));
+  cB=Math.max(bLo(), Math.min(cB, bHi()));
+}
+
+/* ═══════════ ฟิสิกส์: จำลองทั้งการยิงล่วงหน้า ═══════════ */
+function collide(mA,mB,uA,uB,e){
+  const P=mA*uA+mB*uB;
+  return [(P-mB*e*(uA-uB))/(mA+mB), (P+mA*e*(uA-uB))/(mA+mB)];
+}
+function buildRun(){
+  const mA=mAg()/1000, mB=mBkg(), d=cardW(), comp=COMPS[compI]/100, STICK=BUMPS[bumpI].stick;
+  const e=STICK?0:Math.max(0,Math.min(1,BUMPS[bumpI].e+(Math.random()-0.5)*0.02));
+  const v0=comp*Math.sqrt(K_SPR/mA)*(1+(Math.random()-0.5)*0.03);
+  const dec=DECEL*(1+(Math.random()-0.5)*0.2)*100;          /* cm/s² */
+  const DT=0.0005, SUB=4, NMAX=Math.round(25/DT);
+  let x=[cA0(), cB], v=[v0*100, 0], held=[false,false], stuck=false, hit=null;
+  const smp=[];
+  const open=[[null,null],[null,null]];                     /* open[cart][gate] */
+  const ints=[[],[]];                                       /* ints[gate] = {cart,t0,t1} */
+  const inside=(xc,g)=>Math.abs(xc-g)<=d/2;
+  let n=0;
+  for(n=0;n<NMAX;n++){
+    const t=n*DT, xp=[x[0],x[1]];
+    if(n%SUB===0) smp.push(x[0],x[1]);
+    for(let i=0;i<2;i++){ if(held[i]||v[i]===0) continue; const s=Math.sign(v[i]); v[i]-=s*dec*DT; if(Math.sign(v[i])!==s) v[i]=0; }
+    if(stuck){ const vm=(mA*v[0]+mB*v[1])/(mA+mB); v[0]=v[1]=vm; }
+    x[0]+=v[0]*DT; x[1]+=v[1]*DT;
+    if(x[1]-x[0]<=DC && v[0]-v[1]>0){
+      const first=(hit===null); if(first) hit={t:t+DT, uA:v[0]/100, xB:x[1]};
+      x[0]=x[1]-DC;
+      if(held[1]){ v[0]=0; held[0]=true; }
+      else if(STICK){ const vm=(mA*v[0]+mB*v[1])/(mA+mB); v[0]=v[1]=vm; stuck=true; }
+      else { const r=collide(mA,mB,v[0],v[1],e); v[0]=r[0]; v[1]=r[1]; }
+      if(first){ hit.vA=v[0]/100; hit.vB=v[1]/100; }
+    }
+    if(x[1]+CART_L/2>=X_RIGHT && v[1]>0){ x[1]=X_RIGHT-CART_L/2; v[1]=0; held[1]=true; if(stuck){ v[0]=0; held[0]=true; x[0]=x[1]-DC; } }
+    if(x[0]-CART_L/2<=X_LEFT && v[0]<0){ x[0]=X_LEFT+CART_L/2; v[0]=0; held[0]=true; }
+    if(x[0]>x[1]-DC){ x[0]=x[1]-DC; }
+    /* โฟโตเกต: หาเวลาขอบการ์ดตัดลำแสงแบบประมาณค่าในช่วง */
+    for(let c=0;c<2;c++) for(let g=0;g<2;g++){
+      const gp=gate[g], a=inside(xp[c],gp), b=inside(x[c],gp);
+      if(a===b) continue;
+      const edge = b ? (x[c]>xp[c]? gp-d/2 : gp+d/2) : (x[c]>xp[c]? gp+d/2 : gp-d/2);
+      const fr = (x[c]===xp[c])?0:Math.max(0,Math.min(1,(edge-xp[c])/(x[c]-xp[c])));
+      const tc=t+fr*DT;
+      if(b) open[c][g]=tc; else if(open[c][g]!==null){ ints[g].push({cart:c,t0:open[c][g],t1:tc}); open[c][g]=null; }
+    }
+    if(v[0]===0&&v[1]===0&&n>20){ n++; break; }
+  }
+  smp.push(x[0],x[1]);
+  const tEnd=Math.min(n*DT,(smp.length/2-1)*DT*SUB);
+  ints.forEach(L=>L.sort((p,q)=>p.t0-q.t0));
+  const stuckA=open[0][0]!==null||open[0][1]!==null;
+  return {mA,mB,d,v0,dec,e,stick:STICK,hit,ints,smp,dts:DT*SUB,tEnd,stuckA};
+}
+function posAt(t){
+  const R=RUN; if(!R) return [cA0(),cB];
+  const f=t/R.dts, i=Math.floor(f), N=R.smp.length/2-1;
+  if(i>=N) return [R.smp[2*N],R.smp[2*N+1]];
+  const u=f-i; return [R.smp[2*i]+(R.smp[2*i+2]-R.smp[2*i])*u, R.smp[2*i+1]+(R.smp[2*i+3]-R.smp[2*i+1])*u];
+}
+function readMs(it){ if(!it) return null; const ms=(it.t1-it.t0)*1000+(Math.random()*2-1)*T_NOISE; return Math.round(ms*10)/10; }
+function fireRun(){
+  if(phase==='run'){ lockWarn('รถกำลังเคลื่อนที่อยู่'); return; }
+  if(phase==='done'){ lockWarn('กด ↩ ตั้งรถใหม่ ก่อนยิงอีกครั้ง'); return; }
+  clampAll();
+  RUN=buildRun(); runT=0; phase='run';
+  tMs=[0,1].map(g=>[readMs(RUN.ints[g][0]),readMs(RUN.ints[g][1])]);
+  tShow=[[null,null],[null,null]]; updTimerTex();
+  const H=RUN.hit, i1=RUN.ints[0][0], i2=RUN.ints[1][0];
+  const ok = !!(H && i1 && i1.cart===0 && i1.t1<=H.t && i2 && i2.cart===1 && i2.t0>=H.t);
+  /* กันชนแม่เหล็ก: รถ A หลังชนไปทางไหน · ช่องไหนของจอเป็นการ์ดรถ A */
+  let dir='stop', tA=null, aOk=true;
+  if(H&&!RUN.stick){ const k1=RUN.ints[0].findIndex(it=>it.cart===0&&it.t0>=H.t), k2=RUN.ints[1].findIndex(it=>it.cart===0&&it.t0>=H.t);
+    const slow=Math.abs(H.vA)<=0.035*H.uA;       /* ช้ากว่า 3.5% ของ v₁ ถือว่า “เกือบหยุด” */
+    if(H.vA<0&&k1===1){ dir='back'; tA=tMs[0][1]; }
+    else if(H.vA>0&&k2===1){ dir='fwd'; tA=tMs[1][1]; }
+    else if(!slow||RUN.stuckA) aOk=false;
+  }
+  lastRun={d:RUN.d, mA:mAg(), mB:mBg(), X:isX(), bump:bumpI, t1:tMs[0][0], t2:tMs[1][0], dir, tA, ok, aOk, rec:false, tEnd:RUN.tEnd};
+  if(mode==='manual'){ ['in-t1','in-t2','in-tA'].forEach(id=>$(id).value=''); $('in-dir').value=''; dirChanged(); }
+  recMsg('',''); drawAll();
+}
+function rearm(){ if(phase==='run'){ lockWarn('รอให้รถหยุดก่อน'); return; }
+  phase='armed'; RUN=null; runT=0; drawAll(); }
+function stepRun(dt){
+  if(phase!=='run') return;
+  runT+=dt; simT+=dt;
+  if(runT>=RUN.tEnd){ runT=RUN.tEnd; phase='done'; }
+  let ch=false;
+  for(let g=0;g<2;g++) for(let k=0;k<2;k++){ const it=RUN.ints[g][k];
+    if(tShow[g][k]===null&&it&&runT>=it.t1){ tShow[g][k]=tMs[g][k]; ch=true; } }
+  if(ch) updTimerTex();
+  if(phase==='done') drawAll();
+}
+
+/* ═══════════ UI actions ═══════════ */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
+/* ฟอร์มบันทึก: กันชนแม่เหล็กต้องกรอกทิศและเวลาของรถ A หลังชนเพิ่ม */
+function formMode(){ const mag=isMag();
+  $('fDir').classList.toggle('hidden',!mag); $('fTA').classList.toggle('hidden',!mag);
+  $('lblT2').textContent= mag?'⑤ t₂ รถ B หลังชน':'⑤ t₂ หลังชน';
+  $('rfHint2').textContent = mode==='auto'?'— โหมดอัตโนมัติ: ระบบอ่านค่าให้': mag?'— จอจับเวลา เกต 2 ครั้งที่ 1 (รถ B)':'— จอจับเวลา เกต 2 ครั้งที่ 1 (รถที่ติดกัน)'; }
+function dirChanged(){ const v=$('in-dir').value;
+  $('fTA').style.opacity= v==='stop'?0.4:1; $('in-tA').disabled= v==='stop';
+  $('rfHintA').textContent= mode==='auto'?'— โหมดอัตโนมัติ: ระบบอ่านค่าให้': v==='fwd'?'— อ่านช่อง เกต 2 ครั้งที่ 2': v==='back'?'— อ่านช่อง เกต 1 ครั้งที่ 2': v==='stop'?'— รถ A หยุด ไม่ต้องกรอก':'— ช่องตามที่เลือกในข้อ ⑥'; }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto') $('autoGrid').innerHTML='';   /* ไม่ทิ้งค่าเฉลยไว้ใน DOM */
+  ['in-t1','in-t2','in-tA'].forEach(id=>{ $(id).readOnly = m==='auto'; if(m==='manual') $(id).value=''; });
+  $('in-dir').disabled= m==='auto'; if(m==='manual') $('in-dir').value='';
+  $('rfHint1').textContent = m==='auto'?'— โหมดอัตโนมัติ: ระบบอ่านค่าให้':'— จอจับเวลา เกต 1 ครั้งที่ 1 (รถ A)';
+  $('modeNote').textContent = m==='auto'?'โหมดอัตโนมัติ: แสดงมวลรถ X และ e ของแม่เหล็กจริง':'โหมดวัดเอง: อ่านเวลาจากจอในภาพ 3D';
+  $('ansMMsg').innerHTML=''; $('ansKMsg').innerHTML=''; formMode(); dirChanged(); renderAll(); }
+function busy(){ if(phase==='run'){ lockWarn('รอให้รถหยุดก่อน'); return true; } return false; }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function afterChange(){ clampAll(); if(phase==='done') rearm(); syncCtl(); drawAll(); }
+function setA(i){ if(busy()) return; aI=i; markBtns('#aBtns',i); afterChange(); }
+function setB(i){ if(busy()) return; bI=i; markBtns('#bBtns',i); afterChange(); }
+function setComp(i){ if(busy()) return; compI=i; markBtns('#compBtns',i); afterChange(); }
+function setCard(i){ if(busy()) return; cardI=i; markBtns('#cardBtns',i); afterChange(); }
+function setBump(i){ if(busy()) return; bumpI=i; markBtns('#bumpBtns',i); formMode(); afterChange(); }
+function cycleA(){ setA((aI+1)%MA_OPT.length); }
+function cycleB(){ setB((bI+1)%MB_OPT.length); }
+function cycleComp(){ setComp((compI+1)%COMPS.length); }
+function cycleBump(){ setBump((bumpI+1)%BUMPS.length); }
+function resetLab(){ if(busy()) return; cardI=1; aI=0; bI=0; compI=2; bumpI=0; gate=[34.0,72.0]; cB=58.0; clampAll();
+  phase='armed'; RUN=null; runT=0; tMs=[[null,null],[null,null]]; tShow=[[null,null],[null,null]]; lastRun=null;
+  markBtns('#cardBtns',cardI); markBtns('#aBtns',aI); markBtns('#bBtns',bI); markBtns('#compBtns',compI); markBtns('#bumpBtns',bumpI);
+  if(mode==='manual'){ ['in-t1','in-t2','in-tA'].forEach(id=>$(id).value=''); $('in-dir').value=''; }
+  formMode(); dirChanged(); recMsg('',''); updTimerTex(); setView('iso'); syncCtl(); drawAll(); }
+function syncCtl(){
+  $('in-d').value=cardW().toFixed(1); $('in-mA').value=String(mAg()); $('in-mB').value=isX()?'X (?)':String(mBg());
+  $('roB').textContent=cB.toFixed(1)+' cm';
+  $('roGates').textContent=gate[0].toFixed(1)+' · '+gate[1].toFixed(1);
+  const s=(id,t)=>{ const b=$(id); if(b&&b.textContent!==t) b.textContent=t; };
+  s('ab-mA','🚙 A '+mAg()+' g'); s('ab-mB',isX()?'🚗 B = X ?':'🚗 B '+mBg()+' g'); s('ab-bump',BUMPS[bumpI].ic+' '+BUMPS[bumpI].n);
+  if(P.labA) P.labA.redraw(); if(P.labB) P.labB.redraw();
+}
+
+/* ═══════════ คำแนะนำทีละขั้น ═══════════ */
+function goodRows(){ return rows.map(derive).filter(q=>q&&q.ok); }
+function hintState(){
+  const G=goodRows(), S=G.filter(q=>q.bump===0), K=S.filter(q=>!q.X), Xr=S.filter(q=>q.X), Mg=G.filter(q=>q.bump===1&&!q.X), ratios=new Set(K.map(q=>(q.mB/q.mA).toFixed(3)));
+  if(phase==='run') return ['info', isMag()
+    ? '④ รถกำลังเคลื่อนที่ — ดูว่าหลังชนรถ A <b>วิ่งต่อ · หยุด · หรือกระดอนกลับ</b> (กด 🐢 และ 🔍 จุดชน ช่วยได้)'
+    : '④ รถกำลังเคลื่อนที่ — สังเกตว่ารถ A ผ่านเกต 1 ชนรถ B แล้วติดกันวิ่งผ่านเกต 2 (กด 🐢 ให้ช้าลงได้)'];
+  if(phase==='done'&&lastRun&&!lastRun.rec){
+    if(!lastRun.ok) return ['warn','⚠️ เครื่องจับเวลาได้ค่าไม่ครบ (รถหยุดก่อนถึงเกต 2 หรือการ์ดไม่ผ่านเกตเต็มแผ่น)<br>กด <b>↩ ตั้งรถใหม่</b> อัดสปริงมากขึ้น หรือเลื่อนเกต 2 ให้ใกล้รถ B'];
+    if(!lastRun.aOk) return ['warn','⚠️ รถ A หลังชนยังเคลื่อนที่ แต่ช้าจนการ์ดผ่านเกตไม่เต็มแผ่น จึงวัดความเร็วรถ A ไม่ได้<br>กด <b>↩ ตั้งรถใหม่</b> อัดสปริงมากขึ้น · เลื่อนเกตเข้าใกล้จุดชน · หรือเปลี่ยนมวลรถ'];
+    if(lastRun.bump===1) return ['ok','⑤ อ่านค่า! กด <b>🔍 จอจับเวลา</b><br>④ t₁ = <b>เกต 1 ครั้งที่ 1</b> · ⑤ t₂ = <b>เกต 2 ครั้งที่ 1</b> (รถ B)<br>⑥ เลือกว่ารถ A หลังชนไปทางไหน แล้ว ⑦ อ่าน t_A จากช่องที่ตรงกัน → <b>📝 บันทึก</b>'];
+    return ['ok','⑤ อ่านค่า! กด <b>🔍 จอจับเวลา</b><br>t₁ = <b>เกต 1 ครั้งที่ 1</b> (การ์ดรถ A ก่อนชน) · t₂ = <b>เกต 2 ครั้งที่ 1</b> (การ์ดรถ B ที่ติดกับ A แล้ว)<br>กรอกช่อง ④ ⑤ ใต้ภาพ แล้วกด <b>📝 บันทึก</b>'];
+  }
+  if(!rows.length) return ['info','① กันชน <b>🔗 ตีนตุ๊กแก</b> · เลือกมวลรถ A และรถ B (เริ่ม 200 g ทั้งคู่)<br>② <b>ลากเกต 1</b> ไว้ระหว่างรถ A กับรถ B · <b>ลากเกต 2</b> ไว้หน้ารถ B ใกล้ ๆ<br>③ กด <b>▶ ยิงรถ A</b>'];
+  if(K.length<3||ratios.size<2) return ['info','⑥ กันชนตีนตุ๊กแก: บันทึกรถที่ทราบมวลแล้ว '+K.length+'/3 แถว'+(ratios.size<2&&K.length?' (ยังใช้อัตราส่วน m_B/m_A ค่าเดียว)':'')+'<br>→ กด <b>↩ ตั้งรถใหม่</b> <b>เปลี่ยนมวลรถ B</b> (หรือรถ A) แล้วยิงอีกครั้ง'+(isMag()?'<br><span style="color:#fde047">ตอนนี้เลือกกันชนแม่เหล็กอยู่ — ขั้นนี้ใช้ 🔗 ตีนตุ๊กแก</span>':'')];
+  if(Xr.length<2) return ['info','⑦ ตีนตุ๊กแก + รถที่ทราบมวลครบแล้ว ✓ → เปลี่ยนรถ B เป็น <b>❓ X</b> ยิงแล้วบันทึกอย่างน้อย 2 แถว ('+Xr.length+'/2)'];
+  if(Mg.length<2) return ['info','⑧ เปลี่ยนกันชนเป็น <b>🧲 แม่เหล็ก</b> (รถแยกจากกัน) ยิงรถที่ทราบมวลแล้วบันทึกอย่างน้อย 2 แถว ('+Mg.length+'/2)<br>เทียบ Ek หลัง/ก่อน กับตอนติดกัน — โมเมนตัมยังอนุรักษ์เหมือนเดิมไหม'];
+  return ['ok','⑨ ข้อมูลพอแล้ว ✓ ตาราง ① p หลัง ≈ p ก่อน ทั้งสองกันชน · ตาราง ② Ek หลัง/ก่อน: ติดกัน ≈ m_A/(m_A+m_B) · แม่เหล็ก ≈ 100%<br>⑩ กราฟ <b>v₁/v₂ – m_B/m_A</b> อ่านมวลรถ X แล้วกรอกคำตอบใน 🎯'];
+}
+function updateHint(){
+  const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const ph={armed:'<span style="color:#6ee7b7">✓ อัดสปริงพร้อมยิง</span>',run:'<span style="color:#fde047">⏳ รถกำลังเคลื่อนที่</span>',done:'<span style="color:#93c5fd">■ รถหยุดแล้ว</span>'}[phase];
+  const sl=`<b>A ${mAg()} g</b> → <b>B ${isX()?'X':mBg()+' g'}</b> · กันชน${BUMPS[bumpI].n} · สปริง ${COMPS[compI].toFixed(1)} cm · การ์ด ${cardW().toFixed(1)} cm · เกต ${gate[0].toFixed(1)} / ${gate[1].toFixed(1)} cm · ${ph}`;
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){
+    const R=RUN, H=R&&R.hit;
+    const html=`<div class="readout-box"><div class="label">มวลรถ X (จริง)</div><div class="value">${(M_X*1000).toFixed(0)} g</div></div>`
+     +`<div class="readout-box"><div class="label">e ของแม่เหล็ก</div><div class="value">${BUMPS[1].e.toFixed(3)}</div></div>`
+     +`<div class="readout-box"><div class="label">v₁ ก่อนชน</div><div class="value">${H?H.uA.toFixed(3)+' m/s':'—'}</div></div>`
+     +`<div class="readout-box"><div class="label">v_A′ · v_B′ หลังชน</div><div class="value">${H&&H.vA!==undefined?fmtS(H.vA,3)+' · '+fmtS(H.vB,3):'—'}</div></div>`
+     +`<div class="readout-box"><div class="label">t₁ · t₂</div><div class="value">${fmt(tMs[0][0],1)} · ${fmt(tMs[1][0],1)} ms</div></div>`
+     +`<div class="readout-box"><div class="label">ความหน่วงของราง</div><div class="value">${DECEL.toFixed(4)} m/s²</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    if(phase==='done'&&lastRun&&lastRun.ok){ $('in-t1').value=fmt(lastRun.t1,1); $('in-t2').value=fmt(lastRun.t2,1);
+      if(lastRun.bump===1){ if($('in-dir').value!==lastRun.dir){ $('in-dir').value=lastRun.dir; dirChanged(); } $('in-tA').value=lastRun.tA===null?'':lastRun.tA.toFixed(1); } }
+  } else $('autoGrid').dataset.t='';
+}
+
+/* ═══════════ การบันทึกผล ═══════════ */
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){
+  if(phase==='run'){ recMsg('warn','⚠️ รอให้รถหยุดก่อนจึงบันทึก'); return; }
+  if(!lastRun||phase!=='done'){ recMsg('warn','⚠️ ยังไม่ได้ยิงรถ — กด <b>▶ ยิงรถ A</b> ก่อน'); return; }
+  if(lastRun.rec){ recMsg('warn','⚠️ การยิงครั้งนี้บันทึกไปแล้ว — กด <b>↩ ตั้งรถใหม่</b> แล้วยิงใหม่'); return; }
+  if(!lastRun.ok||!lastRun.aOk){ recMsg('warn','⚠️ เครื่องจับเวลาได้ค่าไม่ครบ บันทึกไม่ได้ — กด <b>↩ ตั้งรถใหม่</b> (ดูคำแนะนำ 🧭)'); return; }
+  const mag=lastRun.bump===1;
+  let t1,t2,dir='stick',tA=null;
+  if(mode==='auto'){ t1=lastRun.t1; t2=lastRun.t2; if(mag){ dir=lastRun.dir; tA=lastRun.tA; } }
+  else{
+    t1=parseFloat($('in-t1').value); t2=parseFloat($('in-t2').value);
+    if(isNaN(t1)){ recMsg('warn','⚠️ กรอก t₁ — เวลาบังแสงของ <b>เกต 1 ครั้งที่ 1</b> (หน่วย ms)'); $('in-t1').focus(); return; }
+    if(isNaN(t2)){ recMsg('warn','⚠️ กรอก t₂ — เวลาบังแสงของ <b>เกต 2 ครั้งที่ 1</b> (หน่วย ms)'); $('in-t2').focus(); return; }
+    if(mag){ dir=$('in-dir').value; tA=parseFloat($('in-tA').value);
+      if(!dir){ recMsg('warn','⚠️ ข้อ ⑥ เลือกว่ารถ A หลังชน วิ่งต่อ / กระดอนกลับ / หยุด'); $('in-dir').focus(); return; }
+      if(dir==='stop') tA=null;
+      else if(isNaN(tA)){ recMsg('warn','⚠️ กรอก ⑦ t_A — '+(dir==='fwd'?'<b>เกต 2 ครั้งที่ 2</b>':'<b>เกต 1 ครั้งที่ 2</b>')+' (ms)'); $('in-tA').focus(); return; } }
+    if(t1<=0||t2<=0||(tA!==null&&tA<=0)||t1>99999||t2>99999){ recMsg('warn','⚠️ เวลาต้องเป็นค่าบวก หน่วย ms'); return; }
+  }
+  const row={d:lastRun.d, mA:lastRun.mA, mB:lastRun.mB, X:lastRun.X, bump:lastRun.bump, t1, t2, dir, tA};
+  rows.push(row); lastRun.rec=true;
+  if(mode==='manual'){ ['in-t1','in-t2','in-tA'].forEach(id=>$(id).value=''); $('in-dir').value=''; dirChanged(); }
+  renderAll(); renderLast(rows.length-1);
+  const q=derive(row);
+  recMsg(q&&q.ok?'ok':'warn',(q&&q.ok?'✓ ':'⚠️ ค่าผิดปกติ — ตรวจว่ากรอกเวลาถูกช่องหรือไม่ · ')+`บันทึกแถวที่ ${rows.length} แล้ว — ดูผลที่กรอบ “📊 ผลที่บันทึกล่าสุด”`+(innerWidth<=900?' — จอเล็ก: กด <b>📊 ผล / ตาราง</b> ที่ขอบล่าง':' ในแผงด้านข้าง'));
+}
+/* ค่าที่คำนวณได้จากตัวเลขที่นักเรียนกรอกเองล้วน ๆ (ทิศขวา = +) */
+function derive(r){
+  const d=r.d/100; if(!(r.t1>0)||!(r.t2>0)) return null;
+  const mA=r.mA/1000, v1=d/(r.t1/1000), v2=d/(r.t2/1000), p1=mA*v1, E1=0.5*mA*v1*v1, mag=r.bump===1;
+  let vA=v2;                                         /* ติดกัน: รถ A ไปพร้อมรถ B */
+  if(mag){ vA= r.dir==='stop'?0 : (r.tA>0 ? (r.dir==='back'?-1:1)*d/(r.tA/1000) : null); if(vA===null) return null; }
+  const q={X:r.X, mA:r.mA, mB:r.mB, bump:r.bump, v1, v2, vA, p1, E1, rv:v1/v2, e:(v2-vA)/v1};
+  q.ok = mag ? (v2>=vA && q.e<=1.05) : (v2<v1);
+  if(r.X){ q.mEst = r.mA*(v1-vA)/v2; }
+  else { const mB=r.mB/1000; q.p2=mA*vA+mB*v2; q.E2=0.5*mA*vA*vA+0.5*mB*v2*v2; q.pr=q.p2/p1; q.er=q.E2/E1; q.eth=mA/(mA+mB); }
+  return q;
+}
+const DIRT={stick:'ติดกัน',fwd:'→ ต่อ',back:'← กลับ',stop:'หยุด'};
+function renderLast(i){ const r=rows[i]; if(!r) return; const q=derive(r), mag=r.bump===1;
+  let h=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span>`
+   +`<span class="k">กันชน · การ์ด d</span><span class="v">${BUMPS[r.bump].ic} ${BUMPS[r.bump].n} · ${fmt(r.d,1)} cm</span>`
+   +`<span class="k">②③ m_A · m_B</span><span class="v">${r.mA} g · ${r.X?'X (ไม่ทราบ)':r.mB+' g'}</span>`
+   +`<span class="k">t₁ · t₂${mag?' · t_A':''}</span><span class="v">${fmt(r.t1,1)} · ${fmt(r.t2,1)}${mag?' · '+(r.dir==='stop'?'—':fmt(r.tA,1)):''} ms</span>`;
+  if(mag) h+=`<span class="k">รถ A หลังชน</span><span class="v">${DIRT[r.dir]}</span>`;
+  if(q){ h+=`<span class="k">v₁ = d/t₁</span><span class="v">${fmt(q.v1,4)} m/s</span>`
+    +`<span class="k">v₂ = d/t₂${mag?' (รถ B)':''}</span><span class="v">${fmt(q.v2,4)} m/s</span>`;
+    if(mag) h+=`<span class="k">v_A′ (มีเครื่องหมาย)</span><span class="v">${fmtS(q.vA,4)} m/s</span>`;
+    h+=`<span class="k">p ก่อน = m_A v₁</span><span class="v big">${fmt(q.p1,4)} kg·m/s</span>`;
+    if(r.X) h+= mag? `<span class="k">m_X = m_A(v₁ − v_A′)/v₂</span><span class="v big">${fmt(q.mEst,0)} g</span>`
+      : `<span class="k">v₁/v₂</span><span class="v">${fmt(q.rv,3)}</span><span class="k">m_X = m_A(v₁/v₂ − 1)</span><span class="v big">${fmt(q.mEst,0)} g</span>`;
+    else h+=`<span class="k">p หลัง = ${mag?'m_A v_A′ + m_B v₂':'(m_A+m_B)v₂'}</span><span class="v big">${fmt(q.p2,4)} kg·m/s</span>`
+      +`<span class="k">p หลัง / p ก่อน</span><span class="v">${fmt(q.pr*100,1)} %</span>`
+      +`<span class="k">Ek หลัง / Ek ก่อน</span><span class="v">${fmt(q.er*100,1)} %`+(mag?'':` <span style="color:#94a3b8">(m_A/(m_A+m_B) = ${fmt(q.eth*100,1)} %)</span>`)+`</span>`;
+    if(mag) h+=`<span class="k">e = (v₂ − v_A′)/v₁</span><span class="v">${fmt(q.e,3)}</span>`; }
+  $('lastRec').innerHTML=h; }
+function renderTable(){
+  let h='<table><thead><tr><th>#</th><th>กันชน</th><th>m_A<br>(g)</th><th>m_B<br>(g)</th><th>t₁<br>(ms)</th><th>t₂<br>(ms)</th><th>A หลังชน</th><th>t_A<br>(ms)</th><th>v₁<br>(m/s)</th><th>v₂ (B)<br>(m/s)</th><th>v_A′<br>(m/s)</th><th>p ก่อน<br>(kg·m/s)</th><th>p หลัง<br>(kg·m/s)</th><th>p หลัง/ก่อน<br>(%)</th><th>m_X<br>(g)</th></tr></thead><tbody>';
+  h+=rows.map((r,i)=>{ const q=derive(r), mag=r.bump===1, st=(q&&!q.ok)?'color:#fb923c':(r.X?'color:#d8b4fe':'');
+    return `<tr style="${st}"><td>${i+1}</td><td>${BUMPS[r.bump].ic}</td><td class="mono">${r.mA}</td><td class="mono">${r.X?'X':r.mB}</td><td class="mono">${fmt(r.t1,1)}</td><td class="mono">${fmt(r.t2,1)}</td><td>${DIRT[r.dir]}</td><td class="mono">${mag&&r.dir!=='stop'?fmt(r.tA,1):'—'}</td><td class="mono">${q?fmt(q.v1,4):'—'}</td><td class="mono">${q?fmt(q.v2,4):'—'}</td><td class="mono">${q?fmtS(q.vA,4):'—'}</td><td class="mono">${q?fmt(q.p1,4):'—'}</td><td class="mono">${q&&!r.X?fmt(q.p2,4):'—'}</td><td class="mono">${q&&!r.X?fmt(q.pr*100,1):'—'}</td><td class="mono">${q&&r.X?fmt(q.mEst,0):'—'}</td></tr>`; }).join('');
+  if(!rows.length) h+='<tr><td colspan="15" style="color:var(--muted)">ยังไม่มีข้อมูล — ยิงรถ อ่านเวลา แล้วกดบันทึก</td></tr>';
+  const G=goodRows(), Xr=G.filter(q=>q.X); let foot='';
+  [0,1].forEach(b=>{ const K=G.filter(q=>!q.X&&q.bump===b); if(K.length) foot+=`${BUMPS[b].ic} ${BUMPS[b].n}: ค่าเฉลี่ย p หลัง/p ก่อน (${K.length} แถว) = <b class="mono" style="color:var(--accent3)">${fmt(K.reduce((a,q)=>a+q.pr,0)/K.length*100,1)} %</b><br>`; });
+  if(Xr.length) foot+=`ค่าเฉลี่ย m_X จากแถวรถ X (${Xr.length} แถว) = <b class="mono" style="color:#d8b4fe">${fmt(Xr.reduce((a,q)=>a+q.mEst,0)/Xr.length,0)} g</b>`+(mode==='auto'?` · ค่าจริง ${(M_X*1000).toFixed(0)} g`:'')+'<br>';
+  $('tableA').innerHTML=h+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">ทิศขวา = + · v = d/t · 🔗 ติดกัน: v_A′ = v₂ , p หลัง = (m_A+m_B)v₂ · 🧲 แม่เหล็ก: p หลัง = m_A v_A′ + m_B v₂ (v_A′ เป็นลบถ้ากระดอนกลับ) · <span style="color:#d8b4fe">สีม่วง</span> = รถ X · <span style="color:#fb923c">สีส้ม</span> = ค่าผิดปกติ<br>'+foot+'</div>';
+
+  let h2='<table><thead><tr><th>#</th><th>กันชน</th><th>m_A<br>(g)</th><th>m_B<br>(g)</th><th>Ek ก่อน<br>(mJ)</th><th>Ek หลัง<br>(mJ)</th><th>หายไป<br>(mJ)</th><th>Ek หลัง/ก่อน<br>(%)</th><th>m_A/(m_A+m_B)<br>(%)</th><th>e</th></tr></thead><tbody>';
+  const R2=rows.map((r,i)=>({r,i,q:derive(r)})).filter(o=>!o.r.X);
+  if(!R2.length) h2+='<tr><td colspan="10" style="color:var(--muted)">ยังไม่มีข้อมูลของรถที่ทราบมวล (แถวรถ X คำนวณพลังงานไม่ได้เพราะไม่รู้มวล)</td></tr>';
+  else h2+=R2.map(({r,i,q})=>`<tr><td>${i+1}</td><td>${BUMPS[r.bump].ic}</td><td class="mono">${r.mA}</td><td class="mono">${r.mB}</td>`+(q?`<td class="mono">${fmt(q.E1*1000,2)}</td><td class="mono">${fmt(q.E2*1000,2)}</td><td class="mono">${fmt((q.E1-q.E2)*1000,2)}</td><td class="mono" style="color:#facc15">${fmt(q.er*100,1)}</td><td class="mono">${r.bump===0?fmt(q.eth*100,1):'—'}</td><td class="mono">${r.bump===1?fmt(q.e,3):'0'}</td>`:'<td colspan="6">—</td>')+'</tr>').join('');
+  $('tableB').innerHTML=h2+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">Ek ก่อน = ½ m_A v₁² · Ek หลัง = ½ m_A v_A′² + ½ m_B v₂² · 🔗 ติดกัน (e = 0): Ek หลัง/ก่อน = m_A/(m_A+m_B) · 🧲 แม่เหล็ก: e ใกล้ 1 พลังงานจลน์เกือบไม่หายไป</div>';
+}
+function exportCSV(){
+  const csv='﻿row,bumper,card_cm,mA_g,mB_g,t1_ms,t2_ms,A_after,tA_ms,v1_ms,v2_ms,vA_ms,p_before,p_after,Ek_before_mJ,Ek_after_mJ,e,mX_est_g\n'+rows.map((r,i)=>{ const q=derive(r);
+    return [i+1,BUMPS[r.bump].n,r.d,r.mA,r.X?'X':r.mB,r.t1,r.t2,r.dir,r.tA===null?'':r.tA,q?q.v1.toFixed(4):'',q?q.v2.toFixed(4):'',q?q.vA.toFixed(4):'',q?q.p1.toFixed(5):'',q&&!r.X?q.p2.toFixed(5):'',q?(q.E1*1000).toFixed(3):'',q&&!r.X?(q.E2*1000).toFixed(3):'',q?q.e.toFixed(4):'',q&&r.X?q.mEst.toFixed(0):''].join(','); }).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab80_collision.csv'; a.click(); }
+function setGraph(g0){ graph=g0; document.querySelectorAll('#graphBtns button').forEach((b,i)=>b.classList.toggle('active',['pp','ek','mx'][i]===g0)); drawGraph(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCbar(); syncCtl(); }
+
+/* ═══════════ กราฟ ═══════════ */
+function axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,lx,ly){
+  g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"';
+  const nice=m=>{ const r=m/5, p=Math.pow(10,Math.floor(Math.log10(r||1))), f=r/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; };
+  const sx=nice(xmax), sy=nice(ymax); g.textAlign='center';
+  for(let v=0;v<=xmax+1e-9;v+=sx){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),X(v),H-mb+12); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(X(v),mt); g.lineTo(X(v),mt+gh); g.stroke(); }
+  g.textAlign='right';
+  for(let v=0;v<=ymax+1e-9;v+=sy){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),ml-4,Y(v)+3); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(ml,Y(v)); g.lineTo(ml+gw,Y(v)); g.stroke(); }
+  g.fillStyle='#94a3b8'; g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText(lx,ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText(ly,0,0); g.restore(); }
+const BCOL=['#fb923c','#38bdf8'];
+/* จุด: วงกลม = ตีนตุ๊กแก · สี่เหลี่ยม = แม่เหล็ก */
+function dot(g,x,y,bump,col){ g.fillStyle=col||BCOL[bump]; g.beginPath(); if(bump===1) g.rect(x-4,y-4,8,8); else g.arc(x,y,4,0,Math.PI*2); g.fill(); }
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=52,mr=10,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, notes=[];
+  const G=goodRows(), K=G.filter(q=>!q.X);
+  const legend='<span style="color:#fb923c">●</span> 🔗 ตีนตุ๊กแก (ติดกัน) · <span style="color:#38bdf8">■</span> 🧲 แม่เหล็ก';
+  if(graph==='pp'){
+    const mx=Math.max(0.05,...K.map(q=>Math.max(q.p1,q.p2)))*1.15;
+    const X=v=>ml+v/mx*gw, Y=v=>mt+gh-v/mx*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,mx,mx,X,Y,'p ก่อนชน = m_A v₁ (kg·m/s)','p หลังชน (kg·m/s)');
+    g.strokeStyle='#64748b'; g.setLineDash([5,4]); g.lineWidth=1.4; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(mx),Y(mx)); g.stroke(); g.setLineDash([]);
+    K.forEach(q=>dot(g,X(q.p1),Y(q.p2),q.bump));
+    if(!K.length) notes.push('บันทึกการชนของรถที่ทราบมวล (ไม่ใช่รถ X) จุดจะอยู่บนเส้นประ p หลัง = p ก่อน');
+    else{ const sxx=K.reduce((a,q)=>a+q.p1*q.p1,0), sxy=K.reduce((a,q)=>a+q.p1*q.p2,0);
+      notes.push('เส้นประเทา = p หลัง = p ก่อน (โมเมนตัมอนุรักษ์) · '+legend);
+      notes.push(`ความชันของข้อมูล (ผ่านจุดกำเนิด) = <b class="mono" style="color:var(--accent3)">${fmt(sxy/sxx,3)}</b> — ควรใกล้ 1 ทั้งสองกันชน`); }
+  } else if(graph==='ek'){
+    const X=v=>ml+v*gw, Y=v=>mt+gh-v*gh*0.9;
+    axes(g,W,H,ml,mt,gw,gh,mb,1,1.1,X,v=>mt+gh-v/1.1*gh,'m_A / (m_A + m_B)','Ek หลัง / Ek ก่อน');
+    const Y2=v=>mt+gh-v/1.1*gh;
+    g.strokeStyle='#64748b'; g.setLineDash([5,4]); g.lineWidth=1.4; g.beginPath(); g.moveTo(X(0),Y2(0)); g.lineTo(X(1),Y2(1)); g.stroke(); g.setLineDash([]);
+    g.strokeStyle='rgba(56,189,248,.7)'; g.beginPath(); g.moveTo(X(0),Y2(1)); g.lineTo(X(1),Y2(1)); g.stroke();
+    g.fillStyle='#7dd3fc'; g.font='10px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('Ek อนุรักษ์ (ยืดหยุ่นสมบูรณ์)',ml+6,Y2(1)-5);
+    K.forEach(q=>dot(g,X(q.eth),Y2(q.er),q.bump));
+    if(!K.length) notes.push('บันทึกการชนของรถที่ทราบมวลหลายอัตราส่วนมวล ทั้งแบบติดกันและแม่เหล็ก');
+    else{ notes.push('เส้นประเทา = ทฤษฎีการชนแบบติดกัน Ek หลัง/ก่อน = m_A/(m_A+m_B) · เส้นฟ้า = 100% · '+legend);
+      const S=K.filter(q=>q.bump===0), M=K.filter(q=>q.bump===1);
+      if(S.length) notes.push(`🔗 ติดกัน: Ek หลัง/ก่อน ÷ ทฤษฎี = <b class="mono" style="color:var(--accent3)">${fmt(S.reduce((a,q)=>a+q.er/q.eth,0)/S.length,3)}</b>`);
+      if(M.length) notes.push(`🧲 แม่เหล็ก: Ek หลัง/ก่อน เฉลี่ย = <b class="mono" style="color:var(--accent3)">${fmt(M.reduce((a,q)=>a+q.er,0)/M.length*100,1)} %</b> · e เฉลี่ย = <b class="mono">${fmt(M.reduce((a,q)=>a+q.e,0)/M.length,3)}</b>`); }
+  } else {
+    const S=G.filter(q=>q.bump===0), SK=S.filter(q=>!q.X), SX=S.filter(q=>q.X);
+    const xs=SK.map(q=>q.mB/q.mA), ys=S.map(q=>q.rv);
+    const xmax=Math.max(2.2,...xs)*1.08, ymax=Math.max(3.2,...ys)*1.08;
+    const X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,'m_B / m_A','v₁ / v₂');
+    g.strokeStyle='#64748b'; g.setLineDash([5,4]); g.lineWidth=1.2; g.beginPath(); g.moveTo(X(0),Y(1)); g.lineTo(X(xmax),Y(1+xmax)); g.stroke(); g.setLineDash([]);
+    let fit=null;
+    if(new Set(xs.map(v=>v.toFixed(3))).size>=2){ const n=SK.length; let sx=0,sy=0,sxx=0,sxy=0; SK.forEach(q=>{ const x=q.mB/q.mA; sx+=x; sy+=q.rv; sxx+=x*x; sxy+=x*q.rv; });
+      const den=n*sxx-sx*sx; if(Math.abs(den)>1e-9){ const sl=(n*sxy-sx*sy)/den; fit={sl,ic:(sy-sl*sx)/n}; } }
+    if(fit){ g.strokeStyle='#facc15'; g.lineWidth=1.8; g.beginPath(); g.moveTo(X(0),Y(fit.ic)); g.lineTo(X(xmax),Y(fit.ic+fit.sl*xmax)); g.stroke();
+      notes.push(`เส้นเหลือง (ข้อมูล): ความชัน = <b class="mono">${fmt(fit.sl,3)}</b> · จุดตัดแกนตั้ง = <b class="mono">${fmt(fit.ic,3)}</b> (ทฤษฎี 1 และ 1 — เส้นประเทา)`); }
+    else if(SK.length) notes.push('ต้องมีรถที่ทราบมวลอย่างน้อย 2 อัตราส่วน m_B/m_A จึงลากเส้นได้');
+    SK.forEach(q=>dot(g,X(q.mB/q.mA),Y(q.rv),0));
+    const byA={}; SX.forEach(q=>{ (byA[q.mA]=byA[q.mA]||[]).push(q.rv); });
+    Object.keys(byA).forEach(mA=>{ const L=byA[mA], y=L.reduce((a,b)=>a+b,0)/L.length;
+      g.strokeStyle='#a855f7'; g.setLineDash([4,3]); g.lineWidth=1.4; g.beginPath(); g.moveTo(X(0),Y(y)); g.lineTo(X(xmax),Y(y)); g.stroke(); g.setLineDash([]);
+      g.fillStyle='#d8b4fe'; g.font='10px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('รถ X (m_A '+mA+' g)',ml+6,Y(y)-4);
+      const xr = fit ? (y-fit.ic)/fit.sl : (y-1);
+      if(xr>0){ g.fillStyle='#a855f7'; g.beginPath(); g.arc(X(xr),Y(y),5,0,Math.PI*2); g.fill();
+        notes.push(`<span style="color:#d8b4fe;font-weight:700">รถ X</span> (m_A = ${mA} g, ${L.length} แถว): v₁/v₂ = ${fmt(y,3)} → m_X/m_A = ${fmt(xr,3)} → <b class="mono" style="color:#d8b4fe">m_X ≈ ${fmt(xr*mA,0)} g</b>${fit?' (อ่านจากเส้นเหลือง)':' (จากทฤษฎี)'}`); } });
+    if(!SX.length) notes.push('ยิงรถ A ชนรถ X (กันชนตีนตุ๊กแก) แล้วบันทึก — จะมีเส้นประม่วงให้อ่านค่า m_X/m_A');
+    notes.push('กราฟนี้ใช้เฉพาะแถว 🔗 ติดกัน: m_A v₁ = (m_A + m_B) v₂  →  v₁/v₂ = 1 + m_B/m_A');
+  }
+  $('graphNote').innerHTML=notes.join('<br>');
+}
+
+/* ═══════════ ตรวจคำตอบ ═══════════ */
+function checkM(){ const val=parseFloat($('ans-m').value), el=$('ansMMsg');
+  if(isNaN(val)||val<=0){ el.innerHTML='<span style="color:#fde047">กรอกมวลรถ X ที่หาได้ (g)</span>'; return; }
+  const act=M_X*1000, err=(val-act)/act*100, ok=Math.abs(err)<=5;
+  el.innerHTML= mode==='auto'
+    ? `<span style="color:${ok?'#86efac':'#fca5a5'}">มวลจริง = <b class="mono">${act.toFixed(0)} g</b> · คำตอบคลาด ${err>=0?'+':''}${err.toFixed(1)}% ${ok?'✓':''}</span>`
+    : ok? '<span style="color:#86efac">✓ ถูกต้อง! มวลรถ X ที่หาได้คลาดไม่เกิน 5%</span>'
+        : '<span style="color:#fca5a5">✗ ยังไม่ถูก (คลาดเกิน 5%) — ใช้ m_X = m_A(v₁/v₂ − 1) หรืออ่านจากกราฟ v₁/v₂ – m_B/m_A · ตรวจว่า t₂ มาจาก “เกต 2 ครั้งที่ 1”</span>'; }
+function checkK(){ const val=parseFloat($('ans-k').value), el=$('ansKMsg');
+  if(isNaN(val)||val<0){ el.innerHTML='<span style="color:#fde047">กรอกเปอร์เซ็นต์พลังงานจลน์ที่เหลือ</span>'; return; }
+  const act=100*200/600, ok=Math.abs(val-act)<=2;
+  el.innerHTML= ok? `<span style="color:#86efac">✓ ถูกต้อง! Ek หลัง/ก่อน = m_A/(m_A+m_B) = 200/600 ≈ ${act.toFixed(1)}% — ลองยิงจริงด้วย A 200 g, B 400 g เพื่อยืนยัน</span>`
+    : '<span style="color:#fca5a5">✗ ยังไม่ถูก — จาก m_A v₁ = (m_A+m_B) v₂ แทนลงใน ½(m_A+m_B)v₂² ÷ ½m_A v₁² หรือดูกราฟ Ek หลัง/ก่อน</span>'; }
+
+/* ═══════════ แถบปุ่มหลักใต้ภาพ 3D ═══════════ */
+function cbarState(){ return {
+  'ab-fire': {dis: phase!=='armed'},
+  'ab-arm':  {dis: phase!=='done'},
+  'ab-mA':   {dis: phase==='run'},
+  'ab-mB':   {dis: phase==='run'},
+  'ab-bump': {dis: phase==='run'},
+  'ab-rec':  {dis: phase!=='done'} }; }
+function syncCbar(){ const st=cbarState(); for(const id in st){ const b=$(id); if(!b) continue; if(b.disabled!==st[id].dis) b.disabled=st[id].dis; } }
+
+/* ═══════════ 3D (หน่วย cm) ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const TRK_X0=-6, TRK_LEN=132, TRK_CX=TRK_X0+TRK_LEN/2;
+const TRK_TOP=100, TRK_H=6, FACE_Z=3.6;
+const orbit={target:null,dist:180,az:0.42,el:0.28};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360);
+  return Math.max(14,Math.min(460, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={
+  iso  :{t:[58,104,0], d:()=>fitDist(140,56), az:0.40, el:0.30},
+  front:{t:[58,106,0], d:()=>fitDist(136,40), az:0.0001, el:0.05},
+  hit  :{follow:()=>[ (phase==='armed'?cB:posAt(runT)[1])-10, TRK_TOP+5, 0], d:()=>fitDist(70,30), az:0.18, el:0.55},
+  tm   :{t:[58,129,-36], d:()=>fitDist(64,28), az:0.0001, el:0.02}};
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function texText(g,str,x,y,sy){ g.save(); g.translate(x,y); g.scale(1,sy); g.fillText(str,0,0); g.restore(); }
+
+function drawTrackScale(g,w,h){
+  const sy=(TRK_LEN/w)/(TRK_H/h), ppc=w/TRK_LEN, cx=q=>(q-TRK_X0)*ppc;
+  g.fillStyle='#e7ecf2'; g.fillRect(0,0,w,h);
+  g.fillStyle='#cbd5e1'; g.fillRect(0,0,w,Math.round(h*0.05));
+  for(let mm=0;mm<=TRK_L*10;mm++){
+    const x=cx(mm/10), maj=mm%100===0, mid=mm%50===0, cmk=mm%10===0, five=mm%5===0;
+    const L= maj?h*0.50: mid?h*0.42: cmk?h*0.34: five?h*0.25: h*0.16;
+    g.fillStyle= maj?'#0b1220':'#263244'; g.fillRect(x-(maj?5:cmk?3.4:2.2)/2,0,maj?5:cmk?3.4:2.2,L);
+  }
+  g.fillStyle='#0b1220'; g.font='bold 92px "Share Tech Mono",monospace'; g.textAlign='center';
+  for(let q=0;q<=TRK_L;q+=5) texText(g,String(q),cx(q),h*0.83,sy);
+}
+/* ── จอจับเวลา 4 ช่อง: แถว = เกต · คอลัมน์ = ครั้งที่ ── */
+function drawTimerFace(g,w,h){
+  g.fillStyle='#10161f'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#38bdf8'; g.lineWidth=6; g.strokeRect(6,6,w-12,h-12);
+  g.fillStyle='#7dd3fc'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left';
+  g.fillText('KP TIMER · เวลาบังลำแสง (ms) · จำได้เกตละ 2 ครั้ง',34,68);
+  const pw=(w-56)/2-12, ph=(h-120)/2-12;
+  for(let gi=0;gi<2;gi++) for(let k=0;k<2;k++){
+    const x0=28+k*(pw+24), y0=96+gi*(ph+20);
+    g.fillStyle='#1c1206'; g.fillRect(x0,y0,pw,ph);
+    g.strokeStyle= gi===0?'#0e7490':'#9a3412'; g.lineWidth=5; g.strokeRect(x0,y0,pw,ph);
+    g.fillStyle= gi===0?'#22d3ee':'#fb923c'; g.font='bold 42px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left';
+    g.fillText('เกต '+(gi+1)+' · ครั้งที่ '+(k+1),x0+16,y0+50);
+    const v=tShow[gi][k], s= v===null? '––––.–' : v.toFixed(1);
+    g.textAlign='right'; g.font='bold 112px "Share Tech Mono",monospace';
+    g.fillStyle='rgba(255,157,47,.12)'; g.fillText('8888.8',x0+pw-70,y0+ph-26);
+    g.fillStyle= v===null?'#8a5a1c':'#ff9d2f'; g.fillText(s,x0+pw-70,y0+ph-26);
+    g.fillStyle='#a3a3a3'; g.font='bold 34px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('ms',x0+pw-62,y0+ph-30);
+    g.beginPath(); g.arc(x0+pw-30,y0+32,12,0,Math.PI*2); g.fillStyle= v===null?'#3f3f46':'#22c55e'; g.fill();
+  }
+}
+function updTimerTex(){ if(!P.timerTex) return; const c=P.timerTex.image; drawTimerFace(c.getContext('2d'),c.width,c.height); P.timerTex.needsUpdate=true; }
+
+function makeGate(idx){
+  const col= idx===0?0x22d3ee:0xfb923c;
+  const G0=new THREE.Group();
+  const met=new THREE.MeshStandardMaterial({color:0x475569,metalness:.5,roughness:.5});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,5),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.7}));
+  body.position.set(0,TRK_TOP-4,-6.5); G0.add(body);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(2.4,20,2.4),met); armL.position.set(0,TRK_TOP+5.5,-7.6); G0.add(armL);
+  const armR=new THREE.Mesh(new THREE.BoxGeometry(2.4,20,2.4),met); armR.position.set(0,TRK_TOP+5.5,7.6); G0.add(armR);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(2.0,1.6,17.6),met); top.position.set(0,TRK_TOP+16.2,0); G0.add(top);
+  const led=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),new THREE.MeshBasicMaterial({color:col})); led.position.set(0,TRK_TOP+8.6,-6.3); G0.add(led);
+  const det=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),new THREE.MeshBasicMaterial({color:0x991b1b})); det.position.set(0,TRK_TOP+8.6,6.3); G0.add(det);
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,12.6,8),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.55}));
+  beam.rotation.x=Math.PI/2; beam.position.set(0,TRK_TOP+8.6,0); G0.add(beam);
+  G0.userData.beam=beam;
+  const red=new THREE.MeshBasicMaterial({color:0xef4444});
+  const mark=new THREE.Mesh(new THREE.BoxGeometry(0.22,3.5,0.06),red); mark.position.set(0,TRK_TOP-1.6,FACE_Z+0.03); G0.add(mark);
+  const lab=canvasTex(256,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle= idx===0?'#22d3ee':'#fb923c'; g.beginPath(); if(g.roundRect) g.roundRect(8,8,w-16,h-16,18); else g.rect(8,8,w-16,h-16); g.fill();
+    g.fillStyle='#0a0e1a'; g.font='bold 82px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('เกต '+(idx+1),w/2,h/2+4); });
+  const plate=new THREE.Mesh(new THREE.PlaneGeometry(6,3),new THREE.MeshBasicMaterial({map:lab,transparent:true}));
+  plate.position.set(0,TRK_TOP+18.6,0); G0.add(plate);
+  G0.userData.plate=plate;
+  return G0;
+}
+/* รถเลื่อน: which = 0 (A) · 1 (B) */
+function makeCart(which){
+  const G0=new THREE.Group();
+  const bodyMat=new THREE.MeshStandardMaterial({color: which===0?0x2563eb:0xea580c, metalness:.35, roughness:.4});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(CART_L,3.6,8),bodyMat); body.position.set(0,TRK_TOP+2.4,0); G0.add(body);
+  const lid=new THREE.Mesh(new THREE.BoxGeometry(CART_L+0.4,0.5,8.4),new THREE.MeshStandardMaterial({color: which===0?0x60a5fa:0xfdba74, metalness:.5, roughness:.3}));
+  lid.position.set(0,TRK_TOP+4.3,0); G0.add(lid);
+  const card=new THREE.Mesh(new THREE.BoxGeometry(1,6,0.4),new THREE.MeshStandardMaterial({color:0x0b0f18,roughness:.95}));
+  card.position.set(0,TRK_TOP+7.55,0); G0.add(card);
+  /* ก้อนเหล็ก 100 g สองก้อน (ข้างการ์ด) */
+  const steel=new THREE.MeshStandardMaterial({color:0x9ca3af,metalness:.85,roughness:.28});
+  const blocks=[-2.6,2.6].map(z=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(6,1.7,3.2),steel); b.position.set(0,TRK_TOP+5.4,z); G0.add(b); return b; });
+  /* ฝาปิดรถ X */
+  const cover=new THREE.Mesh(new THREE.BoxGeometry(CART_L-1,3.4,8.2),new THREE.MeshStandardMaterial({color:0x7c3aed,metalness:.3,roughness:.5}));
+  cover.position.set(0,TRK_TOP+6.25,0); cover.visible=false; G0.add(cover);
+  /* กันชน: ตีนตุ๊กแก หรือ แม่เหล็ก ที่ปลายที่ชนกัน */
+  const pad=new THREE.Mesh(new THREE.BoxGeometry(BUMP,3.4,6.6),new THREE.MeshStandardMaterial({color: which===0?0x111827:0x374151, roughness:1}));
+  pad.position.set(which===0? CART_L/2+BUMP/2 : -CART_L/2-BUMP/2, TRK_TOP+2.4, 0); G0.add(pad);
+  const mag=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,BUMP,22),new THREE.MeshStandardMaterial({color: which===0?0xdc2626:0x475569, metalness:.6, roughness:.35}));
+  mag.rotation.z=Math.PI/2; mag.position.copy(pad.position); G0.add(mag);
+  /* ป้ายมวลด้านหน้า */
+  const drawLab=(g,w,h)=>{ g.fillStyle= which===0?'#1e3a8a':(isX()?'#4c1d95':'#7c2d12'); g.fillRect(0,0,w,h);
+    g.fillStyle='#fff'; g.font='bold 96px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    const t= which===0? 'A · '+mAg()+' g' : (isX()?'X · ? g':'B · '+mBg()+' g'); g.fillText(t,w/2,h/2+4); };
+  const tex=canvasTex(512,128,drawLab);
+  const plate=new THREE.Mesh(new THREE.PlaneGeometry(11,2.75),new THREE.MeshBasicMaterial({map:tex}));
+  plate.position.set(0,TRK_TOP+2.4,4.02); G0.add(plate);
+  const labObj={redraw:()=>{ const c=tex.image; drawLab(c.getContext('2d'),c.width,c.height); tex.needsUpdate=true; }};
+  G0.userData={card,blocks,cover,body,bodyMat,bumps:[pad,mag]};
+  return [G0,labObj];
+}
+function makeSpring(){
+  class Helix extends THREE.Curve{ getPoint(t){ const a=t*Math.PI*2*9; return new THREE.Vector3(t, 1.3*Math.sin(a), 1.3*Math.cos(a)); } }
+  const m=new THREE.Mesh(new THREE.TubeGeometry(new Helix(),260,0.16,6,false),new THREE.MeshStandardMaterial({color:0xd1d5db,metalness:.85,roughness:.3}));
+  return m;
+}
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(58,104,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.5,2000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.9)); const d1=new THREE.DirectionalLight(0xffffff,0.65); d1.position.set(60,160,120); scene.add(d1);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45});
+  /* โต๊ะ */
+  const benchTex=canvasTex(1024,512,(g,w,h)=>{ g.fillStyle='#5b4332'; g.fillRect(0,0,w,h); for(let i=0;i<70;i++){ g.strokeStyle=`rgba(${34+Math.random()*30|0},${22+Math.random()*16|0},11,.35)`; g.lineWidth=1+Math.random()*2; g.beginPath(); const yy=Math.random()*h; g.moveTo(0,yy); g.bezierCurveTo(w*.3,yy+Math.random()*20-10,w*.7,yy+Math.random()*20-10,w,yy+Math.random()*16-8); g.stroke(); } });
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(150,5,64),[0,1,2,3,4,5].map(i=>i===2?new THREE.MeshStandardMaterial({map:benchTex,roughness:.85}):new THREE.MeshStandardMaterial({color:0x3b2a1e,roughness:.9})));
+  bench.position.set(58,TRK_TOP-TRK_H-2.5-1.5,-14); scene.add(bench);
+  /* ขารางปรับระดับ */
+  [[-2,0],[114,0]].forEach(([x,z])=>{ const f=new THREE.Mesh(new THREE.BoxGeometry(4,1.5,12),met); f.position.set(x,TRK_TOP-TRK_H-0.75,z); scene.add(f); });
+  /* ราง + สเกล */
+  const maxTS=(renderer.capabilities&&renderer.capabilities.maxTextureSize)||4096;
+  const TW=Math.min(8192,maxTS), TH=Math.max(256,Math.round(TW/16));
+  const trkTex=canvasTex(TW,TH,drawTrackScale);
+  const alu=new THREE.MeshStandardMaterial({color:0xb8c4d0,metalness:.55,roughness:.4});
+  const face=new THREE.MeshStandardMaterial({map:trkTex,roughness:.85,metalness:0,emissive:0xffffff,emissiveMap:trkTex,emissiveIntensity:0.3});
+  const trk=new THREE.Mesh(new THREE.BoxGeometry(TRK_LEN,TRK_H,7),[alu,alu,alu,alu,face,alu]);
+  trk.position.set(TRK_CX,TRK_TOP-TRK_H/2,0); scene.add(trk);
+  const crest=new THREE.Mesh(new THREE.BoxGeometry(TRK_LEN,0.7,4.6),new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.7,roughness:.3}));
+  crest.position.set(TRK_CX,TRK_TOP+0.35,0); scene.add(crest);
+  /* ตัวรับรถปลายขวา */
+  const catchB=new THREE.Mesh(new THREE.BoxGeometry(2,6,9),new THREE.MeshStandardMaterial({color:0x7f1d1d}));
+  catchB.position.set(X_RIGHT+1,TRK_TOP+3,0); scene.add(catchB);
+  const foam=new THREE.Mesh(new THREE.BoxGeometry(0.8,4.6,7.4),new THREE.MeshStandardMaterial({color:0xfde68a,roughness:1}));
+  foam.position.set(X_RIGHT-0.4+0.4,TRK_TOP+2.6,0); scene.add(foam);
+  /* เครื่องยิงสปริงปลายซ้าย */
+  const lb=new THREE.Mesh(new THREE.BoxGeometry(6,7,10),new THREE.MeshStandardMaterial({color:0x334155,metalness:.4,roughness:.5}));
+  lb.position.set(-3,TRK_TOP+3.5,0); scene.add(lb);
+  P.spring=makeSpring(); P.spring.position.set(0,TRK_TOP+2.4,0); scene.add(P.spring);
+  P.plunger=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,0.8,24),new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:.8,roughness:.25}));
+  P.plunger.rotation.z=Math.PI/2; scene.add(P.plunger);
+  const scTex=canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#0f172a'; g.fillRect(0,0,w,h); g.fillStyle='#e2e8f0'; g.font='bold 44px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('สปริง',w/2,52); g.fillStyle='#fbbf24'; g.font='bold 50px "Share Tech Mono",monospace'; g.fillText(COMPS[compI].toFixed(1)+' cm',w/2,108); });
+  P.scTex=scTex;
+  const scP=new THREE.Mesh(new THREE.PlaneGeometry(5.4,2.7),new THREE.MeshBasicMaterial({map:scTex})); scP.position.set(-3,TRK_TOP+4.2,5.02); scene.add(scP);
+  /* รถ */
+  const ca=makeCart(0), cb=makeCart(1); P.carts=[ca[0],cb[0]]; P.labA=ca[1]; P.labB=cb[1]; P.carts.forEach(o=>scene.add(o));
+  /* โฟโตเกต */
+  P.gates=[makeGate(0),makeGate(1)]; P.gates.forEach(g0=>scene.add(g0));
+  /* จอจับเวลา */
+  P.timerTex=canvasTex(1536,768,drawTimerFace);
+  const tbody=new THREE.Mesh(new THREE.BoxGeometry(58,30,5),new THREE.MeshStandardMaterial({color:0x111827,roughness:.7}));
+  tbody.position.set(58,129,-40); scene.add(tbody);
+  const tface=new THREE.Mesh(new THREE.PlaneGeometry(56,28),new THREE.MeshBasicMaterial({map:P.timerTex}));
+  tface.position.set(58,129,-37.4); scene.add(tface);
+  [34,82].forEach(x=>{ const tleg=new THREE.Mesh(new THREE.BoxGeometry(3,34,3),met); tleg.position.set(x,TRK_TOP-7+15,-40); scene.add(tleg); });
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); updTimerTex(); }).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now();
+  (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now;
+    if(!$('tab-sim').classList.contains('active')) return;
+    stepRun(dt); stepHand(dt); update3D(); renderer.render(scene,camera);
+    fr=(fr+1)%3; if(fr===0) drawAll(); })(last);
+}
+let fr=0, lastComp=-1;
+function update3D(){ if(!scene) return;
+  const d=cardW(), pos= phase==='armed'? [cA0(),cB] : posAt(runT);
+  P.carts.forEach((o,i)=>{ o.position.x=pos[i]; const u=o.userData; u.card.scale.x=d;
+    const nb = i===0? (mAg()-200)/100 : (isX()?0:(mBg()-200)/100);
+    u.blocks.forEach((b,k)=>b.visible=k<nb); u.cover.visible= i===1&&isX(); u.card.position.y= (i===1&&isX())? TRK_TOP+10.95 : TRK_TOP+7.55;
+    if(i===1) u.bodyMat.color.setHex(isX()?0x7c3aed:0xea580c);
+    u.bumps.forEach((m,k)=>m.visible= k===bumpI); });
+  /* ลูกสูบ: แตะขอบซ้ายรถ A ขณะยังสัมผัส */
+  const head=Math.max(X_LEFT-COMPS[compI], Math.min(X_LEFT, pos[0]-CART_L/2));
+  P.plunger.position.set(head-0.4,TRK_TOP+2.4,0);
+  P.spring.scale.x=Math.max(0.5,head-0.8); P.spring.position.x=0;
+  if(lastComp!==compI){ lastComp=compI; const c=P.scTex.image; TEXS.find(o=>o.t===P.scTex).fn(c.getContext('2d'),c.width,c.height); P.scTex.needsUpdate=true; }
+  P.gates.forEach((g0,i)=>{ g0.position.x=gate[i]; if(g0.userData.plate) g0.userData.plate.lookAt(camera.position);
+    const blk=Math.abs(pos[0]-gate[i])<=d/2||Math.abs(pos[1]-gate[i])<=d/2; g0.userData.beam.material.opacity= blk?0.12:0.55; });
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y=t[1]; orbit.target.z=t[2]; }
+  const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return;
+  const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+
+/* ═══════════ ลากอุปกรณ์ด้วยมือ ═══════════ */
+const HD={on:false,what:null,off:0,tx:0};
+function dragObjs(){ const L=[]; if(P.gates) L.push({k:'g0',o:P.gates[0]},{k:'g1',o:P.gates[1]}); if(P.carts&&phase==='armed') L.push({k:'cb',o:P.carts[1]}); return L; }
+let RAY=null,NDC=null;
+function pickAt(cx,cy){
+  if(!renderer||!camera||!P.gates) return null;
+  if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera);
+  const L=dragObjs();
+  let best=null,bd=1e9;
+  L.forEach(e=>{ const ms=[]; e.o.traverse(o=>{ if(o.isMesh&&o.visible&&o!==e.o.userData.beam) ms.push(o); });
+    const hit=RAY.intersectObjects(ms,false); if(hit.length&&hit[0].distance<bd){ bd=hit[0].distance; best=e.k; } });
+  if(best) return best;
+  const R=Math.max(46,Math.min(rc.width,rc.height)*0.12), V=new THREE.Vector3();
+  let bk=null,bdist=R+1;
+  L.forEach(e=>{ e.o.getWorldPosition(V); V.y+=(e.k==='cb')?TRK_TOP+3:TRK_TOP+8; V.project(camera);
+    const sx=rc.left+(V.x*0.5+0.5)*rc.width, sy=rc.top+(-V.y*0.5+0.5)*rc.height, dd=Math.hypot(cx-sx,cy-sy);
+    if(dd<=R&&dd<bdist){ bdist=dd; bk=e.k; } });
+  return bk;
+}
+function pointerAxisX(cx,cy){
+  if(!renderer||!camera) return null;
+  if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera);
+  const o=RAY.ray.origin,r=RAY.ray.direction;
+  const wx=0-o.x, wy=(TRK_TOP+4)-o.y, wz=0-o.z;
+  const b=r.x, e=r.x*wx+r.y*wy+r.z*wz, den=1-b*b;
+  if(Math.abs(den)<0.03) return null;
+  const s=(b*e-wx)/den; return isFinite(s)?s:null;
+}
+function hdStart(cx,cy){
+  const k=pickAt(cx,cy); if(!k) return false;
+  if(phase==='run'){ lockWarn('รอให้รถหยุดก่อน'); return false; }
+  const sx=pointerAxisX(cx,cy); if(sx===null) return false;
+  if(phase==='done') rearm();
+  const cur= k==='cb'? cB : gate[k==='g0'?0:1];
+  HD.on=true; HD.what=k; HD.off=cur-sx; HD.tx=cur;
+  return true;
+}
+function hdMove(cx,cy){ if(!HD.on) return; const sx=pointerAxisX(cx,cy); if(sx===null) return; HD.tx=sx+HD.off; }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.what=null; drawAll(); }
+function stepHand(dt){
+  if(!HD.on) return;
+  const k=HD.what, d=cardW();
+  let cur= k==='cb'? cB : gate[k==='g0'?0:1], lo, hi;
+  if(k==='cb'){ lo=bLo(); hi=bHi(); }
+  else if(k==='g0'){ lo=g0Min(); hi=cB-DC-d/2-1.5; }
+  else { lo=cB+d/2+1.5; hi=g1Max(); }
+  if(hi<lo) hi=lo;
+  const tgt=Math.max(lo,Math.min(hi,HD.tx));
+  let nx=cur+(tgt-cur)*(1-Math.exp(-dt/HD_LAG));
+  const step=HD_VMAX*dt; if(nx-cur>step) nx=cur+step; if(cur-nx>step) nx=cur-step;
+  nx=Math.round(Math.max(lo,Math.min(hi,nx))*10)/10;
+  if(k==='cb') cB=nx; else gate[k==='g0'?0:1]=nx;
+  syncCtl();
+}
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
+/* ── 🐢 ปรับความเร็วการแสดงผล (ช้าลงเพื่อดูให้ทัน · ไม่กระทบค่าที่วัดได้) ── */
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1];
+function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=document.getElementById('spdBtn');
+  if(b){ b.classList.toggle('active',v!==1); b.innerHTML='🐢 '+spdLabel(v); } }
+function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); }
+function simDt(dt){ try{ if(typeof HD!=='undefined'&&HD&&HD.on) return dt; }catch(_){}
+  return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault();
+    if(e.button===0 && !e.shiftKey && !panMode && hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; cv.style.cursor='move'; return; }
+    if(T.mode==='hand'){ hdMove(e.clientX,e.clientY); return; }
+    const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode==='hand') hdEnd(); if(T.mode!=='pinch') T.mode=null; cv.style.cursor='move'; };
+  window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault();
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0];
+      if(!panMode && hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; }
+      T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.35,Math.min(1.45,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(8,Math.min(500,orbit.dist*f)); }
+function camPan(dx,dy){ if(VIEWS[curView]&&VIEWS[curView].follow) { curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); }
+  const o=orbit; if(!o.target||!camera) return;
+  const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+
+/* ═══════════ THEORY ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function arrow(g,x0,y0,x1,y1,col,lab,lx,ly){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=2.4; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+  const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-9*Math.cos(a-0.4),y1-9*Math.sin(a-0.4)); g.lineTo(x1-9*Math.cos(a+0.4),y1-9*Math.sin(a+0.4)); g.closePath(); g.fill();
+  if(lab){ g.font='bold 12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(lab,x1+(lx||6),y1+(ly||0)); } }
+function cartDraw(g,x,y,w,col,lab){ g.fillStyle=col; g.fillRect(x,y,w,22); g.fillStyle='#fff'; g.font='bold 12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText(lab,x+w/2,y+15); }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p;
+  const rows=[{y:H*0.30,t:'ก่อนชน'},{y:H*0.72,t:'หลังชน'}];
+  rows.forEach(r=>{ g.fillStyle='#334155'; g.fillRect(W*0.04,r.y+22,W*0.62,6); g.fillStyle='#94a3b8'; g.font='bold 13px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(r.t,W*0.04,r.y-18); });
+  cartDraw(g,W*0.08,rows[0].y,W*0.11,'#2563eb','m_A'); arrow(g,W*0.19,rows[0].y+11,W*0.28,rows[0].y+11,'#facc15','v₁',4,4);
+  cartDraw(g,W*0.42,rows[0].y,W*0.11,'#ea580c','m_B'); g.fillStyle='#94a3b8'; g.font='12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('นิ่ง',W*0.475,rows[0].y-6);
+  cartDraw(g,W*0.30,rows[1].y,W*0.11,'#2563eb','m_A'); g.fillStyle='#111827'; g.fillRect(W*0.41,rows[1].y,4,22); cartDraw(g,W*0.41+4,rows[1].y,W*0.11,'#ea580c','m_B');
+  arrow(g,W*0.52+4,rows[1].y+11,W*0.60,rows[1].y+11,'#facc15','v₂',4,4);
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['m_A v₁ = (m_A + m_B) v₂','','Ek หลัง/Ek ก่อน','   = m_A/(m_A + m_B)'].forEach((t,i)=>g.fillText(t,W*0.70,H*0.34+i*22)); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p;
+  const ml=W*0.10, mt=20, gw=W*0.50, gh=H-60, X=v=>ml+v/2.4*gw, Y=v=>mt+gh-v/3.6*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh);
+  g.strokeStyle='#facc15'; g.lineWidth=2; g.beginPath(); g.moveTo(X(0),Y(1)); g.lineTo(X(2.4),Y(3.4)); g.stroke();
+  [[1,2],[1.5,2.5],[2,3],[0.5,1.5],[0.75,1.75]].forEach(([x,y])=>{ g.beginPath(); g.arc(X(x),Y(y),4,0,Math.PI*2); g.fillStyle='#38bdf8'; g.fill(); });
+  g.strokeStyle='#a855f7'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(X(0),Y(2.3)); g.lineTo(X(1.3),Y(2.3)); g.lineTo(X(1.3),Y(0)); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#d8b4fe'; g.font='12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('v₁/v₂ ของรถ X',X(0.05),Y(2.3)-5); g.textAlign='center'; g.fillText('m_X/m_A',X(1.3),Y(0)+16);
+  g.fillStyle='#94a3b8'; g.fillText('m_B / m_A',ml+gw/2,H-8); g.save(); g.translate(ml-22,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('v₁ / v₂',0,0); g.restore();
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['v₁/v₂ = 1 + m_B/m_A','จุดสีฟ้า = รถที่ทราบมวล','เส้นประม่วง = ระดับ v₁/v₂','ที่วัดได้กับรถ X','→ อ่าน m_X/m_A แล้วคูณ m_A'].forEach((t,i)=>g.fillText(t,W*0.66,H*0.24+i*22)); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); }
+
+/* ═══════════ INIT ═══════════ */
+function drawAll(){ updateHint(); syncCbar(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  ['in-t1','in-t2','in-tA'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  clampAll();
+  init3D(); resizeAll(); setMode('manual'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); const dt=simDt(Math.min(0.05,(now-last)/1000)); last=now; stepRun(dt); drawAll(); },40); }
+});
+</script>
+
+
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl02:lab-80", "../virtual-physics-lab-02.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>

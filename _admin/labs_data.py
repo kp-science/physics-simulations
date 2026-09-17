@@ -9,6 +9,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('equilibrium','⚖️','สมดุลกลและโมเมนต์','Equilibrium & Torque','accent'),
  ('projectile','🎯','โพรเจกไทล์และการเคลื่อนที่แบบวงกลม','Projectile & Circular Motion','accent4'),
  ('energy','⚡','งานและพลังงาน','Work & Energy','accent5'),
+ ('momentum','💥','โมเมนตัมและการชน','Momentum & Collisions','accent4'),
  ('shm','🌀','การเคลื่อนที่แบบฮาร์มอนิกอย่างง่าย','Simple Harmonic Motion','accent2'),
  ('waves','〰️','คลื่นกล','Mechanical Waves','accent2'),
  ('sound','🔊','เสียง','Sound','accent3'),
@@ -17,7 +18,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('astro','🌌','ดาราศาสตร์และจักรวาลวิทยา','Astronomy & Cosmology','accent4'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
- ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','shm']),
+ ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
  ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
@@ -65,6 +66,8 @@ LABS=[
     ('vlab:vpl02:lab-76', V2+'76. motor-power-efficiency.html','76','กำลังและประสิทธิภาพของมอเตอร์ยกของ (3D)','มอเตอร์ยกตุ้มน้ำหนัก · อ่านความสูงจากสเกล mm จับเวลาด้วยนาฬิกาในฉาก · อ่านโวลต์มิเตอร์และแอมมิเตอร์ · P_out = mgh/t เทียบ P_in = VI · กราฟ η กับโหลด หาโหลดที่ประสิทธิภาพสูงสุด และกระแสขณะไม่มีโหลดปริศนา','energy','ม.4','vpl02',['Power', 'Efficiency', 'Motor', '3D']),
     ('vlab:vpl02:lab-77', V2+'77. simple-machines-incline-pulley.html','77','เครื่องกลอย่างง่าย: พื้นเอียงและรอก (3D)','ลากตาชั่งสปริงด้วยความเร็วคงตัว อ่านแรงพยายาม ระยะที่ดึง และความสูงที่ยกได้ · หา MA, VR และประสิทธิภาพ · เทียบพื้นเอียง รอกตรึง รอกเคลื่อนที่ รอกพวง · หา μk ของพื้นเอียง และมวลก้อนปริศนา','energy','ม.4','vpl02',['Machines', 'Pulley', 'Incline', '3D']),
     ('vlab:vpl02:lab-78', V2+'78. drop-hammer-pile-driver.html','78','ตุ้มตกกระแทกตอกหมุด: พลังงานกลกับแรงต้าน (3D)','ลากตุ้มขึ้นรางน้ำ อ่านความสูง h บนสเกล mm · ปล่อยให้ตกกระแทกหัวหมุด · อ่านความลึกที่หมุดจมบนสเกลข้างหมุด · mgh = F·d · กราฟ d–h หาแรงต้านเฉลี่ยของถาดปริศนา · โจทย์ทำนายก่อนตอก','energy','ม.4','vpl02',['Energy', 'Impact', '3D']),
+    ('vlab:vpl02:lab-80', V2+'80. momentum-inelastic-collision.html','80','การชนแบบติดกันใน 1 มิติ: รางลมและโฟโตเกต (3D)','ยิงรถ A ด้วยสปริงชนรถ B ที่จอดนิ่ง · สลับกันชนตีนตุ๊กแก (ติดกัน) กับแม่เหล็ก (แยกกัน) · อ่านเวลาบังลำแสงก่อนและหลังชนจากจอจับเวลา 4 ช่อง · เทียบ p และ Ek ก่อน–หลังชน · กราฟ v₁/v₂ – m_B/m_A หามวลรถปริศนา X','momentum','ม.4','vpl02',['Momentum', 'Collision', 'Air track', '3D']),
+    ('vlab:vpl02:lab-81', V2+'81. momentum-elastic-collision.html','81','การชนแบบยืดหยุ่นใน 1 มิติ: กันชนแม่เหล็ก สปริง และยาง (3D)','รถ A ชนรถ B แล้วแยกกัน · ดูว่ารถ A วิ่งต่อ หยุด หรือกระดอนกลับ · อ่านเวลาของรถทั้งสองคัน · ตรวจการอนุรักษ์โมเมนตัมและพลังงานจลน์ · หาสัมประสิทธิ์การกระดอน e ของกันชนปริศนา และมวลรถ X','momentum','ม.4','vpl02',['Momentum', 'Elastic', 'Restitution', '3D']),
  ('vlab:vpl01:lab-21', V1+'21. SHM_Linear_Air_Track.html','21','SHM บนรางลม (SHM — Linear Air Track)','การสั่นของมวลติดสปริงบนรางลม','shm','ม.5','vpl01',['SHM']),
  ('vlab:vpl01:lab-42', V1+'42. shm-spring-builder.html','42','SHM03 Spring Builder','ประกอบสปริงเอง อนุกรม/ขนาน · ดิ่ง/ระดับ · กราฟ x, v, a · โหมดสุ่ม k','shm','ม.5','vpl01',['SHM']),
  ('vlab:vpl01:lab-43', V1+'43. shm-phase-explorer.html','43','SHM04 Phase Explorer','Phasor + projection · เฟส 90° ของ y, v, a · กราฟพลังงาน · แดมป์','shm','ม.5','vpl01',['SHM','เฟส']),
