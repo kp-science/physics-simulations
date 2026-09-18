@@ -205,6 +205,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button data-vw="scl" onclick="setView('scl')">📏 สเกลความหนา</button>
           <button data-vw="pan" onclick="setView('pan')">🎛 เครื่องนับ</button>
           <button data-vw="gm" onclick="setView('gm')">🔬 หลอด GM</button>
+          <button data-vw="atom" onclick="setView('atom')">⚛️ ระดับอะตอม</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
         </div>
         <div class="viewhint">🖐 จับ <b>แท่นเลื่อนแผ่นดูดกลืน</b> แล้วลากไปตามราง → อ่านความหนาจากสเกล<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
@@ -444,6 +445,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>3. อำนาจทะลุทะลวงและการระบุชนิดรังสี</h2>
     <div class="formula-box">α : หยุดด้วยกระดาษ 0.1 mm หรืออากาศ 4 cm<br>β : ผ่านกระดาษได้ · หยุดด้วยอะลูมิเนียมไม่กี่มิลลิเมตร<br>γ : ผ่านอะลูมิเนียมได้มาก · ลดลงชัดเจนเมื่อใช้ตะกั่วหนาหลายมิลลิเมตร (ไม่มีวันหยุดสนิท)</div>
+    <div class="note-box">⚛️ กด <b>⚛️ ระดับอะตอม</b> ที่มุมล่างซ้ายของภาพ 3D — เห็นว่าทำไมทั้งสองเรื่องถึงได้กราฟหน้าตาเดียวกัน:<br>
+      • <b>ซ้าย</b>: นิวเคลียส 64 ตัว แต่ละตัวมี<b>โอกาสสลายเท่ากันทุกวินาที</b> · ทำนายไม่ได้ว่าตัวไหนก่อน แต่จำนวนรวมที่เหลือลดลงเป็น N = N₀·2<sup>−t/T½</sup><br>
+      • <b>ขวา</b>: อนุภาควิ่งเข้าแผ่นตามความหนาที่ตั้งจริง แต่ละตัวมี<b>โอกาสรอดเท่ากัน</b> = e<sup>−μx</sup> · ตัวที่ถูกดูดกลืน (สีแดง) หยุดกลางแผ่น ตัวที่รอด (สีเขียว) ทะลุไปถึงหลอด GM<br>
+      ลองเปลี่ยนต้นกำเนิดและความหนาแล้วสังเกตสัดส่วนเขียว/แดง — แอลฟาถูกกระดาษบางหยุดหมด ส่วนแกมมายังทะลุตะกั่วได้บางส่วน<br>
+      ⚠️ อัตราการสลายในภาพซ้ายเร่งให้ดูทัน ไม่ใช่อัตราจริง · ฉากนี้ไม่บอก T½ · μ · ความหนาครึ่งค่า เพราะเป็นค่าที่ต้องวัดเอง</div>
     <div class="note-box">💡 แบบจำลอง: อัตรานับ = A₀·e<sup>−μx</sup> + พื้นหลัง 0.42 ครั้ง/วินาที · จำนวนนับจริง<b>สุ่มแบบปัวซง</b> จึงมีความคลาดเคลื่อน √C เหมือนการทดลองจริง · ครึ่งชีวิตของตัวอย่าง X และชนิดรังสีของแหล่ง Y สุ่มใหม่ทุกครั้งที่เปิดหน้า</div>
   </div>
 </div>
@@ -772,7 +778,8 @@ const VIEWS={
   iso:{t:[0,4,0], d:()=>fitDist(56,40), az:0.55, el:0.5},
   scl:{follow:()=>[5,1.5,carrZ()], d:()=>fitDist(13,9), az:0.05, el:1.16},
   pan:{t:[PANEL[0],PANEL[1]+1.2,PANEL[2]+2], d:()=>fitDist(17,9.6), az:Math.PI, el:0.06},
-  gm:{t:[0,6,0], d:()=>fitDist(28,19), az:0.85, el:0.3}};
+  gm:{t:[0,6,0], d:()=>fitDist(28,19), az:0.85, el:0.3},
+  atom:{t:[0,0,0], d:()=>fitDist(atomFitW,atomFitH), az:0.0001, el:0.0001}};
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
   t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
@@ -824,6 +831,145 @@ function wedgeGeo(){
   const geo=new THREE.ExtrudeGeometry(sh,{depth:6,bevelEnabled:false});
   geo.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0,0,1),new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0)));
   return geo;
+}
+/* ═══════════ 🔬 ฉากระดับอะตอม — การสลายตัวแบบสุ่ม และการดูดกลืนในแผ่น ═══════════
+   ซ้าย : นิวเคลียส 64 ตัว แต่ละตัวมีโอกาสสลายเท่ากันทุกวินาที ทำนายไม่ได้ว่าตัวไหนก่อน
+          เมื่อมีหลายตัวมาก จำนวนที่เหลือจึงลดลงแบบเอกซ์โพเนนเชียล (ที่มาของ N = N₀·2^(−t/T½))
+          *อัตราในภาพเร่งให้ดูทัน ไม่ใช่อัตราจริงของตัวอย่าง (ครึ่งชีวิตเป็นค่าที่ต้องวัดเอง)*
+   ขวา  : อนุภาค/โฟตอนวิ่งเข้าแผ่นดูดกลืนตามความหนาที่ตั้งจริง แต่ละตัวมีโอกาสรอด e^(−μx)
+          บางตัวถูกดูดกลืนกลางแผ่น บางตัวทะลุออกไปถึงหลอด — จึงลดลงแบบเอกซ์โพเนนเชียล ไม่ใช่เชิงเส้น
+   ไม่แสดงตัวเลข μ · ความหนาครึ่งค่า · ครึ่งชีวิต · ชนิดรังสีของแหล่ง Y เพราะทั้งหมดเป็นคำตอบ */
+let atomMode=false, atomSig='', atomT=0, atomFitW=210, atomFitH=140;
+const AXL=-52, AXR=52, DECN=64, DEC_HALF=6.0;      /* ครึ่งชีวิตที่ใช้ "ในภาพ" เท่านั้น (วินาที) */
+let decAlive=[], decT=0;
+function atomInfoFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.86)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillStyle='#fde047'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ทั้งสองอย่างเป็น "กระบวนการสุ่ม" ที่เหมือนกันในเชิงคณิตศาสตร์',26,14);
+  g.fillStyle='#94a3b8'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('นิวเคลียสแต่ละตัวมีโอกาสสลายเท่ากันต่อวินาที → จำนวนที่เหลือลดลงเป็น N = N₀·2^(−t/T½)',26,62);
+  g.fillText('อนุภาคแต่ละตัวมีโอกาสรอดผ่านแผ่นเท่ากันต่อความหนา → ความเข้มลดลงเป็น I = I₀·e^(−μx)',26,102);
+  g.fillStyle='#67e8f9'; g.font='30px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ทั้งคู่จึงกลายเป็น "เส้นตรง" เมื่อเขียนกราฟแบบ ln — ความชันคือ −λ และ −μ ตามลำดับ',26,148);
+  g.fillStyle='rgba(148,163,184,.85)'; g.font='26px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('⚠️ อัตราการสลายในภาพซ้ายเร่งให้ดูทัน ไม่ใช่อัตราจริง · ฉากนี้ไม่บอก T½ · μ · ความหนาครึ่งค่า',26,190);
+}
+function capDecFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  const alive=decAlive.filter(Boolean).length;
+  g.textAlign='center'; g.textBaseline='top';
+  g.fillStyle='#93c5fd'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('การสลายตัวของนิวเคลียส',w/2,4);
+  g.fillStyle='#fcd34d'; g.font='bold 44px "Share Tech Mono",monospace';
+  g.fillText('เหลือ '+alive+' / '+DECN,w/2,66);
+  g.fillStyle='#cbd5e1'; g.font='32px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ทุกตัวมีโอกาสสลายเท่ากันทุกวินาที',w/2,124);
+  g.fillText('ทำนายไม่ได้ว่าตัวไหนจะสลายก่อน',w/2,164);
+  g.fillStyle='rgba(148,163,184,.9)'; g.font='29px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('แต่จำนวนรวมลดลงอย่างมีแบบแผน',w/2,208);
+}
+function capAbsFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  const s=SRC[si], none=s.k==='--';
+  g.textAlign='center'; g.textBaseline='top';
+  g.fillStyle='#fca5a5'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('การดูดกลืนในแผ่น',w/2,4);
+  g.fillStyle='#cbd5e1'; g.font='33px "IBM Plex Sans Thai",sans-serif';
+  if(none){ g.fillText('ยังไม่ได้เลือกต้นกำเนิด',w/2,70);
+    g.fillStyle='rgba(148,163,184,.9)'; g.font='30px "IBM Plex Sans Thai",sans-serif';
+    g.fillText('เลือกต้นกำเนิดในแผงด้านข้างก่อน',w/2,120); return; }
+  g.fillText((s.k==='Y'?'แหล่งปริศนา Y':s.n)+' · '+MAT[mi].n+' หนา '+XT.toFixed(2)+' mm',w/2,66);
+  g.fillStyle='#fcd34d'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('แต่ละตัวมีโอกาสรอดเท่ากัน = e^(−μx)',w/2,116);
+  g.fillStyle='rgba(148,163,184,.92)'; g.font='29px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('หนาขึ้นเป็น 2 เท่า โอกาสรอดถูกยกกำลังสอง',w/2,158);
+  g.fillText('จึงลดลงแบบเอกซ์โพเนนเชียล ไม่ใช่เชิงเส้น',w/2,198);
+}
+function resetDecay(){ decAlive=new Array(DECN).fill(true); decT=0; }
+function buildAtom(){
+  if(!P.atom) return;
+  const slabW=Math.max(0.6, XT*2.0);
+  P.slab.scale.set(slabW,1,1);
+  P.slab.position.set(AXR+2, 0, -0.6);
+  P.slab.visible = XT>0.01 && SRC[si].k!=='--';
+  P.slab.material.color.setHex(MAT[mi].col);
+  P.absIn = AXR+2-slabW/2; P.absOut = AXR+2+slabW/2;
+  redrawTex(P.capDecTex); redrawTex(P.capAbsTex); redrawTex(P.aInfoTex);
+  const capW=88, capH=capW*236/768;
+  P.labDec.scale.setScalar(capW/768); P.labAbs.scale.setScalar(capW/768);
+  P.labDec.position.set(AXL,-(34+capH*0.5),0);
+  P.labAbs.position.set(AXR,-(34+capH*0.5),0);
+  const infoW=210, infoH=infoW*226/1536;
+  P.aInfo.scale.setScalar(infoW/1536);
+  const iy=-(34+capH+infoH*0.5+4);
+  P.aInfo.position.set(0,iy,0);
+  const mg=8;
+  const xmin=Math.min(AXL-34,-infoW/2)-mg, xmax=Math.max(AXR+40,infoW/2)+mg;
+  const ymin=iy-infoH*0.5-mg, ymax=36+mg;
+  P.atom.position.set(-(xmin+xmax)/2,-(ymin+ymax)/2,0);
+  atomFitW=xmax-xmin; atomFitH=ymax-ymin;
+}
+function stepAtom(dt){
+  if(!atomMode) return;
+  atomT+=dt;
+  /* ── ซ้าย: สลายตัวแบบสุ่ม ── */
+  if(!decAlive.length) resetDecay();
+  const pDecay=1-Math.pow(0.5, dt/DEC_HALF);
+  let changed=false;
+  P.nuc.forEach((o,i)=>{
+    if(decAlive[i] && Math.random()<pDecay){
+      decAlive[i]=false; changed=true;
+      const p=P.decPh.find(q=>!q.on);
+      if(p){ p.on=true; p.t=0; p.x=o.x; p.y=o.y; const a=Math.random()*Math.PI*2; p.dx=Math.cos(a); p.dy=Math.sin(a); }
+    }
+    o.m.material.color.setHex(decAlive[i]?0x38bdf8:0x334155);
+    o.m.material.opacity=decAlive[i]?1:0.35;
+    o.m.scale.setScalar(decAlive[i]?1:0.6);
+  });
+  P.decPh.forEach(p=>{ if(!p.on) return; p.t+=dt*1.6;
+    if(p.t>=1){ p.on=false; p.m.visible=false; return; }
+    p.m.visible=true; p.m.position.set(AXL+p.x+p.dx*p.t*16, p.y+p.dy*p.t*16, 0.6);
+    p.m.material.opacity=1-p.t; });
+  if(changed) redrawTex(P.capDecTex);
+  if(decAlive.filter(Boolean).length===0 && atomT-decT>1.6){ decT=atomT; resetDecay(); }
+  /* ── ขวา: การดูดกลืน ── */
+  const s=SRC[si], none=s.k==='--';
+  const kind = s.kind, mu = none?0:muOf(kind,mi);          /* cm⁻¹ */
+  const pass = none?0:Math.exp(-mu*XT/10);
+  P.rays.forEach(p=>{
+    p.t+=dt*p.sp;
+    if(p.t>=1){
+      p.t=0; p.on=!none;
+      p.alive = Math.random()<pass;
+      /* ถ้าถูกดูดกลืน สุ่มความลึกที่หยุด ตามการแจกแจงเลขชี้กำลังที่ตัดปลาย */
+      p.stop = p.alive? 1 : (mu>0? Math.min(0.999, -Math.log(1-Math.random()*(1-pass))/(mu*XT/10)) : 0.5);
+      p.y=(Math.random()*2-1)*13;
+      p.sp=0.55+Math.random()*0.5;
+    }
+    const sx=AXR-40, ex=AXR+40;
+    const slabA=P.slab.visible? P.absIn : AXR+2, slabB=P.slab.visible? P.absOut : AXR+2;
+    let x;
+    if(!P.slab.visible) x=sx+(ex-sx)*p.t;
+    else {
+      /* แบ่งเป็น 3 ช่วง: ก่อนแผ่น · ในแผ่น · หลังแผ่น */
+      if(p.t<0.34) x=sx+(slabA-sx)*(p.t/0.34);
+      else if(p.t<0.66){ const u=(p.t-0.34)/0.32; x=slabA+(slabB-slabA)*Math.min(u,p.stop); }
+      else { if(!p.alive){ x=slabA+(slabB-slabA)*p.stop; } else x=slabB+(ex-slabB)*((p.t-0.66)/0.34); }
+    }
+    p.m.visible=p.on && !(!p.alive && p.t>0.78);
+    p.m.position.set(x,p.y,0.7);
+    p.m.material.color.setHex(p.alive?0x4ade80:0xf87171);
+    p.m.material.opacity = (!p.alive && p.t>0.66)? Math.max(0,1-(p.t-0.66)/0.12) : 1;
+  });
+}
+function setAtomMode(on){
+  if(!scene) return;
+  atomMode=!!on;
+  scene.children.forEach(o=>{ if(o.isLight) return; o.visible = (o===P.atom)? atomMode : !atomMode; });
+  if(atomMode){ atomSig=''; resetDecay(); }
 }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
@@ -887,6 +1033,40 @@ function init3D(){
   P.panTex=canvasTex(1024,560,panelFn);
   const pScr=new THREE.Mesh(new THREE.PlaneGeometry(14.6,8.0),new THREE.MeshBasicMaterial({map:P.panTex}));
   pScr.rotation.y=Math.PI; pScr.position.set(PANEL[0],PANEL[1]+1.2,PANEL[2]+0.25); scene.add(pScr);
+  /* ── ฉากระดับอะตอม (ซ่อนไว้จนกว่าจะกดมุมมอง 🔬) ── */
+  P.atom=new THREE.Group(); P.atom.visible=false; scene.add(P.atom);
+  P.nuc=[]; resetDecay();
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const x=-24.5+c*7, y=24.5-r*7;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(2.6,16,12),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:1}));
+    m.position.set(AXL+x,y,0); P.atom.add(m); P.nuc.push({m,x,y});
+  }
+  P.decPh=[];
+  for(let i=0;i<14;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),
+      new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:1}));
+    m.visible=false; P.atom.add(m); P.decPh.push({m,on:false,t:0,x:0,y:0,dx:1,dy:0}); }
+  /* สถานีขวา: ต้นกำเนิด · แผ่นดูดกลืน · หลอด GM */
+  const src=new THREE.Mesh(new THREE.BoxGeometry(5,16,5),new THREE.MeshBasicMaterial({color:0x475569}));
+  src.position.set(AXR-44,0,-0.5); P.atom.add(src);
+  const gm=new THREE.Mesh(new THREE.CylinderGeometry(6,6,5,20),new THREE.MeshBasicMaterial({color:0x94a3b8}));
+  gm.rotation.z=Math.PI/2; gm.position.set(AXR+44,0,-0.5); P.atom.add(gm);
+  P.slab=new THREE.Mesh(new THREE.BoxGeometry(1,30,8),new THREE.MeshBasicMaterial({color:0xcbd5e1,transparent:true,opacity:.55}));
+  P.atom.add(P.slab);
+  P.rays=[];
+  for(let i=0;i<16;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,9),
+      new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:1}));
+    m.visible=false; P.atom.add(m);
+    P.rays.push({m,t:Math.random(),sp:0.55+Math.random()*0.5,on:false,alive:true,stop:1,y:0}); }
+  P.capDecTex=canvasTex(768,236,capDecFn);
+  P.capAbsTex=canvasTex(768,236,capAbsFn);
+  P.labDec=new THREE.Mesh(new THREE.PlaneGeometry(768,236),new THREE.MeshBasicMaterial({map:P.capDecTex,transparent:true}));
+  P.labAbs=new THREE.Mesh(new THREE.PlaneGeometry(768,236),new THREE.MeshBasicMaterial({map:P.capAbsTex,transparent:true}));
+  P.atom.add(P.labDec); P.atom.add(P.labAbs);
+  P.aInfoTex=canvasTex(1536,226,atomInfoFn);
+  P.aInfo=new THREE.Mesh(new THREE.PlaneGeometry(1536,226),new THREE.MeshBasicMaterial({map:P.aInfoTex,transparent:true}));
+  P.atom.add(P.aInfo);
+  buildAtom();
+
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
 
   setupPointer(cv); resize3D(); setView('iso'); update3D();
@@ -912,6 +1092,14 @@ function stepCount(dt){
     drawAll(); }
 }
 function update3D(dt){ if(!scene) return;
+  if(atomMode){
+    const sig=si+'|'+mi+'|'+XT.toFixed(2);
+    if(sig!==atomSig){ atomSig=sig; buildAtom(); }
+    stepAtom(dt||0.016);
+    const tgA=orbit.target; camera.up.set(0,1,0);
+    camera.position.set(tgA.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tgA.y+orbit.dist*Math.sin(orbit.el), tgA.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+    camera.lookAt(tgA); return;
+  }
   P.carr.position.z=carrZ();
   if(lastMat!==mi){ lastMat=mi; P.wedge.material.color.setHex(MAT[mi].col); redrawTex(P.matTex); }
   if(lastSrc!==si){ lastSrc=si; redrawTex(P.srcTex);
@@ -936,6 +1124,7 @@ function update3D(dt){ if(!scene) return;
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const Vw=VIEWS[vw]; curView= Vw?vw:'free';
   document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  setAtomMode(curView==='atom');
   if(!Vw||!orbit.target) return;
   const t= Vw.t? Vw.t : vnum(Vw.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(Vw.d); orbit.az=vnum(Vw.az); orbit.el=vnum(Vw.el); }
 
@@ -961,7 +1150,8 @@ function pointerZ(cx,cy){
   const s=(3-o.y)/r.y; if(s<=0) return null;
   const z=o.z+r.z*s; return isFinite(z)?z:null;
 }
-function hdStart(cx,cy){ if(counting){ lockWarn('กำลังนับอยู่'); return false; }
+function hdStart(cx,cy){ if(atomMode) return false;
+  if(counting){ lockWarn('กำลังนับอยู่'); return false; }
   if(!pickAt(cx,cy)) return false; const z=pointerZ(cx,cy); if(z===null) return false;
   HD.on=true; HD.off=XT-(10-z); HD.tx=XT; HD.pos=XT; return true; }
 function hdMove(cx,cy){ if(!HD.on) return; const z=pointerZ(cx,cy); if(z===null) return; HD.tx=(10-z)+HD.off; }
