@@ -18,11 +18,24 @@
     6. Mobile layout fix (canvas order:-1)
     7. แก้ <\\!-- เป็น <!--
     8. Watermark overlay (VPL01 + VPL02 simulation files)
+    9. เติม ?v=<เวอร์ชัน> ท้าย kp-auth.js (cache busting — ดู _admin/bump_auth_version.py)
 ═══════════════════════════════════════════════════════════════
 """
 import os, re, sys, glob
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ─── เวอร์ชันของสคริปต์ที่แชร์กันทั้งเว็บ (cache busting) ───
+# เบราว์เซอร์เก็บสำเนา .js ไว้ในเครื่อง · ?v= ทำให้มองเป็น URL ใหม่ จึงโหลดของใหม่ทันที
+# เปลี่ยนเลขด้วย: python3 _admin/bump_auth_version.py
+def asset_version():
+    try:
+        v = open(os.path.join(BASE, '_admin', 'asset_version.txt'), encoding='utf-8').read().strip()
+        return v or '1'
+    except IOError:
+        return '1'
+
+AUTH_SRC = 'kp-auth.js?v=' + asset_version()
 
 # ─── Lab ID extraction ───────────────────────────────────
 # VPL01: "16. trajectories_simulation.html" → lab-16
@@ -226,6 +239,10 @@ def check_file(filepath):
         if 'kpPageAccess(' not in content:
             issues.append('ACCESS_GUARD')
 
+    # 9. kp-auth.js ต้องมี ?v= ท้าย URL (กันเบราว์เซอร์ใช้สำเนาเก่า)
+    if re.search(r'src="[^"]*kp-auth\.js"', content):
+        issues.append('AUTH_VER')
+
     return issues
 
 
@@ -309,6 +326,13 @@ def fix_file(filepath, issues=None):
             content = content[:body_end] + sp_tag + content[body_end:]
             changed = True
 
+    # เติม ?v= ให้ kp-auth.js ที่ยังไม่มี
+    if 'AUTH_VER' in issues:
+        new = re.sub(r'(src="[^"]*)kp-auth\.js"', lambda m: m.group(1) + AUTH_SRC + '"', content)
+        if new != content:
+            content = new
+            changed = True
+
     # Add Firebase CDN + kp-auth.js + access guard (VPL01/VPL02 files)
     if 'FIREBASE_CDN' in issues and 'firebase-app-compat' not in content:
         auth_root = get_root_path(filepath)
@@ -317,7 +341,7 @@ def fix_file(filepath, issues=None):
             f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>\n'
             f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>\n'
             f'<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>\n'
-            f'<script src="{auth_root}kp-auth.js"></script>\n'
+            f'<script src="{auth_root}{AUTH_SRC}"></script>\n'
         )
         body_end = content.rfind('</body>')
         if body_end != -1:
@@ -326,7 +350,7 @@ def fix_file(filepath, issues=None):
     elif 'KP_AUTH' in issues and 'kp-auth.js' not in content:
         # มี firebase แล้วแต่ยังไม่มี kp-auth.js
         auth_root = get_root_path(filepath)
-        auth_tag = f'\n<script src="{auth_root}kp-auth.js"></script>\n'
+        auth_tag = f'\n<script src="{auth_root}{AUTH_SRC}"></script>\n'
         # ใส่หลัง firebase-firestore
         idx = content.find('firebase-firestore-compat')
         if idx != -1:
@@ -426,6 +450,7 @@ def scan_all():
                     'FIREBASE_CDN': 'ขาด Firebase CDN',
                     'KP_AUTH': 'ขาด kp-auth.js',
                     'ACCESS_GUARD': 'ขาด Page Access Guard',
+                    'AUTH_VER': 'kp-auth.js ยังไม่มี ?v= (cache busting)',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1
