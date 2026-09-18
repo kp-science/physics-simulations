@@ -51,7 +51,7 @@ const VLAB_SERIES = {
   },
   vpl04: {
     label: 'Virtual Lab 04 (ฟิสิกส์อะตอมและควอนตัม)',
-    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92']
+    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92','lab-93','lab-94']
   }
 };
 
