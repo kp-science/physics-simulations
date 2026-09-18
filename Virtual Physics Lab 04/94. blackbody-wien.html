@@ -205,6 +205,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button data-vw="ang" onclick="setView('ang')">📐 สเกลมุม</button>
           <button data-vw="pan" onclick="setView('pan')">🎛 แผงวัด</button>
           <button data-vw="lmp" onclick="setView('lmp')">💡 ไส้หลอด</button>
+          <button data-vw="atom" onclick="setView('atom')">🔬 ระดับอะตอม</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
         </div>
         <div class="viewhint">🖐 จับ <b>แขนเทอร์โมไพล์</b> แล้วลากให้หมุนรอบเกรตติง<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
@@ -408,6 +409,10 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>3. หา λ ด้วยเกรตติง</h2>
     <div class="formula-box">d sin θ = λ  (ลำดับที่ 1) ,  d = 1/300 mm = 3333 nm<br>λ<sub>max</sub> ของ 2,000 K ≈ 1,449 nm (อินฟราเรดใกล้) → θ ≈ 25.8°</div>
+    <div class="note-box">🔬 กด <b>🔬 ระดับอะตอม</b> ที่มุมล่างซ้ายของภาพ 3D — เห็นว่าทำไมของร้อนถึงเปล่งแสง:<br>
+      • <b>ซ้าย</b>: อะตอมในไส้หลอดสั่น — ยิ่งร้อนยิ่งสั่นแรง · ประจุที่มีความเร่งแผ่คลื่นแม่เหล็กไฟฟ้าออกมาเป็น<b>โฟตอน</b> ที่มีพลังงานเป็นก้อน ๆ (E = hf ตามสมมติฐานพลังค์) · สีของโฟตอนสุ่มตามการแจกแจงของพลังค์ที่อุณหภูมินั้นจริง ๆ<br>
+      • <b>ขวา</b>: เส้นโค้งพลังค์ของระดับที่เลือก (เส้นจาง = ระดับอื่น ๆ) — เปลี่ยนระดับแล้วดู<b>ยอดเลื่อนไปทางสีน้ำเงิน</b> (กฎของวีน) และ<b>พื้นที่ใต้กราฟโตเร็วมาก</b> (กฎสเตฟาน–โบลต์ซมันน์ ∝ T⁴)<br>
+      ⚠️ กราฟไม่ใส่ตัวเลขบนแกน และฉากไม่บอก T หรือ λ_max — ทั้งคู่เป็นค่าที่ต้องวัดเองจากการทดลอง</div>
     <div class="note-box">💡 แบบจำลอง: ใช้สูตรพลังค์เต็มรูปในการคำนวณสัญญาณเทอร์โมไพล์ ณ ความยาวคลื่นที่แขนชี้อยู่ · สัญญาณรบกวน ±0.01 mV · ถอดเกรตติงแล้วสัญญาณ ∝ σT⁴ · อุณหภูมิแหล่งปริศนาสุ่มต่อการเปิดหน้า (2,600 – 5,800 K) · ไส้หลอดจริงไม่ใช่วัตถุดำสมบูรณ์ ค่า b ที่วัดได้จึงอาจคลาดไปเล็กน้อย</div>
   </div>
 </div>
@@ -685,7 +690,8 @@ const VIEWS={
   iso:{t:[0,5,2], d:()=>fitDist(70,48), az:0.5, el:0.5},
   ang:{follow:()=>{ const a=TH*DEG; return [Math.cos(a)*24.6,1.6,-Math.sin(a)*24.6]; }, d:()=>fitDist(17,12), az:()=>TH*DEG, el:1.28},
   pan:{t:[PANEL[0],PANEL[1]+1,PANEL[2]+1], d:()=>fitDist(24,16), az:0.0001, el:0.06},
-  lmp:{t:[-15,5,0], d:()=>fitDist(22,15), az:0.7, el:0.3}};
+  lmp:{t:[-15,5,0], d:()=>fitDist(22,15), az:0.7, el:0.3},
+  atom:{t:[0,0,0], d:()=>fitDist(atomFitW,atomFitH), az:0.0001, el:0.0001}};
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
   t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
@@ -732,6 +738,139 @@ function panelFn(g,w,h){
   g.fillStyle='rgba(148,163,184,.9)'; g.font='26px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='top';
   g.fillText((si?'แหล่งปริศนา':'ไส้หลอดระดับ '+(lv+1))+' · '+(grating?'เกรตติง 300 เส้น/mm':'ไม่มีเกรตติง (กำลังรวม)'),28,272);
   g.fillText('มุมแขน θ = '+TH.toFixed(1)+'°'+(grating?('  →  λ = '+(D_GRAT*Math.sin(TH*DEG)).toFixed(0)+' nm'):''),28,306);
+}
+/* ═══════════ 🔬 ฉากระดับอะตอม — ทำไมของร้อนถึงเปล่งแสง ═══════════
+   ซ้าย  : อะตอมในไส้หลอดสั่นแรงขึ้นตามอุณหภูมิ · ประจุที่สั่น (มีความเร่ง) แผ่คลื่นแม่เหล็กไฟฟ้าออกมา
+           โฟตอนที่ออกมามีหลายพลังงาน สีจึงผสมกัน · ยิ่งร้อน ยิ่งมีโฟตอนพลังงานสูง (λ สั้น) มากขึ้น
+   ขวา   : เส้นโค้งพลังค์ของอุณหภูมิที่ตั้งอยู่ — ยอดเลื่อนไปทาง λ สั้นและพื้นที่ใต้กราฟโตเร็วมาก
+   ตั้งใจไม่ใส่ตัวเลขบนแกน λ และไม่บอก T/λ_max เพราะทั้งคู่เป็นค่าที่ต้องวัดเอง */
+let atomMode=false, atomSig='', atomT=0, atomFitW=200, atomFitH=130;
+const SXA=-46, SXB=46;
+function atomInfoFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.86)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillStyle='#fde047'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('อะตอมที่ร้อนสั่นแรงขึ้น → ประจุที่มีความเร่งแผ่คลื่นแม่เหล็กไฟฟ้าออกมาเป็นโฟตอน',26,14);
+  g.fillStyle='#94a3b8'; g.font='32px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('พลังงานของโฟตอนออกมาเป็นก้อน ๆ (E = hf) ตามสมมติฐานของพลังค์ — ไม่ใช่ต่อเนื่องแบบคลื่นคลาสสิก',26,62);
+  g.fillStyle='#67e8f9'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ร้อนขึ้น → โฟตอนพลังงานสูง (λ สั้น) มีสัดส่วนมากขึ้น → ยอดของกราฟเลื่อนไปทางสีน้ำเงิน (กฎของวีน)',26,106);
+  g.fillText('และจำนวนโฟตอนต่อวินาทีเพิ่มเร็วมาก → กำลังรวมโตตามกำลังสี่ของอุณหภูมิ (กฎสเตฟาน–โบลต์ซมันน์)',26,146);
+  g.fillStyle='rgba(148,163,184,.85)'; g.font='27px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('⚠️ กราฟด้านขวาไม่ใส่ตัวเลขบนแกน และฉากนี้ไม่บอก T หรือ λ_max — ทั้งคู่เป็นค่าที่ต้องวัดเอง',26,190);
+}
+/* สีโดยประมาณจากความยาวคลื่น (nm) */
+function lamCol(l){
+  let r=0,g=0,b=0;
+  if(l<440){ r=-(l-440)/60; b=1; }
+  else if(l<490){ g=(l-440)/50; b=1; }
+  else if(l<510){ g=1; b=-(l-510)/20; }
+  else if(l<580){ r=(l-510)/70; g=1; }
+  else if(l<645){ r=1; g=-(l-645)/65; }
+  else r=1;
+  let f=1; if(l>700) f=0.35+0.65*(780-l)/80; if(l<420) f=0.35+0.65*(l-380)/40;
+  const q=x=>Math.round(255*Math.max(0,Math.min(1,x*f)));
+  return (q(r)<<16)|(q(g)<<8)|q(b);
+}
+/* สุ่มความยาวคลื่นตามการแจกแจงพลังค์ (ปฏิเสธ–ยอมรับอย่างง่าย) */
+function sampleLam(T){
+  const lp=2.898e6/T;                       /* nm ที่ยอด */
+  const pk=planck(lp,T);
+  for(let i=0;i<60;i++){
+    const l=lp*(0.35+2.6*Math.random());
+    if(Math.random()*pk < planck(l,T)) return l;
+  }
+  return lp;
+}
+function curveFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.55)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=4; g.strokeRect(2,2,w-4,h-4);
+  const T=Tcur(), L0=120, L1=Math.max(2400, 2.898e6/T*3.2);
+  /* หาค่าสูงสุดสำหรับปรับสเกล: ใช้ของอุณหภูมิสูงสุดในชุด เพื่อให้เห็นว่า "โตขึ้น" จริง */
+  const Tref=si? T : LEVELS[LEVELS.length-1].T;
+  const pkRef=planck(2.898e6/Tref, Tref);
+  const X=l=>30+(l-L0)/(L1-L0)*(w-50), Y=v=>h-34-v/pkRef*(h-56);
+  /* เส้นจางของอุณหภูมิอื่นในชุด (เฉพาะไส้หลอด ไม่ทำกับแหล่งปริศนา) */
+  if(!si) LEVELS.forEach((L,i)=>{ if(i===lv) return;
+    g.strokeStyle='rgba(100,116,139,.45)'; g.lineWidth=2.5; g.beginPath();
+    for(let k=0;k<=160;k++){ const l=L0+(L1-L0)*k/160, y=Y(Math.min(pkRef,planck(l,L.T)));
+      k?g.lineTo(X(l),y):g.moveTo(X(l),y); } g.stroke(); });
+  /* เส้นของอุณหภูมิปัจจุบัน — ระบายสีตามความยาวคลื่น */
+  for(let k=0;k<160;k++){
+    const l0=L0+(L1-L0)*k/160, l1=L0+(L1-L0)*(k+1)/160;
+    const v0=Math.min(pkRef,planck(l0,T)), v1=Math.min(pkRef,planck(l1,T));
+    const c=lamCol((l0+l1)/2);
+    g.fillStyle='rgba('+((c>>16)&255)+','+((c>>8)&255)+','+(c&255)+',.30)';
+    g.beginPath(); g.moveTo(X(l0),Y(0)); g.lineTo(X(l0),Y(v0)); g.lineTo(X(l1),Y(v1)); g.lineTo(X(l1),Y(0)); g.closePath(); g.fill();
+  }
+  g.strokeStyle='#fde047'; g.lineWidth=5; g.beginPath();
+  for(let k=0;k<=200;k++){ const l=L0+(L1-L0)*k/200, y=Y(Math.min(pkRef,planck(l,T)));
+    k?g.lineTo(X(l),y):g.moveTo(X(l),y); } g.stroke();
+  /* เส้นประที่ยอด (ไม่บอกตัวเลข) */
+  const lp=2.898e6/T;
+  g.strokeStyle='#f472b6'; g.lineWidth=3; g.setLineDash([9,7]);
+  g.beginPath(); g.moveTo(X(lp),Y(0)); g.lineTo(X(lp),Y(Math.min(pkRef,planck(lp,T)))); g.stroke(); g.setLineDash([]);
+  g.fillStyle='#f9a8d4'; g.font='bold 30px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='bottom';
+  g.fillText('λ_max',X(lp),Y(Math.min(pkRef,planck(lp,T)))-8);
+  /* แกน */
+  g.strokeStyle='#64748b'; g.lineWidth=3;
+  g.beginPath(); g.moveTo(26,h-32); g.lineTo(w-14,h-32); g.moveTo(28,h-30); g.lineTo(28,16); g.stroke();
+  g.fillStyle='#94a3b8'; g.font='28px "IBM Plex Sans Thai",sans-serif'; g.textAlign='right'; g.textBaseline='top';
+  g.fillText('ความยาวคลื่น →',w-16,h-28);
+  g.save(); g.translate(20,18); g.rotate(-Math.PI/2); g.textAlign='right'; g.textBaseline='top';
+  g.fillText('ความเข้ม',0,0); g.restore();
+  if(!si){ g.fillStyle='rgba(148,163,184,.8)'; g.font='25px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='top';
+    g.fillText('เส้นจาง = อุณหภูมิระดับอื่นของไส้หลอด',34,16); }
+}
+function buildAtom(){
+  if(!P.atom) return;
+  redrawTex(P.curveTex); redrawTex(P.aInfoTex); redrawTex(P.capL);
+  const T=Tcur();
+  P.aAtoms.forEach(o=>{ o.m.material.color.setHex(0x94a3b8); });
+  P.curve.position.set(SXB,4,0);
+  P.capLab.position.set(SXA,34,0);
+  const infoW=200, infoH=infoW*226/1536;
+  P.aInfo.scale.setScalar(infoW/1536);
+  const iy=-(40+infoH*0.5);
+  P.aInfo.position.set(0,iy,0);
+  const mg=8, ymax=42+mg, ymin=iy-infoH*0.5-mg;
+  const xmin=Math.min(SXA-34,-infoW/2)-mg, xmax=Math.max(SXB+34,infoW/2)+mg;
+  P.atom.position.set(-(xmin+xmax)/2,-(ymin+ymax)/2,0);
+  atomFitW=xmax-xmin; atomFitH=ymax-ymin;
+}
+function stepAtom(dt){
+  if(!atomMode) return;
+  atomT+=dt;
+  const T=Tcur(), amp=0.9+2.6*Math.pow(Math.max(0,(T-1200))/2600,0.7);
+  P.aAtoms.forEach((o,i)=>{
+    o.m.position.set(SXA+o.x+Math.sin(atomT*o.w1+o.p1)*amp, o.y+Math.cos(atomT*o.w2+o.p2)*amp, 0);
+  });
+  /* โฟตอนพุ่งออกจากอะตอมสุ่ม ๆ · สีสุ่มตามการแจกแจงพลังค์ของ T ปัจจุบัน */
+  const rate=0.5+3.4*Math.pow(Math.max(0,(T-1200))/2600,3);   /* ร้อนขึ้น = ออกถี่ขึ้นมาก (T⁴) */
+  P.phots.forEach(p=>{
+    p.t+=dt*p.sp;
+    if(p.t>=1){
+      p.t=0; p.on = Math.random() < Math.min(1, rate*0.28);
+      if(p.on){ const a=P.aAtoms[Math.floor(Math.random()*P.aAtoms.length)];
+        const th=Math.random()*Math.PI*2;
+        p.ox=a.x; p.oy=a.y; p.dx=Math.cos(th); p.dy=Math.sin(th);
+        p.m.material.color.setHex(lamCol(sampleLam(T)));
+        p.sp=0.5+Math.random()*0.5; }
+    }
+    p.m.visible=p.on;
+    if(p.on){ const r=p.t*26;
+      p.m.position.set(SXA+p.ox+p.dx*r, p.oy+p.dy*r, 0.5);
+      p.m.material.opacity=Math.max(0,1-p.t); }
+  });
+}
+function setAtomMode(on){
+  if(!scene) return;
+  atomMode=!!on;
+  scene.children.forEach(o=>{ if(o.isLight) return; o.visible = (o===P.atom)? atomMode : !atomMode; });
+  if(atomMode){ atomSig=''; }
 }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
@@ -786,6 +925,34 @@ function init3D(){
   P.panTex=canvasTex(1024,384,panelFn);
   const pScr=new THREE.Mesh(new THREE.PlaneGeometry(18.6,7),new THREE.MeshBasicMaterial({map:P.panTex}));
   pScr.position.set(PANEL[0],PANEL[1]+2.4,PANEL[2]-0.25); scene.add(pScr);
+  /* ── ฉากระดับอะตอม (ซ่อนไว้จนกว่าจะกดมุมมอง 🔬) ── */
+  P.atom=new THREE.Group(); P.atom.visible=false; scene.add(P.atom);
+  P.aAtoms=[];
+  for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+    const x=-24+c*12, y=-24+r*12;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(3.2,16,12),new THREE.MeshBasicMaterial({color:0x94a3b8}));
+    m.position.set(SXA+x,y,0); P.atom.add(m);
+    P.aAtoms.push({m,x,y,w1:2+Math.random()*4,w2:2+Math.random()*4,p1:Math.random()*6,p2:Math.random()*6});
+  }
+  P.phots=[];
+  for(let i=0;i<26;i++){
+    const m=new THREE.Mesh(new THREE.SphereGeometry(1.1,10,8),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1}));
+    m.visible=false; P.atom.add(m);
+    P.phots.push({m,t:Math.random(),sp:0.5+Math.random()*0.5,on:false,ox:0,oy:0,dx:1,dy:0});
+  }
+  P.capL=canvasTex(640,96,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#cbd5e1';
+    g.font='bold 50px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(si?'อะตอมในแหล่งปริศนา':'อะตอมในไส้หลอด (ระดับ '+(lv+1)+')',w/2,h/2); });
+  P.capLab=new THREE.Mesh(new THREE.PlaneGeometry(58,58*96/640),new THREE.MeshBasicMaterial({map:P.capL,transparent:true}));
+  P.atom.add(P.capLab);
+  P.curveTex=canvasTex(900,620,curveFn);
+  P.curve=new THREE.Mesh(new THREE.PlaneGeometry(62,62*620/900),new THREE.MeshBasicMaterial({map:P.curveTex,transparent:true}));
+  P.atom.add(P.curve);
+  P.aInfoTex=canvasTex(1536,226,atomInfoFn);
+  P.aInfo=new THREE.Mesh(new THREE.PlaneGeometry(1536,226),new THREE.MeshBasicMaterial({map:P.aInfoTex,transparent:true}));
+  P.atom.add(P.aInfo);
+  buildAtom();
+
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
 
   setupPointer(cv); resize3D(); setView('iso'); update3D();
@@ -804,6 +971,14 @@ function tempColor(T){
   return (r<<16)|(g<<8)|b;
 }
 function update3D(dt){ if(!scene) return;
+  if(atomMode){
+    const sig=si+'|'+lv;
+    if(sig!==atomSig){ atomSig=sig; buildAtom(); }
+    stepAtom(dt||0.016);
+    const tgA=orbit.target; camera.up.set(0,1,0);
+    camera.position.set(tgA.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tgA.y+orbit.dist*Math.sin(orbit.el), tgA.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+    camera.lookAt(tgA); return;
+  }
   const a=TH*DEG;
   P.arm.rotation.y=a;
   P.grat.visible=grating;
@@ -826,6 +1001,7 @@ function update3D(dt){ if(!scene) return;
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const Vw=VIEWS[vw]; curView= Vw?vw:'free';
   document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  setAtomMode(curView==='atom');
   if(!Vw||!orbit.target) return;
   const t= Vw.t? Vw.t : vnum(Vw.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(Vw.d); orbit.az=vnum(Vw.az); orbit.el=vnum(Vw.el); }
 
@@ -854,7 +1030,8 @@ function pointerAngle(cx,cy){
   const a=Math.atan2(-z,x)/DEG;
   return isFinite(a)?a:null;
 }
-function hdStart(cx,cy){ if(!grating){ lockWarn('ถอดเกรตติงอยู่ — แขนต้องอยู่ที่ 0°'); return false; }
+function hdStart(cx,cy){ if(atomMode) return false;
+  if(!grating){ lockWarn('ถอดเกรตติงอยู่ — แขนต้องอยู่ที่ 0°'); return false; }
   if(!pickAt(cx,cy)) return false; const a=pointerAngle(cx,cy); if(a===null) return false;
   HD.on=true; HD.off=TH-a; HD.tx=TH; return true; }
 function hdMove(cx,cy){ if(!HD.on) return; const a=pointerAngle(cx,cy); if(a===null) return; HD.tx=a+HD.off; }
