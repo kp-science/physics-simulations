@@ -214,10 +214,31 @@ function updateTopbar(user) {
 
 // ── Access Control (v4) ───────────────────────────────────
 
+// เติมสิทธิ์ตาม preset ของ role เฉพาะ "ขอบเขตที่ admin ยังไม่เคยตัดสินใจ"
+// เช่น สมาชิกที่ถูกตั้งสิทธิ์ไว้ก่อนจะมี vlab:vpl04 → ไม่มี entry ไหนพูดถึง vpl04 เลย
+//      จึงถือว่ายังไม่ได้ตัดสินใจ แล้วให้ตาม preset ของ role (ของใหม่ปลดอัตโนมัติ)
+// แต่ถ้ามี entry ของขอบเขตนั้นอยู่แล้ว (แม้เป็นรายไอเทม) = admin ตั้งใจจำกัดไว้ → เคารพค่าเดิม
+function mergeRolePreset(access, role) {
+  if (role === 'blocked') return [];
+  const preset = ROLE_ACCESS_PRESETS[role] || [];
+  const out = Array.isArray(access) ? access.slice() : [];
+  if (out.includes('*')) return out;
+  preset.forEach(p => {
+    if (p === '*') { out.push('*'); return; }
+    const parts = p.split(':');
+    const scope = parts.slice(0, parts.length - 1).join(':') + ':';   // 'vlab:vpl04:' · 'demo:'
+    const touched = out.some(a => a === p || a.indexOf(scope) === 0);
+    if (!touched) out.push(p);
+  });
+  return out;
+}
+
 // Migrate user data → ensure `access` field exists
 function migrateAccess(userData) {
   if (!userData) return userData;
-  if (Array.isArray(userData.access) && userData.access.length) return userData;
+  if (Array.isArray(userData.access) && userData.access.length) {
+    return { ...userData, access: mergeRolePreset(userData.access, userData.role || 'member') };
+  }
 
   const access = [];
   const role = userData.role || 'member';
