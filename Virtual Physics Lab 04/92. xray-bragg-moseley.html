@@ -205,6 +205,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button data-vw="ang" onclick="setView('ang')">📐 สเกลมุม</button>
           <button data-vw="pan" onclick="setView('pan')">🎛 แผงวัด</button>
           <button data-vw="tub" onclick="setView('tub')">💠 หลอดเอกซ์ · ผลึก</button>
+          <button data-vw="atom" onclick="setView('atom')">🔬 ระดับอะตอม</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
         </div>
         <div class="viewhint">🖐 จับ <b>แขนหัววัด</b> แล้วลากให้หมุนรอบผลึก<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
@@ -404,6 +405,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>4. ค่าที่ใช้อ้างอิง</h2>
     <div class="formula-box">ทองแดง Cu (Z = 29): K<sub>α</sub> ≈ 154.1 pm · K<sub>β</sub> ≈ 139.2 pm<br>โมลิบดีนัม Mo (Z = 42): K<sub>α</sub> ≈ 71.1 pm · K<sub>β</sub> ≈ 63.2 pm<br>c = 2.998 × 10⁸ m/s · e = 1.602 × 10⁻¹⁹ C · R = 1.0974 × 10⁷ m⁻¹</div>
+    <div class="note-box">🔬 กด <b>🔬 ระดับอะตอม</b> ที่มุมล่างซ้ายของภาพ 3D — เห็นกระบวนการที่เกิดในเป้าพร้อมกัน 2 อย่าง:<br>
+      • <b>ซ้าย — เบรมส์ชตราลุง</b>: อิเล็กตรอนเบนและช้าลงใกล้นิวเคลียส แล้วคายพลังงานที่หายไปเป็นโฟตอน · ตัวที่เสียพลังงาน<b>หมดในครั้งเดียว</b>ให้โฟตอนพลังงานสูงสุด = eV → λ สั้นที่สุด = <b>ขอบคม</b>ที่เห็นในกราฟ<br>
+      • <b>ขวา — เส้นลักษณะเฉพาะ K</b>: อิเล็กตรอนกระแทกอิเล็กตรอน<b>ชั้น K</b> หลุดออก เกิดช่องว่าง แล้วอิเล็กตรอน<b>ชั้น L ตกลงมาแทน</b> คายโฟตอน K<sub>α</sub> → <b>ยอดแหลม</b>ในกราฟ<br>
+      ขอบคมขึ้นกับ kV เท่านั้น (ไม่ขึ้นกับชนิดเป้า) ส่วนยอดแหลมขึ้นกับธาตุของเป้าเท่านั้น (ไม่ขึ้นกับ kV) — ลองสลับเป้าและ kV แล้วสังเกตดู<br>
+      ⚠️ ฉากนี้ไม่บอกตัวเลข λ ของทั้งสองอย่าง เพราะเป็นค่าที่ต้องวัดเองจากมุมแบรกก์ (และ Z ของเป้า X เป็นคำตอบ)</div>
     <div class="note-box">💡 แบบจำลอง: อัตรานับ = สเปกตรัมต่อเนื่องที่มีขอบชัดที่ λ<sub>min</sub> + ยอดเกาส์เซียนของ K<sub>α</sub> K<sub>β</sub> (กว้าง 0.16°) · มีสัญญาณรบกวนแบบสุ่ม · เป้าปริศนา X สุ่มเลขอะตอมต่อการเปิดหน้า และเส้น K คำนวณจากกฎของมอสลีย์</div>
   </div>
 </div>
@@ -693,7 +699,8 @@ const VIEWS={
   iso:{t:[0,5,2], d:()=>fitDist(74,50), az:0.5, el:0.5},
   ang:{follow:()=>{ const a=2*TH*DEG; return [Math.cos(a)*24.6,1.6,-Math.sin(a)*24.6]; }, d:()=>fitDist(17,12), az:()=>2*TH*DEG, el:1.28},
   pan:{t:[PANEL[0],PANEL[1]+1,PANEL[2]+1], d:()=>fitDist(24,16), az:0.0001, el:0.06},
-  tub:{t:[-10,5,0], d:()=>fitDist(26,18), az:0.7, el:0.3}};
+  tub:{t:[-10,5,0], d:()=>fitDist(26,18), az:0.7, el:0.3},
+  atom:{t:[0,0,0], d:()=>fitDist(atomFitW,atomFitH), az:0.0001, el:0.0001}};
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
   t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
@@ -737,6 +744,146 @@ function panelFn(g,w,h){
   box(26,180,w-52,140,'มุมแขนหัววัด (2θ)',(2*TH).toFixed(1),'°');
   g.fillStyle='rgba(148,163,184,.9)'; g.font='28px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='top';
   g.fillText('เป้า: '+(ti===2?'ปริศนา X':TARGETS[ti].n)+' · '+kv()+' kV · NaCl d = 282 pm',30,336);
+}
+/* ═══════════ 🔬 ฉากระดับอะตอม — กำเนิดรังสีเอกซ์ 2 แบบในเป้าเดียวกัน ═══════════
+   ซ้าย  = เบรมส์ชตราลุง (สเปกตรัมต่อเนื่อง) · อิเล็กตรอนเบนและช้าลงใกล้นิวเคลียส แล้วคายโฟตอน
+           ถ้าเสียพลังงานหมดในครั้งเดียว → โฟตอนพลังงานสูงสุด eV → λ สั้นที่สุด (ขอบคมที่ต้องวัด)
+   ขวา   = เส้นลักษณะเฉพาะ Kα · อิเล็กตรอนกระแทกอิเล็กตรอนชั้น K ออก แล้วชั้น L ตกลงมาแทน
+   ไม่แสดงตัวเลข λ_min และพลังงาน/λ ของ Kα เพราะเป็นค่าที่ต้องวัดเอง (และ Z ของเป้า X เป็นคำตอบ) */
+let atomMode=false, atomSig='', atomT=0, atomFitW=190, atomFitH=130;
+const SX=44, RK=11, RL=24;
+const isXT=()=>ti===2;
+function atomInfoFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.86)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillStyle='#fde047'; g.font='bold 42px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('หลอดเร่งอิเล็กตรอนด้วย '+kv()+' kV → อิเล็กตรอนพุ่งชนเป้าด้วยพลังงาน '+kv()+' keV',26,14);
+  g.fillStyle='#94a3b8'; g.font='32px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ทั้งสองกระบวนการเกิดพร้อมกันในเป้าเดียวกัน กราฟอัตรานับจึงมีทั้ง "ขอบคม" และ "ยอดแหลม"',26,64);
+  g.fillStyle='#67e8f9'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ขอบคม = λ_min (ขึ้นกับ kV เท่านั้น ไม่ขึ้นกับชนิดเป้า) → ใช้หาค่าคงตัวพลังค์',26,108);
+  g.fillText('ยอดแหลม = เส้น K ของธาตุเป้า (ไม่ขึ้นกับ kV) → ใช้ระบุชนิดเป้าด้วยกฎมอสลีย์',26,146);
+  g.fillStyle='rgba(148,163,184,.85)'; g.font='27px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ค่า λ ของทั้งสองอย่างต้องวัดเองจากมุมแบรกก์ — ฉากนี้จึงไม่บอกตัวเลขให้',26,190);
+}
+function capTex(left){
+  return canvasTex(768,262,(g,w,h)=>{
+    g.clearRect(0,0,w,h);
+    const ok=kAllowed(), Zs= isXT()? '?' : String(Zc());
+    g.textAlign='center'; g.textBaseline='top';
+    if(left){
+      g.fillStyle='#93c5fd'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif';
+      g.fillText('เบรมส์ชตราลุง — สเปกตรัมต่อเนื่อง',w/2,4);
+      g.fillStyle='#cbd5e1'; g.font='34px "IBM Plex Sans Thai",sans-serif';
+      g.fillText('อิเล็กตรอนเบนและช้าลงใกล้นิวเคลียส',w/2,70);
+      g.fillText('แล้วคายพลังงานที่หายไปเป็นโฟตอน',w/2,112);
+      g.fillStyle='#fcd34d'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+      g.fillText('ตัวที่เสียพลังงานหมดในครั้งเดียว',w/2,160);
+      g.fillText('→ โฟตอนพลังงานสูงสุด = '+kv()+' keV = λ_min',w/2,200);
+    }else{
+      g.fillStyle='#fca5a5'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif';
+      g.fillText('เส้นลักษณะเฉพาะ K'+(ok?'':' (ยังไม่เกิด)'),w/2,4);
+      g.fillStyle='#cbd5e1'; g.font='34px "IBM Plex Sans Thai",sans-serif';
+      if(ok){
+        g.fillText('อิเล็กตรอนกระแทกอิเล็กตรอนชั้น K หลุดออก',w/2,70);
+        g.fillText('ชั้น L ตกลงมาแทน → คายโฟตอน Kα',w/2,112);
+        g.fillStyle='#fcd34d'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+        g.fillText('พลังงานขึ้นกับธาตุของเป้า (Z = '+Zs+')',w/2,160);
+        g.fillText('กฎมอสลีย์: √f = k (Z − 1)',w/2,200);
+      }else{
+        g.fillStyle='#fbbf24'; g.font='33px "IBM Plex Sans Thai",sans-serif';
+        g.fillText('พลังงาน '+kv()+' keV ยังไม่พอกระแทก',w/2,70);
+        g.fillText('อิเล็กตรอนชั้น K ของเป้านี้ให้หลุด',w/2,112);
+        g.fillStyle='rgba(148,163,184,.9)'; g.font='30px "IBM Plex Sans Thai",sans-serif';
+        g.fillText('จึงเห็นแต่สเปกตรัมต่อเนื่อง ไม่มียอดแหลม',w/2,160);
+        g.fillText('เพิ่ม kV แล้วลองใหม่',w/2,200);
+      }
+    }
+  });
+}
+function mkWave(col){
+  const pts=[]; for(let i=0;i<=100;i++) pts.push(new THREE.Vector3(i,0,0));
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color:col,transparent:true,opacity:1}));
+}
+function waveAt(line,S,dir,len,amp,cyc){
+  const n=new THREE.Vector3(-dir.y,dir.x,0);
+  const pos=line.geometry.attributes.position, N=pos.count;
+  for(let i=0;i<N;i++){ const t=i/(N-1), s=Math.sin(t*Math.PI*2*cyc)*amp*(1-t*0.2);
+    pos.setXYZ(i, S.x+dir.x*len*t+n.x*s, S.y+dir.y*len*t+n.y*s, 0.5); }
+  pos.needsUpdate=true;
+}
+/* เส้นทางอิเล็กตรอนที่เบนรอบนิวเคลียส (ดึงดูด → โค้งเข้าหา) */
+function bremPath(t){
+  const x=-46+t*92, w=16, b=-13*Math.exp(-(x*x)/(2*w*w));
+  return new THREE.Vector3(x, 16+b, 0);
+}
+function buildAtom(){
+  if(!P.atom) return;
+  P.stA.position.set(-SX,0,0); P.stB.position.set(SX,0,0);
+  redrawTex(P.capA); redrawTex(P.capB); redrawTex(P.aInfoTex); redrawTex(P.zTex);
+  const capW=SX*1.72, capH=capW*262/768;
+  P.labA.scale.setScalar(capW/768); P.labB.scale.setScalar(capW/768);
+  P.labA.position.set(-SX,-(30+capH*0.5),0);
+  P.labB.position.set( SX,-(30+capH*0.5),0);
+  const infoW=SX*3.5, infoH=infoW*226/1536;
+  P.aInfo.scale.setScalar(infoW/1536);
+  const iy=-(30+capH+infoH*0.5+4);
+  P.aInfo.position.set(0,iy,0);
+  const mg=8;
+  const xmin=Math.min(-SX-48,-infoW/2)-mg, xmax=Math.max(SX+48,infoW/2)+mg;
+  const ymin=iy-infoH*0.5-mg, ymax=42+mg;
+  P.atom.position.set(-(xmin+xmax)/2,-(ymin+ymax)/2,0);
+  atomFitW=xmax-xmin; atomFitH=ymax-ymin;
+}
+function stepAtom(dt){
+  if(!atomMode) return;
+  atomT=(atomT+dt*0.24)%1;
+  /* ── ซ้าย: เบรมส์ชตราลุง ── */
+  const tA=atomT, hitA=0.5;
+  P.eBrem.position.copy(bremPath(Math.min(1,tA)));
+  P.eBrem.visible=true;
+  const showPh = tA>hitA;
+  P.phBrem.visible=showPh;
+  if(showPh){ const u=(tA-hitA)/(1-hitA);
+    waveAt(P.phBrem,new THREE.Vector3(2+u*30,2+u*26,0),new THREE.Vector3(0.6,0.8,0),26,2.6,5);
+    P.phBrem.material.opacity = u<0.8?1:Math.max(0,(1-u)/0.2); }
+  /* ── ขวา: เส้น K ── */
+  const ok=kAllowed(), tB=(atomT+0.42)%1;
+  const T1=0.30, T2=0.42, T3=0.62;
+  P.eIn.visible = ok && tB<T2;
+  if(P.eIn.visible){ const u=Math.min(1,tB/T1); P.eIn.position.set(-48+(0-(-48))*u, 30-30*u, 0.6); }
+  /* อิเล็กตรอนชั้น K: หายไปเมื่อถูกกระแทก แล้วกลับมาเมื่อ L ตกลงมา */
+  const knocked = ok && tB>=T1;
+  const filled  = ok && tB>=T3;
+  P.eK[0].visible = !knocked || filled;
+  P.eK[0].position.set(Math.cos(atomT*7)*RK, Math.sin(atomT*7)*RK, 0.5);
+  P.eK[1].position.set(-Math.cos(atomT*7)*RK, -Math.sin(atomT*7)*RK, 0.5);
+  P.hole.visible = ok && knocked && !filled;
+  P.hole.position.set(Math.cos(atomT*7)*RK, Math.sin(atomT*7)*RK, 0.4);
+  /* อิเล็กตรอนที่ถูกกระแทกหลุดออกไป */
+  P.eOut.visible = ok && tB>=T1 && tB<T3;
+  if(P.eOut.visible){ const u=(tB-T1)/(T3-T1); P.eOut.position.set(u*46, -u*30, 0.6); }
+  /* อิเล็กตรอนชั้น L ตกลงมาเติมช่องว่าง */
+  const lFall = ok && tB>=T2 && tB<T3;
+  const aL=atomT*5+2.2;
+  P.eL.forEach((m,i)=>{ const a=aL+i*Math.PI/2; m.position.set(Math.cos(a)*RL,Math.sin(a)*RL,0.5); m.visible=true; });
+  if(lFall){ const u=(tB-T2)/(T3-T2), r=RL+(RK-RL)*u*u*(3-2*u), a=aL;
+    P.eL[0].position.set(Math.cos(a)*r,Math.sin(a)*r,0.55); }
+  /* โฟตอน Kα ออกหลังเติมช่องว่าง */
+  const showK = ok && tB>=T3;
+  P.phK.visible=showK;
+  if(showK){ const u=(tB-T3)/(1-T3);
+    waveAt(P.phK,new THREE.Vector3(6+u*30,10+u*24,0),new THREE.Vector3(0.62,0.78,0),26,2.6,7);
+    P.phK.material.opacity = u<0.8?1:Math.max(0,(1-u)/0.2); }
+}
+function setAtomMode(on){
+  if(!scene) return;
+  atomMode=!!on;
+  scene.children.forEach(o=>{ if(o.isLight) return; o.visible = (o===P.atom)? atomMode : !atomMode; });
+  if(atomMode){ atomSig=''; }
 }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
@@ -787,6 +934,59 @@ function init3D(){
   P.panTex=canvasTex(1024,448,panelFn);
   const pScr=new THREE.Mesh(new THREE.PlaneGeometry(18.6,8.1),new THREE.MeshBasicMaterial({map:P.panTex}));
   pScr.position.set(PANEL[0],PANEL[1]+2,PANEL[2]-0.25); scene.add(pScr);
+  /* ── ฉากระดับอะตอม (ซ่อนไว้จนกว่าจะกดมุมมอง 🔬) ── */
+  P.atom=new THREE.Group(); P.atom.visible=false; scene.add(P.atom);
+  P.stA=new THREE.Group(); P.stB=new THREE.Group(); P.atom.add(P.stA); P.atom.add(P.stB);
+  /* สถานีซ้าย: นิวเคลียส + อิเล็กตรอนที่เบน + โฟตอน */
+  const nucA=new THREE.Mesh(new THREE.SphereGeometry(7,22,16),new THREE.MeshBasicMaterial({color:0xef4444}));
+  P.stA.add(nucA);
+  const gl=new THREE.Mesh(new THREE.SphereGeometry(13,18,14),new THREE.MeshBasicMaterial({color:0xf87171,transparent:true,opacity:.16}));
+  P.stA.add(gl);
+  P.eBrem=new THREE.Mesh(new THREE.SphereGeometry(2.6,16,12),new THREE.MeshBasicMaterial({color:0x93c5fd}));
+  P.stA.add(P.eBrem);
+  const bp=[]; for(let i=0;i<=80;i++) bp.push(bremPath(i/80));
+  P.stA.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(bp),
+    new THREE.LineDashedMaterial({color:0x64748b,dashSize:3,gapSize:2.4,transparent:true,opacity:.5})));
+  P.phBrem=mkWave(0xa3e635); P.stA.add(P.phBrem);
+  /* สถานีขวา: อะตอมมีชั้น K และ L */
+  const nucB=new THREE.Mesh(new THREE.SphereGeometry(6,22,16),new THREE.MeshBasicMaterial({color:0xef4444}));
+  P.stB.add(nucB);
+  [RK,RL].forEach((R,i)=>{
+    const pts=[]; for(let k=0;k<=110;k++){ const a=k/110*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*R,Math.sin(a)*R,0)); }
+    const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineDashedMaterial({color:i?0x64748b:0x38bdf8,dashSize:2.4,gapSize:1.8,transparent:true,opacity:i?.45:.8}));
+    ln.computeLineDistances(); P.stB.add(ln);
+    const lab=new THREE.Mesh(new THREE.PlaneGeometry(13,6.5),new THREE.MeshBasicMaterial({
+      map:canvasTex(256,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle=i?'#94a3b8':'#7dd3fc';
+        g.font='bold 82px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+        g.fillText(i?'L':'K',w/2,h/2); }),transparent:true}));
+    lab.position.set(-R-7,0,0); P.stB.add(lab);
+  });
+  P.eK=[0,1].map(()=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(2.4,16,12),new THREE.MeshBasicMaterial({color:0x93c5fd}));
+    P.stB.add(m); return m; });
+  P.eL=[0,1,2,3].map(()=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(2.2,14,10),new THREE.MeshBasicMaterial({color:0x93c5fd,transparent:true,opacity:.85}));
+    P.stB.add(m); return m; });
+  P.hole=new THREE.Mesh(new THREE.SphereGeometry(2.8,16,12),new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:.55}));
+  P.hole.visible=false; P.stB.add(P.hole);
+  P.eIn=new THREE.Mesh(new THREE.SphereGeometry(2.6,16,12),new THREE.MeshBasicMaterial({color:0x60a5fa}));
+  P.stB.add(P.eIn);
+  P.eOut=new THREE.Mesh(new THREE.SphereGeometry(2.4,16,12),new THREE.MeshBasicMaterial({color:0x60a5fa}));
+  P.stB.add(P.eOut);
+  P.phK=mkWave(0xf472b6); P.stB.add(P.phK);
+  P.zTex=canvasTex(512,96,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#fca5a5';
+    g.font='bold 52px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText((ti===2?'เป้าปริศนา X (Z = ?)':'เป้า '+TARGETS[ti].n+' (Z = '+Zc()+')'),w/2,h/2); });
+  const zL=new THREE.Mesh(new THREE.PlaneGeometry(46,46*96/512),new THREE.MeshBasicMaterial({map:P.zTex,transparent:true}));
+  zL.position.set(0,38,0); P.stB.add(zL);
+  P.capA=capTex(true); P.capB=capTex(false);
+  P.labA=new THREE.Mesh(new THREE.PlaneGeometry(768,262),new THREE.MeshBasicMaterial({map:P.capA,transparent:true}));
+  P.labB=new THREE.Mesh(new THREE.PlaneGeometry(768,262),new THREE.MeshBasicMaterial({map:P.capB,transparent:true}));
+  P.atom.add(P.labA); P.atom.add(P.labB);
+  P.aInfoTex=canvasTex(1536,226,atomInfoFn);
+  P.aInfo=new THREE.Mesh(new THREE.PlaneGeometry(1536,226),new THREE.MeshBasicMaterial({map:P.aInfoTex,transparent:true}));
+  P.atom.add(P.aInfo);
+  buildAtom();
+
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
 
   setupPointer(cv); resize3D(); setView('iso'); update3D();
@@ -799,6 +999,14 @@ function init3D(){
 let fr=0, meterT=0, lastTgt=-1;
 function stepMeter(dt){ meterT+=dt; if(meterT<0.18) return; meterT=0; const v=reading(); if(v!==Nshow){ Nshow=v; panDirty=true; } }
 function update3D(dt){ if(!scene) return;
+  if(atomMode){
+    const sig=ti+'|'+ki;
+    if(sig!==atomSig){ atomSig=sig; buildAtom(); }
+    stepAtom(dt||0.016);
+    const tgA=orbit.target; camera.up.set(0,1,0);
+    camera.position.set(tgA.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tgA.y+orbit.dist*Math.sin(orbit.el), tgA.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+    camera.lookAt(tgA); return;
+  }
   const a2=2*TH*DEG;
   P.arm.rotation.y=a2; P.cryStage.rotation.y=TH*DEG;
   /* ลำเลี้ยวเบนจากผลึกไปหัววัด */
@@ -815,6 +1023,7 @@ function update3D(dt){ if(!scene) return;
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const Vw=VIEWS[vw]; curView= Vw?vw:'free';
   document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  setAtomMode(curView==='atom');
   if(!Vw||!orbit.target) return;
   const t= Vw.t? Vw.t : vnum(Vw.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(Vw.d); orbit.az=vnum(Vw.az); orbit.el=vnum(Vw.el); }
 
@@ -843,7 +1052,7 @@ function pointerAngle(cx,cy){                  /* คืนมุม 2θ (อง
   const a=Math.atan2(-z,x)/DEG;
   return isFinite(a)?a:null;
 }
-function hdStart(cx,cy){ if(!pickAt(cx,cy)) return false; const a=pointerAngle(cx,cy); if(a===null) return false;
+function hdStart(cx,cy){ if(atomMode) return false; if(!pickAt(cx,cy)) return false; const a=pointerAngle(cx,cy); if(a===null) return false;
   HD.on=true; HD.off=2*TH-a; HD.tx=2*TH; return true; }
 function hdMove(cx,cy){ if(!HD.on) return; const a=pointerAngle(cx,cy); if(a===null) return; HD.tx=a+HD.off; }
 function hdEnd(){ if(!HD.on) return; HD.on=false; drawAll(); }
