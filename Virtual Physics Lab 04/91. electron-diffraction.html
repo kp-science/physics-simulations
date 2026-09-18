@@ -827,10 +827,15 @@ function hdMove(cx,cy){ if(!HD.on) return;
 function hdEnd(){ if(!HD.on) return; HD.on=false; HD.what=null; HD.i=-1; drawAll(); }
 function stepHand(dt){
   if(!HD.on||HD.what!=='ptr'||HD.i<0) return;
-  const cur=ptr[HD.i], tgt=Math.max(-SCR_R,Math.min(SCR_R,HD.tx));
+  /* เก็บตำแหน่งต่อเนื่องไว้ใน HD.pos แล้วค่อยปัดเป็นขีดสเกลตอนเขียนค่าจริง
+     (ถ้าปัดก่อนแล้วค่อยหน่วง ค่าจะค้างห่างเป้าหมายราวครึ่งขีดหารด้วยสัมประสิทธิ์หน่วง)
+     เงื่อนไขแรก = resync เมื่อค่าถูกเปลี่ยนจากที่อื่น (ปุ่ม · รีเซต · เปลี่ยนตัวชี้) */
+  if(!(Math.abs(HD.pos-ptr[HD.i])<=0.005)) HD.pos=ptr[HD.i];
+  const cur=HD.pos, tgt=Math.max(-SCR_R,Math.min(SCR_R,HD.tx));
   let nx=cur+(tgt-cur)*(1-Math.exp(-dt/HD_LAG)); const step=HD_VMAX*dt;
   if(nx-cur>step) nx=cur+step; if(cur-nx>step) nx=cur-step;
-  ptr[HD.i]=Math.max(-SCR_R,Math.min(SCR_R,Math.round(nx*100)/100)); scrDirty=true; syncCtl();
+  HD.pos=Math.max(-SCR_R,Math.min(SCR_R,nx));
+  ptr[HD.i]=Math.max(-SCR_R,Math.min(SCR_R,Math.round(HD.pos*100)/100)); scrDirty=true; syncCtl();
 }
 /* ── ✋ โหมดเลื่อนภาพ ── */
 let panMode=false;
