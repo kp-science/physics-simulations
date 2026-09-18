@@ -205,6 +205,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button data-vw="scr" onclick="setView('scr')">🎯 จอเรืองแสง</button>
           <button data-vw="tgt" onclick="setView('tgt')">🎞 แผ่นผลึก</button>
           <button data-vw="pan" onclick="setView('pan')">🎛 แผงวัด</button>
+          <button data-vw="atom" onclick="setView('atom')">🔬 ระดับอะตอม</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
         </div>
         <div class="viewhint">🖐 จับ <b>เส้นเล็ง</b> บนจอแล้วลากไปที่ขอบวงแหวน (ซ้าย/ขวา)<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
@@ -404,6 +405,10 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>3. ค่าที่ใช้</h2>
     <div class="formula-box">m (อิเล็กตรอน) = 9.109 × 10⁻³¹ kg · e = 1.602 × 10⁻¹⁹ C · L = 0.135 m<br>กราไฟต์: d₁ = 0.213 nm (วงใน) · d₂ = 0.123 nm (วงนอก)</div>
+    <div class="note-box">🔬 กด <b>🔬 ระดับอะตอม</b> ที่มุมล่างซ้ายของภาพ 3D — จะเห็นคลื่นอิเล็กตรอนวิ่งมาชนระนาบอะตอม แล้วสะท้อนจากระนาบที่ 1 และที่ 2 ออกไปขนานกัน<br>
+      ส่วนสีชมพูคือ<b>เส้นทางที่ต่างกัน = 2d sin θ</b> ถ้าเท่ากับ λ พอดี (หรือจำนวนเท่าของ λ) คลื่นทั้งสองจะ<b>เสริมกัน</b> → เกิดเป็นวงแหวนบนจอ<br>
+      เปลี่ยน V แล้วดูความยาวคลื่นเปลี่ยน · เปลี่ยนระนาบ/ผลึกแล้วดู d เปลี่ยน — ตัวเลข λ · d · θ อัปเดตตามค่าที่ตั้งจริง (ผลึก X ซ่อน d ไว้เพราะเป็นคำตอบ)<br>
+      ⚠️ มุม θ ในภาพวาดขยายไว้ให้เห็นชัด ของจริงเพียง 2–5° เท่านั้น</div>
     <div class="note-box">💡 แบบจำลอง: D = 2Lλ/d พอดีตามทฤษฎี (มุมเล็ก) · ความสว่างของวงลดลงเมื่อ V สูงขึ้น · สเกลบนจออ่านได้ละเอียด 1 mm · ผลึกปริศนา X มีระนาบเดียว d สุ่มต่อการเปิดหน้า</div>
   </div>
 </div>
@@ -644,7 +649,8 @@ const VIEWS={
   iso:{t:[4,4,0], d:()=>fitDist(60,40), az:0.62, el:0.28},
   scr:{t:[0,4,13.6], d:()=>fitDist(13,11), az:0.0001, el:0.0001},
   tgt:{t:[0,4,-1], d:()=>fitDist(14,10), az:0.9, el:0.25},
-  pan:{t:[PANEL[0],PANEL[1]+1,PANEL[2]+1], d:()=>fitDist(24,16), az:0.0001, el:0.06}};
+  pan:{t:[PANEL[0],PANEL[1]+1,PANEL[2]+1], d:()=>fitDist(24,16), az:0.0001, el:0.06},
+  atom:{t:[0,0,0], d:()=>fitDist(atomFitW,atomFitH), az:0.0001, el:0.0001}};
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
   t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
@@ -701,6 +707,92 @@ function panelFn(g,w,h){
   g.fillText('แผ่น: '+(si?'ผลึกปริศนา X':'กราไฟต์')+' · L = 13.5 cm',34,236);
   g.fillText('ลากปุ่มด้านล่างเพื่อปรับ 2.5 – 5.0 kV',34,276);
 }
+/* ═══════════ 🔬 ฉากระดับอะตอม — การสะท้อนแบบแบรกก์จากระนาบอะตอม ═══════════
+   ผูกกับค่าที่ตั้งจริง: ความต่างศักย์เร่ง → λ เดอบรอยล์ · ผลึกที่เลือก → ระยะระนาบ d
+   คลื่นอิเล็กตรอนสะท้อนจากระนาบที่ 1 และ 2 · เส้นทางที่ต่างกัน = 2d sin θ
+   เสริมกันเมื่อ 2d sin θ = nλ → เกิดเป็นวงแหวนบนจอ
+   มุม θ ในภาพขยายให้เห็นชัด (ของจริงเพียงไม่กี่องศา) · ผลึก X ซ่อนตัวเลข d และ θ */
+let atomMode=false, atomSig='', atomT=0, atomFitW=230, atomFitH=150;
+const DY=34, RAYL=96, TH_DRAW=24*Math.PI/180;      /* ระยะระนาบในภาพ · ความยาวรังสี · มุมที่ใช้วาด */
+const isX=()=>si===1;
+const thReal=()=>{ const lam=lamOf(Vkv*1000), d=dCur()*1e-9, s=Math.min(1,lam/(2*d)); return Math.asin(s)/Math.PI*180; };
+function atomInfoFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.86)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  const lamPm=lamOf(Vkv*1000)*1e12;
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillStyle='#fde047'; g.font='bold 42px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('เร่งด้วย '+Vkv.toFixed(1)+' kV → คลื่นเดอบรอยล์ λ = h/√(2meV) = '+lamPm.toFixed(2)+' pm',26,14);
+  g.fillStyle='#94a3b8'; g.font='33px "IBM Plex Sans Thai",sans-serif';
+  if(isX()){
+    g.fillText('ผลึกปริศนา X — ภาพนี้ใช้ระยะระนาบสมมุติ ไม่ได้บอกค่า d จริง (เป็นคำตอบที่ต้องหา)',26,66);
+    g.fillText('เงื่อนไขเสริมกันของแบรกก์: 2d sin θ = nλ  → วัด D จากวงแหวนแล้วใช้ D = 2Lλ/d',26,112);
+  }else{
+    g.fillText('ระนาบที่ใช้อยู่ d = '+(dCur()*1000).toFixed(0)+' pm → sin θ = λ/2d → θ = '+thReal().toFixed(2)+'°',26,66);
+    g.fillText('เส้นทางที่ต่างกัน 2d sin θ = '+(2*dCur()*1000*Math.sin(thReal()*Math.PI/180)).toFixed(2)
+               +' pm = λ พอดี → คลื่นที่สะท้อนออกมาเสริมกัน',26,112);
+  }
+  g.fillStyle='#67e8f9'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('อิเล็กตรอนกระเจิงออกไปที่มุม 2θ รอบแนวลำ จึงเห็นเป็น "วงแหวน" ไม่ใช่จุดเดียว',26,158);
+  g.fillStyle='rgba(148,163,184,.85)'; g.font='27px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('⚠️ มุม θ ในภาพวาดขยายไว้ให้เห็นการสะท้อนชัด ๆ ของจริงเพียงไม่กี่องศาเท่านั้น',26,200);
+}
+function mkWavyRay(col,op){
+  const pts=[]; for(let i=0;i<=140;i++) pts.push(new THREE.Vector3(i,0,0));
+  const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op===undefined?1:op}));
+  return l;
+}
+function rayWave(line,S,dir,len,amp,cyc,phase){
+  const n=new THREE.Vector3(-dir.y,dir.x,0);
+  const pos=line.geometry.attributes.position, N=pos.count;
+  for(let i=0;i<N;i++){ const t=i/(N-1), s=Math.sin(2*Math.PI*(cyc*t-phase))*amp;
+    pos.setXYZ(i, S.x+dir.x*len*t+n.x*s, S.y+dir.y*len*t+n.y*s, 0.4); }
+  pos.needsUpdate=true;
+}
+function buildAtom(){
+  if(!P.atom) return;
+  const th=TH_DRAW, u=new THREE.Vector3(Math.cos(th),-Math.sin(th),0), v=new THREE.Vector3(Math.cos(th),Math.sin(th),0);
+  const A=new THREE.Vector3(0,0,0), B=new THREE.Vector3(0,-DY,0);
+  P.rayGeo={u,v,A,B,th};
+  const seg=DY*Math.sin(th);
+  const P1=B.clone().addScaledVector(u,-seg), Q1=B.clone().addScaledVector(v,seg);
+  const setLine=(ln,a,b)=>{ ln.geometry.dispose(); ln.geometry=new THREE.BufferGeometry().setFromPoints([a,b]); ln.computeLineDistances(); };
+  setLine(P.perp1,A,P1); setLine(P.perp2,A,Q1);
+  const tube=(m,a2,b2)=>{ m.geometry.dispose();
+    m.geometry=new THREE.TubeGeometry(new THREE.LineCurve3(a2,b2),1,1.6,8,false); };
+  tube(P.ex1,P1,B); tube(P.ex2,B,Q1);
+  P.hitA.position.copy(A); P.hitB.position.copy(B);
+  P.plnLab.position.set(-RAYL*0.62,-DY*0.5,0);
+  redrawTex(P.aInfoTex); redrawTex(P.dTex);
+  const infoW=230, infoH=infoW*236/1536;
+  P.aInfo.scale.setScalar(infoW/1536);
+  const iy=-(DY*2.4+infoH*0.5);
+  P.aInfo.position.set(0,iy,0);
+  const mg=8;
+  const xmin=-RAYL*Math.cos(th)-mg*2, xmax=RAYL*Math.cos(th)+mg*2;
+  const ymin=iy-infoH*0.5-mg, ymax=RAYL*Math.sin(th)+mg*2;
+  P.atom.position.set(-(xmin+xmax)/2,-(ymin+ymax)/2,0);
+  atomFitW=Math.max(xmax-xmin, infoW+mg*2); atomFitH=ymax-ymin;
+}
+function stepAtom(dt){
+  if(!atomMode||!P.rayGeo) return;
+  atomT=(atomT+dt*0.42)%1;
+  const {u,v,A,B}=P.rayGeo, amp=3.4, cyc=9;
+  /* ขาเข้า 2 ลำขนานกัน (เฟสเดียวกันที่หน้าคลื่นเดียวกัน) */
+  rayWave(P.in1, A.clone().addScaledVector(u,-RAYL), u, RAYL, amp, cyc, atomT);
+  rayWave(P.in2, B.clone().addScaledVector(u,-RAYL), u, RAYL, amp, cyc, atomT);
+  /* ขาออก 2 ลำ — เฟสตรงกันพอดีเพราะ 2d sin θ = λ (เสริมกัน) */
+  rayWave(P.out1, A, v, RAYL, amp, cyc, atomT);
+  rayWave(P.out2, B, v, RAYL, amp, cyc, atomT);
+}
+function setAtomMode(on){
+  if(!scene) return;
+  atomMode=!!on;
+  scene.children.forEach(o=>{ if(o.isLight) return; o.visible = (o===P.atom)? atomMode : !atomMode; });
+  if(atomMode){ atomSig=''; }
+}
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   orbit.target=new THREE.Vector3(4,4,0);
@@ -750,6 +842,47 @@ function init3D(){
   const kBody=new THREE.Mesh(new THREE.CylinderGeometry(2.3,2.3,1.5,28),new THREE.MeshStandardMaterial({color:0x475569,metalness:.5,roughness:.5}));
   kBody.rotation.x=Math.PI/2; P.knob.add(kBody);
   const kMark=new THREE.Mesh(new THREE.BoxGeometry(0.36,2,0.5),new THREE.MeshBasicMaterial({color:0xef4444})); kMark.position.set(0,1.1,0.85); P.knob.add(kMark);
+  /* ── ฉากระดับอะตอม (ซ่อนไว้จนกว่าจะกดมุมมอง 🔬) ── */
+  P.atom=new THREE.Group(); P.atom.visible=false; scene.add(P.atom);
+  for(let pl=0;pl<3;pl++){
+    const y=-pl*DY;
+    const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+        [new THREE.Vector3(-RAYL*0.78,y,0),new THREE.Vector3(RAYL*0.78,y,0)]),
+      new THREE.LineBasicMaterial({color:0x334155,transparent:true,opacity:.7}));
+    P.atom.add(ln);
+    for(let x=-RAYL*0.74;x<=RAYL*0.74;x+=13){
+      const a=new THREE.Mesh(new THREE.SphereGeometry(3.4,16,12),new THREE.MeshBasicMaterial({color:0x64748b}));
+      a.position.set(x,y,0); P.atom.add(a);
+    }
+  }
+  P.in1=mkWavyRay(0x38bdf8);  P.in2=mkWavyRay(0x38bdf8,.75);
+  P.out1=mkWavyRay(0xfde047); P.out2=mkWavyRay(0xfde047,.85);
+  [P.in1,P.in2,P.out1,P.out2].forEach(l=>P.atom.add(l));
+  const mkDash=(col,op)=>{ const l=new THREE.Line(new THREE.BufferGeometry(),
+      new THREE.LineDashedMaterial({color:col,dashSize:3,gapSize:2.2,transparent:true,opacity:op||.7}));
+    P.atom.add(l); return l; };
+  P.perp1=mkDash(0x94a3b8); P.perp2=mkDash(0x94a3b8);
+  const mkTube=col=>{ const m=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:col}));
+    P.atom.add(m); return m; };
+  P.ex1=mkTube(0xf472b6); P.ex2=mkTube(0xf472b6);
+  P.hitA=new THREE.Mesh(new THREE.SphereGeometry(4.6,18,14),new THREE.MeshBasicMaterial({color:0x38bdf8}));
+  P.hitB=new THREE.Mesh(new THREE.SphereGeometry(4.6,18,14),new THREE.MeshBasicMaterial({color:0x38bdf8}));
+  P.atom.add(P.hitA); P.atom.add(P.hitB);
+  P.dTex=canvasTex(512,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#cbd5e1';
+    g.font='bold 56px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(si===1? 'ระยะระนาบ d = ?' : ('d = '+(dCur()*1000).toFixed(0)+' pm'),w/2,h/2); });
+  P.plnLab=new THREE.Mesh(new THREE.PlaneGeometry(52,13),new THREE.MeshBasicMaterial({map:P.dTex,transparent:true}));
+  P.atom.add(P.plnLab);
+  P.exLab=new THREE.Mesh(new THREE.PlaneGeometry(56,14),
+    new THREE.MeshBasicMaterial({map:canvasTex(512,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#f9a8d4';
+      g.font='bold 54px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText('เส้นทางเพิ่ม 2d sin θ',w/2,h/2); }),transparent:true}));
+  P.exLab.position.set(30,-DY*1.55,0); P.atom.add(P.exLab);
+  P.aInfoTex=canvasTex(1536,236,atomInfoFn);
+  P.aInfo=new THREE.Mesh(new THREE.PlaneGeometry(1536,236),new THREE.MeshBasicMaterial({map:P.aInfoTex,transparent:true}));
+  P.atom.add(P.aInfo);
+  buildAtom();
+
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
 
   setupPointer(cv); resize3D(); setView('iso'); update3D();
@@ -761,6 +894,14 @@ function init3D(){
 }
 let fr=0, lastSample=-1;
 function update3D(dt){ if(!scene) return;
+  if(atomMode){
+    const sig=si+'|'+ri+'|'+Vkv.toFixed(1);
+    if(sig!==atomSig){ atomSig=sig; buildAtom(); }
+    stepAtom(dt||0.016);
+    const tgA=orbit.target; camera.up.set(0,1,0);
+    camera.position.set(tgA.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tgA.y+orbit.dist*Math.sin(orbit.el), tgA.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+    camera.lookAt(tgA); return;
+  }
   /* กรวยเลี้ยวเบนตามวงจริง */
   P.cones.forEach((m,i)=>{
     const show = i<dList().length;
@@ -780,6 +921,7 @@ function update3D(dt){ if(!scene) return;
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const Vw=VIEWS[vw]; curView= Vw?vw:'free';
   document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  setAtomMode(curView==='atom');
   if(!Vw||!orbit.target) return;
   orbit.target.set(Vw.t[0],Vw.t[1],Vw.t[2]); orbit.dist=vnum(Vw.d); orbit.az=vnum(Vw.az); orbit.el=vnum(Vw.el); }
 
@@ -813,7 +955,7 @@ function knobAngle(cx,cy){
   const dx=cx-sx, dy=cy-sy; if(Math.hypot(dx,dy)<10) return null;
   return Math.atan2(dy,dx);
 }
-function hdStart(cx,cy){
+function hdStart(cx,cy){ if(atomMode) return false;
   const p=pickAt(cx,cy); if(!p) return false;
   if(p.what==='knob'){ const a=knobAngle(cx,cy); if(a===null) return false; HD.on=true; HD.what='knob'; HD.last=a; return true; }
   const x=screenX(cx,cy); if(x===null) return false;
