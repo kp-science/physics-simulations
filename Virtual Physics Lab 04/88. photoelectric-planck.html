@@ -206,6 +206,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button data-vw="flt" onclick="setView('flt')">🎨 วงล้อฟิลเตอร์</button>
           <button data-vw="tub" onclick="setView('tub')">🕳 หลอดโฟโต</button>
           <button data-vw="lmp" onclick="setView('lmp')">💡 หลอดปรอท</button>
+          <button data-vw="atom" onclick="setView('atom')">🔬 ระดับอะตอม</button>
           <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
         </div>
         <div class="viewhint">🖐 จับ <b>ปุ่มปรับความต่างศักย์</b> บนแผงวัดแล้วลากหมุน<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
@@ -408,6 +409,11 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 
     <h2>3. ตารางฟังก์ชันงานของโลหะ</h2>
     <div class="formula-box">ซีเซียม Cs  : 2.14 eV  (λ₀ ≈ 579 nm)<br>รูบิเดียม Rb : 2.26 eV  (λ₀ ≈ 549 nm)<br>โพแทสเซียม K : 2.30 eV  (λ₀ ≈ 539 nm)<br>โซเดียม Na  : 2.36 eV  (λ₀ ≈ 525 nm)<br>แบเรียม Ba  : 2.52 eV  (λ₀ ≈ 492 nm)</div>
+    <div class="note-box">🔬 กด <b>🔬 ระดับอะตอม</b> ที่มุมล่างซ้ายของภาพ 3D เพื่อดูสิ่งที่เกิดขึ้นบนผิวโลหะตามค่าที่ตั้งอยู่จริง:<br>
+      • โฟตอนของฟิลเตอร์ที่เลือกวิ่งมาชนอิเล็กตรอนในโลหะ — <b>1 โฟตอนต่อ 1 อิเล็กตรอน</b> เท่านั้น<br>
+      • ถ้า <b>hf &lt; W</b> จะไม่มีอิเล็กตรอนหลุดออกมาเลย <b>แม้เพิ่มความเข้มเป็น 100%</b> (ได้แค่โฟตอนจำนวนมากขึ้น พลังงานต่อตัวเท่าเดิม) — ลองฟิลเตอร์ 650 nm ดู<br>
+      • เพิ่ม <b>ความต่างศักย์ต้าน V</b> แล้วดูอิเล็กตรอนวิ่งไปได้สั้นลงเรื่อย ๆ จนไปไม่ถึงขั้ว = จุดที่กระแสเป็นศูนย์ (V<sub>s</sub>)<br>
+      • เพิ่ม<b>ความเข้ม</b> = จำนวนโฟตอนมากขึ้น → อิเล็กตรอนมากขึ้น (กระแสมากขึ้น) แต่ระยะที่วิ่งไปได้เท่าเดิม = KE ต่อตัวไม่เปลี่ยน</div>
     <div class="note-box">💡 แบบจำลอง: กระแสลดลงเป็นเชิงเส้นจนเป็นศูนย์ที่ V = V<sub>s</sub> (I = I₀(1 − V/V<sub>s</sub>)) · แอมมิเตอร์มีสัญญาณรบกวนเล็กน้อย ±0.2 nA · โลหะแคโทดสุ่มจาก 5 ชนิดในตารางต่อการเปิดหน้า · e = 1.602 × 10⁻¹⁹ C · c = 2.998 × 10⁸ m/s · ค่าจริงของ h = 6.626 × 10⁻³⁴ J·s</div>
   </div>
 </div>
@@ -701,7 +707,8 @@ const VIEWS={
   pan:{t:[PANEL[0],PANEL[1]+1,PANEL[2]+1], d:()=>fitDist(26,17), az:0.0001, el:0.06},
   flt:{t:[-14,10,0], d:()=>fitDist(22,15), az:0.75, el:0.22},
   tub:{t:[7,8,0], d:()=>fitDist(20,14), az:0.9, el:0.2},
-  lmp:{t:[-30,8,0], d:()=>fitDist(24,16), az:0.7, el:0.2}};
+  lmp:{t:[-30,8,0], d:()=>fitDist(24,16), az:0.7, el:0.2},
+  atom:{t:[0,0,0], d:()=>fitDist(atomFitW,atomFitH), az:0.0001, el:0.0001}};
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
   t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
@@ -729,6 +736,100 @@ function panelFn(g,w,h){
   g.fillText('ปุ่มปรับ 0.00 – 3.00 V  (ลากปุ่มด้านล่าง)',34,372);
   g.fillStyle='rgba(148,163,184,.9)'; g.font='30px "IBM Plex Sans Thai",sans-serif';
   g.fillText('ฟิลเตอร์ '+FILT[fi].l.toFixed(1)+' nm · ความเข้ม '+INT[ii]+'%',34,414);
+}
+/* ═══════════ 🔬 ฉากระดับอะตอม — โฟตอนชนอิเล็กตรอนในโลหะ ═══════════
+   ผูกกับค่าที่ตั้งจริง: ฟิลเตอร์ → พลังงานโฟตอน hf · ความเข้ม → จำนวนโฟตอน · V → ความต่างศักย์ต้าน
+   ถ้า hf < W อิเล็กตรอนไม่หลุดเลย ไม่ว่าจะเพิ่มความเข้มเท่าใด (โฟตอน 1 ตัวต่ออิเล็กตรอน 1 ตัว)
+   ค่างานฟังก์ชัน W และชนิดโลหะเป็นคำตอบ จึงไม่แสดงเป็นตัวเลขในฉากนี้ */
+let atomMode=false, atomSig='', atomT=0, atomFitW=170, atomFitH=110;
+const CX=-40, AX=40, SURF=-34;        /* แคโทด · แอโนด · ผิวโลหะ */
+function atomInfoFn(g,w,h){
+  g.clearRect(0,0,w,h);
+  g.fillStyle='rgba(11,18,32,.86)'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#1e3a5f'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  const l=FILT[fi].l, E=photonEV(l), Vs=VsOf(l), below=belowThreshold();
+  g.textAlign='left'; g.textBaseline='top';
+  g.fillStyle='#fde047'; g.font='bold 42px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ฟิลเตอร์ '+l.toFixed(1)+' nm → โฟตอน 1 ตัวมีพลังงาน hf = '+E.toFixed(3)+' eV',26,14);
+  g.fillStyle='#94a3b8'; g.font='33px "IBM Plex Sans Thai",sans-serif';
+  if(below){
+    g.fillStyle='#fca5a5'; g.font='bold 36px "IBM Plex Sans Thai",sans-serif';
+    g.fillText('hf < W ของโลหะนี้ → ไม่มีอิเล็กตรอนหลุดออกมาเลย',26,66);
+    g.fillStyle='#94a3b8'; g.font='32px "IBM Plex Sans Thai",sans-serif';
+    g.fillText('เพิ่มความเข้มเป็น 100% ก็ไม่ช่วย — ได้แค่โฟตอนจำนวนมากขึ้น แต่ละตัวยังพลังงานเท่าเดิม',26,114);
+    g.fillText('อิเล็กตรอน 1 ตัวดูดโฟตอนได้ทีละ 1 ตัว จะสะสมพลังงานจากหลายโฟตอนไม่ได้',26,154);
+  }else{
+    g.fillText('อิเล็กตรอนหลุดออกมาด้วยพลังงานจลน์สูงสุด KE = hf − W  (W = งานฟังก์ชัน คือค่าที่ต้องหา)',26,66);
+    g.fillStyle='#67e8f9'; g.font='32px "IBM Plex Sans Thai",sans-serif';
+    g.fillText('ความต่างศักย์ต้าน V = '+V.toFixed(2)+' V → '
+      +(V>Vs+0.004? 'อิเล็กตรอนไปไม่ถึงขั้ว ถูกดันกลับ → กระแส = 0'
+                  : 'อิเล็กตรอนยังไปถึงขั้วได้ → มีกระแส'),26,114);
+    g.fillStyle='#94a3b8'; g.font='31px "IBM Plex Sans Thai",sans-serif';
+    g.fillText('ค่า V ที่ทำให้แม้แต่อิเล็กตรอนเร็วที่สุดไปไม่ถึงขั้ว คือ V_s → eV_s = hf − W',26,156);
+  }
+  g.fillStyle='rgba(148,163,184,.85)'; g.font='27px "IBM Plex Sans Thai",sans-serif';
+  g.fillText('ความเข้ม '+INT[ii]+'% = จำนวนโฟตอนต่อวินาที → จำนวนอิเล็กตรอน (กระแส) แต่ KE ต่อตัวไม่เปลี่ยน',26,198);
+}
+function mkPhoton(){
+  const pts=[]; for(let i=0;i<=100;i++) pts.push(new THREE.Vector3(i,0,0));
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:1}));
+}
+function waveInto(line,x0,len,amp,cyc,y){
+  const pos=line.geometry.attributes.position, N=pos.count;
+  for(let i=0;i<N;i++){ const t=i/(N-1);
+    pos.setXYZ(i, x0+t*len, y+Math.sin(t*Math.PI*2*cyc)*amp, 0.5); }
+  pos.needsUpdate=true;
+}
+function buildAtom(){
+  if(!P.atom) return;
+  const l=FILT[fi].l, col=lamHex(l), below=belowThreshold(), nPh=[1,2,3][ii];
+  P.phs.forEach((o,i)=>{ o.ln.visible=i<nPh; o.ln.material.color.setHex(col); o.el.material.color.setHex(0x93c5fd);
+    o.el.visible = (i<nPh) && !below; });
+  P.spark.material.color.setHex(col);
+  redrawTex(P.aInfoTex); redrawTex(P.capC); redrawTex(P.capA);
+  const infoW=170, infoH=infoW*240/1536;
+  P.aInfo.scale.setScalar(infoW/1536);
+  const iy=-(26+infoH*0.5);
+  P.aInfo.position.set(0,iy,0);
+  const mg=6, ymax=26+mg, ymin=iy-infoH*0.5-mg;
+  const xmin=-86-mg, xmax=AX+12+mg;
+  P.atom.position.set(-(xmin+xmax)/2,-(ymin+ymax)/2,0);
+  atomFitW=xmax-xmin; atomFitH=ymax-ymin;
+}
+function stepAtom(dt){
+  if(!atomMode) return;
+  atomT=(atomT+dt*0.26)%1;
+  const l=FILT[fi].l, Vs=VsOf(l), below=belowThreshold();
+  const T1=0.34;                                   /* โฟตอนถึงผิวโลหะ */
+  const reach = (V>Vs+0.004 && Vs>0)? Math.max(0.06,Vs/V) : 1;   /* ไปได้ถึงเศษส่วนไหนของช่องว่าง */
+  P.phs.forEach((o,i)=>{
+    const t=(atomT+i*0.31)%1, y=o.y;
+    if(!o.ln.visible) return;
+    if(t<T1){ const u=t/T1, len=16, x0=-86+(SURF-len+86)*u;
+      o.ln.visible=true; waveInto(o.ln,x0,len,2.4,4,y); o.ln.material.opacity=1; }
+    else { o.ln.material.opacity=0; }
+    if(o.el){
+      const show = !below && t>=T1;
+      o.el.visible=show;
+      if(show){ const u=(t-T1)/(1-T1);
+        const s = reach<1 ? reach*Math.sin(Math.PI*u) : Math.pow(u,0.72);
+        o.el.position.set(SURF+(AX-SURF)*s, y*0.5, 0.6);
+        const tr=P.trails[i]; tr.forEach((m,k)=>{ m.visible=true;
+          m.position.set(SURF+(AX-SURF)*Math.max(0,s-(k+1)*0.035), y*0.5, 0.6); });
+      } else { P.trails[i].forEach(m=>m.visible=false); }
+    }
+  });
+  /* ประกายตรงจุดที่โฟตอนชนผิวโลหะ */
+  const hit=P.phs.some((o,i)=>{ const t=(atomT+i*0.31)%1; return o.ln.visible && t>=T1-0.05 && t<T1+0.09; });
+  P.spark.material.opacity = hit? (below?0.75:0.55) : 0;
+  P.spark.scale.setScalar(hit? (below?3.4:2.6) : 0.01);
+}
+function setAtomMode(on){
+  if(!scene) return;
+  atomMode=!!on;
+  scene.children.forEach(o=>{ if(o.isLight) return; o.visible = (o===P.atom)? atomMode : !atomMode; });
+  if(atomMode){ atomSig=''; }
 }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
@@ -811,6 +912,46 @@ function init3D(){
   [[8,BEAM_Y-6.5,0],[PANEL[0]-9,PANEL[1]-6,PANEL[2]-2]].forEach(()=>{});
   const wire=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,20,8),new THREE.MeshStandardMaterial({color:0x111827}));
   wire.rotation.x=Math.PI/2.3; wire.rotation.z=0.5; wire.position.set(11.5,2.2,10); scene.add(wire);
+  /* ── ฉากระดับอะตอม (ซ่อนไว้จนกว่าจะกดมุมมอง 🔬) ── */
+  P.atom=new THREE.Group(); P.atom.visible=false; scene.add(P.atom);
+  const aSlab=new THREE.Mesh(new THREE.BoxGeometry(12,44,4),new THREE.MeshBasicMaterial({color:0x334155}));
+  aSlab.position.set(CX,0,-1); P.atom.add(aSlab);
+  for(let r=0;r<7;r++) for(let c=0;c<3;c++){
+    const a=new THREE.Mesh(new THREE.SphereGeometry(1.5,14,10),new THREE.MeshBasicMaterial({color:0x64748b}));
+    a.position.set(CX-4+c*4, -18+r*6, 1.2); P.atom.add(a);
+    if((r+c)%2===0){ const e=new THREE.Mesh(new THREE.SphereGeometry(0.75,12,9),new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:.8}));
+      e.position.set(CX-2+c*4, -15.5+r*6, 2.2); P.atom.add(e); }
+  }
+  const aAnode=new THREE.Mesh(new THREE.BoxGeometry(3,40,4),new THREE.MeshBasicMaterial({color:0x475569}));
+  aAnode.position.set(AX,0,-1); P.atom.add(aAnode);
+  P.spark=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0}));
+  P.spark.position.set(SURF,0,1.5); P.atom.add(P.spark);
+  P.phs=[]; P.trails=[];
+  [0,10,-11].forEach((y,i)=>{
+    const ln=mkPhoton(); P.atom.add(ln);
+    const el=new THREE.Mesh(new THREE.SphereGeometry(1.2,16,12),new THREE.MeshBasicMaterial({color:0x93c5fd}));
+    el.visible=false; P.atom.add(el);
+    P.phs.push({ln,el,y});
+    const tr=[0,1,2].map(k=>{ const m=new THREE.Mesh(new THREE.SphereGeometry(0.8-k*0.18,10,8),
+        new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:0.45-k*0.12}));
+      m.visible=false; P.atom.add(m); return m; });
+    P.trails.push(tr);
+  });
+  P.capC=canvasTex(512,96,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#cbd5e1';
+    g.font='bold 52px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText('แคโทด (โลหะ)',w/2,h/2); });
+  P.capA=canvasTex(512,96,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='#cbd5e1';
+    g.font='bold 52px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText('แอโนด',w/2,h/2); });
+  const cL=new THREE.Mesh(new THREE.PlaneGeometry(26,26*96/512),new THREE.MeshBasicMaterial({map:P.capC,transparent:true}));
+  cL.position.set(CX,25,0); P.atom.add(cL);
+  const aL=new THREE.Mesh(new THREE.PlaneGeometry(18,18*96/512),new THREE.MeshBasicMaterial({map:P.capA,transparent:true}));
+  aL.position.set(AX,24,0); P.atom.add(aL);
+  P.aInfoTex=canvasTex(1536,240,atomInfoFn);
+  P.aInfo=new THREE.Mesh(new THREE.PlaneGeometry(1536,240),new THREE.MeshBasicMaterial({map:P.aInfoTex,transparent:true}));
+  P.atom.add(P.aInfo);
+  buildAtom();
+
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
 
   setupPointer(cv); resize3D(); setView('iso'); update3D();
@@ -827,6 +968,14 @@ function stepMeter(dt){                     /* แอมมิเตอร์อ
 }
 let elPhase=0;
 function update3D(dt){ if(!scene) return;
+  if(atomMode){
+    const sig=fi+'|'+ii+'|'+V.toFixed(2);
+    if(sig!==atomSig){ atomSig=sig; buildAtom(); }
+    stepAtom(dt||0.016);
+    const tgA=orbit.target; camera.up.set(0,1,0);
+    camera.position.set(tgA.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tgA.y+orbit.dist*Math.sin(orbit.el), tgA.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+    camera.lookAt(tgA); return;
+  }
   const l=FILT[fi].l, lit=!belowThreshold(), frac=INT[ii]/100;
   /* วงล้อ: หมุนให้ฟิลเตอร์ที่เลือกมาอยู่แนวลำแสง */
   const target=fi*(360/FILT.length)*DEG;
@@ -855,6 +1004,7 @@ function update3D(dt){ if(!scene) return;
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const Vw=VIEWS[vw]; curView= Vw?vw:'free';
   document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  setAtomMode(curView==='atom');
   if(!Vw||!orbit.target) return;
   const t= Vw.t? Vw.t : vnum(Vw.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(Vw.d); orbit.az=vnum(Vw.az); orbit.el=vnum(Vw.el); }
 
@@ -881,7 +1031,8 @@ function knobAngle(cx,cy){
   const dx=cx-sx, dy=cy-sy; if(Math.hypot(dx,dy)<10) return null;
   return Math.atan2(dy,dx);
 }
-function hdStart(cx,cy){ if(!pickAt(cx,cy)) return false; const a=knobAngle(cx,cy); if(a===null) return false; HD.on=true; HD.last=a; return true; }
+function hdStart(cx,cy){ if(atomMode) return false;
+  if(!pickAt(cx,cy)) return false; const a=knobAngle(cx,cy); if(a===null) return false; HD.on=true; HD.last=a; return true; }
 function hdMove(cx,cy){ if(!HD.on) return; const a=knobAngle(cx,cy); if(a===null) return;
   let d=a-HD.last; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
   HD.last=a; V=Math.max(0,Math.min(3,Math.round((V+d/(300*DEG)*3)*1000)/1000)); panDirty=true; syncCtl(); }
