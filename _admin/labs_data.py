@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ข้อมูลกลาง Virtual Lab ทุกชุด จัดตามบทเรียน สสวท. — ใช้ generate virtual-lab.html และ library.html
    (แก้ที่นี่ที่เดียว แล้วรัน python3 _admin/build_virtual_lab.py)"""
-V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'
+V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'
 TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับหลัก
  ('measure','📏','การวัดและความคลาดเคลื่อน','Measurement & Uncertainty','accent5'),
  ('kinematics','🏃','การเคลื่อนที่แนวตรง','Linear Motion & Kinematics','accent3'),
@@ -11,6 +11,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('energy','⚡','งานและพลังงาน','Work & Energy','accent5'),
  ('momentum','💥','โมเมนตัมและการชน','Momentum & Collisions','accent4'),
  ('shm','🌀','การเคลื่อนที่แบบฮาร์มอนิกอย่างง่าย','Simple Harmonic Motion','accent2'),
+ ('fluid','💧','กลศาสตร์ของไหล','Fluid Mechanics','accent5'),
  ('waves','〰️','คลื่นกล','Mechanical Waves','accent2'),
  ('sound','🔊','เสียง','Sound','accent3'),
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
@@ -19,7 +20,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('atomic','⚛️','ฟิสิกส์อะตอมและควอนตัม','Atomic & Quantum Physics','accent2'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
- ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm']),
+ ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm','fluid']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
  ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
@@ -125,5 +126,7 @@ LABS=[
  ('vlab:vpl04:lab-93', V4+'93. rutherford-scattering.html','93','การกระเจิงอนุภาคแอลฟา: การทดลองของรัทเทอร์ฟอร์ด (3D)','ยิงแอลฟา 5.5 MeV ใส่แผ่นโลหะบางในห้องสุญญากาศ · หมุนหัววัดไปที่มุมต่าง ๆ แล้วนับอนุภาค (สุ่มแบบปัวซง มีความคลาดเคลื่อน √N) · ตรวจ N ∝ 1/sin⁴(θ/2) จากกราฟ log–log · N ∝ Z² หาเลขอะตอมของแผ่นปริศนา · คำนวณระยะเข้าใกล้ที่สุดของนิวเคลียส','atomic','ม.6','vpl04',['3D','Rutherford','Scattering','Nucleus']),
  ('vlab:vpl04:lab-94', V4+'94. blackbody-wien.html','94','รังสีวัตถุดำ: กฎการกระจัดของวีนและกฎสเตฟาน–โบลต์ซมันน์ (3D)','วัด V และ I ของไส้หลอดหาอุณหภูมิจากความต้านทาน · หมุนแขนเทอร์โมไพล์หลังเกรตติงหา λ ที่ความเข้มสูงสุด → λ_max T = b · ถอดเกรตติงวัดกำลังรวม → กราฟ log P – log T ความชัน 4 · หาอุณหภูมิของแหล่งกำเนิดปริศนาแบบเดียวกับดาวฤกษ์','atomic','ม.6','vpl04',['3D','Blackbody','Wien','Stefan-Boltzmann']),
  ('vlab:vpl04:lab-95', V4+'95. half-life-absorption.html','95','ครึ่งชีวิตและการดูดกลืนรังสี: หลอดไกเกอร์–มึลเลอร์ (3D)','วัดอัตรานับพื้นหลัง · วัดการสลายตัวของตัวอย่างครึ่งชีวิตสั้นตามเวลา แล้วหาค่าคงตัวการสลายและครึ่งชีวิตจากกราฟ ln N – t · ลากแท่นเลื่อนลิ่มดูดกลืน (อะลูมิเนียม · ตะกั่ว · กระดาษ) หาสัมประสิทธิ์การดูดกลืนและความหนาครึ่งค่า · ระบุชนิดรังสีของแหล่งปริศนาจากอำนาจทะลุทะลวง','atomic','ม.6','vpl04',['3D','Half-life','Radioactivity','GM counter','Absorption']),
+ ('vlab:vpl05:lab-98', V5+'98. liquid-pressure-depth.html','98','ความดันในของเหลว: ความดันกับความลึก (3D)','จุ่มหัววัดความดันลงถังของเหลว อ่านความลึกจากสเกลบนก้านที่ระดับผิว อ่านความดันสัมบูรณ์จากเครื่องวัดดิจิทัล · กราฟ P–h ความชัน = ρg จุดตัดแกน = P₀ · หันหัววัดทุกทิศได้ค่าเท่ากัน · หาความหนาแน่นของเหลว X','fluid','ม.5','vpl05',['Pressure','Fluid','3D']),
+ ('vlab:vpl05:lab-99', V5+'99. manometer-barometer.html','99','แมนอมิเตอร์หลอดตัว U และบารอมิเตอร์ปรอท (3D)','หลอดตัว U ต่อขวดแก๊สกับกระบอกฉีดยาหรือถังแก๊สปริศนา อ่านระดับสองแขนหา ρgΔh · เทียบน้ำกับปรอท · บารอมิเตอร์ของทอร์ริเชลลี เอียงหลอดแล้วความสูงแนวดิ่งเท่าเดิม · ความดันบรรยากาศบนดอยอินทนนท์และสถานที่ X','fluid','ม.5','vpl05',['Manometer','Barometer','Pressure','3D']),
 ]
-SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม')}
+SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล')}
