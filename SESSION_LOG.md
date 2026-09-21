@@ -3397,7 +3397,7 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py` · build: `index.html`, `virtual-lab.html`, `library.html` · ทุกไฟล์ที่โหลด kp-auth
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ push 100–101
+- ✅ push 100–101 ขึ้นเว็บแล้ว (ตรวจเว็บจริง: ทั้งสองแลป 200 · หน้าแรก 102 แลป · kp-auth มี lab-101)
 - **เจ้าของต้องติ๊ก VPL05 ในการ์ด 🌐 สิทธิ์ผู้เข้าชมทั่วไป** (ตรวจได้ด้วย REST: firestore.googleapis.com/v1/projects/kp-science-f11ff/databases/(default)/documents/settings/public)
 - ถัดไป: 102 ไฮโดรมิเตอร์ · 103 ความตึงผิว
 
