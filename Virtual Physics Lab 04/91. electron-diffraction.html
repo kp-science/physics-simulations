@@ -957,14 +957,16 @@ function knobAngle(cx,cy){
 }
 function hdStart(cx,cy){ if(atomMode) return false;
   const p=pickAt(cx,cy); if(!p) return false;
-  if(p.what==='knob'){ const a=knobAngle(cx,cy); if(a===null) return false; HD.on=true; HD.what='knob'; HD.last=a; return true; }
+  if(p.what==='knob'){ const a=knobAngle(cx,cy); if(a===null) return false; HD.on=true; HD.what='knob'; HD.last=a; HD.u=Vkv; return true; }
   const x=screenX(cx,cy); if(x===null) return false;
   HD.on=true; HD.what='ptr'; HD.i=p.i; HD.off=ptr[p.i]-x; HD.tx=ptr[p.i]; return true;
 }
 function hdMove(cx,cy){ if(!HD.on) return;
   if(HD.what==='knob'){ const a=knobAngle(cx,cy); if(a===null) return;
     let d=a-HD.last; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI; HD.last=a;
-    Vkv=Math.max(V_MIN,Math.min(V_MAX,Math.round((Vkv+d/(300*DEG)*(V_MAX-V_MIN))*10)/10)); scrDirty=true; panDirty=true; syncCtl(); return; }
+    /* สะสมมุมที่หมุนแบบต่อเนื่องใน HD.u แล้วค่อยปัดตอนเขียนค่า (ถ้าปัดทุกครั้งที่ขยับ การหมุนช้า ๆ จะไม่เปลี่ยนค่าเลย) */
+    if(!(Math.abs(HD.u-Vkv)<=0.05)) HD.u=Vkv;
+    HD.u=Math.max(V_MIN,Math.min(V_MAX,HD.u+d/(300*DEG)*(V_MAX-V_MIN))); Vkv=Math.round(HD.u*10)/10; scrDirty=true; panDirty=true; syncCtl(); return; }
   const x=screenX(cx,cy); if(x===null) return; HD.tx=x+HD.off; }
 function hdEnd(){ if(!HD.on) return; HD.on=false; HD.what=null; HD.i=-1; drawAll(); }
 function stepHand(dt){
