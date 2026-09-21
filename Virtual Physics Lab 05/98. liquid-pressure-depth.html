@@ -427,12 +427,12 @@ const pTrue=()=> P0 + (H>0? rhoOf(liqI)*G*(H/100)/1000 : 0);        /* kPa */
 function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
 function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
 function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
-function setLiq(i){ liqI=i; markBtns('#liqBtns',i); H=-4; if(mode==='manual') ['in-h','in-p'].forEach(id=>$(id).value=''); lockWarn('เปลี่ยนของเหลวแล้ว — ยกหัววัดขึ้นเหนือผิว'); syncCtl(); drawAll(); }
+function setLiq(i){ cancelHand(); liqI=i; markBtns('#liqBtns',i); H=-4; if(mode==='manual') ['in-h','in-p'].forEach(id=>$(id).value=''); lockWarn('เปลี่ยนของเหลวแล้ว — ยกหัววัดขึ้นเหนือผิว'); syncCtl(); drawAll(); }
 function cycleLiq(){ setLiq((liqI+1)%LIQ.length); }
 function setDir(i){ dirI=i; markBtns('#dirBtns',i); syncCtl(); drawAll(); }
 function cycleDir(){ setDir((dirI+1)%DIRS.length); }
-function nudgeH(k){ H=Math.max(H_MIN,Math.min(H_MAX,Math.round((H+k)*1000)/1000)); syncCtl(); drawAll(); }
-function nudgeX(k){ PX=Math.max(X_MIN,Math.min(X_MAX,PX+k)); syncCtl(); drawAll(); }
+function nudgeH(k){ cancelHand(); H=Math.max(H_MIN,Math.min(H_MAX,Math.round((H+k)*1000)/1000)); syncCtl(); drawAll(); }
+function nudgeX(k){ cancelHand(); PX=Math.max(X_MIN,Math.min(X_MAX,PX+k)); syncCtl(); drawAll(); }
 function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
   $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }   /* ไม่ทิ้งค่าเฉลยไว้ใน DOM */
   ['in-h','in-p'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; });
@@ -441,7 +441,7 @@ function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEa
   $('rfHintP').textContent= au?'— โหมดอัตโนมัติ':'— เครื่องวัดความดัน';
   $('modeNote').textContent= au?'โหมดอัตโนมัติ: แสดงค่าจริง ρ_X และ P₀':'โหมดวัดเอง: อ่านสเกลและเครื่องวัดในภาพ 3D';
   $('ansRMsg').innerHTML=''; $('ansPMsg').innerHTML=''; renderAll(); }
-function resetLab(){ liqI=0; dirI=0; H=-4; PX=0; markBtns('#liqBtns',0); markBtns('#dirBtns',0);
+function resetLab(){ cancelHand(); liqI=0; dirI=0; H=-4; PX=0; markBtns('#liqBtns',0); markBtns('#dirBtns',0);
   if(mode==='manual') ['in-h','in-p'].forEach(id=>$(id).value='');
   recMsg('',''); setView('iso'); syncCtl(); drawAll(); }
 function knownTxt(){ const l=LIQ[liqI]; return `${l.ic} ${l.n}${l.rho===null?' (? kg/m³)':' '+l.rho+' kg/m³'} · ${DIRS[dirI].ic} ${DIRS[dirI].n}`; }
@@ -700,7 +700,8 @@ function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
   const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
 
 /* ═══════════ ลากหัววัด (ขึ้น-ลง ซ้าย-ขวา ในระนาบ z = 0) ═══════════ */
-const HD={on:false,ox:0,oy:0,tx:0,th:0}, HD_LAG=0.28, HD_VMAX=22;   /* cm/s */
+const HD={on:false,fin:false,ox:0,oy:0,tx:0,th:0}, HD_LAG=0.28, HD_VMAX=22;   /* cm/s · fin = ปล่อยเมาส์แล้วแต่หัววัดยังเคลื่อนไปไม่ถึงจุดที่ปล่อย */
+function cancelHand(){ HD.on=false; HD.fin=false; }
 let RAY=null,NDC=null;
 function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
   const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
@@ -712,13 +713,13 @@ function pickAt(cx,cy){ if(!P.probe) return null; const rc=setRay(cx,cy); if(!rc
   const sx=rc.left+(V.x*0.5+0.5)*rc.width, sy=rc.top+(-V.y*0.5+0.5)*rc.height, R=Math.max(46,Math.min(rc.width,rc.height)*0.12);
   return Math.hypot(cx-sx,cy-sy)<=R?'probe':null; }
 function hdStart(cx,cy){ if(!pickAt(cx,cy)) return false; const p=planePt(cx,cy); if(!p) return false;
-  HD.on=true; HD.ox=PX-p[0]; HD.oy=(SURF-H)-p[1]; HD.tx=PX; HD.th=H; return true; }
+  HD.on=true; HD.fin=false; HD.ox=PX-p[0]; HD.oy=(SURF-H)-p[1]; HD.tx=PX; HD.th=H; return true; }
 function hdMove(cx,cy){ if(!HD.on) return; const p=planePt(cx,cy); if(!p) return; HD.tx=Math.max(X_MIN,Math.min(X_MAX,p[0]+HD.ox)); HD.th=Math.max(H_MIN,Math.min(H_MAX,SURF-(p[1]+HD.oy))); }
-function hdEnd(){ if(!HD.on) return; HD.on=false; drawAll(); }
-function stepHand(dt){ if(!HD.on) return;
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; drawAll(); }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return;
   const k=1-Math.exp(-dt/HD_LAG), lim=HD_VMAX*dt;
   let dx=(HD.tx-PX)*k, dh=(HD.th-H)*k; const m=Math.hypot(dx,dh); if(m>lim){ dx*=lim/m; dh*=lim/m; }
-  PX+=dx; H+=dh; syncCtl(); }
+  PX+=dx; H+=dh; if(!HD.on&&Math.hypot(HD.tx-PX,HD.th-H)<0.005){ PX=HD.tx; H=HD.th; HD.fin=false; } syncCtl(); }
 /* ── ✋ โหมดเลื่อนภาพ ── */
 let panMode=false;
 function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
