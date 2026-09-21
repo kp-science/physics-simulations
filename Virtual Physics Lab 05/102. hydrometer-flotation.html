@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 102 — ไฮโดรมิเตอร์และการลอย (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl05:lab-102">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🧪</div>
+  <div>
+    <h1>Lab 102 — ไฮโดรมิเตอร์และการลอย (3D)</h1>
+    <p>Hydrometer &amp; Flotation — ใส่ลูกตะกั่วลงหลอดทดลองก้นกลมให้ลอยตั้งตรงในของเหลว อ่านความลึกที่จมจากสเกลในหลอด ณ ระดับผิว · วัตถุลอยเมื่อน้ำหนักเท่ากับแรงลอยตัว mg = ρgV<sub>จม</sub> · กราฟ h – m ความชัน = 1/(ρA) · ของเหลวหนาแน่นมากหลอดจมน้อย · หาความหนาแน่นของเหลวปริศนา Z</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องวัด:</b> ความลึกที่หลอดจม h — อ่านสเกลในหลอด (0 = ปลายก้นหลอด) ตรงระดับผิวของเหลว เมื่อหลอดหยุดกระเพื่อม · มวลรวม m ทราบค่า — <span style="color:var(--muted)">รายละเอียดวัตถุประสงค์อยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="surf" onclick="setView('surf')">📏 สเกลที่ผิวของเหลว</button>
+          <button data-vw="side" onclick="setView('side')">🔍 หลอดในกระบอก</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 ลาก<b>หลอด</b>กดลงหรือยกขึ้นแล้วปล่อย — หลอดจะกระเพื่อมแล้วกลับไปลอยนิ่ง · แตะ<b>จานลูกตะกั่ว</b>เพื่อหย่อนเพิ่ม 1 ลูก<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงอ่านสเกลในภาพ 3D ไม่ได้ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b> ในแผงด้านข้างเพื่อให้ระบบอ่านค่าให้</div>
+      </div>
+
+      <div class="actbar" id="actBar">
+        <button id="ab-add"  style="background:#b45309" onclick="addShot(1)">⚫ เพิ่มลูกตะกั่ว</button>
+        <button id="ab-rem"  style="background:#b45309" onclick="addShot(-1)">⚪ เอาออก 1 ลูก</button>
+        <button id="ab-push" style="background:#334155" onclick="poke()">👇 กดแล้วปล่อย</button>
+        <button id="ab-liq"  style="background:#6d28d9" onclick="cycleLiq()">💧 น้ำ</button>
+        <button id="ab-surf" style="background:#0e7490" onclick="setView('surf')">📏 ดูสเกล</button>
+        <button id="ab-iso"  style="background:#1d4ed8" onclick="setView('iso')">ทั้งชุด</button>
+        <button id="ab-rec"  style="background:#16a34a" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="status-line" id="statusLine"></div>
+
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① ของเหลว · มวลรวม m <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.78rem"></span></label>
+          <label class="rf-f"><span>② ความลึกที่จม h <small id="rfH1">— สเกลในหลอด ณ ผิวของเหลว (ขีดละ 1 mm)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-h" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — น้ำ · ลูกตะกั่ว 4 ลูก · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและของเหลวปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧪 ไฮโดรมิเตอร์ (ทราบค่า) <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="note" style="margin-top:0">หลอดทดลองก้นกลม รัศมีภายนอก <b>R = 1.00 cm</b> ยาว 22.0 cm · หลอดเปล่า <b>6.00 g</b> · ลูกตะกั่วลูกละ <b>2.00 g</b></div>
+        <div class="readout-grid" style="margin:6px 0">
+          <div class="readout-box"><div class="label">ลูกตะกั่ว</div><div class="value" id="roN">4 ลูก</div></div>
+          <div class="readout-box"><div class="label">มวลรวม m</div><div class="value" id="roM">14.00 g</div></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline btn-sm" onclick="addShot(-4)">−4 ลูก</button>
+          <button class="btn btn-outline btn-sm" onclick="addShot(-1)">−1</button>
+          <button class="btn btn-outline btn-sm" onclick="addShot(1)">+1</button>
+          <button class="btn btn-outline btn-sm" onclick="addShot(4)">+4 ลูก</button>
+        </div>
+        <div class="readout-grid"><div class="readout-box"><div class="label">สถานะ</div><div class="value" id="roSt">—</div></div><div class="readout-box"><div class="label">กระเพื่อม</div><div class="value" id="roOsc">—</div></div></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">💧 ของเหลวในกระบอก</div>
+        <div class="mode-btns" id="liqBtns">
+          <button class="active" onclick="setLiq(0)">💧 น้ำ<br><small>1000</small></button>
+          <button onclick="setLiq(1)">🧂 น้ำเกลือ<br><small>1200</small></button>
+          <button onclick="setLiq(2)">🫒 น้ำมัน<br><small>920</small></button>
+          <button onclick="setLiq(3)">🍶 แอลกอฮอล์<br><small>790</small></button>
+          <button onclick="setLiq(4)">❓ Z<br><small>?</small></button>
+        </div>
+        <div class="note">หน่วย kg/m³ · เปลี่ยนของเหลวแล้วหลอดถูกย้ายไปกระบอกใหม่</div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ค่าจากแบบจำลอง</div>
+        <div class="readout-grid" id="autoGrid"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📊 ผลที่บันทึกล่าสุด</div>
+        <div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก — รอหลอดลอยนิ่ง อ่านสเกลที่ผิว แล้วกรอกในกรอบ “📝 บันทึกผลการวัด”</span></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-cap">สรุปจากกราฟของแต่ละของเหลว</div>
+        <div class="tbl-wrap" id="tableB"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📈 กราฟ h – m</div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">ความหนาแน่นของเหลว Z =<input class="val-input" type="number" id="ans-z" step="5" inputmode="decimal" placeholder="?"> kg/m³ <button class="btn btn-green btn-sm" onclick="checkZ()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansZMsg"></div>
+        <div class="ans-row" style="line-height:1.5">ทำนาย: ถ้าใส่ลูกตะกั่ว 10 ลูกแล้วลอยในแอลกอฮอล์ (790 kg/m³) หลอดจะจมลึกกี่ cm =<input class="val-input" type="number" id="ans-p" step="0.1" inputmode="decimal" placeholder="?"> cm <button class="btn btn-green btn-sm" onclick="checkP()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansPMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">ρ<sub>Z</sub>: คลาดไม่เกิน 3% · คำทำนาย: คลาดไม่เกิน 0.3 cm · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>อธิบายเงื่อนไขการลอย: วัตถุลอยนิ่งเมื่อน้ำหนักเท่ากับแรงลอยตัว mg = ρgV<sub>จม</sub></li>
+      <li>หาความสัมพันธ์ระหว่างมวลของไฮโดรมิเตอร์กับความลึกที่จม และหาความหนาแน่นของของเหลวจากความชันของกราฟ</li>
+      <li>อธิบายว่าทำไมไฮโดรมิเตอร์จมน้อยในของเหลวหนาแน่นมาก และใช้หลักนี้วัดความหนาแน่นของของเหลว</li>
+      <li>หาความหนาแน่นของของเหลวปริศนา Z และทำนายความลึกที่จมในของเหลวที่ทราบค่า</li>
+    </ol>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>หลอดทดลองก้นกลม รัศมีภายนอก 1.00 cm ยาว 22.0 cm มีกระดาษสเกลขีดละ 1 mm อยู่ภายใน (0 = ปลายก้นหลอด) · มวลหลอดเปล่า 6.00 g</li>
+      <li>ลูกตะกั่ว ลูกละ 2.00 g (ใส่ได้ 0–20 ลูก)</li>
+      <li>กระบอกแก้วใส่ของเหลว: น้ำ 1000 · น้ำเกลือ 1200 · น้ำมันพืช 920 · แอลกอฮอล์ 790 kg/m³ · <b>ของเหลวปริศนา Z</b></li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <h3>ตอน ก: น้ำ</h3>
+    <ol>
+      <li>ใส่ลูกตะกั่ว 0, 4, 8, 12, 16 ลูก · ทุกครั้งรอให้หลอดหยุดกระเพื่อม กด <b>📏 สเกลที่ผิวของเหลว</b> อ่าน h ตรงระดับผิว · บันทึก</li>
+      <li>ลองกดหลอดลงแล้วปล่อย สังเกตว่าหลอดกลับมาลอยที่ระดับเดิม เพราะเหตุใด</li>
+    </ol>
+    <h3>ตอน ข: ของเหลวอื่น</h3>
+    <ol>
+      <li>ทำซ้ำอย่างน้อย 3 มวลในน้ำเกลือหรือแอลกอฮอล์ · เปรียบเทียบความชันของกราฟ</li>
+    </ol>
+    <h3>ตอน ค: ของเหลวปริศนา Z</h3>
+    <ol>
+      <li>วัดอย่างน้อย 3 มวล · ρ<sub>Z</sub> = 1/(ความชัน × A) โดย A = πR² · กรอกคำตอบ</li>
+    </ol>
+    <div class="note-box">⚠️ อ่าน h จากสเกลในภาพ 3D เอง — โหมดวัดค่าเองไม่บอกตัวเลข · ก้นหลอดกลม ปริมาตรส่วนล่างน้อยกว่าทรงกระบอก เส้นกราฟ h – m จึงไม่ผ่านจุดกำเนิด (ตัดแกนที่ R/3) ให้ใช้ความชัน ไม่ใช่ h/m ของจุดเดียว · ใส่ตะกั่วมากเกินไปหลอดจะจมมิด</div>
+    <h2>ตารางบันทึกผล (ตัวอย่างหัวตาราง)</h2>
+    <div class="formula-box">ของเหลว | จำนวนลูกตะกั่ว | m (g) | h (cm) | V<sub>จม</sub> = m/ρ (cm³)</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>หลอดลอยอยู่ได้เพราะแรงอะไรเท่ากับแรงอะไร</li>
+      <li>หลอดเดียวกัน ลอยในน้ำเกลือจมลึกกว่าหรือตื้นกว่าในน้ำ</li>
+      <li>ถ้าต้องการไฮโดรมิเตอร์ที่อ่านความหนาแน่นได้ละเอียดขึ้น ควรทำก้านให้เล็กลงหรือใหญ่ขึ้น</li>
+      <li>เรือบรรทุกสินค้าแล่นจากทะเลเข้าแม่น้ำ เรือจะจมลึกขึ้นหรือตื้นขึ้น</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. เงื่อนไขการลอย</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="270"></canvas></div>
+    <div class="formula-box">ลอยนิ่ง:  F<sub>B</sub> = mg   →   ρ g V<sub>จม</sub> = m g   →   V<sub>จม</sub> = m / ρ<br>ถ้ากดลงแล้วปล่อย V<sub>จม</sub> มากขึ้น แรงลอยตัวมากกว่าน้ำหนัก หลอดจึงถูกดันกลับขึ้น (และกระเพื่อมก่อนหยุดนิ่ง)</div>
+    <h2>2. ความลึกที่จมของหลอดก้นกลม</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="230"></canvas></div>
+    <div class="formula-box">ก้นครึ่งทรงกลม + ทรงกระบอก:  V<sub>จม</sub> = ⅔πR³ + πR²(h − R)<br>h = m/(ρ A) + R/3   (A = πR²)<br>กราฟ h กับ m:  ความชัน = 1/(ρA) · จุดตัดแกน h = R/3<br>ρ = 1 / (ความชัน × A)   ·   หน่วย g/cm³ × 1000 = kg/m³</div>
+    <div class="note-box">💡 แบบจำลอง: g = 9.8 m/s² · หลอดตั้งตรงเสมอ (ตะกั่วอยู่ก้นหลอด) · การกระเพื่อมขึ้นลงคำนวณจากแรงลอยตัวจริงบวกแรงหน่วงของของเหลว · ไม่คิดแรงตึงผิวที่ก้านหลอดและความหนาของผนังแก้ว · ความหนาแน่นของของเหลว Z สุ่มต่อการเปิดหน้า</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.5 (สสวท.) — ของไหล · แรงพยุงและหลักของอาร์คิมิดีส · ไฮโดรมิเตอร์ · เทียบเคียง Flotation / home-made hydrometer practical (GCSE / A-level / IB Physics)<br>
+  Lab 102 — Hydrometer &amp; Flotation (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 102 ไฮโดรมิเตอร์และการลอย (3D)
+   โลก 3D หน่วย cm · ผิวของเหลวที่ y = SURF · หลอดตั้งตรง ปลายก้นหลอดอยู่ที่ y = yTip
+   V_จม(s) = ⅔πR³ + πR²(s − R) (s ≥ R) · a = g(ρV_จม/m − 1) − c v
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL05 Lab 102 — build v1.0 3D-only (2569-09-22)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const G=980, R=1.0, A=Math.PI*R*R, TUBE_L=22, M_TUBE=6.0, M_SHOT=2.0, N_MAX=20, SURF=33, JAR_BOT=1, DAMP=2.2;   /* cm/s² */
+const LIQS=[{n:'น้ำ',ic:'💧',rho:1.000,col:0x38bdf8,op:.3},{n:'น้ำเกลือ',ic:'🧂',rho:1.200,col:0xbae6fd,op:.38},{n:'น้ำมันพืช',ic:'🫒',rho:0.920,col:0xeab308,op:.38},{n:'แอลกอฮอล์',ic:'🍶',rho:0.790,col:0xe2e8f0,op:.22},{n:'ของเหลว Z',ic:'❓',rho:null,col:0xf472b6,op:.32}];
+const RHO_Z=(()=>{ let v; do{ v=Math.round(rnd(0.700,1.550)*1000)/1000; }while([1,1.2,0.92,0.79].some(r=>Math.abs(v-r)/r<0.05)); return v; })();   /* g/cm³ */
+const rhoOf=i=>LIQS[i].rho===null?RHO_Z:LIQS[i].rho;
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+function vSub(s){ if(s<=0) return 0; if(s<R) return Math.PI*s*s*(3*R-s)/3; return 2/3*Math.PI*R*R*R+A*(Math.min(s,TUBE_L)-R); }
+function hEq(m,rho){ const V=m/rho; if(V<=2/3*Math.PI*R**3){ let a=0,b=R; for(let k=0;k<50;k++){ const c=(a+b)/2; if(vSub(c)<V) a=c; else b=c; } return (a+b)/2; } return R+(V-2/3*Math.PI*R**3)/A; }
+
+let liqI=0, nShot=4, yTip=SURF-5, vy=0;
+let mode='manual', rows=[], curView='iso';
+const mass=()=>M_TUBE+nShot*M_SHOT;
+const sinks=()=>hEq(mass(),rhoOf(liqI))>TUBE_L-0.3;
+const depth=()=>SURF-yTip;
+function stepPhys(dt){ if(HD.on) { vy=0; return; }
+  const n=Math.max(1,Math.ceil(dt/0.002)), h=dt/n, m=mass(), rho=rhoOf(liqI);
+  for(let k=0;k<n;k++){ const s=SURF-yTip; let a;
+    if(sinks()&&s>TUBE_L-0.3){ a=-G*0.25-DAMP*vy; }                  /* น้ำเข้าปากหลอด จมลงช้า ๆ */
+    else a=G*(rho*vSub(s)/m-1)-(s>0?DAMP:0)*vy;
+    vy+=a*h; yTip+=vy*h;
+    if(yTip<JAR_BOT+0.05){ yTip=JAR_BOT+0.05; vy=0; } if(yTip>SURF+4){ yTip=SURF+4; vy=Math.min(0,vy); } } }
+const settled=()=>!HD.on&&Math.abs(vy)<0.03&&Math.abs(depth()-hEq(mass(),rhoOf(liqI)))<0.02&&!sinks();
+
+/* ═══════════ UI actions ═══════════ */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function addShot(k){ cancelHand(); const n0=nShot; nShot=Math.max(0,Math.min(N_MAX,nShot+k)); if(nShot===n0){ lockWarn(k>0?'ใส่ได้สูงสุด 20 ลูก':'ไม่มีลูกตะกั่วให้เอาออก'); return; }
+  if(sinks()) lockWarn('หนักเกินไป — หลอดจมมิด! เอาลูกตะกั่วออก'); if(yTip<JAR_BOT+0.2&&!sinks()){ yTip=SURF-hEq(mass(),rhoOf(liqI))-1; vy=0; }
+  if(mode==='manual') $('in-h').value=''; syncCtl(); drawAll(); }
+function poke(){ cancelHand(); if(sinks()) return; yTip-=3; vy=0; }
+function setLiq(i){ cancelHand(); liqI=i; markBtns('#liqBtns',i); yTip=SURF-Math.min(TUBE_L-1,hEq(mass(),rhoOf(i)))+2.5; vy=0; if(mode==='manual') $('in-h').value=''; syncCtl(); drawAll(); }
+function cycleLiq(){ setLiq((liqI+1)%LIQS.length); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }   /* ไม่ทิ้งค่าเฉลยไว้ใน DOM */
+  $('in-h').readOnly= m==='auto'; if(m==='manual') $('in-h').value='';
+  $('rfH1').textContent= m==='auto'?'— โหมดอัตโนมัติ':'— สเกลในหลอด ณ ผิวของเหลว (ขีดละ 1 mm)';
+  $('modeNote').textContent= m==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริงของ Z':'โหมดวัดเอง: อ่านสเกลในภาพ 3D';
+  $('ansZMsg').innerHTML=''; $('ansPMsg').innerHTML=''; renderAll(); }
+function resetLab(){ cancelHand(); liqI=0; nShot=4; markBtns('#liqBtns',0); yTip=SURF-hEq(mass(),1)+2.5; vy=0; if(mode==='manual') $('in-h').value=''; recMsg('',''); setView('iso'); syncCtl(); drawAll(); }
+function knownTxt(){ const l=LIQS[liqI]; return `${l.ic} ${l.n} ${l.rho===null?'(? kg/m³)':Math.round(l.rho*1000)+' kg/m³'} · ตะกั่ว ${nShot} ลูก · m = ${mass().toFixed(2)} g`; }
+function syncCtl(){
+  const kn=knownTxt(); if($('in-known').value!==kn) $('in-known').value=kn;
+  const s=(id,t)=>{ const e=$(id); if(e&&e.textContent!==t) e.textContent=t; };
+  s('roN',nShot+' ลูก'); s('roM',mass().toFixed(2)+' g'); s('ab-liq',LIQS[liqI].ic+' '+LIQS[liqI].n);
+  s('roSt', sinks()?'จมมิด!':(HD.on?'กำลังจับ':'ลอยอยู่')); s('roOsc', settled()?'นิ่งแล้ว':(sinks()?'—':'กำลังกระเพื่อม'));
+}
+
+/* ═══════════ คำแนะนำทีละขั้น ═══════════ */
+function hintState(){
+  const nm=l=>new Set(rows.filter(r=>r.liq===l).map(r=>r.n)).size;
+  if(sinks()) return ['warn','หลอดหนักเกินไปจนจมมิด (แรงลอยตัวสูงสุดน้อยกว่าน้ำหนัก) — เอาลูกตะกั่วออก'];
+  if(!settled()) return ['info','หลอดกำลังกระเพื่อม — รอให้นิ่งก่อนอ่านสเกล (ลองกดลงแล้วปล่อย ดูว่ากลับมาที่เดิม)'];
+  if(nm(0)<5) return ['info','ตอน ก: น้ำ — ใส่ลูกตะกั่ว (เช่น 0, 4, 8, 12, 16 ลูก) · กด <b>📏 สเกลที่ผิวของเหลว</b> อ่าน h · บันทึก ('+nm(0)+'/5)'];
+  if(nm(1)<3&&nm(3)<3) return ['info','ตอน ข: เปลี่ยนเป็น <b>🧂 น้ำเกลือ</b> หรือ <b>🍶 แอลกอฮอล์</b> วัดอย่างน้อย 3 มวล · ความชันต่างจากน้ำอย่างไร'];
+  if(nm(4)<3) return ['info','ตอน ค: <b>❓ ของเหลว Z</b> วัดอย่างน้อย 3 มวล ('+nm(4)+'/3) → ρ = 1/(ความชัน × A)'];
+  return ['ok','ข้อมูลครบแล้ว ✓ กรอกความหนาแน่นของ Z และคำทำนายในกรอบ 🎯'];
+}
+function updateHint(){
+  const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const sl=`<b>${knownTxt()}</b> · ${settled()?'<span style="color:#6ee7b7">✓ ลอยนิ่ง</span>':'<span style="color:#fde047">⏳ กระเพื่อม</span>'}`+(mode==='auto'?` · h = <b>${depth().toFixed(2)} cm</b>`:'');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){
+    const html=`<div class="readout-box"><div class="label">ρ ของเหลว Z (จริง)</div><div class="value">${Math.round(RHO_Z*1000)} kg/m³</div></div>`
+     +`<div class="readout-box"><div class="label">h สมดุล</div><div class="value">${fmt(hEq(mass(),rhoOf(liqI)),2)} cm</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    if(settled()) $('in-h').value=depth().toFixed(1);
+  }
+}
+
+/* ═══════════ การบันทึกผล ═══════════ */
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){
+  if(sinks()){ recMsg('warn','⚠️ หลอดจมมิด วัดไม่ได้'); return; }
+  if(!settled()){ recMsg('warn','⚠️ รอให้หลอดหยุดกระเพื่อมก่อน'); return; }
+  let h; if(mode==='auto') h=Math.round(depth()*10)/10;
+  else{ h=parseFloat($('in-h').value); if(isNaN(h)||h<=0||h>TUBE_L){ recMsg('warn','⚠️ กรอก ② ความลึก h (0–22 cm) — กด <b>📏 สเกลที่ผิวของเหลว</b>'); $('in-h').focus(); return; } }
+  rows.push({liq:liqI,n:nShot,m:mass(),h}); if(mode==='manual') $('in-h').value='';
+  renderAll(); renderLast(rows.length-1);
+  recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว`+(innerWidth<=900?' — จอเล็ก: กด <b>📊 ผล / ตาราง</b> ที่ขอบล่าง':' — ดูผลในแผงด้านข้าง'));
+}
+function linfit(P){ const n=P.length; if(n<2) return null; let sx=0,sy=0,sxx=0,sxy=0; P.forEach(([x,y])=>{ sx+=x; sy+=y; sxx+=x*x; sxy+=x*y; }); const den=n*sxx-sx*sx; if(Math.abs(den)<1e-12) return null; const k=(n*sxy-sx*sy)/den; return {k,b:(sy-k*sx)/n,n}; }
+function fitL(l){ const L=rows.filter(r=>r.liq===l); if(new Set(L.map(r=>r.n)).size<2) return null; const f=linfit(L.map(r=>[r.m,r.h])); if(!f) return null; f.rho=1/(f.k*A)*1000; return f; }
+function renderLast(i){ const r=rows[i]; if(!r) return; const f=fitL(r.liq);
+  let h=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">ของเหลว</span><span class="v">${LIQS[r.liq].ic} ${LIQS[r.liq].n}</span>`
+   +`<span class="k">m · h</span><span class="v">${fmt(r.m,2)} g · ${fmt(r.h,1)} cm</span>`;
+  if(LIQS[r.liq].rho!==null) h+=`<span class="k">V<sub>จม</sub> = m/ρ</span><span class="v">${fmt(r.m/LIQS[r.liq].rho,2)} cm³</span>`;
+  if(f) h+=`<span class="k">ความชัน h–m</span><span class="v">${fmt(f.k,4)} cm/g</span><span class="k">ρ = 1/(ความชัน × A)</span><span class="v big">${fmt(f.rho,0)} kg/m³</span>`;
+  $('lastRec').innerHTML=h; }
+function renderTable(){
+  let h='<table><thead><tr><th>#</th><th>ของเหลว</th><th>ตะกั่ว<br>(ลูก)</th><th>m<br>(g)</th><th>h<br>(cm)</th></tr></thead><tbody>';
+  h+=rows.map((r,i)=>`<tr style="${r.liq===4?'color:#f9a8d4':''}"><td>${i+1}</td><td>${LIQS[r.liq].ic} ${LIQS[r.liq].n}</td><td class="mono">${r.n}</td><td class="mono">${fmt(r.m,2)}</td><td class="mono" style="color:#facc15">${fmt(r.h,1)}</td></tr>`).join('');
+  if(!rows.length) h+='<tr><td colspan="5" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  $('tableA').innerHTML=h+'</tbody></table>';
+  let h2='<table><thead><tr><th>ของเหลว</th><th>จุด</th><th>ความชัน<br>(cm/g)</th><th>ρ = 1/(kA)<br>(kg/m³)</th><th>ρ ที่ทราบ</th><th>จุดตัดแกน<br>(cm)</th></tr></thead><tbody>';
+  h2+=LIQS.map((l,i)=>{ const n=rows.filter(r=>r.liq===i).length; if(!n) return ''; const f=fitL(i);
+    return `<tr style="${i===4?'color:#f9a8d4':''}"><td>${l.ic} ${l.n}</td><td class="mono">${n}</td><td class="mono">${f?fmt(f.k,4):'—'}</td><td class="mono" style="color:#facc15">${f?fmt(f.rho,0):'—'}</td><td class="mono">${l.rho===null?(mode==='auto'?Math.round(RHO_Z*1000):'?'):Math.round(l.rho*1000)}</td><td class="mono">${f?fmt(f.b,2):'—'}</td></tr>`; }).join('');
+  if(!rows.length) h2+='<tr><td colspan="6" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  $('tableB').innerHTML=h2+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">A = πR² = 3.142 cm² · ρ (g/cm³) = 1/(ความชัน × A) · × 1000 = kg/m³ · จุดตัดแกนควรใกล้ R/3 = 0.33 cm</div>';
+}
+function exportCSV(){ const csv='﻿row,liquid,shots,m_g,h_cm\n'+rows.map((r,i)=>[i+1,LIQS[r.liq].n,r.n,r.m,r.h].join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab102_hydrometer.csv'; a.click(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); }
+function axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,lx,ly){
+  g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"';
+  const nice=m=>{ const r=m/5, p=Math.pow(10,Math.floor(Math.log10(r||1))), f=r/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; };
+  const sx=nice(xmax), sy=nice(ymax); g.textAlign='center';
+  for(let v=0;v<=xmax+1e-9;v+=sx){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),X(v),H-mb+12); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(X(v),mt); g.lineTo(X(v),mt+gh); g.stroke(); }
+  g.textAlign='right';
+  for(let v=0;v<=ymax+1e-9;v+=sy){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),ml-4,Y(v)+3); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(ml,Y(v)); g.lineTo(ml+gw,Y(v)); g.stroke(); }
+  g.fillStyle='#94a3b8'; g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText(lx,ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText(ly,0,0); g.restore(); }
+const LC=['#38bdf8','#e2e8f0','#eab308','#a3e635','#f472b6'];
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=46,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, notes=[], xmax=50, ymax=22, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh;
+  axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,'มวลรวม m (g)','h (cm)');
+  g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+  LIQS.forEach((l,i)=>{ const f=fitL(i); if(!f) return; g.strokeStyle=LC[i]; g.lineWidth=1.5; g.setLineDash(i===4?[6,4]:[]); g.beginPath(); g.moveTo(X(0),Y(f.b)); g.lineTo(X(xmax),Y(f.b+f.k*xmax)); g.stroke(); g.setLineDash([]);
+    notes.push(`<span style="color:${LC[i]}">■</span> ${l.n}: ความชัน ${fmt(f.k,4)} cm/g → ρ ≈ <b class="mono" style="color:${LC[i]}">${fmt(f.rho,0)} kg/m³</b>`); });
+  g.restore(); rows.forEach(r=>{ g.fillStyle=LC[r.liq]; g.beginPath(); g.arc(X(r.m),Y(r.h),4,0,Math.PI*2); g.fill(); });
+  if(!rows.length) notes.push('ยังไม่มีข้อมูล'); else notes.unshift('ของเหลวหนาแน่นมาก เส้นลาดน้อย (จมน้อย) · ทุกเส้นตัดแกน h ใกล้ R/3 เพราะก้นหลอดกลม');
+  $('graphNote').innerHTML=notes.join('<br>'); }
+function chkMsg(el,ok,autoTxt,okTxt,badTxt){ el.innerHTML= mode==='auto'?`<span style="color:${ok?'#86efac':'#fca5a5'}">${autoTxt} ${ok?'✓':''}</span>`:(ok?`<span style="color:#86efac">✓ ${okTxt}</span>`:`<span style="color:#fca5a5">✗ ${badTxt}</span>`); }
+function checkZ(){ const v=parseFloat($('ans-z').value), el=$('ansZMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกความหนาแน่น (kg/m³)</span>'; return; }
+  const act=RHO_Z*1000, err=(v-act)/act*100; chkMsg(el,Math.abs(err)<=3,`ค่าจริง ${Math.round(act)} kg/m³ · คลาด ${err.toFixed(1)}%`,'ถูกต้อง! คลาดไม่เกิน 3%','ยังไม่ถูก — ใช้ความชันของกราฟ h–m ของ Z: ρ = 1/(ความชัน × 3.142) g/cm³ แล้วคูณ 1000'); }
+function checkP(){ const v=parseFloat($('ans-p').value), el=$('ansPMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกความลึก (cm)</span>'; return; }
+  const act=hEq(M_TUBE+10*M_SHOT,0.79); chkMsg(el,Math.abs(v-act)<=0.3,`ค่าจริง ${act.toFixed(2)} cm`,`ถูกต้อง! h = m/(ρA) + R/3 = 26/(0.79 × 3.142) + 0.33 ≈ ${act.toFixed(2)} cm`,'ยังไม่ถูก — m = 6 + 10×2 = 26 g · h = m/(ρA) + R/3 โดย ρ = 0.79 g/cm³'); }
+
+/* ═══════════ 3D (หน่วย cm) ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const JAR_R=4.5, JAR_H=40, DISH=[10,1,6];
+const orbit={target:null,dist:90,az:0.3,el:0.2};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360);
+  return Math.max(4,Math.min(600, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={
+  iso :{t:[3,22,0], d:()=>fitDist(34,46), az:0.28, el:0.16},
+  surf:{t:[0,SURF,0.8], d:()=>fitDist(6,4.5), az:0.0001, el:0.0001},
+  side:{t:[0,SURF-8,0], d:()=>fitDist(12,26), az:0.0001, el:0.05}};
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col){ const st={txt,col}; const tex=canvasTex(640,128,(g,W,Hh)=>{ g.fillStyle='#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=st.col; g.font='bold 50px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(st.txt,W/2,Hh/2); });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); m.userData={st,tex}; return m; }
+function setLabel(m,txt,col){ const st=m.userData.st; if(st.txt===txt&&st.col===col) return; st.txt=txt; st.col=col; redrawTex(m.userData.tex); }
+/* สเกลกระดาษในหลอด: 0 ที่ปลายก้นหลอด ขึ้นไป 21 cm ขีดละ 1 mm (สองท่อน) */
+function tubeScaleFn(from,len){ return (g,w,h)=>{ const cm=h/len; g.fillStyle='#fffbeb'; g.fillRect(0,0,w,h); g.strokeStyle='#0f172a'; g.fillStyle='#0f172a';
+  for(let k=0;k<=len*10;k++){ const y=h-k*cm/10, big=k%10===0, mid=k%5===0; g.lineWidth=big?3:mid?2.2:1.3; g.beginPath(); g.moveTo(0,y); g.lineTo(w*(big?0.45:mid?0.32:0.2),y); g.stroke(); }
+  g.font='bold '+Math.round(cm*0.46)+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle';
+  for(let k=(from>0?1:0);k<=len;k++) g.fillText(String(from+k),w-6,Math.min(h-cm*0.3,Math.max(cm*0.3,h-k*cm))); }; }
+
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(3,22,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.2,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95)); const d1=new THREE.DirectionalLight(0xffffff,0.62); d1.position.set(60,160,120); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.40); d2.position.set(-40,50,140); scene.add(d2);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45});
+  const wood=new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(50,3,34),wood); top.position.set(4,-1.5,0); scene.add(top);
+  const glass=new THREE.MeshPhysicalMaterial({color:0xe0f2fe,transparent:true,opacity:0.16,roughness:0.05,depthWrite:false,side:THREE.DoubleSide});
+  const jar=new THREE.Mesh(new THREE.CylinderGeometry(JAR_R,JAR_R,JAR_H,40,1,true),glass); jar.position.y=JAR_H/2+JAR_BOT-0.5; jar.renderOrder=4; scene.add(jar);
+  const jb=new THREE.Mesh(new THREE.CylinderGeometry(JAR_R+1.5,JAR_R+1.8,1,40),new THREE.MeshStandardMaterial({color:0x334155})); jb.position.y=0.5; scene.add(jb);
+  P.liqMat=new THREE.MeshStandardMaterial({color:0x38bdf8,transparent:true,opacity:.3,roughness:.2,depthWrite:false});
+  const liq=new THREE.Mesh(new THREE.CylinderGeometry(JAR_R-0.1,JAR_R-0.1,SURF-JAR_BOT,40),P.liqMat); liq.position.y=(SURF+JAR_BOT)/2; liq.renderOrder=2; scene.add(liq);
+  P.surfMat=new THREE.MeshBasicMaterial({color:0x7dd3fc,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false});
+  const sf=new THREE.Mesh(new THREE.RingGeometry(R+0.05,JAR_R-0.1,48),P.surfMat); sf.rotation.x=-Math.PI/2; sf.position.y=SURF; sf.renderOrder=3; scene.add(sf);
+  /* หลอด: ก้นครึ่งทรงกลม + ทรงกระบอก + สเกลกระดาษ + ตะกั่ว */
+  P.tube=new THREE.Group(); scene.add(P.tube);
+  const tg=new THREE.MeshPhysicalMaterial({color:0xf1f5f9,transparent:true,opacity:0.28,roughness:0.05,side:THREE.DoubleSide,depthWrite:false});
+  const cylT=new THREE.Mesh(new THREE.CylinderGeometry(R,R,TUBE_L-R,28,1,true),tg); cylT.position.y=R+(TUBE_L-R)/2; P.tube.add(cylT);
+  const bot=new THREE.Mesh(new THREE.SphereGeometry(R,28,14,0,Math.PI*2,Math.PI/2,Math.PI/2),tg); bot.position.y=R; P.tube.add(bot);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(R,0.08,8,28),tg); rim.rotation.x=Math.PI/2; rim.position.y=TUBE_L; P.tube.add(rim);
+  [[0,11],[11,10]].forEach(([from,len])=>{ const s=new THREE.Mesh(new THREE.PlaneGeometry(1.2,len),new THREE.MeshBasicMaterial({map:canvasTex(200,2200,tubeScaleFn(from,len))})); s.position.set(0,from+len/2,0.35); P.tube.add(s); });
+  P.shots=new THREE.Group(); P.tube.add(P.shots);
+  P.tubeParts=[cylT,bot];
+  /* จานลูกตะกั่ว */
+  P.dish=new THREE.Group(); P.dish.position.set(...DISH); scene.add(P.dish);
+  const dm=new THREE.Mesh(new THREE.CylinderGeometry(3,2.4,0.8,28),new THREE.MeshStandardMaterial({color:0xe2e8f0,roughness:.5})); P.dish.add(dm);
+  const shotMat=new THREE.MeshStandardMaterial({color:0x4b5563,metalness:.6,roughness:.4});
+  for(let k=0;k<9;k++){ const s=new THREE.Mesh(new THREE.SphereGeometry(0.4,12,10),shotMat); s.position.set(Math.cos(k*2.1)*1.3*(k%3?1:0.4),0.6,Math.sin(k*2.1)*1.3*(k%3?1:0.4)); P.dish.add(s); }
+  P.dishParts=[dm];
+  const dl=labelPlane(9,1.8,'ลูกตะกั่ว 2.00 g','#fcd34d'); dl.position.set(DISH[0],3.2,DISH[2]); scene.add(dl);
+  P.lbl=labelPlane(16,2.6,'','#7dd3fc'); P.lbl.position.set(0,JAR_H+3,0); scene.add(P.lbl);
+  P.shotMat=shotMat;
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now();
+  (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now;
+    if(!$('tab-sim').classList.contains('active')) return;
+    stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera);
+    fr=(fr+1)%3; if(fr===0) drawAll(); })(last);
+}
+let fr=0, lastN=-1, lastL=-1;
+function update3D(){ if(!scene) return;
+  if(lastL!==liqI){ lastL=liqI; const L=LIQS[liqI]; P.liqMat.color.setHex(L.col); P.liqMat.opacity=L.op; P.surfMat.color.setHex(L.col); setLabel(P.lbl,L.n+(L.rho===null?' (?)':' '+Math.round(L.rho*1000)+' kg/m³'),L.rho===null?'#f9a8d4':'#7dd3fc'); }
+  if(lastN!==nShot){ lastN=nShot; while(P.shots.children.length) P.shots.remove(P.shots.children[0]);
+    for(let k=0;k<nShot;k++){ const s=new THREE.Mesh(new THREE.SphereGeometry(0.36,10,8),P.shotMat); const lay=Math.floor(k/3), a=(k%3)*2.1+lay*0.9; s.position.set(Math.cos(a)*0.42,0.45+lay*0.55,Math.sin(a)*0.42-0.15); P.shots.add(s); } }
+  P.tube.position.set(0,yTip,0);
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return;
+  const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+
+/* ═══════════ ลากหลอดขึ้น-ลง · แตะจานลูกตะกั่ว ═══════════ */
+const HD={on:false,fin:false,t:0,off:0}, HD_LAG=0.12, HD_VMAX=20;
+function cancelHand(){ HD.on=false; HD.fin=false; }
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.tube) return null;
+  if(RAY.intersectObjects([...P.dishParts,...P.dish.children],false).length) return 'dish';
+  if(RAY.intersectObjects(P.tubeParts,false).length) return 'tube';
+  const R0=Math.max(44,Math.min(rc.width,rc.height)*0.1), C=[];
+  [['tube',new THREE.Vector3(0,yTip+TUBE_L*0.6,0)],['dish',new THREE.Vector3(...DISH)]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
+  C.sort((a,b)=>a[1]-b[1]); return C.length&&C[0][1]<=R0?C[0][0]:null; }
+function ptrY(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; if(Math.abs(r.z)<1e-3) return null; const s=-o.z/r.z; if(s<=0) return null; return o.y+r.y*s; }
+function hdStart(cx,cy){ const w=pickAt(cx,cy); if(!w) return false; if(w==='dish'){ addShot(1); return false; } if(sinks()) return false;
+  const y=ptrY(cx,cy); if(y===null) return false; cancelHand(); HD.on=true; HD.off=yTip-y; HD.t=yTip; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const y=ptrY(cx,cy); if(y===null) return; HD.t=y+HD.off; }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=false; vy=0; drawAll(); }   /* ปล่อยมือ → หลอดเคลื่อนตามแรงลอยตัว */
+function stepHand(dt){ if(!HD.on) return; const lo=JAR_BOT+0.1, hi=SURF+3, tg=Math.max(lo,Math.min(hi,HD.t)); let nv=yTip+(tg-yTip)*(1-Math.exp(-dt/HD_LAG)); const lim=HD_VMAX*dt; nv=Math.max(yTip-lim,Math.min(yTip+lim,nv)); yTip=nv; syncCtl(); }
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn'); if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; } const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1];
+function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=document.getElementById('spdBtn'); if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } }
+function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); }
+function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault();
+    if(e.button===0 && !e.shiftKey && !panMode && hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; cv.style.cursor='move'; return; }
+    if(T.mode==='hand'){ hdMove(e.clientX,e.clientY); return; }
+    const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode==='hand') hdEnd(); if(T.mode!=='pinch') T.mode=null; cv.style.cursor='move'; };
+  window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault();
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0]; if(!panMode && hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; } T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.5,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(3,Math.min(600,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow(); const o=orbit; if(!o.target||!camera) return;
+  const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+
+/* ═══════════ THEORY ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function arrow(g,x0,y0,x1,y1,col,lab,lx,ly){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=2.4; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+  const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-9*Math.cos(a-0.4),y1-9*Math.sin(a-0.4)); g.lineTo(x1-9*Math.cos(a+0.4),y1-9*Math.sin(a+0.4)); g.closePath(); g.fill();
+  if(lab){ g.font='bold 13px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(lab,x1+(lx||6),y1+(ly||0)); } }
+function tubeDraw(g,x,ys,h,col){ const w=18; g.fillStyle='rgba(241,245,249,.25)'; g.fillRect(x-w/2,ys-150+h,w,150-h); g.beginPath(); g.arc(x,ys+h-w/2,w/2,0,Math.PI); g.fill(); g.fillStyle=col; g.beginPath(); g.arc(x,ys+h-w/2,w/2-3,0,Math.PI); g.fill(); }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const ys=H*0.4;
+  g.fillStyle='rgba(56,189,248,.2)'; g.fillRect(W*0.08,ys,W*0.18,H*0.55); g.fillStyle='rgba(186,230,253,.35)'; g.fillRect(W*0.3,ys,W*0.18,H*0.55);
+  g.strokeStyle='#7dd3fc'; g.beginPath(); g.moveTo(W*0.08,ys); g.lineTo(W*0.48,ys); g.stroke();
+  tubeDraw(g,W*0.17,ys,70,'#4b5563'); tubeDraw(g,W*0.39,ys,56,'#4b5563');
+  g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('น้ำ: จมลึก',W*0.17,H*0.97); g.fillText('น้ำเกลือ: จมตื้นกว่า',W*0.39,H*0.97);
+  g.textAlign='left'; g.font='13px IBM Plex Sans Thai'; ['ลอยนิ่ง: F_B = mg','ρ g V_จม = m g → V_จม = m/ρ','ρ มาก → V_จม น้อย → จมตื้น'].forEach((t,i)=>g.fillText(t,W*0.56,H*0.3+i*28)); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p; const x=W*0.2, ys=H*0.3, r=30;
+  g.fillStyle='rgba(56,189,248,.2)'; g.fillRect(x-70,ys,140,H*0.65); g.strokeStyle='#e2e8f0'; g.lineWidth=2; g.strokeRect(x-r,ys-60,2*r,H*0.5+60-r); g.beginPath(); g.arc(x,ys+H*0.5-r,r,0,Math.PI); g.stroke();
+  g.fillStyle='rgba(250,204,21,.35)'; g.beginPath(); g.arc(x,ys+H*0.5-r,r,0,Math.PI); g.fill();
+  g.strokeStyle='#34d399'; g.beginPath(); g.moveTo(x+r+14,ys); g.lineTo(x+r+14,ys+H*0.5); g.stroke(); g.fillStyle='#34d399'; g.font='bold 13px IBM Plex Sans Thai'; g.fillText('h',x+r+18,ys+H*0.25);
+  g.fillStyle='#fde68a'; g.font='12px IBM Plex Sans Thai'; g.fillText('ครึ่งทรงกลม ⅔πR³',x-r-10,ys+H*0.5+26);
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; ['V_จม = ⅔πR³ + πR²(h − R)','h = m/(ρA) + R/3','ความชัน h–m = 1/(ρA)'].forEach((t,i)=>g.fillText(t,W*0.5,H*0.3+i*28)); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); }
+
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  $('in-h').addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); });
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  yTip=SURF-hEq(mass(),1)+2.5;
+  init3D(); resizeAll(); setMode('manual'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; stepPhys(dt); drawAll(); },40); }
+});
+</script>
+
+<script src="../_shared/kp-mobile-panel.js"></script>
+<script src="../_shared/watermark.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260922-5"></script>
+<script>
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl05:lab-102", "../virtual-lab.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
