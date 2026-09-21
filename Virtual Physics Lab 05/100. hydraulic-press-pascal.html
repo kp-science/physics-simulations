@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 100 — หลักของพาสคัล: เครื่องอัดไฮดรอลิก (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl05:lab-100">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🏋️</div>
+  <div>
+    <h1>Lab 100 — หลักของพาสคัล: เครื่องอัดไฮดรอลิก (3D)</h1>
+    <p>Hydraulic Press — ลากเครื่องวัดแรงกดลูกสูบเล็กลง ยกตุ้มน้ำหนักบนลูกสูบใหญ่ · อ่านแรงที่ใช้ ความดันจากมาตรวัดแบบเข็ม และระยะที่ลูกสูบทั้งสองเลื่อน · F₁/A₁ = F₂/A₂ · A₁d₁ = A₂d₂ · งานที่ให้ ≈ งานที่ได้ · หาเส้นผ่านศูนย์กลางลูกสูบปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<!-- ==================== TAB 1: SIMULATION ==================== -->
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องวัด:</b> แรงกด F₁ (เครื่องวัดแรง ค่า HOLD) · ความดัน (มาตรวัดแบบเข็ม) · ระยะที่ลูกสูบเล็กเลื่อนลง d₁ และลูกสูบใหญ่เลื่อนขึ้น d₂ (ไม้บรรทัดข้างลูกสูบ) — <span style="color:var(--muted)">รายละเอียดวัตถุประสงค์อยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="fg" onclick="setView('fg')">📟 เครื่องวัดแรง</button>
+          <button data-vw="dial" onclick="setView('dial')">⏲ มาตรวัดความดัน</button>
+          <button data-vw="s1" onclick="setView('s1')">📏 ระยะ d₁</button>
+          <button data-vw="s2" onclick="setView('s2')">📏 ระยะ d₂</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 ลาก<b>ด้ามเครื่องวัดแรง</b>ลงช้า ๆ เพื่อดันลูกสูบเล็ก · แตะ<b>วาล์ว</b>ที่ท่อเพื่อปล่อยของเหลวกลับ<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงอ่านเครื่องมือในภาพ 3D ไม่ได้ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b> ในแผงด้านข้างเพื่อให้ระบบอ่านค่าให้</div>
+      </div>
+
+      <div class="actbar" id="actBar">
+        <button id="ab-push" style="background:#b45309" onclick="pushBy(2)">⬇ ดันลง 2 cm</button>
+        <button id="ab-rel"  style="background:#334155" onclick="releaseValve()">↩ เปิดวาล์ว</button>
+        <button id="ab-mp"   style="background:#1d4ed8" onclick="nudgeM(5)">⚖ ตุ้ม +5 kg</button>
+        <button id="ab-mm"   style="background:#1d4ed8" onclick="nudgeM(-5)">⚖ ตุ้ม −5 kg</button>
+        <button id="ab-p1"   style="background:#0e7490" onclick="cycleD1()">◉ ลูกสูบเล็ก 2 cm</button>
+        <button id="ab-p2"   style="background:#6d28d9" onclick="cycleD2()">⬤ ลูกสูบใหญ่ 10 cm</button>
+        <button id="ab-rec"  style="background:#16a34a" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+
+      <div class="status-line" id="statusLine"></div>
+
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① ลูกสูบ · มวลตุ้ม <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.78rem"></span></label>
+          <label class="rf-f"><span>② แรงกด F₁ <small id="rfH1">— เครื่องวัดแรง (HOLD)</small></span><span class="rf-in"><input class="val-input" type="number" id="in-f" step="0.01" inputmode="decimal" placeholder="?"> N</span></label>
+          <label class="rf-f"><span>③ ความดัน P <small id="rfH2">— มาตรวัดแบบเข็ม</small></span><span class="rf-in"><input class="val-input" type="number" id="in-p" step="0.5" inputmode="decimal" placeholder="?"> kPa</span></label>
+          <label class="rf-f"><span>④ ลูกสูบเล็กลง d₁ <small id="rfH3">— ไม้บรรทัดซ้าย</small></span><span class="rf-in"><input class="val-input" type="number" id="in-d1" step="0.1" inputmode="decimal" placeholder="?"> cm</span></label>
+          <label class="rf-f"><span>⑤ ลูกสูบใหญ่ขึ้น d₂ <small id="rfH4">— ไม้บรรทัดขวา</small></span><span class="rf-in"><input class="val-input" type="number" id="in-d2" step="0.01" inputmode="decimal" placeholder="?"> cm</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns">
+          <button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button>
+          <button onclick="setMode('auto')">⚡ อัตโนมัติ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — เปิดวาล์วปล่อยลง · ตุ้ม 10 kg · ลูกสูบ 2 cm / 10 cm · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและลูกสูบปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div>
+        <div class="hint-box info" id="hint"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">⚙ ลูกสูบ <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="note" style="margin-top:0">ลูกสูบเล็ก (ด้านที่กด) เส้นผ่านศูนย์กลาง D₁</div>
+        <div class="mode-btns" id="d1Btns" style="margin:4px 0 8px">
+          <button class="active" onclick="setD1(0)">2.0 cm</button>
+          <button onclick="setD1(1)">3.0 cm</button>
+          <button onclick="setD1(2)">4.0 cm</button>
+        </div>
+        <div class="note" style="margin-top:0">ลูกสูบใหญ่ (ด้านที่ยกตุ้ม) เส้นผ่านศูนย์กลาง D₂</div>
+        <div class="mode-btns" id="d2Btns" style="margin-top:4px">
+          <button class="active" onclick="setD2(0)">10.0 cm</button>
+          <button onclick="setD2(1)">❓ ลูกสูบ X</button>
+        </div>
+        <div class="note">เปลี่ยนลูกสูบหรือตุ้มได้เมื่อเปิดวาล์วปล่อยลูกสูบลงแล้ว (ระบบเปิดให้อัตโนมัติ)</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">⚖ ตุ้มน้ำหนักบนลูกสูบใหญ่</div>
+        <div class="readout-grid" style="margin-bottom:6px">
+          <div class="readout-box"><div class="label">มวลตุ้มรวม</div><div class="value" id="roM">10 kg</div></div>
+          <div class="readout-box"><div class="label">สถานะ</div><div class="value" id="roSt">—</div></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline btn-sm" onclick="nudgeM(-5)">−5 kg</button>
+          <button class="btn btn-outline btn-sm" onclick="nudgeM(-1)">−1 kg</button>
+          <button class="btn btn-outline btn-sm" onclick="nudgeM(1)">+1 kg</button>
+          <button class="btn btn-outline btn-sm" onclick="nudgeM(5)">+5 kg</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-amber btn-sm" onclick="pushBy(1)">⬇ ดันลง 1 cm</button>
+          <button class="btn btn-outline btn-sm" onclick="releaseValve()">↩ เปิดวาล์วปล่อยลง</button>
+        </div>
+        <div class="note">เครื่องวัดแรงแสดงแรงขณะนั้น และ <b>HOLD</b> = แรงเฉลี่ยขณะดันลงครั้งล่าสุด · ดันลงช้า ๆ (ความเร็วคงที่) ค่า HOLD จึงแม่น</div>
+      </div>
+
+      <div id="autoCtrl" class="panel-section hidden">
+        <div class="panel-title">⚡ ค่าจากแบบจำลอง</div>
+        <div class="readout-grid" id="autoGrid"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📊 ผลที่บันทึกล่าสุด</div>
+        <div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก — ดันลูกสูบเล็กลง อ่านค่า แล้วกรอกในกรอบ “📝 บันทึกผลการวัด” ใต้ภาพ</span></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-actions">
+          <button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button>
+          <button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">📈 กราฟจากข้อมูลที่บันทึก</div>
+        <div class="mode-btns" id="graphBtns" style="margin-bottom:6px">
+          <button class="active" onclick="setGraph('ff')">F₁ – น้ำหนักตุ้ม F₂</button>
+          <button onclick="setGraph('dd')">d₂ – d₁</button>
+        </div>
+        <canvas id="graphCanvas"></canvas>
+        <div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">เส้นผ่านศูนย์กลางลูกสูบ X =<input class="val-input" type="number" id="ans-d" step="0.1" inputmode="decimal" placeholder="?"> cm <button class="btn btn-green btn-sm" onclick="checkD()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansDMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">ถือว่าถูกเมื่อคลาดไม่เกิน 3% · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: PROCEDURE ==================== -->
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>ตรวจสอบหลักของพาสคัล: ความดันที่เพิ่มให้ของเหลวในภาชนะปิดส่งผ่านไปทุกจุดเท่ากัน</li>
+      <li>แสดงว่าเครื่องอัดไฮดรอลิกขยายแรงได้ตามอัตราส่วนพื้นที่ F₂/F₁ = A₂/A₁ และหาการได้เปรียบเชิงกลจากกราฟ</li>
+      <li>แสดงว่าปริมาตรของเหลวที่ถูกดันเท่ากัน A₁d₁ = A₂d₂ งานที่ให้จึงประมาณเท่างานที่ได้</li>
+      <li>หาเส้นผ่านศูนย์กลางของลูกสูบปริศนา X</li>
+    </ol>
+
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>เครื่องอัดไฮดรอลิกจำลอง: ลูกสูบเล็กเปลี่ยนได้ D₁ = 2.0, 3.0, 4.0 cm · ลูกสูบใหญ่ D₂ = 10.0 cm หรือ<b>ลูกสูบปริศนา X</b> · ท่อต่อบรรจุน้ำมันไฮดรอลิก</li>
+      <li>เครื่องวัดแรงแบบดิจิทัลติดด้ามกด ละเอียด 0.01 N มีค่า HOLD (แรงเฉลี่ยขณะดันลงครั้งล่าสุด)</li>
+      <li>มาตรวัดความดันแบบเข็มบนท่อ 0–120 kPa ขีดละ 1 kPa · ไม้บรรทัดวัดระยะที่ลูกสูบเล็กเลื่อนลง (ขีดละ 1 mm) และระยะที่ลูกสูบใหญ่เลื่อนขึ้น (ขีดละ 0.5 mm)</li>
+      <li>ตุ้มน้ำหนักวางบนลูกสูบใหญ่ 0–40 kg · วาล์วปล่อยของเหลวกลับ</li>
+    </ul>
+
+    <h2>ขั้นตอน</h2>
+    <h3>ตอน ก: การขยายแรง</h3>
+    <ol>
+      <li>ใช้ลูกสูบ 2.0 cm กับ 10.0 cm · วางตุ้ม 5 kg · ลากด้ามเครื่องวัดแรงลงช้า ๆ ราว 10–15 cm (ลูกสูบใหญ่ขึ้นเพียงไม่กี่มิลลิเมตร ดันไกล ๆ จะอ่าน d₂ ได้แม่นขึ้น)</li>
+      <li>กด <b>📟 เครื่องวัดแรง</b> อ่านค่า HOLD · กด <b>⏲ มาตรวัดความดัน</b> อ่านเข็ม · กด <b>📏 ระยะ d₁</b> และ <b>📏 ระยะ d₂</b> อ่านระยะที่ลูกสูบเลื่อน · บันทึก</li>
+      <li>เปิดวาล์ว เพิ่มตุ้มเป็น 10, 20, 30, 40 kg ทำซ้ำ · ดูกราฟ F₁ – F₂ ความชัน = A₁/A₂</li>
+    </ol>
+    <h3>ตอน ข: เปลี่ยนลูกสูบเล็ก</h3>
+    <ol>
+      <li>เปลี่ยนเป็นลูกสูบเล็ก 4.0 cm ทำซ้ำอย่างน้อย 2 ค่าตุ้ม · เปรียบเทียบแรงที่ต้องใช้และระยะที่ต้องดัน</li>
+    </ol>
+    <h3>ตอน ค: ลูกสูบปริศนา X</h3>
+    <ol>
+      <li>เปลี่ยนลูกสูบใหญ่เป็น <b>❓ X</b> วัดอย่างน้อย 3 ค่าตุ้ม · หา A₁/A₂ จากความชันของกราฟ F₁–F₂ (แม่นที่สุด เพราะแรงเสียดทานไปอยู่ที่จุดตัดแกน) และตรวจซ้ำด้วย A₂ = A₁ d₁/d₂ · แล้วคำนวณ D = √(4A/π)</li>
+    </ol>
+    <div class="note-box">⚠️ อ่านค่าทุกอย่างจากเครื่องมือในภาพ 3D เอง — โหมดวัดค่าเองไม่บอกตัวเลข · ลูกสูบมีแรงเสียดทานที่ซีลเล็กน้อย แรงที่วัดได้จึงมากกว่าค่าทางทฤษฎีเล็กน้อย กราฟจึงไม่ผ่านจุดกำเนิดพอดี · ถ้าดันเร็วเกินไป แรงจะแกว่ง ค่า HOLD คลาด</div>
+
+    <h2>ตารางบันทึกผล (ตัวอย่างหัวตาราง)</h2>
+    <div class="formula-box">D₁ | D₂ | m (kg) | F₂ = mg (N) | F₁ (N) | P (kPa) | F₁/A₁ (kPa) | F₂/A₂ (kPa) | d₁ (cm) | d₂ (cm) | A₁d₁ | A₂d₂ | W₁ = F₁d₁ | W₂ = F₂d₂</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>ความดันที่อ่านได้จากมาตรวัดเท่ากับ F₁/A₁ หรือ F₂/A₂ หรือทั้งสองอย่าง</li>
+      <li>ถ้าลูกสูบใหญ่มีเส้นผ่านศูนย์กลางเป็น 5 เท่าของลูกสูบเล็ก แรงถูกขยายกี่เท่า</li>
+      <li>เครื่องอัดไฮดรอลิกขยายแรงได้ แต่ขยายงานได้หรือไม่ ใช้ข้อมูล d₁ และ d₂ อธิบาย</li>
+      <li>ทำไมระบบไฮดรอลิกต้องใช้ของเหลว ไม่ใช้อากาศ</li>
+      <li>ยกตัวอย่างอุปกรณ์ในชีวิตประจำวันที่ใช้หลักการนี้</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: THEORY ==================== -->
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. หลักของพาสคัล</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="270"></canvas></div>
+    <p>ความดันที่เพิ่มให้ของเหลวในภาชนะปิดจะถ่ายทอดไปทุกจุดของของเหลวและผนังภาชนะเท่ากัน · ลูกสูบทั้งสองอยู่ระดับใกล้กัน ความดันที่ใต้ลูกสูบทั้งสองจึงเท่ากัน</p>
+    <div class="formula-box">P = F₁ / A₁ = F₂ / A₂   →   F₂ / F₁ = A₂ / A₁ = (D₂ / D₁)²<br>การได้เปรียบเชิงกล (MA) = F₂ / F₁</div>
+
+    <h2>2. ปริมาตรและงาน</h2>
+    <div class="formula-box">ของเหลวอัดตัวไม่ได้:  ปริมาตรที่ลูกสูบเล็กดันออก = ปริมาตรที่ดันลูกสูบใหญ่ขึ้น<br>A₁ d₁ = A₂ d₂   →   d₂ = d₁ (A₁/A₂)<br>งาน:  F₁ d₁ = (P A₁) d₁ = P (A₁ d₁) = P (A₂ d₂) = F₂ d₂<br>ได้แรงมากขึ้น แต่ต้องดันเป็นระยะทางไกลขึ้น — งานไม่ถูกขยาย</div>
+
+    <h2>3. ความดันจากมาตรวัด</h2>
+    <div class="formula-box">P = F / A  ·  หน่วย N/m² = Pa  ·  1 kPa = 1000 Pa<br>ตัวอย่าง: ตุ้ม 20 kg บนลูกสูบ 10 cm:  A₂ = π(0.05)² = 7.85 × 10⁻³ m²  →  P = 196 / 7.85×10⁻³ ≈ 25.0 kPa</div>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas1" height="220"></canvas></div>
+    <div class="note-box">💡 แบบจำลอง: g = 9.8 m/s² · ของเหลวอัดตัวไม่ได้ · ลูกสูบทั้งสองอยู่ระดับเดียวกัน (ไม่คิดผลของความสูงของเหลว) · ซีลลูกสูบมีแรงเสียดทานเล็กน้อย (ลูกสูบเล็กราว 0.4 N ลูกสูบใหญ่ราว 3 N) · เครื่องวัดแรงแกว่ง ±0.02 N · ลูกสูบและจานรับตุ้มเบามาก · เส้นผ่านศูนย์กลางของลูกสูบ X สุ่มต่อการเปิดหน้า</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.5 (สสวท.) — ของไหล · หลักของพาสคัล · เครื่องอัดไฮดรอลิก · เทียบเคียง Hydraulic press / Pascal's principle practical (GCSE / A-level / IB Physics)<br>
+  Lab 100 — Pascal's Principle: Hydraulic Press (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 100 หลักของพาสคัล: เครื่องอัดไฮดรอลิก (3D)
+   โลก 3D หน่วย cm · y = สูงจากผิวโต๊ะ · ผู้ชมอยู่ทาง +z
+   ดันลง: F₁ = (mg + f₂) A₁/A₂ + f₁ · ถือนิ่ง: F₁ = mg A₁/A₂ · d₂ = d₁ A₁/A₂
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL05 Lab 100 — build v1.0 3D-only (2569-09-22)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const G=9.8, D1S=[2.0,3.0,4.0], F1F=0.4, F2F=3.0, STROKE=20, M_MAX=40;
+/* ปริศนา: เส้นผ่านศูนย์กลางลูกสูบ X (cm) */
+const DX=(()=>{ let v; do{ v=Math.round(rnd(7.0,14.0)*10)/10; }while(Math.abs(v-10)<0.8); return v; })();
+const D2S=[10.0,null];
+const d2val=i=>D2S[i]===null?DX:D2S[i];
+const area=d=>Math.PI*d*d/4;                                  /* cm² */
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+
+let d1I=0, d2I=0, M=10, D1=0;                                 /* D1 = ระยะที่ลูกสูบเล็กดันลงแล้ว (cm) */
+let mode='manual', rows=[], graph='ff', curView='iso';
+let Fnow=0, Fshow=0, hold=null, holdAcc={s:0,t:0}, pushV=0, fTimer=0;
+const ratio=()=>area(D1S[d1I])/area(d2val(d2I));
+const d2of=d=>d*ratio();
+const pStatic=()=>M*G/(area(d2val(d2I))*1e-4)/1000;           /* kPa */
+function forceAt(v){ const r=ratio(); if(v>0.02) return (M*G+F2F)*r+F1F; if(v<-0.02) return Math.max(0,(M*G-F2F)*r-F1F); return M*G*r; }
+
+/* ═══════════ UI actions ═══════════ */
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function releaseValve(){ cancelHand(); D1=0; hold=null; holdAcc={s:0,t:0}; pushV=0; if(mode==='manual') ['in-f','in-p','in-d1','in-d2'].forEach(id=>$(id).value=''); syncCtl(); drawAll(); }
+function setD1(i){ if(D1>0.01){ releaseValve(); lockWarn('เปิดวาล์วปล่อยลงก่อนเปลี่ยนลูกสูบ (ทำให้แล้ว)'); } d1I=i; markBtns('#d1Btns',i); syncCtl(); drawAll(); }
+function cycleD1(){ setD1((d1I+1)%D1S.length); }
+function setD2(i){ if(D1>0.01){ releaseValve(); lockWarn('เปิดวาล์วปล่อยลงก่อนเปลี่ยนลูกสูบ (ทำให้แล้ว)'); } d2I=i; markBtns('#d2Btns',i); syncCtl(); drawAll(); }
+function cycleD2(){ setD2((d2I+1)%D2S.length); }
+function nudgeM(k){ if(D1>0.01){ releaseValve(); lockWarn('เปิดวาล์วปล่อยลงก่อนเปลี่ยนตุ้ม (ทำให้แล้ว)'); } M=Math.max(0,Math.min(M_MAX,M+k)); syncCtl(); drawAll(); }
+/* ปุ่มดันลง: ดันด้วยความเร็วคงที่ 2 cm/s จนครบระยะ */
+let autoPush=0;
+function pushBy(k){ cancelHand(); if(D1>=STROKE-0.01){ lockWarn('ลูกสูบเล็กสุดช่วงชักแล้ว — เปิดวาล์วปล่อยลงก่อน'); return; } autoPush=Math.min(STROKE,D1+k); holdAcc={s:0,t:0}; }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }   /* ไม่ทิ้งค่าเฉลยไว้ใน DOM */
+  ['in-f','in-p','in-d1','in-d2'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; });
+  const au=m==='auto'; [['rfH1','— เครื่องวัดแรง (HOLD)'],['rfH2','— มาตรวัดแบบเข็ม'],['rfH3','— ไม้บรรทัดซ้าย'],['rfH4','— ไม้บรรทัดขวา']].forEach(([id,t])=>$(id).textContent=au?'— โหมดอัตโนมัติ':t);
+  $('modeNote').textContent= au?'โหมดอัตโนมัติ: แสดงค่าจริงของลูกสูบ X':'โหมดวัดเอง: อ่านเครื่องมือในภาพ 3D';
+  $('ansDMsg').innerHTML=''; renderAll(); }
+function resetLab(){ releaseValve(); d1I=0; d2I=0; M=10; autoPush=0; markBtns('#d1Btns',0); markBtns('#d2Btns',0); recMsg('',''); setView('iso'); syncCtl(); drawAll(); }
+function knownTxt(){ return `D₁ ${D1S[d1I].toFixed(1)} cm · D₂ ${D2S[d2I]===null?'X (?)':D2S[d2I].toFixed(1)+' cm'} · ตุ้ม ${M} kg`; }
+function syncCtl(){
+  const kn=knownTxt(); if($('in-known').value!==kn) $('in-known').value=kn;
+  const s=(id,t)=>{ const e=$(id); if(e&&e.textContent!==t) e.textContent=t; };
+  s('ab-p1','◉ ลูกสูบเล็ก '+D1S[d1I].toFixed(0)+' cm'); s('ab-p2','⬤ ลูกสูบใหญ่ '+(D2S[d2I]===null?'X':'10 cm'));
+  s('roM',M+' kg'); s('roSt', D1<0.01?'ลูกสูบอยู่ล่างสุด':(D1>=STROKE-0.01?'สุดช่วงชัก':'ยกตุ้มขึ้นแล้ว'));
+}
+
+/* ═══════════ คำแนะนำทีละขั้น ═══════════ */
+function hintState(){
+  const n=(a,b)=>rows.filter(r=>r.d1i===a&&r.d2i===b).length, nm=(a,b)=>new Set(rows.filter(r=>r.d1i===a&&r.d2i===b).map(r=>r.m)).size;
+  if(HD.on||autoPush) return ['info','กำลังดันลูกสูบเล็กลง — ดันช้า ๆ สม่ำเสมอ ตุ้มบนลูกสูบใหญ่ค่อย ๆ ถูกยกขึ้น'];
+  if(D1>1&&hold!==null) { const tip='อ่านค่า: <b>📟 เครื่องวัดแรง</b> (HOLD) · <b>⏲ มาตรวัดความดัน</b> · <b>📏 ระยะ d₁</b> · <b>📏 ระยะ d₂</b> → <b>📝 บันทึก</b> แล้วกด <b>↩ เปิดวาล์ว</b>'; if(!rows.length) return ['ok','⑤ '+tip]; }
+  if(nm(0,0)<4) return ['info','ตอน ก: ลูกสูบ 2 cm / 10 cm · วางตุ้ม (เช่น 5, 10, 20, 30 kg) · ลากด้ามเครื่องวัดแรงลงช้า ๆ 10–15 cm · อ่านค่าแล้วบันทึก ('+nm(0,0)+'/4 ค่าตุ้ม)'];
+  if(nm(2,0)<2) return ['info','ตอน ข: เปลี่ยนลูกสูบเล็กเป็น <b>4.0 cm</b> วัดอย่างน้อย 2 ค่าตุ้ม ('+nm(2,0)+'/2) · ต้องใช้แรงมากขึ้นหรือน้อยลง ระยะที่ต้องดันล่ะ?'];
+  if(new Set(rows.filter(r=>r.d2i===1).map(r=>r.m)).size<3) return ['info','ตอน ค: เปลี่ยนลูกสูบใหญ่เป็น <b>❓ X</b> วัดอย่างน้อย 3 ค่าตุ้ม → ความชันของกราฟ F₁–F₂ = A₁/A₂ (แรงเสียดทานไม่มีผลต่อความชัน) · หรือ A₂ = A₁ d₁/d₂'];
+  return ['ok','ข้อมูลครบแล้ว ✓ ดูตารางและกราฟ แล้วกรอกเส้นผ่านศูนย์กลางลูกสูบ X ในกรอบ 🎯'];
+}
+function updateHint(){
+  const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const sl=`<b>${knownTxt()}</b>`+(mode==='auto'?` · d₁ <b>${D1.toFixed(1)} cm</b> · d₂ <b>${d2of(D1).toFixed(2)} cm</b> · HOLD <b>${hold===null?'—':hold.toFixed(2)+' N'}</b>`:' · อ่านค่าจากเครื่องมือในภาพ');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){
+    const html=`<div class="readout-box"><div class="label">D ลูกสูบ X (จริง)</div><div class="value">${DX.toFixed(1)} cm</div></div>`
+     +`<div class="readout-box"><div class="label">A₁/A₂</div><div class="value">${fmt(ratio(),4)}</div></div>`
+     +`<div class="readout-box"><div class="label">F₁ ทฤษฎี (ไม่มีแรงเสียดทาน)</div><div class="value">${fmt(M*G*ratio(),2)} N</div></div>`
+     +`<div class="readout-box"><div class="label">P = F₂/A₂</div><div class="value">${fmt(pStatic(),1)} kPa</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    if(hold!==null){ $('in-f').value=hold.toFixed(2); $('in-p').value=(Math.round(pNeedle()*2)/2).toFixed(1); $('in-d1').value=D1.toFixed(1); $('in-d2').value=d2of(D1).toFixed(2); }
+  }
+}
+
+/* ═══════════ การบันทึกผล ═══════════ */
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){
+  if(hold===null||D1<0.3){ recMsg('warn','⚠️ ยังไม่ได้ดันลูกสูบ — ลากด้ามเครื่องวัดแรงลงช้า ๆ (หรือกด ⬇ ดันลง)'); return; }
+  let F,P,a,b;
+  if(mode==='auto'){ F=Math.round(hold*100)/100; P=Math.round(pNeedle()*2)/2; a=Math.round(D1*10)/10; b=Math.round(d2of(D1)*100)/100; }
+  else{ F=parseFloat($('in-f').value); P=parseFloat($('in-p').value); a=parseFloat($('in-d1').value); b=parseFloat($('in-d2').value);
+    if(isNaN(F)||F<=0){ recMsg('warn','⚠️ กรอก ② แรง F₁ — กด <b>📟 เครื่องวัดแรง</b> อ่านค่า HOLD'); return; }
+    if(isNaN(P)||P<0||P>150){ recMsg('warn','⚠️ กรอก ③ ความดันจากมาตรวัดแบบเข็ม (kPa)'); return; }
+    if(isNaN(a)||a<=0||a>STROKE){ recMsg('warn','⚠️ กรอก ④ ระยะ d₁ (0–20 cm)'); return; }
+    if(isNaN(b)||b<=0||b>10){ recMsg('warn','⚠️ กรอก ⑤ ระยะ d₂ (cm)'); return; } }
+  rows.push({d1i:d1I,d2i:d2I,m:M,F,P,a,b});
+  if(mode==='manual') ['in-f','in-p','in-d1','in-d2'].forEach(id=>$(id).value='');
+  renderAll(); renderLast(rows.length-1);
+  recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว — กด <b>↩ เปิดวาล์ว</b> ก่อนเปลี่ยนตุ้ม`+(innerWidth<=900?' · จอเล็ก: กด <b>📊 ผล / ตาราง</b> ที่ขอบล่าง':''));
+}
+function derive(r){ const A1=area(D1S[r.d1i]), F2=r.m*G, q={A1,F2,MA:F2/r.F,p1:r.F/(A1*1e-4)/1000,W1:r.F*r.a/100,W2:F2*r.b/100,vr:r.a/r.b};
+  if(D2S[r.d2i]!==null){ q.A2=area(D2S[r.d2i]); q.p2=F2/(q.A2*1e-4)/1000; }
+  q.A2d=A1*r.a/r.b; q.Dd=Math.sqrt(4*q.A2d/Math.PI); return q; }
+function renderLast(i){ const r=rows[i]; if(!r) return; const q=derive(r);
+  let h=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span>`
+   +`<span class="k">D₁ · D₂ · ตุ้ม</span><span class="v">${D1S[r.d1i].toFixed(1)} · ${D2S[r.d2i]===null?'X':D2S[r.d2i].toFixed(1)} cm · ${r.m} kg</span>`
+   +`<span class="k">F₂ = mg · F₁</span><span class="v">${fmt(q.F2,1)} N · ${fmt(r.F,2)} N</span>`
+   +`<span class="k">การได้เปรียบเชิงกล F₂/F₁</span><span class="v big">${fmt(q.MA,2)}</span>`
+   +`<span class="k">F₁/A₁ · มาตรวัด</span><span class="v">${fmt(q.p1,1)} · ${fmt(r.P,1)} kPa</span>`
+   +`<span class="k">d₁/d₂</span><span class="v">${fmt(q.vr,2)}</span>`
+   +`<span class="k">งาน F₁d₁ · F₂d₂</span><span class="v">${fmt(q.W1,3)} · ${fmt(q.W2,3)} J</span>`;
+  if(r.d2i===1) h+=`<span class="k">D₂ = D₁√(d₁/d₂)</span><span class="v big">${fmt(q.Dd,2)} cm</span>`;
+  $('lastRec').innerHTML=h; }
+function renderTable(){
+  let h='<table><thead><tr><th>#</th><th>D₁</th><th>D₂</th><th>m<br>(kg)</th><th>F₂<br>(N)</th><th>F₁<br>(N)</th><th>F₂/F₁</th><th>P<br>(kPa)</th><th>F₁/A₁<br>(kPa)</th><th>d₁<br>(cm)</th><th>d₂<br>(cm)</th><th>d₁/d₂</th><th>F₁d₁<br>(J)</th><th>F₂d₂<br>(J)</th></tr></thead><tbody>';
+  h+=rows.map((r,i)=>{ const q=derive(r); return `<tr style="${r.d2i===1?'color:#d8b4fe':''}"><td>${i+1}</td><td class="mono">${D1S[r.d1i].toFixed(1)}</td><td class="mono">${D2S[r.d2i]===null?'X':D2S[r.d2i].toFixed(1)}</td><td class="mono">${r.m}</td><td class="mono">${fmt(q.F2,1)}</td><td class="mono">${fmt(r.F,2)}</td><td class="mono" style="color:#facc15">${fmt(q.MA,2)}</td><td class="mono">${fmt(r.P,1)}</td><td class="mono">${fmt(q.p1,1)}</td><td class="mono">${fmt(r.a,1)}</td><td class="mono">${fmt(r.b,2)}</td><td class="mono" style="color:#facc15">${fmt(q.vr,2)}</td><td class="mono">${fmt(q.W1,3)}</td><td class="mono">${fmt(q.W2,3)}</td></tr>`; }).join('');
+  if(!rows.length) h+='<tr><td colspan="14" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const X=rows.filter(r=>r.d2i===1).map(derive);
+  const foot=X.length?`ลูกสูบ X: เฉลี่ยจากระยะ D₂ = D₁√(d₁/d₂) = <b class="mono" style="color:#d8b4fe">${fmt(X.reduce((a,q)=>a+q.Dd,0)/X.length,2)} cm</b>`+(mode==='auto'?` · ค่าจริง ${DX.toFixed(1)} cm`:''):'';
+  const t=rows.filter(r=>r.d2i===0); const th=t.length?` · A₂/A₁ ทฤษฎี: ${[...new Set(t.map(r=>r.d1i))].map(i=>D1S[i].toFixed(0)+' cm → '+fmt((10/D1S[i])**2,2)).join(' · ')}`:'';
+  $('tableA').innerHTML=h+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">A = πD²/4 · F₂/F₁ ควรใกล้ A₂/A₁ (ต่ำกว่าเล็กน้อยเพราะแรงเสียดทาน) · d₁/d₂ = A₂/A₁'+th+'<br>'+foot+'</div>';
+}
+function exportCSV(){
+  const csv='﻿row,D1_cm,D2_cm,m_kg,F2_N,F1_N,P_kPa,d1_cm,d2_cm\n'+rows.map((r,i)=>{ const q=derive(r); return [i+1,D1S[r.d1i],D2S[r.d2i]===null?'X':D2S[r.d2i],r.m,q.F2.toFixed(2),r.F,r.P,r.a,r.b].join(','); }).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab100_hydraulic_press.csv'; a.click(); }
+function setGraph(g0){ graph=g0; document.querySelectorAll('#graphBtns button').forEach((b,i)=>b.classList.toggle('active',['ff','dd'][i]===g0)); drawGraph(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); }
+
+/* ═══════════ กราฟ ═══════════ */
+function axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,lx,ly){
+  g.strokeStyle='#1e3a5f'; g.lineWidth=1; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"';
+  const nice=m=>{ const r=m/5, p=Math.pow(10,Math.floor(Math.log10(r||1))), f=r/p; return (f<1.5?1:f<3?2:f<7?5:10)*p; };
+  const sx=nice(xmax), sy=nice(ymax); g.textAlign='center';
+  for(let v=0;v<=xmax+1e-9;v+=sx){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),X(v),H-mb+12); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(X(v),mt); g.lineTo(X(v),mt+gh); g.stroke(); }
+  g.textAlign='right';
+  for(let v=0;v<=ymax+1e-9;v+=sy){ g.fillStyle='#94a3b8'; g.fillText(String(+v.toFixed(4)),ml-4,Y(v)+3); g.strokeStyle='rgba(30,58,95,.5)'; g.beginPath(); g.moveTo(ml,Y(v)); g.lineTo(ml+gw,Y(v)); g.stroke(); }
+  g.fillStyle='#94a3b8'; g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText(lx,ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText(ly,0,0); g.restore(); }
+function linfit(P){ const n=P.length; if(n<2) return null; let sx=0,sy=0,sxx=0,sxy=0; P.forEach(([x,y])=>{ sx+=x; sy+=y; sxx+=x*x; sxy+=x*y; }); const den=n*sxx-sx*sx; if(Math.abs(den)<1e-12) return null; const k=(n*sxy-sx*sy)/den; return {k,b:(sy-k*sx)/n}; }
+const GK=r=>r.d1i+'|'+r.d2i, GCOL={'0|0':'#38bdf8','1|0':'#34d399','2|0':'#facc15','0|1':'#c084fc','1|1':'#a855f7','2|1':'#e879f9'};
+function drawGraph(){
+  const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=50,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, notes=[];
+  const groups={}; rows.forEach(r=>{ (groups[GK(r)]=groups[GK(r)]||[]).push(r); });
+  const lab=k=>{ const [a,b]=k.split('|').map(Number); return D1S[a].toFixed(0)+'/'+(D2S[b]===null?'X':'10'); };
+  if(graph==='ff'){
+    const xmax=Math.max(100,...rows.map(r=>r.m*G))*1.1, ymax=Math.max(10,...rows.map(r=>r.F))*1.15, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,'F₂ = น้ำหนักตุ้ม mg (N)','F₁ แรงกด (N)');
+    g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+    Object.entries(groups).forEach(([k,L])=>{ const f=linfit(L.map(r=>[r.m*G,r.F])); if(f&&new Set(L.map(r=>r.m)).size>1){ g.strokeStyle=GCOL[k]; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(f.b)); g.lineTo(X(xmax),Y(f.b+f.k*xmax)); g.stroke();
+      notes.push(`<span style="color:${GCOL[k]}">■</span> ลูกสูบ ${lab(k)} cm: ความชัน = <b class="mono">${fmt(f.k,4)}</b> → A₂/A₁ ≈ <b class="mono">${fmt(1/f.k,1)}</b> · จุดตัดแกน ${fmt(f.b,2)} N (แรงเสียดทาน)`+(k.endsWith('|1')?` → D<sub>X</sub> = D₁√(1/ความชัน) = <b class="mono" style="color:#d8b4fe">${fmt(D1S[+k[0]]/Math.sqrt(f.k),2)} cm</b>`:'')); } });
+    g.restore();
+    rows.forEach(r=>{ g.fillStyle=GCOL[GK(r)]; g.beginPath(); g.arc(X(r.m*G),Y(r.F),4,0,Math.PI*2); g.fill(); });
+    if(!rows.length) notes.push('ยังไม่มีข้อมูล'); else notes.unshift('ความชัน = F₁/F₂ = A₁/A₂ · ลูกสูบเล็กยิ่งเล็ก เส้นยิ่งลาด (ใช้แรงน้อยลง)');
+  } else {
+    const xmax=Math.max(6,...rows.map(r=>r.a))*1.1, ymax=Math.max(1,...rows.map(r=>r.b))*1.2, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh;
+    axes(g,W,H,ml,mt,gw,gh,mb,xmax,ymax,X,Y,'d₁ ลูกสูบเล็กลง (cm)','d₂ ลูกสูบใหญ่ขึ้น (cm)');
+    g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+    Object.entries(groups).forEach(([k,L])=>{ let sxx=0,sxy=0; L.forEach(r=>{ sxx+=r.a*r.a; sxy+=r.a*r.b; }); const s=sxy/sxx; g.strokeStyle=GCOL[k]; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(xmax),Y(s*xmax)); g.stroke();
+      notes.push(`<span style="color:${GCOL[k]}">■</span> ลูกสูบ ${lab(k)} cm: d₂/d₁ = <b class="mono">${fmt(s,4)}</b> = A₁/A₂`+(k.endsWith('|1')?` → D<sub>X</sub> = D₁/√(ความชัน) = <b class="mono" style="color:#d8b4fe">${fmt(D1S[+k[0]]/Math.sqrt(s),2)} cm</b>`:'')); });
+    g.restore();
+    rows.forEach(r=>{ g.fillStyle=GCOL[GK(r)]; g.beginPath(); g.arc(X(r.a),Y(r.b),4,0,Math.PI*2); g.fill(); });
+    if(!rows.length) notes.push('ยังไม่มีข้อมูล');
+  }
+  $('graphNote').innerHTML=notes.join('<br>');
+}
+
+/* ═══════════ ตรวจคำตอบ ═══════════ */
+function checkD(){ const val=parseFloat($('ans-d').value), el=$('ansDMsg');
+  if(isNaN(val)||val<=0){ el.innerHTML='<span style="color:#fde047">กรอกเส้นผ่านศูนย์กลาง (cm)</span>'; return; }
+  const err=(val-DX)/DX*100, ok=Math.abs(err)<=3;
+  el.innerHTML= mode==='auto' ? `<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง = <b class="mono">${DX.toFixed(1)} cm</b> · คลาด ${err>=0?'+':''}${err.toFixed(1)}% ${ok?'✓':''}</span>`
+    : ok? '<span style="color:#86efac">✓ ถูกต้อง! เส้นผ่านศูนย์กลางลูกสูบ X คลาดไม่เกิน 3%</span>'
+        : '<span style="color:#fca5a5">✗ ยังไม่ถูก — วิธีแม่นที่สุด: วัดลูกสูบ X หลายค่าตุ้ม แล้วใช้ความชันของกราฟ F₁–F₂ (= A₁/A₂ แรงเสียดทานไปอยู่ที่จุดตัดแกน) · หรือ A₂ = A₁ d₁/d₂ โดยดัน d₁ ให้ไกล ๆ · D₂ = D₁ √(A₂/A₁)</span>'; }
+
+/* ═══════════ 3D (หน่วย cm) ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const SX=-16, LX=14, BASE=3, PIPE_Y=4, TOP1=30, TOP2=20, DIAL=[0,12,7];
+const orbit={target:null,dist:120,az:0.3,el:0.25};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360);
+  return Math.max(5,Math.min(600, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const HANDLE0=TOP1+14;
+const VIEWS={
+  iso :{t:[0,27,0], d:()=>fitDist(72,64), az:0.3, el:0.16},
+  fg  :{follow:()=>[SX,HANDLE0-D1+4.5,2.2], d:()=>fitDist(12,8), az:0.0001, el:0.05},
+  dial:{t:[DIAL[0],DIAL[1],DIAL[2]], d:()=>fitDist(13,11), az:0.0001, el:0.02},
+  s1  :{follow:()=>[SX+5.2,HANDLE0-D1-3,1], d:()=>fitDist(9,7), az:0.0001, el:0.0001},
+  s2  :{follow:()=>[LX+11,TOP2+1.2+d2of(D1),1], d:()=>fitDist(7,5), az:0.0001, el:0.0001}};
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col){ const st={txt,col}; const tex=canvasTex(640,128,(g,W,Hh)=>{ g.fillStyle='#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=st.col; g.font='bold 50px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(st.txt,W/2,Hh/2); });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); m.userData={st,tex}; return m; }
+function setLabel(m,txt,col){ const st=m.userData.st; if(st.txt===txt&&st.col===col) return; st.txt=txt; st.col=col; redrawTex(m.userData.tex); }
+/* ไม้บรรทัดแนวดิ่ง: len cm · step = ขีดย่อย (cm) · down = ตัวเลขเพิ่มลงล่าง */
+function rulerFn(len,step,down){ return (g,w,h)=>{ const cm=h/len, n=Math.round(len/step);
+  g.fillStyle='#f8fafc'; g.fillRect(0,0,w,h); g.strokeStyle='#0f172a'; g.fillStyle='#0f172a';
+  for(let k=0;k<=n;k++){ const v=k*step, y=down? v*cm : h-v*cm, big=Math.abs(v-Math.round(v))<1e-6, mid=Math.abs(v*2-Math.round(v*2))<1e-6; g.lineWidth=big?3:mid?2.2:1.3;
+    g.beginPath(); g.moveTo(0,y); g.lineTo(w*(big?0.42:mid?0.3:0.18),y); g.stroke(); }
+  g.font='bold '+Math.round(Math.min(cm*0.5,w*0.34))+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle';
+  for(let v=0;v<=len;v++){ const y=down? v*cm : h-v*cm; g.fillText(String(v),w-6,Math.min(h-cm*0.3,Math.max(cm*0.3,y))); } }; }
+/* หน้าปัดมาตรวัดความดัน 0–120 kPa */
+function dialFn(g,w,h){ const cx=w/2, cy=h/2, R=w*0.47;
+  g.fillStyle='#f8fafc'; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fill(); g.strokeStyle='#334155'; g.lineWidth=10; g.stroke();
+  const A0=-225*Math.PI/180, SPAN=270*Math.PI/180, ang=v=>A0+SPAN*(v/120);
+  for(let v=0;v<=120;v+=1){ const a=ang(v), big=v%10===0, mid=v%5===0, r0=R*(big?0.74:mid?0.8:0.85);
+    g.strokeStyle='#0f172a'; g.lineWidth=big?5:mid?3.4:1.8; g.beginPath(); g.moveTo(cx+r0*Math.cos(a),cy+r0*Math.sin(a)); g.lineTo(cx+R*0.93*Math.cos(a),cy+R*0.93*Math.sin(a)); g.stroke(); }
+  g.fillStyle='#0f172a'; g.font='bold 50px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  for(let v=0;v<=120;v+=20){ const a=ang(v); g.fillText(String(v),cx+R*0.6*Math.cos(a),cy+R*0.6*Math.sin(a)); }
+  g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillStyle='#475569'; g.fillText('kPa (เกจ)',cx,cy+R*0.42); g.font='bold 28px "IBM Plex Sans Thai",sans-serif'; g.fillText('ขีดละ 1 kPa',cx,cy+R*0.6); }
+/* จอเครื่องวัดแรง */
+function fgFn(g,w,h){ g.fillStyle='#061a1f'; g.fillRect(0,0,w,h); g.strokeStyle='#155e75'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6);
+  g.fillStyle='#22d3ee'; g.font='bold 34px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('แรง (N)',18,44);
+  g.fillStyle='#67e8f9'; g.font='bold 110px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(Fshow.toFixed(2),w-20,150);
+  g.fillStyle='#fbbf24'; g.font='bold 36px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('HOLD',18,h-28);
+  g.font='bold 60px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(hold===null?'--.--':hold.toFixed(2),w-20,h-22); }
+
+function init3D(){
+  const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(0,24,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.3,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95)); const d1=new THREE.DirectionalLight(0xffffff,0.62); d1.position.set(60,160,120); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.40); d2.position.set(-40,50,140); scene.add(d2);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45});
+  const wood=new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(90,3,44),wood); top.position.set(0,-1.5,0); scene.add(top);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(52,BASE,18),met); base.position.set(0,BASE/2,0); scene.add(base);
+  const glass=new THREE.MeshPhysicalMaterial({color:0xe0f2fe,transparent:true,opacity:0.2,roughness:0.05,depthWrite:false,side:THREE.DoubleSide});
+  const oil=new THREE.MeshStandardMaterial({color:0xca8a04,transparent:true,opacity:0.75,roughness:.3});
+  /* ท่อต่อ */
+  const pipe=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,LX-SX,16),met); pipe.rotation.z=Math.PI/2; pipe.position.set((SX+LX)/2,PIPE_Y,0); scene.add(pipe);
+  /* กระบอกเล็ก + ของเหลว + ลูกสูบ */
+  P.c1=new THREE.Mesh(new THREE.CylinderGeometry(1,1,TOP1-BASE,24,1,true),glass); P.c1.position.set(SX,(TOP1+BASE)/2,0); scene.add(P.c1);
+  P.oil1=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,24),oil); scene.add(P.oil1);
+  P.pis1=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.2,24),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.6})); scene.add(P.pis1);
+  P.rod1=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,1,12),met); scene.add(P.rod1);
+  /* เครื่องวัดแรง + ด้ามจับ (ต่อบนก้านลูกสูบเล็ก) */
+  P.fg=new THREE.Group(); scene.add(P.fg);
+  const fgb=new THREE.Mesh(new THREE.BoxGeometry(8,6,3),new THREE.MeshStandardMaterial({color:0x1e3a8a,roughness:.6})); fgb.position.y=3; P.fg.add(fgb);
+  P.fgTex=canvasTex(640,400,fgFn); const fgs=new THREE.Mesh(new THREE.PlaneGeometry(7,4.4),new THREE.MeshBasicMaterial({map:P.fgTex})); fgs.position.set(0,3.1,1.52); P.fg.add(fgs);
+  const hnd=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,10,16),new THREE.MeshStandardMaterial({color:0xb91c1c,roughness:.5})); hnd.rotation.z=Math.PI/2; hnd.position.y=7.2; P.fg.add(hnd);
+  P.fgParts=[fgb,fgs,hnd];
+  const idx1=new THREE.Mesh(new THREE.BoxGeometry(4.4,0.08,0.1),new THREE.MeshBasicMaterial({color:0xef4444})); idx1.position.set(3.2,0,0.3); P.fg.add(idx1);
+  /* ไม้บรรทัดซ้าย: 0 ด้านบน = ตำแหน่งเริ่มของเครื่องวัดแรง · เพิ่มลงล่าง */
+  const r1=new THREE.Mesh(new THREE.PlaneGeometry(2.6,22),new THREE.MeshBasicMaterial({map:canvasTex(256,2200,rulerFn(22,0.1,true))})); r1.position.set(SX+6.5,HANDLE0-11,0.2); scene.add(r1);
+  const r1b=new THREE.Mesh(new THREE.BoxGeometry(2.8,23,0.4),wood); r1b.position.set(SX+6.5,HANDLE0-11,-0.1); scene.add(r1b);
+  const r1p=new THREE.Mesh(new THREE.BoxGeometry(0.6,HANDLE0-BASE,0.6),met); r1p.position.set(SX+6.5,(HANDLE0+BASE)/2-12,-0.6); scene.add(r1p);
+  /* กระบอกใหญ่ + ของเหลว + ลูกสูบ + จานรับตุ้ม */
+  P.c2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,TOP2-BASE,40,1,true),glass); P.c2.position.set(LX,(TOP2+BASE)/2,0); scene.add(P.c2);
+  P.oil2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,40),oil); scene.add(P.oil2);
+  P.pis2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.4,40),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.6})); scene.add(P.pis2);
+  P.rod2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,16),met); scene.add(P.rod2);
+  P.plat=new THREE.Mesh(new THREE.CylinderGeometry(8,8,0.8,40),met); scene.add(P.plat);
+  P.w=new THREE.Group(); scene.add(P.w);
+  const idx2=new THREE.Mesh(new THREE.BoxGeometry(3,0.06,0.1),new THREE.MeshBasicMaterial({color:0xef4444})); scene.add(idx2); P.idx2=idx2;
+  const arm2=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.3,0.3),new THREE.MeshBasicMaterial({color:0x94a3b8})); scene.add(arm2); P.arm2=arm2;
+  /* ไม้บรรทัดขวา: 0 ที่ตำแหน่งเริ่มของจาน · เพิ่มขึ้นบน · ขีดละ 0.5 mm */
+  const r2=new THREE.Mesh(new THREE.PlaneGeometry(2.6,8),new THREE.MeshBasicMaterial({map:canvasTex(256,2400,rulerFn(8,0.05,false))})); r2.position.set(LX+11.4,TOP2+1.2+4,0.2); scene.add(r2);
+  const r2b=new THREE.Mesh(new THREE.BoxGeometry(2.8,TOP2+14,0.4),wood); r2b.position.set(LX+11.4,(TOP2+14)/2,-0.1); scene.add(r2b);
+  /* มาตรวัดความดันบนท่อ + วาล์ว */
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,DIAL[1]-PIPE_Y-3.8,12),met); stem.position.set(DIAL[0],(DIAL[1]-3.8+PIPE_Y)/2,0); scene.add(stem);
+  const dcase=new THREE.Mesh(new THREE.CylinderGeometry(4.2,4.2,2,40),met); dcase.rotation.x=Math.PI/2; dcase.position.set(DIAL[0],DIAL[1],DIAL[2]-1.2); scene.add(dcase);
+  const dface=new THREE.Mesh(new THREE.CircleGeometry(4,48),new THREE.MeshBasicMaterial({map:canvasTex(1024,1024,dialFn)})); dface.position.set(DIAL[0],DIAL[1],DIAL[2]-0.18); scene.add(dface);
+  P.needle=new THREE.Group(); P.needle.position.set(DIAL[0],DIAL[1],DIAL[2]-0.1); scene.add(P.needle);
+  const nd=new THREE.Mesh(new THREE.BoxGeometry(0.12,3.3,0.04),new THREE.MeshBasicMaterial({color:0xdc2626})); nd.position.y=1.5; P.needle.add(nd);
+  const hub=new THREE.Mesh(new THREE.CircleGeometry(0.3,16),new THREE.MeshBasicMaterial({color:0x0f172a})); hub.position.z=0.03; P.needle.add(hub);
+  P.valve=new THREE.Group(); P.valve.position.set(-6,PIPE_Y,1.2); scene.add(P.valve);
+  const vb=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.2,1.6),new THREE.MeshStandardMaterial({color:0xca8a04,metalness:.5,roughness:.35})); P.valve.add(vb);
+  const vh=new THREE.Mesh(new THREE.BoxGeometry(0.6,3.6,0.5),new THREE.MeshStandardMaterial({color:0xb91c1c})); vh.position.set(0,1.8,0.9); P.valve.add(vh); P.valveParts=[vb,vh];
+  P.lbl=labelPlane(22,3,'','#fcd34d'); P.lbl.position.set(LX,1.6,9.2); scene.add(P.lbl);
+  P.lbl1=labelPlane(12,2.6,'','#7dd3fc'); P.lbl1.position.set(SX,1.6,9.2); scene.add(P.lbl1);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); }).catch(()=>{});
+
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now();
+  (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now;
+    if(!$('tab-sim').classList.contains('active')) return;
+    stepHand(dt0); stepAuto(dt0); stepGauge(dt0); update3D(); renderer.render(scene,camera);
+    fr=(fr+1)%3; if(fr===0) drawAll(); })(last);
+}
+/* การเคลื่อนของลูกสูบเล็กในเฟรมนี้ → แรงที่เครื่องวัดอ่าน · HOLD = แรงเฉลี่ยขณะเคลื่อนลง */
+let lastD1=0;
+function stepAuto(dt){ if(!autoPush) return; const lim=2*dt; D1=Math.min(autoPush,D1+lim); if(D1>=autoPush-1e-6){ autoPush=0; } syncCtl(); }
+function stepGauge(dt){ if(dt<=0) return; const v=(D1-lastD1)/dt; lastD1=D1; pushV+=(v-pushV)*(1-Math.exp(-dt/0.08));
+  const f=forceAt(pushV); Fnow+=(f-Fnow)*(1-Math.exp(-dt/0.06));
+  if(pushV>0.05){ holdAcc.w=(holdAcc.w||0)+dt; if(holdAcc.w>0.35){ holdAcc.s+=Fnow*dt; holdAcc.t+=dt; if(holdAcc.t>0.15) hold=holdAcc.s/holdAcc.t; } }   /* ข้ามช่วงเริ่มดัน 0.35 s ที่แรงยังไม่นิ่ง */
+  else if(holdAcc.t>0&&pushV<0.02&&!HD.on&&!autoPush){ holdAcc={s:0,t:0}; }
+  fTimer+=dt; if(fTimer>=0.2){ fTimer=0; const j=Math.random(); const nv=D1<0.01&&!HD.on?0:Math.round(Fnow*100)/100+(j<0.2?-0.02:(j>0.8?0.02:0)); if(nv!==Fshow||true){ Fshow=Math.max(0,nv); if(P.fgTex) redrawTex(P.fgTex); } } }
+/* ความดันเกจที่เข็มชี้ (kPa) = แรงบนลูกสูบใหญ่ / พื้นที่ · ขณะดันรวมแรงเสียดทานของลูกสูบใหญ่ */
+function pNeedle(){ if(D1<0.01&&!HD.on&&!autoPush) return 0; const A2=area(d2val(d2I))*1e-4; if(pushV>0.02) return (M*G+F2F)/A2/1000; if(pushV<-0.02) return Math.max(0,(M*G-F2F)/A2/1000); return M*G/A2/1000; }
+let fr=0, needleP=0;
+function update3D(){ if(!scene) return;
+  const r1=D1S[d1I]/2, r2=d2val(d2I)/2, d2=d2of(D1);
+  P.c1.scale.set(r1+0.25,1,r1+0.25); P.c2.scale.set(r2+0.35,1,r2+0.35);
+  const y1=TOP1-4-D1;                                /* ผิวลูกสูบเล็ก */
+  P.oil1.scale.set(r1,y1-BASE,r1); P.oil1.position.set(SX,(y1+BASE)/2,0);
+  P.pis1.scale.set(r1,1,r1); P.pis1.position.set(SX,y1+0.6,0);
+  const hy=HANDLE0-D1; P.rod1.scale.y=hy-(y1+1.2); P.rod1.position.set(SX,(hy+y1+1.2)/2,0);
+  P.fg.position.set(SX,hy,0);
+  const y2=TOP2-3+d2;                                /* ผิวลูกสูบใหญ่ */
+  P.oil2.scale.set(r2,y2-BASE,r2); P.oil2.position.set(LX,(y2+BASE)/2,0);
+  P.pis2.scale.set(r2,1,r2); P.pis2.position.set(LX,y2+0.7,0);
+  const py=TOP2+1.2+d2; P.rod2.scale.set(1,py-(y2+1.4),1); P.rod2.position.set(LX,(py+y2+1.4)/2,0);
+  P.plat.position.set(LX,py-0.4,0);
+  P.idx2.position.set(LX+10.9,py,0.35); P.arm2.position.set(LX+8.9,py,0);
+  /* ตุ้ม: แผ่น 10 kg / 5 kg / 1 kg ซ้อนกัน */
+  if(P.w.userData.m!==M){ P.w.userData.m=M; while(P.w.children.length) P.w.remove(P.w.children[0]); let y=0, left=M;
+    [[10,1.6,6.5,0x475569],[5,1.1,5.5,0x64748b],[1,0.55,4,0x94a3b8]].forEach(([kg,t,r,c])=>{ while(left>=kg){ const d=new THREE.Mesh(new THREE.CylinderGeometry(r,r,t,32),new THREE.MeshStandardMaterial({color:c,metalness:.5,roughness:.4})); d.position.y=y+t/2; P.w.add(d); y+=t+0.05; left-=kg; } }); }
+  P.w.position.set(LX,py,0);
+  needleP+=(pNeedle()-needleP)*0.25; P.needle.rotation.z=-(-225+270*Math.min(125,needleP)/120)*Math.PI/180-Math.PI/2;
+  P.valve.children[1].rotation.z= D1<0.01?Math.PI/2:0;
+  setLabel(P.lbl,'ลูกสูบใหญ่ '+(D2S[d2I]===null?'X (?)':'D₂ = 10.0 cm')+' · ตุ้ม '+M+' kg',D2S[d2I]===null?'#d8b4fe':'#fcd34d');
+  setLabel(P.lbl1,'ลูกสูบเล็ก D₁ = '+D1S[d1I].toFixed(1)+' cm','#7dd3fc');
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return;
+  const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+
+/* ═══════════ ลากด้ามเครื่องวัดแรงลง · แตะวาล์ว ═══════════ */
+const HD={on:false,fin:false,t:0,off:0}, HD_LAG=0.25, HD_VMAX=6;   /* cm/s */
+function cancelHand(){ HD.on=false; HD.fin=false; autoPush=0; }
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.fg) return null;
+  if(RAY.intersectObjects(P.valveParts,false).length) return 'valve';
+  if(RAY.intersectObjects(P.fgParts,false).length) return 'fg';
+  const R=Math.max(44,Math.min(rc.width,rc.height)*0.1), C=[];
+  [['fg',new THREE.Vector3(SX,HANDLE0-D1+5,0)],['valve',P.valve.position.clone()]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
+  C.sort((a,b)=>a[1]-b[1]); return C.length&&C[0][1]<=R?C[0][0]:null; }
+function ptrY(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; if(Math.abs(r.z)<1e-3) return null; const s=-o.z/r.z; if(s<=0) return null; return o.y+r.y*s; }
+function hdStart(cx,cy){ const w=pickAt(cx,cy); if(!w) return false; if(w==='valve'){ releaseValve(); return false; }
+  const y=ptrY(cx,cy); if(y===null) return false; cancelHand(); HD.on=true; HD.off=D1+y; HD.t=D1; holdAcc={s:0,t:0}; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const y=ptrY(cx,cy); if(y===null) return; HD.t=HD.off-y; }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; drawAll(); }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return; const tg=Math.max(0,Math.min(STROKE,HD.t)); let nv=D1+(tg-D1)*(1-Math.exp(-dt/HD_LAG)); const lim=HD_VMAX*dt; nv=Math.max(D1-lim,Math.min(D1+lim,nv));
+  if(nv<D1&&D1>0){ /* ดึงขึ้น: ของเหลวไหลกลับเองไม่ได้ (มีวาล์วกันกลับ) ต้องเปิดวาล์ว */ nv=D1; if(HD.on) lockWarn('ดึงด้ามขึ้นไม่ได้ (วาล์วกันกลับ) — แตะวาล์วเพื่อปล่อยลง'); }
+  D1=nv; if(!HD.on&&Math.abs(tg-D1)<0.005) HD.fin=false; if(!HD.on&&tg<D1) HD.fin=false; syncCtl(); }
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=(typeof renderer!=='undefined'&&renderer)?renderer.domElement:null; if(c) c.style.cursor= panMode?'move':''; }
+/* ── 🐢 ปรับความเร็วการแสดงผล (ช้าลงเพื่อดูให้ทัน · ไม่กระทบค่าที่วัดได้) ── */
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1];
+function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=document.getElementById('spdBtn');
+  if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } }
+function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); }
+function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault();
+    if(e.button===0 && !e.shiftKey && !panMode && hdStart(e.clientX,e.clientY)){ T.mode='hand'; cv.style.cursor='grabbing'; return; }
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; cv.style.cursor='move'; return; }
+    if(T.mode==='hand'){ hdMove(e.clientX,e.clientY); return; }
+    const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  const up=()=>{ if(T.mode==='hand') hdEnd(); if(T.mode!=='pinch') T.mode=null; cv.style.cursor='move'; };
+  window.addEventListener('mouseup',up); window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault();
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0];
+      if(!panMode && hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; }
+      T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend);
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.5,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(4,Math.min(600,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow();
+  const o=orbit; if(!o.target||!camera) return;
+  const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+
+/* ═══════════ THEORY ═══════════ */
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function arrow(g,x0,y0,x1,y1,col,lab,lx,ly){ g.strokeStyle=col; g.fillStyle=col; g.lineWidth=2.4; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+  const a=Math.atan2(y1-y0,x1-x0); g.beginPath(); g.moveTo(x1,y1); g.lineTo(x1-9*Math.cos(a-0.4),y1-9*Math.sin(a-0.4)); g.lineTo(x1-9*Math.cos(a+0.4),y1-9*Math.sin(a+0.4)); g.closePath(); g.fill();
+  if(lab){ g.font='bold 13px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(lab,x1+(lx||6),y1+(ly||0)); } }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p;
+  const x1=W*0.14, x2=W*0.42, yb=H*0.85, w1=22, w2=110, yp=H*0.45;
+  g.fillStyle='rgba(202,138,4,.55)'; g.fillRect(x1-w1/2,yp,w1,yb-yp); g.fillRect(x2-w2/2,yp,w2,yb-yp); g.fillRect(x1,yb-16,x2-x1,16);
+  g.fillStyle='#1f2937'; g.fillRect(x1-w1/2,yp-8,w1,8); g.fillRect(x2-w2/2,yp-10,w2,10);
+  arrow(g,x1,yp-60,x1,yp-10,'#38bdf8','F₁',6,-30); arrow(g,x2,yp-12,x2,yp-70,'#f87171','F₂',8,26);
+  g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('A₁',x1,yb+16); g.fillText('A₂',x2,yb+16);
+  g.fillStyle='#fde68a'; g.fillText('P เท่ากันทุกจุด',(x1+x2)/2,yb-24);
+  g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['P = F₁/A₁ = F₂/A₂','F₂ = F₁ × (A₂/A₁)','A₂/A₁ = (D₂/D₁)² — 10 cm กับ 2 cm ขยาย 25 เท่า'].forEach((t,i)=>g.fillText(t,W*0.6,H*0.35+i*28)); }
+function drawTheory1(){ const p=prep('theoryCanvas1'); if(!p) return; const {g,W,H}=p;
+  const x1=W*0.14, x2=W*0.42, y0=H*0.3;
+  g.fillStyle='#38bdf8'; g.fillRect(x1-10,y0,20,H*0.45); g.fillStyle='#f87171'; g.fillRect(x2-55,y0+H*0.45-18,110,18);
+  g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('ปริมาตรที่ดันออก A₁d₁',x1,y0-8); g.fillText('ปริมาตรที่ดันขึ้น A₂d₂',x2,y0+H*0.45-26);
+  g.font='13px IBM Plex Sans Thai'; g.textAlign='left';
+  ['A₁d₁ = A₂d₂ (ของเหลวอัดตัวไม่ได้)','ลูกสูบเล็กต้องดันไกลกว่า 25 เท่า','W₁ = F₁d₁ ≈ F₂d₂ = W₂'].forEach((t,i)=>g.fillText(t,W*0.6,H*0.35+i*28)); }
+function drawTheoryAll(){ drawTheory0(); drawTheory1(); }
+
+/* ═══════════ INIT ═══════════ */
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{
+  ['in-f','in-p','in-d1','in-d2'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); setMode('manual'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; stepHand(dt); stepAuto(dt); stepGauge(dt); drawAll(); },40); }
+});
+</script>
+
+<!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
+<script src="../_shared/kp-mobile-panel.js"></script>
+<!-- KP Watermark -->
+<script src="../_shared/watermark.js"></script>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260922-4"></script>
+
+<!-- KP Page Access Guard -->
+<script>
+  // รอให้ kp-auth.js โหลดเสร็จก่อน
+  (function(){
+    var w = setInterval(function(){
+      if (typeof kpPageAccess === "function") {
+        clearInterval(w);
+        kpPageAccess("vlab:vpl05:lab-100", "../virtual-lab.html");
+      }
+    }, 50);
+    setTimeout(function(){clearInterval(w)}, 5000);
+  })();
+</script>
+</body>
+</html>
