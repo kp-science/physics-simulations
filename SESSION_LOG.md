@@ -3514,7 +3514,7 @@ match /settings/{docId} {
 - `_admin/build_virtual_lab.py`, `_admin/protect_new_file.py`, `CLAUDE.md`, `virtual-lab.html`, Lab 98–107 (redirect)
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ push
+- ✅ push ขึ้นเว็บแล้ว (ตรวจเว็บจริง: virtual-physics-lab-05.html = 200 · 10 การ์ด · virtual-lab มีลิงก์ · Lab 107 redirect ใหม่)
 - การ์ดในหน้านี้ขึ้น 🔒 สมาชิกเท่านั้น สำหรับผู้ชมทั่วไป จนกว่าเจ้าของจะติ๊ก VPL05 ในการ์ด 🌐
 - ถ้าอยากได้หน้าแบบนี้ให้ VPL04 (ฟิสิกส์อะตอม) = เพิ่ม entry ใน SERIES_PAGES + แก้ redirect ใน protect
 
