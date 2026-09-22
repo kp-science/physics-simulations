@@ -47,7 +47,7 @@
 - `Virtual Physics Lab 01/Mechacnics/` — 22 ไฟล์ simulation (มี frame-busting + back button)
 - `Virtual Physics Lab 02/` — Lab 30–46 (คลื่น · แสง · การวัด · จักรวาลวิทยา) · Lab 46 กระจกเว้า = 3D (three.js)
 - `_shared/three.min.js` — three.js r128 สำรองแบบ offline (ไฟล์ 3D โหลดจาก cdnjs ก่อน ถ้าไม่ได้ค่อยใช้ไฟล์นี้)
-- `Virtual Physics Lab 05/` — **กลศาสตร์ของไหล** (topic `fluid` · Lab 98+ ใช้เลขต่อจากทั้งเว็บ) · access `vlab:vpl05:lab-N` · ต่อสาย kp-auth + admin + protect + labs_data แล้ว · ยังไม่มีหน้า catalog เฉพาะ (guard redirect ไป virtual-lab.html)
+- `Virtual Physics Lab 05/` — **กลศาสตร์ของไหล** (topic `fluid` · Lab 98+ ใช้เลขต่อจากทั้งเว็บ) · access `vlab:vpl05:lab-N` · ต่อสาย kp-auth + admin + protect + labs_data แล้ว · หน้า catalog `virtual-physics-lab-05.html` **generate จาก labs_data ด้วย build_virtual_lab.py** (หัวข้อย่อยกำหนดที่ `SERIES_PAGES` ในสคริปต์ · เพิ่มชุดอื่นได้ด้วย entry เดียว) · guard redirect ไปหน้านี้
 - `Virtual Physics Lab 03/` — **ปฏิบัติการฟิสิกส์ระดับมหาวิทยาลัย** (อิงคู่มือปฏิบัติการฟิสิกส์ เล่ม 1 ม.ศิลปากร) เริ่ม Lab 1 (การวัดอย่างละเอียด 3D/three.js) · access `vlab:vpl03:lab-N` · protect script + kp-auth + admin รองรับแล้ว · **ยังไม่มีหน้า catalog** (guard redirect ไป index.html)
 
 ## 🎨 Design tokens

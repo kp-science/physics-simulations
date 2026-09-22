@@ -3499,3 +3499,24 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - เพิ่มการตรวจขนาด view3d ใน loop (ทุก 3 เฟรม) → resizeAll เมื่อเปลี่ยน · ครั้งแรกระยะกล้องผิดเพราะคำนวณก่อน layout เสร็จ แม้มี ResizeObserver
+
+## [2026-09-22 11:15] — หน้ารวม VPL05 (virtual-physics-lab-05.html)
+
+### ทำอะไรไปบ้าง
+- เพิ่ม `build_series_page()` + `SERIES_PAGES` ใน `_admin/build_virtual_lab.py` → build สร้าง `virtual-physics-lab-05.html` ให้อัตโนมัติจาก labs_data (ใช้ CSS/การ์ดชุดเดียวกับ virtual-lab.html · รัน protect ให้)
+  - หัวแลป: 10 การทดลอง · Exp 98–107 · ม.5 · ลิงก์ข้ามไปหัวข้อย่อย
+  - 4 หัวข้อย่อยตามลำดับการเรียน: ① ของไหลสถิต: ความดัน (98–100) ② แรงลอยตัวและการลอย (101–102) ③ สมบัติของของเหลว (103–104) ④ ของไหลเคลื่อนที่ (105–107) · lab ใหม่ในชุดที่ไม่ได้ใส่หัวข้อจะไปอยู่ "การทดลองอื่นในชุด" ท้ายหน้า
+- guard ของ Lab 98–107 เปลี่ยน redirect เป็น `../virtual-physics-lab-05.html` (เดิม virtual-lab.html) · `protect_new_file.py` ใช้หน้านี้กับไฟล์ VPL05 ใหม่
+- virtual-lab.html มีลิงก์ "VPL 05 กลศาสตร์ของไหล" ในแถว "ดูแบบชุดเดิม" · CLAUDE.md อัปเดต
+
+### ไฟล์ที่แก้
+- ใหม่: `virtual-physics-lab-05.html` (generated)
+- `_admin/build_virtual_lab.py`, `_admin/protect_new_file.py`, `CLAUDE.md`, `virtual-lab.html`, Lab 98–107 (redirect)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ push
+- การ์ดในหน้านี้ขึ้น 🔒 สมาชิกเท่านั้น สำหรับผู้ชมทั่วไป จนกว่าเจ้าของจะติ๊ก VPL05 ในการ์ด 🌐
+- ถ้าอยากได้หน้าแบบนี้ให้ VPL04 (ฟิสิกส์อะตอม) = เพิ่ม entry ใน SERIES_PAGES + แก้ redirect ใน protect
+
+### หมายเหตุ
+- ห้ามแปลง `}}` → `}` ใน CSS ที่ดึงจาก build_page() — ผลลัพธ์เป็นวงเล็บเดี่ยวอยู่แล้ว และ `}}` ท้าย @media เป็นของจริง (เคยทำให้ CSS ท้ายหน้าพัง)

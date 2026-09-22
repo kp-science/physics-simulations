@@ -124,7 +124,7 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
   <div class="hero-badge">🧪 VIRTUAL PHYSICS LAB · จัดตามบทเรียน</div>
   <h1>ห้องปฏิบัติการฟิสิกส์เสมือน <span>ทั้งหมด {total} การทดลอง</span></h1>
   <p>เลือกจากบทเรียนฟิสิกส์ ม.ปลาย (สสวท.) ได้โดยตรง — การวัด · การเคลื่อนที่ · แรงและกฎนิวตัน · SHM · คลื่น · เสียง · แสง · ดาราศาสตร์ — เปิดได้ทันที ไม่ต้องติดตั้ง</p>
-  <div class="series-links">ดูแบบชุดเดิม: <a href="virtual-physics-lab-01.html">VPL 01 กลศาสตร์</a> · <a href="virtual-physics-lab-02.html">VPL 02 คลื่น แสง เสียง</a></div>
+  <div class="series-links">ดูแบบชุดเดิม: <a href="virtual-physics-lab-01.html">VPL 01 กลศาสตร์</a> · <a href="virtual-physics-lab-02.html">VPL 02 คลื่น แสง เสียง</a> · <a href="virtual-physics-lab-05.html">VPL 05 กลศาสตร์ของไหล</a></div>
 </div></div>
 
 <div class="fbar" id="fbar"><div class="fbar-inner">
@@ -292,6 +292,86 @@ def write_quickmenu():
     s=s[:a]+build_quickmenu()+s[b+len('<!-- QM:END -->'):]
     open(p,'w',encoding='utf-8').write(s)
 
+# ═════ หน้ารวมเฉพาะชุด (series catalog) — สร้างจาก labs_data.py ═════
+# เพิ่มชุดใหม่ = เพิ่ม entry ที่นี่ (หัวข้อย่อยเรียงตามลำดับการเรียน · lab ในชุดที่ไม่อยู่ในหัวข้อใดจะไปอยู่ท้ายสุด)
+SERIES_PAGES={
+ 'vpl05':{'file':'virtual-physics-lab-05.html','icon':'💧','badge':'VIRTUAL PHYSICS LAB 05 · กลศาสตร์ของไหล',
+  'h1':'กลศาสตร์ของไหล','lead':'ความดันในของเหลว · หลักของพาสคัล · แรงลอยตัว · ความตึงผิว · ความหนืด · การไหล — ทุกแลปเป็นภาพ 3D หมุนดูได้ ลากและแตะอุปกรณ์ในภาพเพื่อวัดค่าเอง อ่านสเกลจริง บันทึกลงตาราง เขียนกราฟ แล้วหาค่าปริศนาที่ซ่อนไว้ในแต่ละแลป',
+  'accent':'accent5','topic':'fluid',
+  'parts':[('ของไหลสถิต: ความดัน','Hydrostatic pressure','ความดันเพิ่มตามความลึก P = P₀ + ρgh · วัดความดันด้วยแมนอมิเตอร์และบารอมิเตอร์ · ส่งผ่านความดันในเครื่องอัดไฮดรอลิก',['98','99','100']),
+           ('แรงลอยตัวและการลอย','Buoyancy','หลักของอาร์คิมิดีส F_B = ρgV · วัตถุลอยเมื่อแรงลอยตัวเท่าน้ำหนัก · ไฮโดรมิเตอร์วัดความหนาแน่นของเหลว',['101','102']),
+           ('สมบัติของของเหลว','Liquid properties','ความตึงผิวดึงห่วงลวด · ความหนืดหน่วงลูกเหล็กที่ตกให้ถึงความเร็วปลาย (กฎของสโตกส์)',['103','104']),
+           ('ของไหลเคลื่อนที่','Fluid dynamics','สมการความต่อเนื่อง Av คงตัว · สมการของแบร์นูลลีในมาตรเวนทูรี · ทฤษฎีบทของทอร์ริเชลลีกับน้ำพุ่งจากรูข้างถัง',['105','106','107'])]},
+}
+
+SERIES_TPL = """<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP Science — @TITLE@</title>
+<meta name="description" content="@DESC@">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>@CSS@
+.part-note{color:var(--muted);font-size:.85rem;line-height:1.65;margin:-.4rem 0 1rem .2rem}
+.topic-icon{font-family:'Share Tech Mono',monospace;font-weight:800;color:var(--tclr)}
+.hero-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.hero-meta span{font-size:.76rem;font-weight:700;color:var(--text);background:var(--bg3);border:1px solid var(--border2);padding:3px 12px;border-radius:20px}
+.hero-meta span b{color:var(--@ACC@)}
+.part-nav{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem}
+.part-nav a{font-size:.78rem;font-weight:600;color:var(--muted);text-decoration:none;background:var(--bg3);border:1px solid var(--border);padding:5px 12px;border-radius:20px}
+.part-nav a:hover{border-color:var(--@ACC@);color:var(--text)}
+</style>
+</head>
+<body>
+
+<nav class="topnav"><div class="nav-logo">KP<span>Science</span></div><a href="virtual-lab.html" class="nav-back">← Virtual Lab ทั้งหมด</a></nav>
+
+<div class="hero"><div class="hero-inner">
+  <div class="hero-badge">@ICON@ @BADGE@</div>
+  <h1>@H1@ <span>@N@ การทดลอง</span></h1>
+  <p>@LEAD@</p>
+  <div class="hero-meta"><span><b>@RANGE@</b></span><span>ระดับ <b>@LEVELS@</b></span><span>ภาพ <b>3D</b> · มีค่าปริศนาทุกแลป</span></div>
+  <div class="part-nav">@PARTNAV@</div>
+  <div class="series-links">ดูร่วมกับบทเรียนอื่น: <a href="virtual-lab.html?topic=@TOPIC@">Virtual Lab ทั้งหมด</a> · <a href="index.html">หน้าหลัก</a></div>
+</div></div>
+
+<div class="wrap" id="catalog">
+@PARTS@</div>
+
+<footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="virtual-lab.html">Virtual Lab ทั้งหมด</a> · <a href="library.html">Library</a> · หน้านี้สร้างจาก <code>_admin/labs_data.py</code></footer>
+
+<!-- KP Auth (Firebase) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="kp-auth.js"></script>
+</body>
+</html>
+"""
+
+def build_series_page(key):
+    cfg=SERIES_PAGES[key]; labs=[l for l in LABS if l[7]==key]; byn={l[2]:l for l in labs}
+    css=build_page().split('<style>',1)[1].split('</style>',1)[0]
+    used=set(); parts=''; nav=''
+    for i,(name,en,note,nums) in enumerate(cfg['parts']+[('การทดลองอื่นในชุด','More labs','',[l[2] for l in labs])]):
+        L=[byn[n] for n in nums if n in byn and n not in used]
+        if not L: continue
+        used.update(l[2] for l in L)
+        nav+=f'<a href="#p-{i+1}">{i+1} · {esc(name)}</a>'
+        note_html=f'<p class="part-note">{esc(note)}</p>' if note else ''
+        parts+=(f'<section class="topic-section" id="p-{i+1}" style="--tclr:var(--{cfg["accent"]})">\n'
+                f'  <div class="topic-header"><div class="topic-icon">{i+1}</div><div><div class="topic-name">{esc(name)}</div><div class="topic-en">{esc(en)}</div></div><span class="topic-count">{len(L)} การทดลอง</span></div>\n'
+                f'  {note_html}\n  <div class="demo-grid">\n'+''.join(card(l) for l in L)+'  </div>\n</section>\n')
+    srt=sorted(labs,key=lambda l:float(re.sub(r'[^0-9.]','',l[2]) or 0))
+    rep={'@TITLE@':esc(SERIES[key][1]),'@DESC@':esc(f"{cfg['h1']} {len(labs)} การทดลองเสมือนจริง 3D — "+cfg['lead'][:120]),'@CSS@':css,'@ACC@':cfg['accent'],
+         '@ICON@':cfg['icon'],'@BADGE@':esc(cfg['badge']),'@H1@':esc(cfg['h1']),'@N@':str(len(labs)),'@LEAD@':esc(cfg['lead']),
+         '@RANGE@':(f'Exp {srt[0][2]}–{srt[-1][2]}' if srt else ''),'@LEVELS@':esc(' · '.join(sorted({l[6] for l in labs}))),
+         '@PARTNAV@':nav,'@TOPIC@':cfg['topic'],'@PARTS@':parts}
+    out=SERIES_TPL
+    for k,v in rep.items(): out=out.replace(k,v)
+    return out
+
 if __name__=='__main__':
     build_admin_meta()
     # หน้าแรก index.html สร้างใหม่ทั้งหน้าจาก _admin/home_template.html (แทนเมนูทางลัด QM เดิม)
@@ -307,3 +387,7 @@ if __name__=='__main__':
     open(p,'w',encoding='utf-8').write(s)
     print('built virtual-lab.html (%d labs) + library.html lab block' % len(LABS))
     os.system('python3 "%s" virtual-lab.html' % os.path.join(BASE,'_admin','protect_new_file.py'))   # GA + topbar
+    for k,c in SERIES_PAGES.items():
+        open(os.path.join(BASE,c['file']),'w',encoding='utf-8').write(build_series_page(k))
+        os.system('python3 "%s" "%s"' % (os.path.join(BASE,'_admin','protect_new_file.py'), c['file']))
+        print('built %s (%d labs)' % (c['file'], sum(1 for l in LABS if l[7]==k)))

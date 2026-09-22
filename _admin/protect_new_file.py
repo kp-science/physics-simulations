@@ -378,7 +378,9 @@ def fix_file(filepath, issues=None):
             elif '/Virtual Physics Lab 03/' in filepath:
                 # VPL03 ยังไม่มีหน้า catalog → กลับหน้าแรก (เปลี่ยนเป็น virtual-physics-lab-03.html เมื่อสร้างแล้ว)
                 listing = get_root_path(filepath) + 'index.html'
-            elif '/Virtual Physics Lab 04/' in filepath or '/Virtual Physics Lab 05/' in filepath:
+            elif '/Virtual Physics Lab 05/' in filepath:
+                listing = get_root_path(filepath) + 'virtual-physics-lab-05.html'
+            elif '/Virtual Physics Lab 04/' in filepath:
                 # VPL04 (ฟิสิกส์อะตอม) ยังไม่มีหน้า catalog เฉพาะ → กลับ catalog รวม
                 listing = get_root_path(filepath) + 'virtual-lab.html'
             elif '/Demo/' in filepath:
