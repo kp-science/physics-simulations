@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ข้อมูลกลาง Virtual Lab ทุกชุด จัดตามบทเรียน สสวท. — ใช้ generate virtual-lab.html และ library.html
    (แก้ที่นี่ที่เดียว แล้วรัน python3 _admin/build_virtual_lab.py)"""
-V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'
+V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'; V6='Virtual Physics Lab 06/'
 TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับหลัก
  ('measure','📏','การวัดและความคลาดเคลื่อน','Measurement & Uncertainty','accent5'),
  ('kinematics','🏃','การเคลื่อนที่แนวตรง','Linear Motion & Kinematics','accent3'),
@@ -16,13 +16,14 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('sound','🔊','เสียง','Sound','accent3'),
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
  ('electro','🎈','ไฟฟ้าสถิต','Electrostatics','accent4'),
+ ('current','🔋','ไฟฟ้ากระแสและวงจร','Current Electricity & Circuits','accent3'),
  ('astro','🌌','ดาราศาสตร์และจักรวาลวิทยา','Astronomy & Cosmology','accent4'),
  ('atomic','⚛️','ฟิสิกส์อะตอมและควอนตัม','Atomic & Quantum Physics','accent2'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
  ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm','fluid']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
- ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro']),
+ ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro','current']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
  ('modern','⚛️','ฟิสิกส์ยุคใหม่',['atomic']),
 ]
@@ -136,5 +137,6 @@ LABS=[
  ('vlab:vpl05:lab-105', V5+'105. continuity-equation.html','105','สมการความต่อเนื่อง: การไหลในท่อต่างขนาด (3D)','วัดอัตราการไหลด้วยบีกเกอร์กับนาฬิกา · ฉีดสีแล้วถ่ายภาพแฟลชทุก 0.10 s ลากไม้บรรทัดวัดระยะรอยสีในท่อ 3 ช่วง · A₁v₁ = A₂v₂ = Q · กราฟ v–Q ความชัน 1/A · หาขนาดท่อ X','fluid','ม.5','vpl05',['Continuity','Flow rate','3D']),
   ('vlab:vpl05:lab-106', V5+'106. bernoulli-venturi.html','106','หลักของแบร์นูลลี: มาตรเวนทูรี (3D)','ท่อมีคอคอดกับหลอดวัดความดัน 5 หลอด · วัด Q ด้วยถังตวงและนาฬิกา อ่านระดับน้ำ h₁ h₃ · P₁ − P₂ = ½ρ(v₂² − v₁²) · หาสัมประสิทธิ์ C_d · กราฟปรับเทียบ Q – √Δh · หาอัตราการไหลวาล์ว X โดยไม่ใช้ถังตวง','fluid','ม.5','vpl05',['Bernoulli','Venturi','Flow rate','3D']),
   ('vlab:vpl05:lab-107', V5+'107. torricelli-tank-jets.html','107','ทฤษฎีบทของทอร์ริเชลลี: น้ำพุ่งจากรูข้างถัง (3D)','ถังระดับน้ำคงที่มีรู 5 รูที่ความสูงต่างกัน แตะจุกเปิดรู · อ่านความสูงผิวน้ำและรูจากไม้เมตร ระยะตกจากเทปวัดบนพื้น · v = √(2gh) · R = 2√(hy) · หาสัมประสิทธิ์ C_v · หาระดับผิวน้ำในถังทึบ X จากระยะพุ่ง','fluid','ม.5','vpl05',['Torricelli','Bernoulli','Projectile','3D']),
+ ('vlab:vpl06:lab-108', V6+'108. ohms-law.html','108','กฎของโอห์ม: กราฟ V–I ของตัวต้านทานและหลอดไฟ (3D)','ต่อวงจรกับโวลต์มิเตอร์และแอมมิเตอร์เข็ม ปรับแหล่งจ่าย อ่านค่าแล้วเขียนกราฟ V–I · ตัวต้านทานได้เส้นตรง (ความชัน = R) หลอดไฟได้เส้นโค้งเพราะไส้ร้อนขึ้น · หาค่าความต้านทานปริศนา X','current','ม.6','vpl06',["Ohm's law",'Circuit','3D']),
 ]
-SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล')}
+SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล'),'vpl06':('VPL 06','Virtual Physics Lab 06 · ไฟฟ้ากระแส')}
