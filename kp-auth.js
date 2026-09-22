@@ -55,7 +55,7 @@ const VLAB_SERIES = {
   },
   vpl05: {
     label: 'Virtual Lab 05 (กลศาสตร์ของไหล)',
-    labs: ['lab-98','lab-99','lab-100','lab-101','lab-102','lab-103','lab-104','lab-105','lab-106']
+    labs: ['lab-98','lab-99','lab-100','lab-101','lab-102','lab-103','lab-104','lab-105','lab-106','lab-107']
   }
 };
 
