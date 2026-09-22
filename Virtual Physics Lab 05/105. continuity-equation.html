@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 105 — สมการความต่อเนื่อง: การไหลในท่อต่างขนาด (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl05:lab-105">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🚰</div>
+  <div>
+    <h1>Lab 105 — สมการความต่อเนื่อง: การไหลในท่อต่างขนาด (3D)</h1>
+    <p>Continuity Equation — น้ำไหลผ่านท่อใส 3 ช่วงที่ขนาดต่างกัน · วัดอัตราการไหล Q ด้วยบีกเกอร์กับนาฬิกาจับเวลา · ฉีดสีแล้วถ่ายภาพแฟลชทุก 0.10 s ลากไม้บรรทัดวัดระยะที่สีเคลื่อนในแต่ละช่วง หาความเร็ว · ตรวจ A₁v₁ = A₂v₂ = Q · หาเส้นผ่านศูนย์กลางท่อช่วงปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องวัด:</b> ปริมาตรน้ำในบีกเกอร์ V และเวลาที่เก็บ t (หา Q) · ระยะระหว่างรอยสีในภาพแฟลช (ไม้บรรทัดเลื่อนได้) ในแต่ละช่วงท่อ (หา v) — <span style="color:var(--muted)">รายละเอียดวัตถุประสงค์อยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="rul" onclick="setView('rul')">📏 ไม้บรรทัด</button>
+          <button data-vw="bk" onclick="setView('bk')">🥛 บีกเกอร์</button>
+          <button data-vw="sw" onclick="setView('sw')">⏱ นาฬิกา</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 ลาก<b>ไม้บรรทัดใส</b>ซ้าย-ขวาตามท่อ · แตะ<b>วาล์ว</b>เปลี่ยนระดับการไหล · แตะ<b>บีกเกอร์</b>เริ่ม/หยุดเก็บน้ำ · แตะ<b>หลอดฉีดสี</b>เพื่อฉีดสี<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b></div>
+      </div>
+      <div class="actbar" id="actBar">
+        <button id="ab-valve" style="background:#b45309" onclick="cycleLvl()">🔧 วาล์ว ระดับ 1</button>
+        <button id="ab-col"   style="background:#0e7490" onclick="toggleCollect()">🥛 เริ่มเก็บน้ำ</button>
+        <button id="ab-emp"   style="background:#334155" onclick="emptyBeaker()">🫗 เทบีกเกอร์</button>
+        <button id="ab-dye"   style="background:#be123c" onclick="injectDye()">💉 ฉีดสี + แฟลช</button>
+        <button id="ab-rl"    style="background:#1d4ed8" onclick="nudgeRuler(-1)">◀ ไม้บรรทัด</button>
+        <button id="ab-rr"    style="background:#1d4ed8" onclick="nudgeRuler(1)">ไม้บรรทัด ▶</button>
+        <button id="ab-rec"   style="background:#16a34a" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด
+          <span class="mode-btns" id="kindBtns" style="flex:0 0 auto;gap:4px"><button class="active" onclick="setKind('q')" style="padding:3px 10px">อัตราการไหล Q</button><button onclick="setKind('v')" style="padding:3px 10px">ความเร็วในท่อ v</button></span>
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① วาล์ว <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.78rem"></span></label>
+          <label class="rf-f" id="wSec"><span>ช่วงท่อ</span><span class="rf-in"><select id="in-sec" class="val-input" style="width:100%;max-width:none"><option value="0">ช่วง A (2.0 cm)</option><option value="1">ช่วง B (1.0 cm)</option><option value="2">ช่วง X (?)</option></select></span></label>
+          <label class="rf-f"><span id="l1">② ปริมาตรน้ำ V</span><span class="rf-in"><input class="val-input" type="number" id="in-1" step="1" inputmode="decimal" placeholder="?"> <span id="u1">mL</span></span></label>
+          <label class="rf-f"><span id="l2">③ เวลาที่เก็บ t</span><span class="rf-in"><input class="val-input" type="number" id="in-2" step="0.01" inputmode="decimal" placeholder="?"> <span id="u2">s</span></span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns"><button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button><button onclick="setMode('auto')">⚡ อัตโนมัติ</button></div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — วาล์วระดับ 1 · เทบีกเกอร์ · ล้างภาพแฟลช · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและท่อปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🔧 วาล์วควบคุมการไหล <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="lvlBtns"><button class="active" onclick="setLvl(0)">ระดับ 1</button><button onclick="setLvl(1)">ระดับ 2</button><button onclick="setLvl(2)">ระดับ 3</button><button onclick="setLvl(3)">ระดับ 4</button></div>
+        <div class="note">อัตราการไหลของแต่ละระดับไม่บอก ต้องวัดเอง · ท่อ 3 ช่วง: A เส้นผ่านศูนย์กลาง 2.0 cm · B 1.0 cm · <b>X ไม่ทราบ</b></div>
+        <div class="btn-row" style="margin-top:6px"><button class="btn btn-amber btn-sm" id="colBtn" onclick="toggleCollect()">🥛 เริ่มเก็บน้ำ (นาฬิกาเริ่มเอง)</button><button class="btn btn-outline btn-sm" onclick="emptyBeaker()">🫗 เทบีกเกอร์ · รีเซตนาฬิกา</button></div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" style="background:#881337;color:#fff" onclick="injectDye()">💉 ฉีดสี + ถ่ายภาพแฟลชทุก 0.10 s</button></div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" onclick="nudgeRuler(-5)">ไม้บรรทัด ◀ 5 cm</button><button class="btn btn-outline btn-sm" onclick="nudgeRuler(-0.1)">◀ 1 mm</button><button class="btn btn-outline btn-sm" onclick="nudgeRuler(0.1)">1 mm ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeRuler(5)">5 cm ▶</button></div>
+      </div>
+      <div id="autoCtrl" class="panel-section hidden"><div class="panel-title">⚡ ค่าจากแบบจำลอง</div><div class="readout-grid" id="autoGrid"></div></div>
+      <div class="panel-section"><div class="panel-title">📊 ผลที่บันทึกล่าสุด</div><div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก</span></div></div>
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">① อัตราการไหล</div><div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-cap">② ความเร็วในแต่ละช่วง · A v เทียบกับ Q</div><div class="tbl-wrap" id="tableB"></div>
+        <div class="tbl-actions"><button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button><button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button><button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">📈 กราฟ v – Q</div><canvas id="graphCanvas"></canvas><div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">เส้นผ่านศูนย์กลางท่อช่วง X =<input class="val-input" type="number" id="ans-d" step="0.01" inputmode="decimal" placeholder="?"> cm <button class="btn btn-green btn-sm" onclick="checkD()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansDMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">ถือว่าถูกเมื่อคลาดไม่เกิน 4% · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>วัดอัตราการไหลเชิงปริมาตร Q = V/t ของของเหลวในท่อ</li>
+      <li>วัดความเร็วของของเหลวในท่อแต่ละช่วงจากภาพแฟลชของสีที่ฉีด</li>
+      <li>ตรวจสอบสมการความต่อเนื่อง A₁v₁ = A₂v₂ = Q: ท่อแคบ ของเหลวไหลเร็ว</li>
+      <li>หาเส้นผ่านศูนย์กลางของท่อช่วงปริศนา X</li>
+    </ol>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>ท่อใสแนวระดับ 3 ช่วง ยาวช่วงละ 28 cm: A (2.0 cm) · B (1.0 cm) · X (ไม่ทราบ) · ต่อจากถังน้ำระดับคงที่ผ่านวาล์ว 4 ระดับ</li>
+      <li>บีกเกอร์ 500 mL ขีดละ 5 mL รองน้ำที่ปลายท่อ + นาฬิกาจับเวลาที่เริ่ม/หยุดพร้อมการเก็บน้ำ (0.01 s)</li>
+      <li>หลอดฉีดสีที่ต้นท่อ · กล้องถ่ายภาพแฟลชทุก 0.10 s (ภาพซ้อนแสดงรอยหน้าสีบนท่อ) · ไม้บรรทัดใสยาว 30 cm เลื่อนได้ ขีดละ 1 mm</li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>ตั้งวาล์วระดับ 1 · กด <b>🥛 เริ่มเก็บน้ำ</b> รอราว 10 s กดหยุด · อ่านปริมาตรที่บีกเกอร์และเวลาที่นาฬิกา · บันทึก (แบบ Q)</li>
+      <li>กด <b>💉 ฉีดสี + แฟลช</b> รอให้สีไหลถึงปลายท่อ · ภาพแฟลชเหลือรอยหน้าสีทุก 0.10 s</li>
+      <li>ลากไม้บรรทัดให้ขีด 0 ตรงรอยหนึ่งในช่วง A นับไปอีก n รอย อ่านระยะ d · v = d/(n × 0.10 s) · บันทึก (แบบ v) · ทำซ้ำในช่วง B และ X</li>
+      <li>ทำซ้ำที่วาล์วระดับอื่นอย่างน้อยอีก 1 ระดับ · ดูตาราง ② ว่า A·v ใกล้ Q หรือไม่ · หา A<sub>X</sub> = Q/v<sub>X</sub></li>
+    </ol>
+    <div class="note-box">⚠️ อ่านค่าจากภาพ 3D เอง — โหมดวัดค่าเองไม่บอกตัวเลข · ในท่อแคบรอยสีห่างกันมาก ในท่อกว้างรอยชิดกัน ให้นับหลายช่วงแฟลช (n มาก) เพื่อลดความคลาดเคลื่อน · ความเร็วที่ได้คือความเร็วเฉลี่ยของการไหลในท่อ</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>ช่วงท่อไหนน้ำไหลเร็วที่สุด เพราะเหตุใด</li>
+      <li>ถ้าเส้นผ่านศูนย์กลางลดลงครึ่งหนึ่ง ความเร็วเพิ่มกี่เท่า</li>
+      <li>ทำไมเวลาบีบปลายสายยางรดน้ำ น้ำจึงพุ่งไกลขึ้น</li>
+      <li>สมการความต่อเนื่องมาจากหลักการอนุรักษ์อะไร</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. อัตราการไหล</h2>
+    <div class="formula-box">อัตราการไหลเชิงปริมาตร Q = V/t = A v   (หน่วย m³/s หรือ mL/s · 1 mL = 1 cm³)</div>
+    <h2>2. สมการความต่อเนื่อง</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="240"></canvas></div>
+    <p>ของเหลวอัดตัวไม่ได้และท่อไม่มีรูรั่ว ปริมาตรของเหลวที่ไหลเข้าท่อต่อวินาทีต้องเท่ากับที่ไหลออกทุกหน้าตัด</p>
+    <div class="formula-box">A₁ v₁ = A₂ v₂ = Q   →   v₂/v₁ = A₁/A₂ = (D₁/D₂)²<br>ท่อ B (1.0 cm) แคบกว่า A (2.0 cm) ครึ่งหนึ่ง → พื้นที่ 1/4 → ไหลเร็ว 4 เท่า<br>ท่อ X:  A<sub>X</sub> = Q / v<sub>X</sub>   →   D<sub>X</sub> = √(4A<sub>X</sub>/π)</div>
+    <h2>3. กราฟ v – Q</h2>
+    <div class="formula-box">v = Q/A → กราฟ v กับ Q ของแต่ละช่วงเป็นเส้นตรงผ่านจุดกำเนิด ความชัน = 1/A</div>
+    <div class="note-box">💡 แบบจำลอง: ความเร็วที่แสดงคือความเร็วเฉลี่ยในหน้าตัด (ไม่คิดโปรไฟล์ความเร็วแบบพาราโบลา) · หน้าสีเคลื่อนตาม v = Q/A ของแต่ละช่วง · อัตราการไหลของวาล์วแต่ละระดับและเส้นผ่านศูนย์กลางของท่อ X สุ่มต่อการเปิดหน้า · แฟลชทุก 0.100 s พอดี</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.5 (สสวท.) — ของไหล · ของไหลอุดมคติ · สมการความต่อเนื่อง · เทียบเคียง Continuity / flow-rate practical (A-level / IB Physics)<br>
+  Lab 105 — Continuity Equation: Flow in a Pipe of Varying Diameter (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 105 สมการความต่อเนื่อง (3D) · หน่วย cm, s, mL
+   ท่อแนวระดับที่ y = PY · ช่วง A x∈[X0,X0+L] · B · X · หน้าสีเคลื่อน dx/dt = Q/A(x)
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL05 Lab 105 — build v1.0 3D-only (2569-09-22)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const PY=12, L=28, X0=-44, GAP=2, FLASH=0.1;
+const DX=(()=>{ let v; do{ v=Math.round(rnd(0.80,1.80)*100)/100; }while(Math.abs(v-1.0)<0.12||Math.abs(v-1.5)<0.06); return v; })();
+const SECS=[{n:'A',d:2.0},{n:'B',d:1.0},{n:'X',d:null}];
+const secD=i=>SECS[i].d===null?DX:SECS[i].d, secA=i=>Math.PI*secD(i)**2/4;
+const secX0=i=>X0+i*(L+GAP), secX1=i=>secX0(i)+L;
+const QL=[8,15,23,32].map(q=>Math.round(q*rnd(0.93,1.07)*10)/10);    /* mL/s */
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+let lvl=0, collecting=false, bV=0, swT=0, dye=null, flashes=[], RX=-40, kind='q', mode='manual', rows=[], curView='iso';
+const Q=()=>QL[lvl];
+function secAt(x){ for(let i=0;i<3;i++) if(x<secX1(i)+GAP/2) return i; return 2; }
+function stepPhys(dt){ if(collecting){ bV=Math.min(500,bV+Q()*dt); swT+=dt; if(bV>=500){ collecting=false; lockWarn('บีกเกอร์เต็มแล้ว'); } }
+  if(dye&&!dye.done){ const n=Math.max(1,Math.ceil(dt/0.002)), h=dt/n; for(let k=0;k<n;k++){ const v=Q()/secA(secAt(dye.x)); dye.x+=v*h; dye.t+=h;
+      if(dye.t>=dye.nextF){ flashes.push(dye.x); dye.nextF+=FLASH; } if(dye.x>=secX1(2)){ dye.done=true; break; } } } }
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2600); }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function setLvl(i){ if(collecting){ lockWarn('หยุดเก็บน้ำก่อนเปลี่ยนวาล์ว'); return; } lvl=i; markBtns('#lvlBtns',i); dye=null; flashes=[]; syncCtl(); drawAll(); }
+function cycleLvl(){ setLvl((lvl+1)%4); }
+function toggleCollect(){ collecting=!collecting; if(collecting&&bV>=499){ collecting=false; lockWarn('เทบีกเกอร์ก่อน'); } setKind('q'); syncCtl(); drawAll(); }
+function emptyBeaker(){ collecting=false; bV=0; swT=0; syncCtl(); drawAll(); }
+function injectDye(){ if(dye&&!dye.done){ lockWarn('สีกำลังไหลอยู่'); return; } dye={x:X0,t:0,nextF:FLASH,done:false}; flashes=[]; setKind('v'); drawAll(); }
+function nudgeRuler(k){ cancelHand(); RX=Math.max(X0-2,Math.min(secX1(2)-2,Math.round((RX+k)*100)/100)); drawAll(); }
+function setKind(k){ kind=k; markBtns('#kindBtns',k==='q'?0:1); const q=k==='q';
+  $('wSec').classList.toggle('hidden',q); $('l1').textContent=q?'② ปริมาตรน้ำ V':'② ระยะระหว่างรอย d'; $('u1').textContent=q?'mL':'cm'; $('l2').textContent=q?'③ เวลาที่เก็บ t':'③ จำนวนช่วงแฟลช n'; $('u2').textContent=q?'s':'ช่วง';
+  $('in-1').step=q?'1':'0.1'; $('in-2').step=q?'0.01':'1'; if(mode==='manual'){ $('in-1').value=''; $('in-2').value=''; } }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }
+  ['in-1','in-2'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; }); $('modeNote').textContent= m==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริง':'โหมดวัดเอง: อ่านสเกลในภาพ 3D'; $('ansDMsg').innerHTML=''; renderAll(); }
+function resetLab(){ cancelHand(); lvl=0; markBtns('#lvlBtns',0); emptyBeaker(); dye=null; flashes=[]; RX=-40; setKind('q'); recMsg('',''); setView('iso'); drawAll(); }
+function knownTxt(){ return 'วาล์วระดับ '+(lvl+1); }
+function syncCtl(){ const kn=knownTxt(); if($('in-known').value!==kn) $('in-known').value=kn; const s=(id,t)=>{ const e=$(id); if(e&&e.textContent!==t) e.textContent=t; };
+  s('ab-valve','🔧 วาล์ว ระดับ '+(lvl+1)); s('ab-col',collecting?'⏹ หยุดเก็บน้ำ':'🥛 เริ่มเก็บน้ำ'); s('colBtn',collecting?'⏹ หยุดเก็บน้ำ (นาฬิกาหยุดด้วย)':'🥛 เริ่มเก็บน้ำ (นาฬิกาเริ่มเอง)'); }
+function hintState(){ const nq=l=>rows.filter(r=>r.k==='q'&&r.lvl===l).length, nv=(l,s)=>rows.filter(r=>r.k==='v'&&r.lvl===l&&r.sec===s).length, levels=[0,1,2,3].filter(l=>nq(l)&&[0,1,2].every(s=>nv(l,s)));
+  if(collecting) return ['info','กำลังเก็บน้ำ — รอราว 10 s แล้วกด <b>⏹ หยุดเก็บน้ำ</b> · อ่านบีกเกอร์ (🥛) และนาฬิกา (⏱)'];
+  if(dye&&!dye.done) return ['info','สีกำลังไหล กล้องถ่ายแฟลชทุก 0.10 s — รอให้ถึงปลายท่อ'];
+  if(!nq(lvl)) return ['info','วาล์วระดับ '+(lvl+1)+': วัด Q ก่อน — <b>🥛 เริ่มเก็บน้ำ</b> → หยุด → อ่าน V และ t → บันทึกแบบ <b>อัตราการไหล Q</b>'];
+  if(!flashes.length) return ['info','กด <b>💉 ฉีดสี + แฟลช</b> แล้วรอสีไหลถึงปลายท่อ'];
+  const miss=[0,1,2].filter(s=>!nv(lvl,s)); if(miss.length) return ['info','ลากไม้บรรทัดวัดระยะระหว่างรอยสีในช่วง <b>'+miss.map(s=>SECS[s].n).join(', ')+'</b> · บันทึกแบบ <b>ความเร็วในท่อ v</b> (เลือกช่วงท่อ · d · จำนวนช่วงแฟลช n)'];
+  if(levels.length<2) return ['info','ครบระดับนี้แล้ว ✓ เปลี่ยนวาล์วเป็นระดับอื่น แล้วทำซ้ำ (Q + v ทั้ง 3 ช่วง)'];
+  return ['ok','ข้อมูลครบแล้ว ✓ ดูตาราง ② A·v เทียบ Q · หา D<sub>X</sub> กรอกในกรอบ 🎯']; }
+function updateHint(){ const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const sl=`<b>${knownTxt()}</b>`+(mode==='auto'?` · Q = <b>${Q().toFixed(1)} mL/s</b> · บีกเกอร์ ${bV.toFixed(0)} mL · ${swT.toFixed(2)} s`:' · อ่านบีกเกอร์ นาฬิกา และไม้บรรทัดในภาพ');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){ const html=`<div class="readout-box"><div class="label">D ท่อ X (จริง)</div><div class="value">${DX} cm</div></div><div class="readout-box"><div class="label">Q ระดับนี้</div><div class="value">${Q().toFixed(1)} mL/s</div></div><div class="readout-box"><div class="label">v A · B · X</div><div class="value">${[0,1,2].map(s=>(Q()/secA(s)).toFixed(1)).join(' · ')} cm/s</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    if(kind==='q'){ $('in-1').value=bV.toFixed(0); $('in-2').value=swT.toFixed(2); } else { const s=+$('in-sec').value; $('in-1').value=(Q()/secA(s)*0.4).toFixed(1); $('in-2').value='4'; } } }
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){ if(kind==='q'){ if(collecting){ recMsg('warn','⚠️ หยุดเก็บน้ำก่อน'); return; } let V,t; if(mode==='auto'){ V=Math.round(bV/5)*5; t=Math.round(swT*100)/100; } else { V=parseFloat($('in-1').value); t=parseFloat($('in-2').value); }
+    if(isNaN(V)||V<=0||isNaN(t)||t<=0){ recMsg('warn','⚠️ กรอกปริมาตร (mL) และเวลา (s) — เก็บน้ำก่อน'); return; } rows.push({k:'q',lvl,V,t}); }
+  else { if(!flashes.length||(dye&&!dye.done)){ recMsg('warn','⚠️ ฉีดสีแล้วรอให้ถ่ายภาพแฟลชครบก่อน'); return; } const sec=+$('in-sec').value; let d,n; if(mode==='auto'){ n=4; d=Math.round(Q()/secA(sec)*0.4*10)/10; } else { d=parseFloat($('in-1').value); n=parseInt($('in-2').value,10); }
+    if(isNaN(d)||d<=0||isNaN(n)||n<1){ recMsg('warn','⚠️ กรอกระยะ d (cm) และจำนวนช่วงแฟลช n'); return; } rows.push({k:'v',lvl,sec,d,n}); }
+  if(mode==='manual'){ $('in-1').value=''; $('in-2').value=''; } renderAll(); renderLast(rows.length-1); recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว`); }
+function qMeas(l){ const R=rows.filter(r=>r.k==='q'&&r.lvl===l); return R.length?R.reduce((a,r)=>a+r.V/r.t,0)/R.length:null; }
+function renderLast(i){ const r=rows[i]; if(!r) return; let h=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">วาล์ว</span><span class="v">ระดับ ${r.lvl+1}</span>`;
+  if(r.k==='q') h+=`<span class="k">V · t</span><span class="v">${fmt(r.V,0)} mL · ${fmt(r.t,2)} s</span><span class="k">Q = V/t</span><span class="v big">${fmt(r.V/r.t,2)} mL/s</span>`;
+  else { const v=r.d/(r.n*FLASH), q=qMeas(r.lvl); h+=`<span class="k">ช่วง · d · n</span><span class="v">${SECS[r.sec].n} · ${fmt(r.d,1)} cm · ${r.n}</span><span class="k">v = d/(n × 0.10)</span><span class="v big">${fmt(v,2)} cm/s</span>`;
+    if(SECS[r.sec].d!==null) h+=`<span class="k">A v</span><span class="v">${fmt(secA(r.sec)*v,2)} mL/s`+(q?` (Q วัดได้ ${fmt(q,2)})`:'')+'</span>'; else if(q) h+=`<span class="k">A<sub>X</sub> = Q/v · D<sub>X</sub></span><span class="v big">${fmt(q/v,3)} cm² · ${fmt(Math.sqrt(4*q/v/Math.PI),2)} cm</span>`; }
+  $('lastRec').innerHTML=h; }
+function renderTable(){ const QR=rows.map((r,i)=>({r,i})).filter(o=>o.r.k==='q');
+  let h='<table><thead><tr><th>#</th><th>วาล์ว</th><th>V<br>(mL)</th><th>t<br>(s)</th><th>Q = V/t<br>(mL/s)</th></tr></thead><tbody>'+QR.map(({r,i})=>`<tr><td>${i+1}</td><td>${r.lvl+1}</td><td class="mono">${fmt(r.V,0)}</td><td class="mono">${fmt(r.t,2)}</td><td class="mono" style="color:#facc15">${fmt(r.V/r.t,2)}</td></tr>`).join('');
+  if(!QR.length) h+='<tr><td colspan="5" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>'; $('tableA').innerHTML=h+'</tbody></table>';
+  const VR=rows.map((r,i)=>({r,i})).filter(o=>o.r.k==='v');
+  let h2='<table><thead><tr><th>#</th><th>วาล์ว</th><th>ช่วง</th><th>d<br>(cm)</th><th>n</th><th>v<br>(cm/s)</th><th>A<br>(cm²)</th><th>A v<br>(mL/s)</th><th>Q วัด<br>(mL/s)</th></tr></thead><tbody>';
+  h2+=VR.map(({r,i})=>{ const v=r.d/(r.n*FLASH), q=qMeas(r.lvl), known=SECS[r.sec].d!==null; return `<tr style="${!known?'color:#fda4af':''}"><td>${i+1}</td><td>${r.lvl+1}</td><td>${SECS[r.sec].n}</td><td class="mono">${fmt(r.d,1)}</td><td class="mono">${r.n}</td><td class="mono">${fmt(v,2)}</td><td class="mono">${known?fmt(secA(r.sec),3):(q?fmt(q/v,3)+'*':'?')}</td><td class="mono" style="color:#facc15">${known?fmt(secA(r.sec)*v,2):'—'}</td><td class="mono">${q?fmt(q,2):'—'}</td></tr>`; }).join('');
+  if(!VR.length) h2+='<tr><td colspan="9" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const X=VR.filter(o=>o.r.sec===2&&qMeas(o.r.lvl)).map(o=>{ const v=o.r.d/(o.r.n*FLASH); return Math.sqrt(4*qMeas(o.r.lvl)/v/Math.PI); });
+  $('tableB').innerHTML=h2+'</tbody></table><div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.5">A = πD²/4 · * = A<sub>X</sub> คำนวณจาก Q/v<br>'+(X.length?`D<sub>X</sub> เฉลี่ย = <b class="mono" style="color:#fda4af">${fmt(X.reduce((a,b)=>a+b,0)/X.length,2)} cm</b>`+(mode==='auto'?` · ค่าจริง ${DX}`:''):'')+'</div>'; }
+function exportCSV(){ const csv='﻿row,type,level,section,V_mL,t_s,d_cm,n\n'+rows.map((r,i)=>r.k==='q'?[i+1,'Q',r.lvl+1,'',r.V,r.t,'',''].join(','):[i+1,'v',r.lvl+1,SECS[r.sec].n,'','',r.d,r.n].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab105_continuity.csv'; a.click(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); }
+const SC=['#38bdf8','#34d399','#fb7185'];
+function drawGraph(){ const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const pts=rows.filter(r=>r.k==='v'&&qMeas(r.lvl)).map(r=>({s:r.sec,q:qMeas(r.lvl),v:r.d/(r.n*FLASH)})); const ml=46,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, xmax=40, ymax=Math.max(20,...pts.map(p=>p.v))*1.12, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh, notes=[];
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"'; g.fillStyle='#94a3b8'; g.textAlign='center'; for(let v=0;v<=xmax;v+=10) g.fillText(String(v),X(v),H-mb+12); g.textAlign='right'; const sy=ymax>60?20:10; for(let v=0;v<=ymax;v+=sy) g.fillText(String(v),ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText('Q (mL/s)',ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('v (cm/s)',0,0); g.restore();
+  g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip(); [0,1,2].forEach(s=>{ const P=pts.filter(p=>p.s===s); if(!P.length) return; let sxx=0,sxy=0; P.forEach(p=>{ sxx+=p.q*p.q; sxy+=p.q*p.v; }); const k=sxy/sxx; g.strokeStyle=SC[s]; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(xmax),Y(k*xmax)); g.stroke();
+    notes.push(`<span style="color:${SC[s]}">■</span> ช่วง ${SECS[s].n}: ความชัน = 1/A = <b class="mono">${fmt(k,3)} cm⁻²</b> → A = ${fmt(1/k,3)} cm² → D = <b class="mono">${fmt(Math.sqrt(4/(k*Math.PI)),2)} cm</b>`); }); g.restore();
+  pts.forEach(p=>{ g.fillStyle=SC[p.s]; g.beginPath(); g.arc(X(p.q),Y(p.v),4,0,Math.PI*2); g.fill(); }); if(!pts.length) notes.push('ต้องมีทั้ง Q และ v ที่วาล์วระดับเดียวกัน'); $('graphNote').innerHTML=notes.join('<br>'); }
+function checkD(){ const v=parseFloat($('ans-d').value), el=$('ansDMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกเส้นผ่านศูนย์กลาง (cm)</span>'; return; } const err=(v-DX)/DX*100, ok=Math.abs(err)<=4;
+  el.innerHTML= mode==='auto'?`<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง ${DX} cm · คลาด ${err.toFixed(1)}% ${ok?'✓':''}</span>`:(ok?'<span style="color:#86efac">✓ ถูกต้อง! คลาดไม่เกิน 4%</span>':'<span style="color:#fca5a5">✗ ยังไม่ถูก — A<sub>X</sub> = Q/v<sub>X</sub> (mL/s ÷ cm/s = cm²) แล้ว D = √(4A/π) · นับหลายช่วงแฟลชเพื่อให้ v แม่น</span>'); }
+
+/* ═══════════ 3D ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const BK=[X0+3*(L+GAP)+6,0,2], SW=[BK[0]+2,4,13], RUL_L=30;
+const orbit={target:null,dist:120,az:0.15,el:0.3};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360); return Math.max(3,Math.min(600, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={ iso:{t:[0,10,0], d:()=>fitDist(118,40), az:0.08, el:0.3}, rul:{follow:()=>[RX+RUL_L/2,PY,1.4], d:()=>fitDist(34,8), az:0.0001, el:0.02}, bk:{t:[BK[0],5,BK[2]+2], d:()=>fitDist(14,14), az:0.0001, el:0.05}, sw:{t:SW, d:()=>fitDist(12,8), az:0.0001, el:0.1} };
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){} t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding; t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col){ const tex=canvasTex(512,128,(g,W,Hh)=>{ g.fillStyle='#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=col; g.font='bold 54px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,W/2,Hh/2); }); return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); }
+function rulerFn(g,w,h){ g.clearRect(0,0,w,h); g.fillStyle='rgba(240,249,255,.55)'; g.fillRect(0,0,w,h); const cm=w/RUL_L; g.strokeStyle='#0f172a'; g.fillStyle='#0f172a';
+  for(let k=0;k<=RUL_L*10;k++){ const x=k*cm/10, big=k%10===0, mid=k%5===0; g.lineWidth=big?3:mid?2.2:1.3; g.beginPath(); g.moveTo(x,0); g.lineTo(x,h*(big?0.5:mid?0.36:0.22)); g.stroke(); }
+  g.font='bold '+Math.round(h*0.34)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='bottom'; for(let k=0;k<=RUL_L;k++){ g.fillStyle=k?'#0f172a':'#b91c1c'; g.fillText(String(k),Math.max(14,Math.min(w-14,k*cm)),h-4); } }
+function beakerFn(g,w,h){ g.clearRect(0,0,w,h); const H500=500/(Math.PI*16), cm=h/(H500+0.4); g.strokeStyle='#0f172a'; g.fillStyle='#0f172a';
+  for(let v=0;v<=500;v+=5){ const y=h-(v/(Math.PI*16))*cm-cm*0.2, big=v%50===0, mid=v%25===0; g.lineWidth=big?4:mid?3:1.6; g.beginPath(); g.moveTo(0,y); g.lineTo(w*(big?0.55:mid?0.4:0.25),y); g.stroke(); }
+  g.font='bold '+Math.round(cm*0.32)+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle'; for(let v=50;v<=500;v+=50) g.fillText(String(v),w-4,h-(v/(Math.PI*16))*cm-cm*0.2); }
+function swFn(g,w,h){ g.fillStyle='#061a1f'; g.fillRect(0,0,w,h); g.strokeStyle='#155e75'; g.lineWidth=6; g.strokeRect(3,3,w-6,h-6); g.fillStyle='#22d3ee'; g.font='bold 34px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('⏱ เวลาเก็บน้ำ (s)',18,46);
+  g.fillStyle='#67e8f9'; g.font='bold 140px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(swT.toFixed(2),w-24,200); g.fillStyle='#0e7490'; g.font='bold 30px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText(collecting?'กำลังจับเวลา…':'หยุด',18,h-22); }
+function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(0,10,0); try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95)); const d1=new THREE.DirectionalLight(0xffffff,0.62); d1.position.set(60,160,120); scene.add(d1); const d2=new THREE.DirectionalLight(0xffffff,0.4); d2.position.set(-40,50,140); scene.add(d2);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45}), wood=new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(140,3,34),wood); top.position.set(4,-1.5,0); scene.add(top);
+  const glass=new THREE.MeshPhysicalMaterial({color:0xe0f2fe,transparent:true,opacity:0.2,roughness:0.05,side:THREE.DoubleSide,depthWrite:false});
+  const water=new THREE.MeshStandardMaterial({color:0x7dd3fc,transparent:true,opacity:0.35,depthWrite:false});
+  /* ถังน้ำ + วาล์ว */
+  const tank=new THREE.Mesh(new THREE.BoxGeometry(12,26,12),glass); tank.position.set(X0-9,13,0); scene.add(tank); const tw=new THREE.Mesh(new THREE.BoxGeometry(11.6,22,11.6),water); tw.position.set(X0-9,11.2,0); scene.add(tw);
+  P.valve=new THREE.Group(); P.valve.position.set(X0-1.5,PY,0); scene.add(P.valve); const vb=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),new THREE.MeshStandardMaterial({color:0xca8a04,metalness:.5})); P.valve.add(vb);
+  P.vh=new THREE.Mesh(new THREE.BoxGeometry(0.6,4,0.6),new THREE.MeshStandardMaterial({color:0xb91c1c})); P.vh.position.y=2.6; P.valve.add(P.vh); P.valveParts=[vb,P.vh];
+  /* ท่อ 3 ช่วง + ข้อต่อ + ฉลาก */
+  P.pipes=[]; for(let i=0;i<3;i++){ const r=secD(i)/2, len=L; const p=new THREE.Mesh(new THREE.CylinderGeometry(r+0.12,r+0.12,len,28,1,true),glass); p.rotation.z=Math.PI/2; p.position.set((secX0(i)+secX1(i))/2,PY,0); scene.add(p);
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24),water); w.rotation.z=Math.PI/2; w.position.copy(p.position); scene.add(w);
+    const lb=labelPlane(8,2,'ช่วง '+SECS[i].n+(SECS[i].d?' · D '+SECS[i].d.toFixed(1)+' cm':' · D ?'),SECS[i].d?'#7dd3fc':'#fda4af'); lb.position.set(p.position.x,PY+4,0); scene.add(lb);
+    if(i<2){ const r2=secD(i+1)/2; const cn=new THREE.Mesh(new THREE.CylinderGeometry(r2+0.12,r+0.12,GAP,24,1,true),glass); cn.rotation.z=Math.PI/2; cn.position.set(secX1(i)+GAP/2,PY,0); scene.add(cn); } }
+  const inlet=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,3,16),met); inlet.rotation.z=Math.PI/2; inlet.position.set(X0-3.5+0.5,PY,0); scene.add(inlet);
+  /* หัวฉีดสี */
+  P.dyeInj=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,6,12),new THREE.MeshStandardMaterial({color:0xbe123c})); P.dyeInj.position.set(X0+1,PY+4,0); scene.add(P.dyeInj);
+  /* ทางออก → บีกเกอร์ */
+  const out=new THREE.Mesh(new THREE.CylinderGeometry(secD(2)/2+0.12,secD(2)/2+0.12,4,16),met); out.rotation.z=Math.PI/2; out.position.set(secX1(2)+2,PY,0); scene.add(out);
+  P.stream=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,1,8),water); scene.add(P.stream);
+  P.sink=new THREE.Mesh(new THREE.BoxGeometry(12,1,14),new THREE.MeshStandardMaterial({color:0x334155})); P.sink.position.set(BK[0],0.5,-8); scene.add(P.sink);
+  P.bk=new THREE.Group(); P.bk.position.set(BK[0],0,BK[2]); scene.add(P.bk); const bkm=new THREE.Mesh(new THREE.CylinderGeometry(4.1,4.1,11,32,1,true),glass); bkm.position.y=5.5; P.bk.add(bkm);
+  const bks=new THREE.Mesh(new THREE.PlaneGeometry(1.8,500/(Math.PI*16)+0.4),new THREE.MeshBasicMaterial({map:canvasTex(256,2400,beakerFn),transparent:true,depthWrite:false})); bks.position.set(-0.6,(500/(Math.PI*16)+0.4)/2+0.4,4.12); P.bk.add(bks);
+  P.bw=new THREE.Mesh(new THREE.CylinderGeometry(4,4,1,32),new THREE.MeshStandardMaterial({color:0x38bdf8,transparent:true,opacity:.5})); P.bk.add(P.bw); P.bkParts=[bkm,bks];
+  const swb=new THREE.Mesh(new THREE.BoxGeometry(10,6,2),new THREE.MeshStandardMaterial({color:0x1f2937})); swb.position.set(SW[0],SW[1],SW[2]-1.05); scene.add(swb); P.swTex=canvasTex(1024,512,swFn); const sws=new THREE.Mesh(new THREE.PlaneGeometry(9.4,4.7),new THREE.MeshBasicMaterial({map:P.swTex})); sws.position.set(...SW); scene.add(sws);
+  /* ไม้บรรทัดใส (หน้าท่อ) + รอยแฟลช + หน้าสี */
+  P.ruler=new THREE.Mesh(new THREE.PlaneGeometry(RUL_L,1.8),new THREE.MeshBasicMaterial({map:canvasTex(3000,180,rulerFn),transparent:true,depthWrite:false})); scene.add(P.ruler);
+  P.fl=[]; P.flMat=new THREE.MeshBasicMaterial({color:0xe11d48}); P.dyeMat=new THREE.MeshStandardMaterial({color:0xe11d48,transparent:true,opacity:.55,depthWrite:false});
+  P.dye=[0,1,2].map(i=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(secD(i)/2*0.96,secD(i)/2*0.96,1,20),P.dyeMat); m.rotation.z=Math.PI/2; scene.add(m); return m; });
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redrawTexs()).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%3; if(fr===0) drawAll(); })(last); }
+let fr=0, swKey='', flN=-1;
+function update3D(){ if(!scene) return;
+  P.vh.rotation.z=-lvl*0.45;
+  /* หน้าสีในแต่ละช่วง */
+  P.dye.forEach((m,i)=>{ if(!dye){ m.visible=false; return; } const a=secX0(i), b=Math.min(secX1(i),dye.x); m.visible=b>a+0.05; if(m.visible){ m.scale.y=b-a; m.position.set((a+b)/2,PY,0); } });
+  if(flN!==flashes.length){ flN=flashes.length; while(P.fl.length<flashes.length){ const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,0.12,20),P.flMat); m.rotation.z=Math.PI/2; scene.add(m); P.fl.push(m); }
+    P.fl.forEach((m,k)=>{ m.visible=k<flashes.length; if(k<flashes.length){ const x=flashes[k], s=secAt(x), r=secD(s)/2+0.14; m.scale.set(r,1,r); m.position.set(x,PY,0); } }); }
+  P.ruler.position.set(RX+RUL_L/2,PY-1.3,Math.max(...[0,1,2].map(secD))/2+0.35);
+  const bh=bV/(Math.PI*16); P.bw.visible=bV>0.5; P.bw.scale.y=Math.max(0.01,bh); P.bw.position.y=0.4+bh/2;
+  const sx=secX1(2)+4.2; if(collecting){ P.stream.visible=true; const y1=0.4+bh; P.stream.scale.y=PY-y1; P.stream.position.set(BK[0],(PY+y1)/2,BK[2]); } else { P.stream.visible=true; P.stream.scale.y=PY-1; P.stream.position.set(BK[0],(PY+1)/2,-8); }
+  const k=swT.toFixed(2)+collecting; if(k!==swKey){ swKey=k; redrawTex(P.swTex); }
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView)); if(!V||!orbit.target) return; const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+/* ลากไม้บรรทัด · แตะวาล์ว/บีกเกอร์/หัวฉีดสี */
+const HD={on:false,fin:false,t:0,off:0}, HD_LAG=0.18, HD_VMAX=40;
+function cancelHand(){ HD.on=false; HD.fin=false; }
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); } const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null; NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.ruler) return null;
+  if(RAY.intersectObjects(P.valveParts,false).length) return 'valve'; if(RAY.intersectObjects(P.bkParts,false).length) return 'bk'; if(RAY.intersectObject(P.dyeInj,false).length) return 'dye'; if(RAY.intersectObject(P.ruler,false).length) return 'rul';
+  const R0=Math.max(40,Math.min(rc.width,rc.height)*0.08), C=[]; [['rul',new THREE.Vector3(RX+RUL_L/2,PY-1.3,1.4)],['valve',P.valve.position.clone()],['bk',new THREE.Vector3(BK[0],5,BK[2])],['dye',P.dyeInj.position.clone()]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
+  C.sort((a,b)=>a[1]-b[1]); return C.length&&C[0][1]<=R0?C[0][0]:null; }
+function ptrX(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; const z0=Math.max(...[0,1,2].map(secD))/2+0.35; if(Math.abs(r.z)<1e-3) return null; const s=(z0-o.z)/r.z; if(s<=0) return null; return o.x+r.x*s; }
+function hdStart(cx,cy){ const w=pickAt(cx,cy); if(!w) return false; if(w==='valve'){ cycleLvl(); return false; } if(w==='bk'){ toggleCollect(); return false; } if(w==='dye'){ injectDye(); return false; }
+  const x=ptrX(cx,cy); if(x===null) return false; cancelHand(); HD.on=true; HD.off=RX-x; HD.t=RX; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const x=ptrX(cx,cy); if(x===null) return; HD.t=x+HD.off; }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return; const tg=Math.max(X0-2,Math.min(secX1(2)-2,HD.t)); let nv=RX+(tg-RX)*(1-Math.exp(-dt/HD_LAG)); const lim=HD_VMAX*dt; nv=Math.max(RX-lim,Math.min(RX+lim,nv)); if(Math.abs(tg-nv)<0.002) nv=tg; RX=nv; if(!HD.on&&nv===tg) HD.fin=false; }
+let panMode=false; function setPanMode(on){ panMode=!!on; const b=$('panBtn'); if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; } }
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1]; function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=$('spdBtn'); if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } } function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); } function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0}; const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); if(e.button===0&&!e.shiftKey&&!panMode&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; return; } T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; cv.style.cursor= pickAt(e.clientX,e.clientY)?'grab':'move'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; return; } if(T.mode==='hand'){ hdMove(e.clientX,e.clientY); return; } const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  window.addEventListener('mouseup',()=>{ if(T.mode==='hand') hdEnd(); if(T.mode!=='pinch') T.mode=null; }); window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(e.touches.length===1){ const t=e.touches[0]; if(!panMode&&hdStart(t.clientX,t.clientY)){ T.mode='hand'; return; } T.mode=panMode?'pan':'rot'; T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; } else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; hdMove(t.clientX,t.clientY); } else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; (T.mode==='pan'?camPan:camRotate)(t.clientX-T.lx,t.clientY-T.ly); T.lx=t.clientX; T.ly=t.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0){ if(T.mode==='hand') hdEnd(); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',tend); cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.5,Math.min(1.5,orbit.el+dy*0.006)); } function camZoom(f){ orbit.dist=Math.max(2,Math.min(600,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow(); const o=orbit; if(!o.target||!camera) return; const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el); o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const cy=H*0.45, x0=W*0.05, x1=W*0.3, x2=W*0.36, x3=W*0.6, r1=36, r2=16;
+  g.fillStyle='rgba(125,211,252,.35)'; g.fillRect(x0,cy-r1,x1-x0,2*r1); g.beginPath(); g.moveTo(x1,cy-r1); g.lineTo(x2,cy-r2); g.lineTo(x2,cy+r2); g.lineTo(x1,cy+r1); g.fill(); g.fillRect(x2,cy-r2,x3-x2,2*r2);
+  g.fillStyle='#e11d48'; for(let k=0;k<4;k++){ g.fillRect(x0+20+k*18,cy-r1,3,2*r1); g.fillRect(x2+10+k*42,cy-r2,3,2*r2); }
+  g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('A₁ ใหญ่ · v₁ ช้า (รอยชิด)',(x0+x1)/2,cy+r1+20); g.fillText('A₂ เล็ก · v₂ เร็ว (รอยห่าง)',(x2+x3)/2,cy+r1+20);
+  g.textAlign='left'; g.font='13px IBM Plex Sans Thai'; ['ปริมาตรที่ผ่านต่อวินาทีเท่ากัน','A₁v₁ = A₂v₂ = Q'].forEach((t,i)=>g.fillText(t,W*0.66,H*0.4+i*28)); }
+function drawTheoryAll(){ drawTheory0(); }
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{ ['in-1','in-2'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); })); $('in-sec').addEventListener('change',()=>{ if(mode==='manual'){ $('in-1').value=''; $('in-2').value=''; } });
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); setMode('manual'); setKind('q'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; stepPhys(dt); drawAll(); },40); } });
+</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
+<script src="../_shared/watermark.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260922-6"></script>
+<script>
+  (function(){ var w = setInterval(function(){ if (typeof kpPageAccess === "function") { clearInterval(w); kpPageAccess("vlab:vpl05:lab-105", "../virtual-lab.html"); } }, 50); setTimeout(function(){clearInterval(w)}, 5000); })();
+</script>
+</body>
+</html>
