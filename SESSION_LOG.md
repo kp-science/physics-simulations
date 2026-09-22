@@ -3494,7 +3494,7 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py` · build + ทุกไฟล์ที่โหลด kp-auth
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ push 107
+- ✅ push 107 ขึ้นเว็บแล้ว (ตรวจเว็บจริง: Lab 107 = 200 · kp-auth มี lab-107 · หน้าแรก 108 แลป · virtual-lab มีการ์ด 107)
 - สิทธิ์ผู้ชมทั่วไปยังไม่มี vpl05 (เช็ก Firestore 2026-09-22 10:00 ยังเป็น demo + vpl01–04)
 
 ### หมายเหตุ
