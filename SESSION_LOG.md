@@ -3471,7 +3471,7 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py` · build: `index.html`, `virtual-lab.html`, `library.html` · ทุกไฟล์ที่โหลด kp-auth
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ push 106
+- ✅ push 106 ขึ้นเว็บแล้ว (ตรวจเว็บจริง: Lab 106 = 200 · kp-auth มี lab-106 · หน้าแรก 107 แลป · virtual-lab มีการ์ด 106)
 - **ชุดกลศาสตร์ของไหล 98–106 ครบแล้ว** · ยังไม่มีหน้า catalog เฉพาะ VPL05 (guard redirect ไป virtual-lab.html)
 - สิทธิ์ผู้ชมทั่วไปยังไม่มี vpl05 (เจ้าของต้องติ๊กเองในการ์ด 🌐)
 - ไอเดียต่อยอด: แลปถังเจาะรู (ทอร์ริเชลลี v = √2gh · ระยะพุ่ง) ยังไม่ได้ทำ
