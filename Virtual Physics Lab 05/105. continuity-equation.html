@@ -280,7 +280,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
     <h2>อุปกรณ์ (เสมือนจริง)</h2>
     <ul>
       <li>ท่อใสแนวระดับ 3 ช่วง ยาวช่วงละ 28 cm: A (2.0 cm) · B (1.0 cm) · X (ไม่ทราบ) · ต่อจากถังน้ำระดับคงที่ผ่านวาล์ว 4 ระดับ</li>
-      <li>บีกเกอร์ 500 mL ขีดละ 5 mL รองน้ำที่ปลายท่อ + นาฬิกาจับเวลาที่เริ่ม/หยุดพร้อมการเก็บน้ำ (0.01 s)</li>
+      <li>น้ำพุ่งออกจากปลายท่อตกลงถาดรอง · บีกเกอร์ 500 mL ขีดละ 5 mL เลื่อนเข้าไปรองสายน้ำเมื่อกดเก็บน้ำ + นาฬิกาจับเวลาที่เริ่มเมื่อน้ำลงบีกเกอร์และหยุดพร้อมกัน (0.01 s)</li>
       <li>หลอดฉีดสีที่ต้นท่อ · กล้องถ่ายภาพแฟลชทุก 0.10 s (ภาพซ้อนแสดงรอยหน้าสีบนท่อ) · ไม้บรรทัดใสยาว 30 cm เลื่อนได้ ขีดละ 1 mm</li>
     </ul>
     <h2>ขั้นตอน</h2>
@@ -330,17 +330,20 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 console.log('KP Science VPL05 Lab 105 — build v1.0 3D-only (2569-09-22)');
 const $ = id => document.getElementById(id);
 const rnd=(a,b)=>a+Math.random()*(b-a);
-const PY=12, L=28, X0=-44, GAP=2, FLASH=0.1;
+const PY=16, L=28, X0=-44, GAP=2, FLASH=0.1;
 const DX=(()=>{ let v; do{ v=Math.round(rnd(0.80,1.80)*100)/100; }while(Math.abs(v-1.0)<0.12||Math.abs(v-1.5)<0.06); return v; })();
 const SECS=[{n:'A',d:2.0},{n:'B',d:1.0},{n:'X',d:null}];
 const secD=i=>SECS[i].d===null?DX:SECS[i].d, secA=i=>Math.PI*secD(i)**2/4;
 const secX0=i=>X0+i*(L+GAP), secX1=i=>secX0(i)+L;
 const QL=[8,15,23,32].map(q=>Math.round(q*rnd(0.93,1.07)*10)/10);    /* mL/s */
 const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+let bkX=0, bkUnder=false, jetPhase=0;
 let lvl=0, collecting=false, bV=0, swT=0, dye=null, flashes=[], RX=-40, kind='q', mode='manual', rows=[], curView='iso';
 const Q=()=>QL[lvl];
 function secAt(x){ for(let i=0;i<3;i++) if(x<secX1(i)+GAP/2) return i; return 2; }
-function stepPhys(dt){ if(collecting){ bV=Math.min(500,bV+Q()*dt); swT+=dt; if(bV>=500){ collecting=false; lockWarn('บีกเกอร์เต็มแล้ว'); } }
+function stepPhys(dt){ const tg=collecting?landX()+1.2:BK_REST; bkX+=Math.sign(tg-bkX)*Math.min(Math.abs(tg-bkX),45*dt); bkUnder=collecting&&Math.abs(bkX-tg)<0.05;
+  if(bkUnder){ bV=Math.min(500,bV+Q()*dt); swT+=dt; if(bV>=500){ collecting=false; lockWarn('บีกเกอร์เต็มแล้ว'); } }
+  jetPhase+=dt;
   if(dye&&!dye.done){ const n=Math.max(1,Math.ceil(dt/0.002)), h=dt/n; for(let k=0;k<n;k++){ const v=Q()/secA(secAt(dye.x)); dye.x+=v*h; dye.t+=h;
       if(dye.t>=dye.nextF){ flashes.push(dye.x); dye.nextF+=FLASH; } if(dye.x>=secX1(2)){ dye.done=true; break; } } } }
 function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
@@ -349,7 +352,7 @@ function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)
 function setLvl(i){ if(collecting){ lockWarn('หยุดเก็บน้ำก่อนเปลี่ยนวาล์ว'); return; } lvl=i; markBtns('#lvlBtns',i); dye=null; flashes=[]; syncCtl(); drawAll(); }
 function cycleLvl(){ setLvl((lvl+1)%4); }
 function toggleCollect(){ collecting=!collecting; if(collecting&&bV>=499){ collecting=false; lockWarn('เทบีกเกอร์ก่อน'); } setKind('q'); syncCtl(); drawAll(); }
-function emptyBeaker(){ collecting=false; bV=0; swT=0; syncCtl(); drawAll(); }
+function emptyBeaker(){ collecting=false; bV=0; swT=0; bkUnder=false; syncCtl(); drawAll(); }
 function injectDye(){ if(dye&&!dye.done){ lockWarn('สีกำลังไหลอยู่'); return; } dye={x:X0,t:0,nextF:FLASH,done:false}; flashes=[]; setKind('v'); drawAll(); }
 function nudgeRuler(k){ cancelHand(); RX=Math.max(X0-2,Math.min(secX1(2)-2,Math.round((RX+k)*100)/100)); drawAll(); }
 function setKind(k){ kind=k; markBtns('#kindBtns',k==='q'?0:1); const q=k==='q';
@@ -358,12 +361,12 @@ function setKind(k){ kind=k; markBtns('#kindBtns',k==='q'?0:1); const q=k==='q';
 function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
   $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }
   ['in-1','in-2'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; }); $('modeNote').textContent= m==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริง':'โหมดวัดเอง: อ่านสเกลในภาพ 3D'; $('ansDMsg').innerHTML=''; renderAll(); }
-function resetLab(){ cancelHand(); lvl=0; markBtns('#lvlBtns',0); emptyBeaker(); dye=null; flashes=[]; RX=-40; setKind('q'); recMsg('',''); setView('iso'); drawAll(); }
+function resetLab(){ cancelHand(); bkX=BK_REST; lvl=0; markBtns('#lvlBtns',0); emptyBeaker(); dye=null; flashes=[]; RX=-40; setKind('q'); recMsg('',''); setView('iso'); drawAll(); }
 function knownTxt(){ return 'วาล์วระดับ '+(lvl+1); }
 function syncCtl(){ const kn=knownTxt(); if($('in-known').value!==kn) $('in-known').value=kn; const s=(id,t)=>{ const e=$(id); if(e&&e.textContent!==t) e.textContent=t; };
   s('ab-valve','🔧 วาล์ว ระดับ '+(lvl+1)); s('ab-col',collecting?'⏹ หยุดเก็บน้ำ':'🥛 เริ่มเก็บน้ำ'); s('colBtn',collecting?'⏹ หยุดเก็บน้ำ (นาฬิกาหยุดด้วย)':'🥛 เริ่มเก็บน้ำ (นาฬิกาเริ่มเอง)'); }
 function hintState(){ const nq=l=>rows.filter(r=>r.k==='q'&&r.lvl===l).length, nv=(l,s)=>rows.filter(r=>r.k==='v'&&r.lvl===l&&r.sec===s).length, levels=[0,1,2,3].filter(l=>nq(l)&&[0,1,2].every(s=>nv(l,s)));
-  if(collecting) return ['info','กำลังเก็บน้ำ — รอราว 10 s แล้วกด <b>⏹ หยุดเก็บน้ำ</b> · อ่านบีกเกอร์ (🥛) และนาฬิกา (⏱)'];
+  if(collecting) return ['info','บีกเกอร์เลื่อนไปรองสายน้ำ นาฬิกาเริ่มเดินเมื่อน้ำเริ่มลงบีกเกอร์ — รอราว 10 s แล้วกด <b>⏹ หยุดเก็บน้ำ</b> · อ่านบีกเกอร์ (🥛) และนาฬิกา (⏱)'];
   if(dye&&!dye.done) return ['info','สีกำลังไหล กล้องถ่ายแฟลชทุก 0.10 s — รอให้ถึงปลายท่อ'];
   if(!nq(lvl)) return ['info','วาล์วระดับ '+(lvl+1)+': วัด Q ก่อน — <b>🥛 เริ่มเก็บน้ำ</b> → หยุด → อ่าน V และ t → บันทึกแบบ <b>อัตราการไหล Q</b>'];
   if(!flashes.length) return ['info','กด <b>💉 ฉีดสี + แฟลช</b> แล้วรอสีไหลถึงปลายท่อ'];
@@ -412,10 +415,13 @@ function checkD(){ const v=parseFloat($('ans-d').value), el=$('ansDMsg'); if(isN
 
 /* ═══════════ 3D ═══════════ */
 let renderer,scene,camera,P={},TEXS=[];
-const BK=[X0+3*(L+GAP)+6,0,2], SW=[BK[0]+2,4,13], RUL_L=30;
+const OX=X0+3*L+2*GAP+4, BK_REST=OX+13, BK=[BK_REST,0,0], SW=[BK_REST+2,4,13], RUL_L=30, GC=980;   /* OX = ปลายท่อทางออก */
+const v0=()=>Q()/secA(2);                                   /* ความเร็วน้ำที่ปากท่อ (cm/s) */
+const jetEndY=()=>bkUnder?0.3+0.4+bV/(Math.PI*16):0.3;      /* ผิวน้ำในบีกเกอร์ หรือถาดรองด้านล่าง */
+const landX=()=>OX+v0()*Math.sqrt(2*(PY-0.3)/GC);
 const orbit={target:null,dist:120,az:0.15,el:0.3};
 function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360); return Math.max(3,Math.min(600, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
-const VIEWS={ iso:{t:[0,10,0], d:()=>fitDist(118,40), az:0.08, el:0.3}, rul:{follow:()=>[RX+RUL_L/2,PY,1.4], d:()=>fitDist(34,8), az:0.0001, el:0.02}, bk:{t:[BK[0],5,BK[2]+2], d:()=>fitDist(14,14), az:0.0001, el:0.05}, sw:{t:SW, d:()=>fitDist(12,8), az:0.0001, el:0.1} };
+const VIEWS={ iso:{t:[4,11,0], d:()=>fitDist(124,44), az:0.08, el:0.28}, rul:{follow:()=>[RX+RUL_L/2,PY,1.4], d:()=>fitDist(34,8), az:0.0001, el:0.02}, bk:{follow:()=>[bkX,6,2], d:()=>fitDist(16,15), az:0.0001, el:0.05}, sw:{t:SW, d:()=>fitDist(12,8), az:0.0001, el:0.1} };
 const vnum=q=>(typeof q==='function')?q():q;
 function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){} t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding; t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
 function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
@@ -452,9 +458,15 @@ function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('no
   P.dyeInj=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,6,12),new THREE.MeshStandardMaterial({color:0xbe123c})); P.dyeInj.position.set(X0+1,PY+4,0); scene.add(P.dyeInj);
   /* ทางออก → บีกเกอร์ */
   const out=new THREE.Mesh(new THREE.CylinderGeometry(secD(2)/2+0.12,secD(2)/2+0.12,4,16),met); out.rotation.z=Math.PI/2; out.position.set(secX1(2)+2,PY,0); scene.add(out);
-  P.stream=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,1,8),water); scene.add(P.stream);
-  P.sink=new THREE.Mesh(new THREE.BoxGeometry(12,1,14),new THREE.MeshStandardMaterial({color:0x334155})); P.sink.position.set(BK[0],0.5,-8); scene.add(P.sink);
-  P.bk=new THREE.Group(); P.bk.position.set(BK[0],0,BK[2]); scene.add(P.bk); const bkm=new THREE.Mesh(new THREE.CylinderGeometry(4.1,4.1,11,32,1,true),glass); bkm.position.y=5.5; P.bk.add(bkm);
+  /* สายน้ำพุ่งจากปากท่อ: ลายไหลเลื่อนตามเวลา · ถาดรองน้ำ · ระลอกตรงจุดตก */
+  const stripe=canvasTex(64,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,w,0); gr.addColorStop(0,'rgba(186,230,253,.55)'); gr.addColorStop(0.5,'rgba(56,189,248,.9)'); gr.addColorStop(1,'rgba(186,230,253,.55)'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.fillStyle='rgba(255,255,255,.55)'; for(let k=0;k<4;k++) g.fillRect(k*16,0,5,h); });
+  stripe.wrapS=stripe.wrapT=THREE.RepeatWrapping; stripe.repeat.set(5,1); P.jetTex=stripe;
+  P.jet=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshStandardMaterial({map:stripe,color:0xbae6fd,transparent:true,opacity:.85,roughness:.15,depthWrite:false})); P.jet.renderOrder=5; scene.add(P.jet); P.jetKey='';
+  P.sink=new THREE.Mesh(new THREE.BoxGeometry(14,0.3,12),new THREE.MeshStandardMaterial({color:0x334155,roughness:.6})); P.sink.position.set(OX+4,0.15,0); scene.add(P.sink);
+  const sinkW=new THREE.Mesh(new THREE.BoxGeometry(13,0.05,11),new THREE.MeshStandardMaterial({color:0x7dd3fc,transparent:true,opacity:.35})); sinkW.position.set(OX+4,0.32,0); scene.add(sinkW);
+  P.ripple=new THREE.Mesh(new THREE.RingGeometry(0.6,0.75,32),new THREE.MeshBasicMaterial({color:0xe0f2fe,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false})); P.ripple.rotation.x=-Math.PI/2; scene.add(P.ripple);
+  P.ripple2=P.ripple.clone(); P.ripple2.material=P.ripple.material.clone(); scene.add(P.ripple2);
+  P.bk=new THREE.Group(); P.bk.position.set(BK_REST,0.3,0); scene.add(P.bk); bkX=BK_REST; const bkm=new THREE.Mesh(new THREE.CylinderGeometry(4.1,4.1,11,32,1,true),glass); bkm.position.y=5.5; P.bk.add(bkm);
   const bks=new THREE.Mesh(new THREE.PlaneGeometry(1.8,500/(Math.PI*16)+0.4),new THREE.MeshBasicMaterial({map:canvasTex(256,2400,beakerFn),transparent:true,depthWrite:false})); bks.position.set(-0.6,(500/(Math.PI*16)+0.4)/2+0.4,4.12); P.bk.add(bks);
   P.bw=new THREE.Mesh(new THREE.CylinderGeometry(4,4,1,32),new THREE.MeshStandardMaterial({color:0x38bdf8,transparent:true,opacity:.5})); P.bk.add(P.bw); P.bkParts=[bkm,bks];
   const swb=new THREE.Mesh(new THREE.BoxGeometry(10,6,2),new THREE.MeshStandardMaterial({color:0x1f2937})); swb.position.set(SW[0],SW[1],SW[2]-1.05); scene.add(swb); P.swTex=canvasTex(1024,512,swFn); const sws=new THREE.Mesh(new THREE.PlaneGeometry(9.4,4.7),new THREE.MeshBasicMaterial({map:P.swTex})); sws.position.set(...SW); scene.add(sws);
@@ -474,10 +486,21 @@ function update3D(){ if(!scene) return;
     P.fl.forEach((m,k)=>{ m.visible=k<flashes.length; if(k<flashes.length){ const x=flashes[k], s=secAt(x), r=secD(s)/2+0.14; m.scale.set(r,1,r); m.position.set(x,PY,0); } }); }
   P.ruler.position.set(RX+RUL_L/2,PY-1.3,Math.max(...[0,1,2].map(secD))/2+0.35);
   const bh=bV/(Math.PI*16); P.bw.visible=bV>0.5; P.bw.scale.y=Math.max(0.01,bh); P.bw.position.y=0.4+bh/2;
-  const sx=secX1(2)+4.2; if(collecting){ P.stream.visible=true; const y1=0.4+bh; P.stream.scale.y=PY-y1; P.stream.position.set(BK[0],(PY+y1)/2,BK[2]); } else { P.stream.visible=true; P.stream.scale.y=PY-1; P.stream.position.set(BK[0],(PY+1)/2,-8); }
+  P.bk.position.x=bkX; updateJet();
   const k=swT.toFixed(2)+collecting; if(k!==swKey){ swKey=k; redrawTex(P.swTex); }
   const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
   const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
+function updateJet(){ const u=v0(), yE=jetEndY(), key=u.toFixed(2)+'|'+yE.toFixed(1);
+  if(key!==P.jetKey){ P.jetKey=key; const T=Math.sqrt(2*(PY-yE)/GC), N=28, r0=secD(2)/2*0.92;
+    const pts=[]; for(let k=0;k<=N;k++){ const t=T*k/N; pts.push(new THREE.Vector3(OX+u*t,PY-0.5*GC*t*t,0)); }
+    pts.unshift(new THREE.Vector3(OX-0.6,PY,0));
+    const curve=new THREE.CatmullRomCurve3(pts), seg=48, rad=12, geo=new THREE.TubeGeometry(curve,seg,r0,rad,false), pos=geo.attributes.position;
+    for(let i=0;i<=seg;i++){ const c=curve.getPointAt(i/seg), v=Math.sqrt(u*u+2*GC*Math.max(0,PY-c.y)), f=Math.max(0.12/r0,Math.sqrt(u/Math.max(u,v)));
+      for(let j=0;j<=rad;j++){ const idx=i*(rad+1)+j; pos.setXYZ(idx,c.x+(pos.getX(idx)-c.x)*f,c.y+(pos.getY(idx)-c.y)*f,c.z+(pos.getZ(idx)-c.z)*f); } }
+    pos.needsUpdate=true; geo.computeVertexNormals(); P.jet.geometry.dispose(); P.jet.geometry=geo;
+    P.landing=new THREE.Vector3(OX+u*T,yE+0.02,0); }
+  P.jetTex.offset.x=-(jetPhase*1.6)%1;
+  [P.ripple,P.ripple2].forEach((m,k)=>{ const ph=((jetPhase*1.5)+k*0.5)%1; m.position.copy(P.landing); m.scale.setScalar(0.5+ph*2.2); m.material.opacity=0.7*(1-ph); }); }
 function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView)); if(!V||!orbit.target) return; const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
 /* ลากไม้บรรทัด · แตะวาล์ว/บีกเกอร์/หัวฉีดสี */
@@ -487,7 +510,7 @@ let RAY=null,NDC=null;
 function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); } const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null; NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
 function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.ruler) return null;
   if(RAY.intersectObjects(P.valveParts,false).length) return 'valve'; if(RAY.intersectObjects(P.bkParts,false).length) return 'bk'; if(RAY.intersectObject(P.dyeInj,false).length) return 'dye'; if(RAY.intersectObject(P.ruler,false).length) return 'rul';
-  const R0=Math.max(40,Math.min(rc.width,rc.height)*0.08), C=[]; [['rul',new THREE.Vector3(RX+RUL_L/2,PY-1.3,1.4)],['valve',P.valve.position.clone()],['bk',new THREE.Vector3(BK[0],5,BK[2])],['dye',P.dyeInj.position.clone()]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
+  const R0=Math.max(40,Math.min(rc.width,rc.height)*0.08), C=[]; [['rul',new THREE.Vector3(RX+RUL_L/2,PY-1.3,1.4)],['valve',P.valve.position.clone()],['bk',new THREE.Vector3(bkX,5,0)],['dye',P.dyeInj.position.clone()]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
   C.sort((a,b)=>a[1]-b[1]); return C.length&&C[0][1]<=R0?C[0][0]:null; }
 function ptrX(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; const z0=Math.max(...[0,1,2].map(secD))/2+0.35; if(Math.abs(r.z)<1e-3) return null; const s=(z0-o.z)/r.z; if(s<=0) return null; return o.x+r.x*s; }
 function hdStart(cx,cy){ const w=pickAt(cx,cy); if(!w) return false; if(w==='valve'){ cycleLvl(); return false; } if(w==='bk'){ toggleCollect(); return false; } if(w==='dye'){ injectDye(); return false; }
