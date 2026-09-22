@@ -3535,7 +3535,7 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py`, `_admin/protect_new_file.py`, `_admin/build_virtual_lab.py`, `CLAUDE.md` · build + bump `?v=20260923`
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ได้ push Lab 108
+- ✅ push Lab 108 + ชุด VPL06 ขึ้นเว็บแล้ว (ตรวจเว็บจริง: Lab 108 = 200 · virtual-physics-lab-06.html = 200 · kp-auth มี vpl06 · หน้าแรก 109 แลป)
 - แผนชุด VPL06: 109 ตัวต้านทานอนุกรม-ขนาน · 110 emf กับความต้านทานภายใน · 111 สภาพต้านทานของลวด · 112 เคอร์ชอฟฟ์ · 113 กำลังไฟฟ้า · 114 วีตสโตน · 115 เทอร์มิสเตอร์/LDR
 - สิทธิ์ผู้ชมทั่วไปยังไม่มี vpl05 และ vpl06 (เจ้าของต้องติ๊กเองในการ์ด 🌐)
 
