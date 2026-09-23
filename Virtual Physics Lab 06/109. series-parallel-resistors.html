@@ -243,7 +243,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         <div class="panel-title">🔗 แผงวงจร <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
         <div class="mode-btns" id="wireBtns"><button class="active" onclick="setWire(0)">ต่ออนุกรม</button><button onclick="setWire(1)">ต่อขนาน</button></div>
         <div class="mode-btns" id="resBtns" style="margin-top:6px"><button class="active" onclick="toggleRes(0)">A</button><button class="active" onclick="toggleRes(1)">B</button><button class="active" onclick="toggleRes(2)">❓X</button></div>
-        <div class="note">แตะปุ่มเพื่อใส่/ถอดตัวต้านทาน (ปุ่มสว่าง = อยู่ในวงจร) · <b>ต่ออนุกรม</b> ตัวต้านทานเรียงแถวเดียว สายไฟสีแดงโยงจากขั้ว + ผ่านทุกตัวไปขั้ว − (ช่องที่ถอดออกสายจะข้ามไปเลย) · <b>ต่อขนาน</b> แยกเป็น 3 แถว แต่ละกิ่งมีสายสีของตัวเองจากขั้ว + ไปขั้ว − (กิ่งที่ถอดออกไม่มีสาย)<br>A และ B มีค่าเขียนไว้ที่ตัว · <b style="color:#fda4af">X ไม่บอกค่า</b></div>
+        <div class="note">แตะปุ่มเพื่อใส่/ถอดตัวต้านทาน (ปุ่มสว่าง = อยู่ในวงจร) · <b>ต่ออนุกรม</b> ตัวต้านทานเรียงแถวเดียว สายไฟสีแดงโยงจากขั้ว + ผ่านทุกตัวไปขั้ว − (ช่องที่ถอดออกสายจะข้ามไปเลย) · <b>ต่อขนาน</b> แยกเป็น 3 แถว แต่ละกิ่งมีสายสีของตัวเองจากขั้ว + ไปขั้ว − (กิ่งที่ถอดออกไม่มีสาย)<br>A และ B มีค่าเขียนไว้ที่ตัว · <b style="color:#fda4af">X ไม่บอกค่า</b><br>สายในภาพ: <b style="color:#fca5a5">แดง</b> = จากแอมมิเตอร์เข้าขั้ว + · <b style="color:#cbd5e1">ดำ</b> = จากขั้ว − กลับแหล่งจ่าย (เดินลอดใต้แผง) · <b style="color:#86efac">เขียว</b> = โวลต์มิเตอร์คร่อมทั้งชุด</div>
         <div class="btn-row" style="margin-top:6px"><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-1)">◀ 1 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-0.2)">◀ 0.2 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(0.2)">0.2 V ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(1)">1 V ▶</button></div>
       </div>
       <div class="panel-section">
@@ -486,6 +486,8 @@ function arcWire(a,b,col,lift){ const A=new THREE.Vector3(...a), B=new THREE.Vec
   M.y+=(lift===undefined?1.4:lift)+A.distanceTo(B)*0.04;
   const curve=new THREE.CatmullRomCurve3([A,A.clone().lerp(M,0.4),M,B.clone().lerp(M,0.4),B]);
   return new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.24,10,false),new THREE.MeshStandardMaterial({color:col,roughness:.45})); }
+function pathWire(pts,col,r){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(24,V.length*10),r||0.22,9,false),new THREE.MeshStandardMaterial({color:col,roughness:.55})); }
 function buildWires(){ if(!P.wireGrp) return;
   const key=wire+inCirc.map(v=>v?1:0).join(''); if(key===P.wireKey) return; P.wireKey=key;
   while(P.wireGrp.children.length){ const m=P.wireGrp.children.pop(); m.geometry.dispose(); m.material.dispose(); P.wireGrp.remove(m); }
@@ -538,8 +540,17 @@ function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('no
   P.swHit=new THREE.Mesh(new THREE.BoxGeometry(7,6,5),new THREE.MeshBasicMaterial({visible:false})); P.swHit.position.set(CPX,3,8.2); scene.add(P.swHit);
   P.swLab=labelPlane(7,1.9,'อนุกรม','#fde68a','#0b1220'); P.swLab.position.set(CPX,0.05,10.4); P.swLab.rotation.x=-Math.PI/2; scene.add(P.swLab); P.swLabKey='';
   /* สายไฟหลัก */
-  [[[PSX+9,3,4],[AMX-8,3,4],0xdc2626],[[AMX+8,3,4],[NL,4.2,0],0xdc2626],[[NR,4.2,0],[PSX+9,3,-4],0x1e293b],[[PSX+9,3,-4],[PSX+9,3,4],0x1e293b]].forEach(([a,b,c])=>scene.add(wireMesh(a,b,c)));
-  [[[NL,4.2,0],[VMX-8,3,5.6],0x16a34a],[[NR,4.2,0],[VMX+8,3,-5.6],0x16a34a]].forEach(([a,b,c])=>scene.add(wireMesh(a,b,c)));
+  /* สายเส้นทางหลัก: แหล่งจ่าย → แอมมิเตอร์ → ขั้ว + ของแผง (อยู่เหนือโต๊ะ ด้านซ้าย)
+     สายกลับ (ดำ) และสายโวลต์มิเตอร์ (เขียว) เดินลอดใต้แผงและอ้อมหลัง เพื่อไม่ให้บังวงจรบนแผง */
+  scene.add(wireMesh([PSX+9,3,4],[AMX-8,3,4],0xdc2626));
+  scene.add(pathWire([[AMX+8,3,4],[AMX+11,3.2,2],[NL,4.2,0]],0xdc2626,0.26));
+  scene.add(pathWire([[NR,4.2,0],[NR,1.6,-2],[NR,0.5,-8.6],[0,0.5,-8.6],[PSX+11,1.2,-8.6],[PSX+9,3,-4]],0x1e293b,0.22));
+  scene.add(wireMesh([PSX+9,3,-4],[PSX+9,3,4],0x1e293b));
+  scene.add(pathWire([[NL,4.2,0],[NL,1.6,2],[NL,0.5,8.6],[VMX-8,0.5,8.6],[VMX-8,3,5.6]],0x16a34a,0.2));
+  scene.add(pathWire([[NR,4.2,0],[NR,1.2,1.6],[NR+4,0.5,7.2],[VMX+8,0.6,4],[VMX+8,3,-5.6]],0x16a34a,0.2));
+  /* ป้ายกำกับสายไฟ */
+  const lg1=labelPlane(15,2.2,'สายแดง–ดำ = วงจรหลัก (สายดำเดินใต้แผง)','#fca5a5','#0b1220'); lg1.position.set(PSX+12,0.05,12.5); lg1.rotation.x=-Math.PI/2; scene.add(lg1);
+  const lg2=labelPlane(12,2.2,'สายเขียว = โวลต์มิเตอร์','#86efac','#0b1220'); lg2.position.set(VMX-2,0.05,12.5); lg2.rotation.x=-Math.PI/2; scene.add(lg2);
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redrawTexs()).catch(()=>{});
   setupPointer(cv); resize3D(); setView('iso'); update3D();
   let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%3; if(fr===0){ drawAll(); const e=$('view3d'), sk=e.clientWidth+'x'+e.clientHeight; if(sk!==szKey){ szKey=sk; resizeAll(); } } })(last); }
