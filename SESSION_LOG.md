@@ -3828,5 +3828,5 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py` · build · `?v=` ทุกไฟล์
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- **Lab 114 ยังไม่ commit / push**
+- ✅ push แล้ว (commit `a53335e`) · ตรวจเว็บจริง: Lab 114 = 200 · kp-auth มี lab-114 · หน้า VPL06 มีการ์ด · หน้าแรก 115 แลป
 - ถัดไป: 115 สะพานวีตสโตน · 116 เทอร์มิสเตอร์-LDR
