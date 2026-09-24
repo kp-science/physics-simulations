@@ -59,7 +59,7 @@ const VLAB_SERIES = {
   },
   vpl06: {
     label: 'Virtual Lab 06 (ไฟฟ้ากระแสและวงจร)',
-    labs: ['lab-108','lab-109','lab-110','lab-111','lab-112','lab-113']
+    labs: ['lab-108','lab-109','lab-110','lab-111','lab-112','lab-113','lab-114']
   }
 };
 
