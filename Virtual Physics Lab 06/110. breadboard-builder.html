@@ -247,7 +247,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button onclick="pick('jmp')">🔌 จัมเปอร์</button><button onclick="pick('amm')">🟠 มิเตอร์ ① (A)</button><button onclick="pick('volt')">🟢 มิเตอร์ ② (V)</button>
         </div>
         <div class="btn-row" style="margin-top:7px"><button class="btn btn-outline btn-sm" onclick="pick(null)">✋ วางมือ (ยกเลิกการหยิบ)</button><button class="btn btn-red btn-sm" onclick="removeSel()">🗑 ถอดชิ้นที่เลือก</button></div>
-        <div class="note">แตะรูบนเบรดบอร์ด 2 รูเพื่อวางชิ้นที่หยิบไว้ · <b>ย้ายจุดเชื่อม</b>: แตะชิ้นที่วางแล้ว → แตะวงแหวนที่ปลายสาย (หรือกดปุ่ม "ย้าย" ในรายการด้านล่าง) → แตะรูใหม่ · รูในคอลัมน์เดียวกันฝั่งเดียวกัน (5 รู) ต่อถึงกันภายในเบรดบอร์ด · รางไฟบนล่างแต่ละราง (สีแดง/น้ำเงิน) ต่อถึงกันตลอดแนว<br><b style="color:#fda4af">มิเตอร์ ① ต้องต่ออนุกรม</b> — ถ้าเอาไปคร่อมตัวต้านทานจะกลายเป็นลัดวงจร</div>
+        <div class="note"><b>วิธีวางสายไฟ/อุปกรณ์</b>: กดปุ่มชนิดที่ต้องการ (เช่น 🔌 จัมเปอร์) → ภาพจะซูมลงที่เบรดบอร์ดให้ → แตะรูที่ 1 → แตะรูที่ 2 → สายจะปรากฏพาดระหว่างสองรูนั้น · <b>ย้ายจุดเชื่อม</b>: แตะชิ้นที่วางแล้ว → แตะวงแหวนที่ปลายสาย (หรือกดปุ่ม "ย้าย" ในรายการด้านล่าง) → แตะรูใหม่ · รูในคอลัมน์เดียวกันฝั่งเดียวกัน (5 รู) ต่อถึงกันภายในเบรดบอร์ด · รางไฟบนล่างแต่ละราง (สีแดง/น้ำเงิน) ต่อถึงกันตลอดแนว<br><b style="color:#fda4af">มิเตอร์ ① ต้องต่ออนุกรม</b> — ถ้าเอาไปคร่อมตัวต้านทานจะกลายเป็นลัดวงจร</div>
         <div class="btn-row" style="margin-top:6px"><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-1)">◀ 1 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-0.2)">◀ 0.2 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(0.2)">0.2 V ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(1)">1 V ▶</button></div>
       </div>
       <div class="panel-section">
@@ -402,7 +402,10 @@ function stepPhys(dt){ const f=1-Math.exp(-dt/0.22); nV+=(readV()-nV)*f; nI+=(re
 /* ── การหยิบวาง ── */
 function countOf(k){ return elems.filter(e=>e.kind===k).length; }
 function pick(k){ moveEnd=null; if(k&&countOf(k)>=KINDS[k].max){ lockWarn(KINDS[k].n+' มีในวงจรแล้ว (ถอดก่อนจึงจะวางใหม่ได้)'); return; }
-  held=k; pending=null; sel=null; syncCtl(); drawAll(); }
+  held=k; pending=null; sel=null;
+  if(k&&curView!=='bb') setView('bb');            /* หยิบของ = ซูมลงมาที่เบรดบอร์ดให้อัตโนมัติ รูจะใหญ่ แตะง่าย */
+  if(k) lockWarn('แตะรูที่ 1 แล้วแตะรูที่ 2 — '+KINDS[k].n+'จะปรากฏพาดระหว่างสองรูนั้น');
+  buildParts(); syncCtl(); drawAll(); }
 function place(a,b){ const k=held;
   if(a.c===b.c&&a.r===b.r){ pending=null; lockWarn('ต้องเป็นคนละรู'); return; }
   elems.push({id:eid++,kind:k,a,b}); const same=nodeOf(a)===nodeOf(b);
@@ -644,6 +647,9 @@ function buildParts(){ if(!P.parts) return;
     m.rotation.x=-Math.PI/2; m.position.set(p[0],1.35,p[2]); m.userData.endOf={id:e.id,k}; P.parts.add(m);
     const hit=new THREE.Mesh(new THREE.CircleGeometry(1.15,16),new THREE.MeshBasicMaterial({visible:false}));   /* แผ่นรับสัมผัสกลางวงแหวน (โดนัทมีรูตรงกลาง) */
     hit.rotation.x=-Math.PI/2; hit.position.set(p[0],1.5,p[2]); hit.userData.endOf={id:e.id,k}; P.parts.add(hit); }); } }
+function setHover(h){ const key=h?h.c+'_'+h.r:''; if(key===P.hovKey) return; P.hovKey=key;
+  if(!P.hov){ P.hov=new THREE.Mesh(new THREE.RingGeometry(0.55,0.95,20),new THREE.MeshBasicMaterial({color:0xfde047,transparent:true,opacity:.85,side:THREE.DoubleSide})); P.hov.rotation.x=-Math.PI/2; scene.add(P.hov); }
+  P.hov.visible=!!h; if(h){ const p=holePos(h); P.hov.position.set(p[0],1.3,p[2]); } }
 function update3D(){ if(!scene) return;
   P.knob.rotation.y=-(Vs/VMAX)*Math.PI*1.5;
   const dk=Vs.toFixed(1); if(dk!==P.dialKey){ P.dialKey=dk; redrawTex(P.dial.material.map); }
@@ -663,13 +669,14 @@ function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.board) return null;
   if(pr.length&&(!bd.length||pr[0].distance<bd[0].distance+0.6)&&pr[0].object.userData.eid) return {t:'part',eid:pr[0].object.userData.eid};
   if(bd.length){ const p=bd[0].point, lx=p.x, lz=p.z-BBZ;
     let best=null,bd2=9; for(let c=0;c<COLS;c++) for(let r=0;r<12;r++){ const d=Math.hypot(lx-holeX(c),lz-holeZ(r)); if(d<bd2){ bd2=d; best={c,r}; } }
-    if(best&&bd2<0.85) return {t:'hole',h:best}; return {t:'board'}; }
+    if(best&&bd2<1.7) return {t:'hole',h:best}; return {t:'board'}; }
   if(RAY.intersectObject(P.amFace,false).length) return {t:'am'}; if(RAY.intersectObject(P.vmFace,false).length) return {t:'vm'};
   return null; }
 function tapAt(cx,cy){ const p=pickAt(cx,cy); if(!p) return false;
   if(p.t==='knob'){ setView('iso'); return true; }
   if(p.t==='am'){ setView('am'); return true; } if(p.t==='vm'){ setView('vm'); return true; }
   if(p.t==='hole'){ tapHole(p.h); buildParts(); return true; }
+  if(p.t==='board'){ if(held||moveEnd) lockWarn('แตะให้ตรงแถวของรูบนเบรดบอร์ด (กด 🧩 เบรดบอร์ด เพื่อซูมเข้าไปใกล้ ๆ)'); return true; }
   if(p.t==='end'){ if(moveEnd&&moveEnd.id===p.e.id&&moveEnd.k===p.e.k) moveEnd=null; else startMove(p.e.id,p.e.k); buildParts(); syncCtl(); drawAll(); return true; }
   if(p.t==='part'){ sel= sel===p.eid?null:p.eid; moveEnd=null; held=null; pending=null; if(sel!=null) lockWarn('แตะวงแหวนที่ปลายสาย (หรือปุ่ม "ย้าย" ในรายการ) เพื่อย้ายไปรูอื่น'); buildParts(); syncCtl(); drawAll(); return true; }
   return false; }
@@ -688,7 +695,10 @@ function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0,sx:0,sy:0
   const begin=(x,y,pan)=>{ T.mode=pan?'pan':'rot'; T.lx=T.sx=x; T.ly=T.sy=y; T.moved=false; };
   const drag=(x,y)=>{ if(Math.hypot(x-T.sx,y-T.sy)>6) T.moved=true; const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); };
   cv.addEventListener('mousedown',e=>{ e.preventDefault(); if(e.button===0&&!e.shiftKey&&!panMode&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; T.moved=false; T.sx=e.clientX; T.sy=e.clientY; return; } begin(e.clientX,e.clientY,e.button===1||e.button===2||e.shiftKey||panMode); T.btn0=e.button===0&&!e.shiftKey; });
-  cv.addEventListener('mousemove',e=>{ if(T.mode) return; const p=pickAt(e.clientX,e.clientY); cv.style.cursor= p&&p.t==='knob'?'ew-resize':(p&&(p.t==='hole'||p.t==='part'||p.t==='am'||p.t==='vm')?'pointer':'grab'); });
+  cv.addEventListener('mousemove',e=>{ if(T.mode){ setHover(null); return; } const p=pickAt(e.clientX,e.clientY);
+    setHover((held||moveEnd)&&p&&p.t==='hole'? p.h : null);
+    cv.style.cursor= p&&p.t==='knob'?'ew-resize':(p&&(p.t==='hole'||p.t==='part'||p.t==='am'||p.t==='vm'||p.t==='end')?'pointer':'grab'); });
+  cv.addEventListener('mouseleave',()=>setHover(null));
   window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; return; } if(T.mode==='hand'){ if(Math.hypot(e.clientX-T.sx,e.clientY-T.sy)>6) T.moved=true; hdMove(e.clientX,e.clientY); return; } drag(e.clientX,e.clientY); });
   window.addEventListener('mouseup',e=>{ if(T.mode==='hand'){ hdEnd(); if(!T.moved) tapAt(e.clientX,e.clientY); } else if(T.mode&&T.mode!=='pinch'&&!T.moved&&T.btn0) tapAt(e.clientX,e.clientY); if(T.mode!=='pinch') T.mode=null; });
   window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
