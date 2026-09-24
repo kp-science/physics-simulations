@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 110 — ต่อวงจรบนเบรดบอร์ดด้วยตัวเอง (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl06:lab-110">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🧰</div>
+  <div>
+    <h1>Lab 110 — ต่อวงจรบนเบรดบอร์ดด้วยตัวเอง (3D)</h1>
+    <p>Build Your Own Circuit — หยิบตัวต้านทาน สายจัมเปอร์ สายแหล่งจ่าย และมัลติมิเตอร์จากกล่องอุปกรณ์ แล้วแตะรูบนเบรดบอร์ดเพื่อวางเอง · เลือกเองว่าจะวัดกระแสตรงจุดไหน (ต่ออนุกรม) และวัดความต่างศักย์คร่อมอะไร · โปรแกรมคำนวณวงจรที่ต่อจริงด้วยกฎของโอห์มและกฎของเคอร์ชอฟฟ์ · หาค่าตัวต้านทานปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องทำ:</b> ต่อวงจรเองบนเบรดบอร์ดให้กระแสไหลครบวง · ใส่มัลติมิเตอร์ ① <b>อนุกรม</b>ในทางเดินกระแส และมัลติมิเตอร์ ② <b>คร่อม</b>ชิ้นที่ต้องการ · อ่าน V กับ I แล้วหา R = V/I — <span style="color:var(--muted)">รายละเอียดอยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)">✋ เลื่อนภาพ</button>
+          <button id="mtBtn" onclick="cycleMeterType()" title="สลับหน้าปัดมิเตอร์ระหว่างแบบเข็มกับแบบดิจิทัล">🔢 มิเตอร์เข็ม</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="bb" onclick="setView('bb')">🧩 เบรดบอร์ด</button>
+          <button data-vw="am" onclick="setView('am')">🔍 มิเตอร์ ① A</button>
+          <button data-vw="vm" onclick="setView('vm')">🔍 มิเตอร์ ② V</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 แตะอุปกรณ์ในกล่อง (หรือกดปุ่มด้านล่าง) = หยิบ · แตะ<b>รูบนเบรดบอร์ด</b> 2 รู = วางคร่อมสองรูนั้น · แตะชิ้นที่วางแล้ว = เลือกเพื่อถอด · <b>ลากปุ่มกลม</b>บนแหล่งจ่าย = ปรับแรงดัน<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = แตะ/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — แลปนี้ต้องใช้ภาพ 3D</div>
+      </div>
+      <div class="actbar" id="actBar" style="grid-template-columns:repeat(8,1fr)">
+        <button id="ab-src" style="background:#b45309" onclick="pick('src')">🔋 สายไฟเลี้ยง</button>
+        <button id="ab-a"   style="background:#0369a1" onclick="pick('A')">🟫 R<sub>A</sub></button>
+        <button id="ab-b"   style="background:#047857" onclick="pick('B')">🟫 R<sub>B</sub></button>
+        <button id="ab-x"   style="background:#9f1239" onclick="pick('X')">🟫 ❓X</button>
+        <button id="ab-j"   style="background:#475569" onclick="pick('jmp')">🔌 จัมเปอร์</button>
+        <button id="ab-am"  style="background:#ea580c" onclick="pick('amm')">🟠 มิเตอร์ ① A</button>
+        <button id="ab-vm"  style="background:#16a34a" onclick="pick('volt')">🟢 มิเตอร์ ② V</button>
+        <button id="ab-rec" style="background:#4338ca" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด <span style="font-weight:400;color:var(--muted);font-size:.74rem">— อ่านหน้าปัดตอนเข็มนิ่งแล้ว</span>
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① วัดอะไรอยู่ <small>— บันทึกให้อัตโนมัติ</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.76rem"></span></label>
+          <label class="rf-f"><span>② ความต่างศักย์ V</span><span class="rf-in"><input class="val-input" type="number" id="in-v" step="0.01" inputmode="decimal" placeholder="?"> V</span></label>
+          <label class="rf-f"><span>③ กระแส I</span><span class="rf-in"><input class="val-input" type="number" id="in-i" step="0.001" inputmode="decimal" placeholder="?"> A</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns"><button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button><button onclick="setMode('auto')">⚡ อัตโนมัติ</button></div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — รื้อวงจร · แหล่งจ่าย 0 V · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและค่าปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🧰 กล่องอุปกรณ์ <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="pickBtns">
+          <button onclick="pick('src')">🔋 สายไฟเลี้ยง</button><button onclick="pick('A')">R<sub>A</sub> 22 Ω</button><button onclick="pick('B')">R<sub>B</sub> 47 Ω</button><button onclick="pick('X')" style="color:#fda4af">❓ R<sub>X</sub></button>
+          <button onclick="pick('jmp')">🔌 จัมเปอร์</button><button onclick="pick('amm')">🟠 มิเตอร์ ① (A)</button><button onclick="pick('volt')">🟢 มิเตอร์ ② (V)</button>
+        </div>
+        <div class="btn-row" style="margin-top:7px"><button class="btn btn-outline btn-sm" onclick="pick(null)">✋ วางมือ (ยกเลิกการหยิบ)</button><button class="btn btn-red btn-sm" onclick="removeSel()">🗑 ถอดชิ้นที่เลือก</button></div>
+        <div class="note">แตะรูบนเบรดบอร์ด 2 รูเพื่อวางชิ้นที่หยิบไว้ · รูในคอลัมน์เดียวกันฝั่งเดียวกัน (5 รู) ต่อถึงกันภายในเบรดบอร์ด · รางไฟบนล่างแต่ละราง (สีแดง/น้ำเงิน) ต่อถึงกันตลอดแนว<br><b style="color:#fda4af">มิเตอร์ ① ต้องต่ออนุกรม</b> — ถ้าเอาไปคร่อมตัวต้านทานจะกลายเป็นลัดวงจร</div>
+        <div class="btn-row" style="margin-top:6px"><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-1)">◀ 1 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-0.2)">◀ 0.2 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(0.2)">0.2 V ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(1)">1 V ▶</button></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">🔬 เครื่องมือวัด</div>
+        <div class="mode-btns" id="mtBtns"><button class="active" onclick="setMeterType(0)">🧭 แบบเข็ม</button><button onclick="setMeterType(1)">🔢 แบบดิจิทัล</button></div>
+        <div class="panel-title" style="margin-top:8px">ย่านวัดของมัลติมิเตอร์ ① (DCA)</div>
+        <div class="mode-btns" id="rangeBtns"><button class="active" onclick="setRange(0)">200 mA</button><button onclick="setRange(1)">1 A</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🔌 ชิ้นที่วางอยู่บนเบรดบอร์ด</div><div id="partList" style="font-size:.76rem;line-height:1.7"></div></div>
+      <div id="autoCtrl" class="panel-section hidden"><div class="panel-title">⚡ ค่าจากแบบจำลอง</div><div class="readout-grid" id="autoGrid"></div></div>
+      <div class="panel-section"><div class="panel-title">📊 ผลที่บันทึกล่าสุด</div><div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก</span></div></div>
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">R = V / I ของสิ่งที่โวลต์มิเตอร์คร่อมอยู่</div><div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-actions"><button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button><button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button><button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">📈 กราฟ V – I</div><canvas id="graphCanvas"></canvas><div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">ความต้านทานของ ❓X =<input class="val-input" type="number" id="ans-r" step="0.1" inputmode="decimal" placeholder="?"> Ω <button class="btn btn-green btn-sm" onclick="checkR()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansRMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">ถือว่าถูกเมื่อคลาดไม่เกิน 5% · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>ต่อวงจรไฟฟ้าบนเบรดบอร์ดจากอุปกรณ์จริง โดยเข้าใจว่ารูใดต่อถึงกันภายในเบรดบอร์ด</li>
+      <li>เลือกจุดต่อมิเตอร์ได้ถูกต้อง: แอมมิเตอร์ต่ออนุกรมในทางเดินกระแส · โวลต์มิเตอร์ต่อคร่อมสิ่งที่ต้องการวัด</li>
+      <li>หาความต้านทานจาก R = V/I และตรวจสอบกฎการต่ออนุกรม–ขนานด้วยวงจรที่ตัวเองต่อ</li>
+      <li>อธิบายผลของการต่อผิด เช่น เอาแอมมิเตอร์ไปคร่อมตัวต้านทาน (ลัดวงจร) หรือวงจรไม่ครบวง (ไม่มีกระแส)</li>
+    </ol>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>เบรดบอร์ด: รางไฟบน (+, แดง) และล่าง (−, น้ำเงิน) ต่อถึงกันตลอดแนว · ช่องกลางแบ่งเป็นคอลัมน์ แต่ละคอลัมน์ฝั่งบน 5 รู และฝั่งล่าง 5 รู ต่อถึงกันเฉพาะภายในฝั่งเดียวกัน</li>
+      <li>แหล่งจ่ายไฟตรง 0–10 V (ลากปุ่มกลม) พร้อมสายไฟเลี้ยงที่ต้องเสียบลงเบรดบอร์ดเอง</li>
+      <li>ตัวต้านทาน R<sub>A</sub> 22 Ω · R<sub>B</sub> 47 Ω · ❓R<sub>X</sub> (ไม่บอกค่า) · สายจัมเปอร์ 4 เส้น</li>
+      <li>มัลติมิเตอร์ ① ตั้ง DCA (2 ย่าน) และ ② ตั้ง DCV — ต่อสายวัดลงเบรดบอร์ดเองเช่นกัน · หน้าปัดสลับเข็ม/ดิจิทัลได้</li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>หยิบ <b>🔋 สายไฟเลี้ยง</b> แล้วแตะรูรางไฟ + และ − (หรือรูใดก็ได้ที่ต้องการให้เป็นจุดจ่ายไฟ)</li>
+      <li>หยิบ <b>R<sub>A</sub></b> วางคร่อมสองคอลัมน์ · ใช้ <b>จัมเปอร์</b> ต่อจากรางไฟมาที่ขาตัวต้านทานให้ครบวง</li>
+      <li>หยิบ <b>มิเตอร์ ①</b> แล้ววาง<b>อนุกรม</b> คั่นในทางเดินกระแส (เช่น ระหว่างรางไฟกับขาตัวต้านทาน) · หยิบ <b>มิเตอร์ ②</b> วาง<b>คร่อม</b>ตัวต้านทาน</li>
+      <li>ปรับแรงดัน อ่าน V และ I บันทึก แล้วเปลี่ยนแรงดันอีก 3–4 ค่า · หา R จากความชันกราฟ</li>
+      <li>ทำซ้ำกับ R<sub>B</sub> และ ❓R<sub>X</sub> · ลองต่ออนุกรมและขนานด้วยตัวเอง แล้วตรวจว่าค่ารวมตรงกับสูตรหรือไม่</li>
+    </ol>
+    <div class="note-box">⚠️ ลองผิดได้ ระบบไม่ตัดคะแนน — ถ้าวงจรไม่ครบวงจะไม่มีกระแส ถ้าเอามิเตอร์ ① ไปคร่อมตัวต้านทานจะลัดวงจรและมีคำเตือน · อ่านค่าจากหน้าปัดเอง (โหมดวัดค่าเองไม่บอกตัวเลข)</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>รูใดบนเบรดบอร์ดที่ต่อถึงกัน และรู้ได้อย่างไร</li>
+      <li>ทำไมแอมมิเตอร์จึงต้องต่ออนุกรม ไม่ใช่คร่อม</li>
+      <li>ถ้าเสียบตัวต้านทานทั้งสองขาในคอลัมน์เดียวกัน (ฝั่งเดียวกัน) จะเกิดอะไรขึ้น เพราะเหตุใด</li>
+      <li>ถ้าต้องการวัดกระแสที่ผ่านตัวต้านทานเพียงตัวเดียวในวงจรขนาน ต้องวางแอมมิเตอร์ตรงไหน</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. เบรดบอร์ดต่อถึงกันอย่างไร</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="250"></canvas></div>
+    <p>ภายในเบรดบอร์ดมีแถบโลหะซ่อนอยู่: รางไฟบนและล่างเป็นแถบยาวตลอดแนว ส่วนช่องกลางแยกเป็นคอลัมน์ คอลัมน์หนึ่งฝั่งบนมี 5 รูที่ต่อถึงกัน และฝั่งล่างอีก 5 รูที่ต่อถึงกัน แต่<b>สองฝั่งไม่ต่อถึงกัน</b> (มีร่องกลางคั่น)</p>
+    <div class="formula-box">รูที่ต่อถึงกัน = จุดต่อ (node) เดียวกัน · ความต่างศักย์ระหว่างรูในโหนดเดียวกัน = 0<br>ขาอุปกรณ์ 2 ขาที่เสียบในโหนดเดียวกัน = ลัดวงจรอุปกรณ์นั้น (กระแสไหลผ่านแถบโลหะแทน)</div>
+    <h2>2. การต่อมิเตอร์</h2>
+    <div class="formula-box">แอมมิเตอร์: ต่อ<b>อนุกรม</b> — ตัดทางเดินกระแสแล้วให้กระแสไหลผ่านมิเตอร์ (ความต้านทานต่ำมาก)<br>โวลต์มิเตอร์: ต่อ<b>คร่อม</b> — วางขนานกับสิ่งที่ต้องการวัด (ความต้านทานสูงมาก)</div>
+    <h2>3. โปรแกรมคำนวณวงจรอย่างไร</h2>
+    <p>ทุกครั้งที่วางหรือถอดอุปกรณ์ โปรแกรมจะไล่ว่ารูใดเป็นโหนดเดียวกัน แล้วแก้สมการของวงจรด้วยวิธีวิเคราะห์โหนด (กฎกระแสของเคอร์ชอฟฟ์ที่ทุกโหนด + กฎของโอห์มของทุกกิ่ง) จึงได้ความต่างศักย์ของทุกโหนดและกระแสในทุกกิ่ง</p>
+    <div class="formula-box">Σ I<sub>เข้า</sub> = Σ I<sub>ออก</sub> ที่ทุกโหนด   ·   I<sub>กิ่ง</sub> = ΔV / R</div>
+    <div class="note-box">💡 แบบจำลอง: แหล่งจ่ายมีความต้านทานภายในและสายไฟรวม ~1 Ω · มิเตอร์ ① มีความต้านทาน 0.05 Ω (เหมือนแอมมิเตอร์จริงที่ต่ำมาก) · มิเตอร์ ② มีความต้านทาน 1 MΩ · แหล่งจ่ายจำกัดกระแสที่ 2 A เมื่อลัดวงจร · ค่า R<sub>X</sub> สุ่มต่อการเปิดหน้า</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.6 (สสวท.) — ไฟฟ้ากระแส · การต่อวงจรและการวัด · เทียบเคียง breadboard circuit-building practical (A-level / IB Physics)<br>
+  Lab 110 — Build Your Own Circuit on a Breadboard (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 110 ต่อวงจรบนเบรดบอร์ดเอง (3D) · หน่วย V, A, Ω
+   ผู้เรียนวางอุปกรณ์เอง → สร้างกราฟโหนดจากรูที่เสียบ → แก้วงจรด้วยวิธีวิเคราะห์โหนด
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL06 Lab 110 — build v1.0 3D-only (2569-09-24)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const RINT=1.0, VMAX=10, ILIM=2.0, R_AMM=0.05, R_VOLT=1e6, R_JMP=0.002;
+const RA=22, RB=47;
+const RX=(()=>{ let v; do{ v=Math.round(rnd(27,68)*10)/10; }while(Math.abs(v-RA)<6||Math.abs(v-RB)<6); return v; })();
+const KINDS={ src:{n:'สายไฟเลี้ยง',c:0xdc2626,max:1}, A:{n:'R_A 22 Ω',c:0x38bdf8,R:RA,max:1,bands:[0xdc2626,0xdc2626,0x000000]},
+  B:{n:'R_B 47 Ω',c:0x34d399,R:RB,max:1,bands:[0xfbbf24,0x7c3aed,0x000000]}, X:{n:'❓R_X',c:0xfb7185,R:RX,max:1,bands:[0x475569,0x475569,0x475569]},
+  jmp:{n:'สายจัมเปอร์',c:0xa78bfa,R:R_JMP,max:4}, amm:{n:'มิเตอร์ ① (A)',c:0xea580c,R:R_AMM,max:1}, volt:{n:'มิเตอร์ ② (V)',c:0x16a34a,R:R_VOLT,max:1} };
+const COLS=16, ROWZ=[-7.6,-5.0,-4.2,-3.4,-2.6,-1.8,1.8,2.6,3.4,4.2,5.0,7.6];
+const holeX=c=>-12+c*1.6, holeZ=r=>ROWZ[r];
+const nodeOf=h=> h.r===0?'P': h.r===11?'N': (h.r<=5?'T':'B')+h.c;
+const rowName=r=> r===0?'+':(r===11?'−':'ABCDEFGHIJ'[r-1]);
+const holeName=h=> nodeOf(h)==='P'?'ราง +':(nodeOf(h)==='N'?'ราง −':(rowName(h.r)+(h.c+1)));
+const RANGES=[{max:0.2,minor:0.005,major:0.05,dfmt:v=>v.toFixed(3),range:'200 mA',fmt:v=>v.toFixed(2)},{max:1.0,minor:0.02,major:0.2,dfmt:v=>v.toFixed(3),range:'1 A',fmt:v=>v.toFixed(1)}];
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+let elems=[], held=null, pending=null, sel=null, Vs=0, nV=0, nI=0, mode='manual', rows=[], curView='iso', mtype=0, rng=0, eid=1;
+let SOL={V:{},I:{},Isrc:0,shorted:false,open:true};
+
+/* ── ตัวแก้วงจร: วิเคราะห์โหนด (Kirchhoff + Ohm) ── */
+function solveCircuit(){
+  const S={V:{},I:{},Isrc:0,shorted:false,open:true};
+  const src=elems.find(e=>e.kind==='src');
+  if(!src||Vs<=0){ SOL=S; return; }
+  const ns=[...new Set(elems.flatMap(e=>[nodeOf(e.a),nodeOf(e.b)]))], idx={}; ns.forEach((n,i)=>idx[n]=i);
+  const N=ns.length, G=Array.from({length:N},()=>new Array(N).fill(0)), J=new Array(N).fill(0);
+  const stamp=(n1,n2,g)=>{ const i=idx[n1], j=idx[n2]; G[i][i]+=g; G[j][j]+=g; G[i][j]-=g; G[j][i]-=g; };
+  elems.forEach(e=>{ if(e.kind==='src') return; const R=KINDS[e.kind].R; if(nodeOf(e.a)===nodeOf(e.b)) return; stamp(nodeOf(e.a),nodeOf(e.b),1/R); });
+  const sa=nodeOf(src.a), sb=nodeOf(src.b);
+  if(sa===sb){ SOL=S; return; }
+  stamp(sa,sb,1/RINT); J[idx[sa]]+=Vs/RINT; J[idx[sb]]-=Vs/RINT;
+  for(let i=0;i<N;i++) G[i][i]+=1e-9;                       /* กันเมทริกซ์เอกฐานจากโหนดลอย */
+  const gnd=idx[sb];
+  for(let i=0;i<N;i++){ G[gnd][i]= i===gnd?1:0; } J[gnd]=0;
+  for(let i=0;i<N;i++){ if(i!==gnd){ G[i][gnd]=0; } }
+  /* Gauss + partial pivot */
+  const M=G.map((row,i)=>row.concat([J[i]]));
+  for(let c=0;c<N;c++){ let p=c; for(let r2=c+1;r2<N;r2++) if(Math.abs(M[r2][c])>Math.abs(M[p][c])) p=r2;
+    if(Math.abs(M[p][c])<1e-14) continue; const t=M[c]; M[c]=M[p]; M[p]=t;
+    for(let r2=0;r2<N;r2++){ if(r2===c) continue; const f=M[r2][c]/M[c][c]; if(!f) continue; for(let k=c;k<=N;k++) M[r2][k]-=f*M[c][k]; } }
+  const V={}; ns.forEach((n,i)=>{ V[n]= Math.abs(M[i][i])<1e-14?0:M[i][N]/M[i][i]; });
+  let Isrc=(Vs-(V[sa]-V[sb]))/RINT;
+  if(Math.abs(Isrc)>ILIM){ const k=ILIM/Math.abs(Isrc); ns.forEach(n=>V[n]*=k); Isrc*=k; S.shorted=true; }   /* แหล่งจ่ายจำกัดกระแส */
+  S.V=V; S.Isrc=Isrc; S.open=Math.abs(Isrc)<1e-6;
+  elems.forEach(e=>{ if(e.kind==='src') return; const R=KINDS[e.kind].R; S.I[e.id]= nodeOf(e.a)===nodeOf(e.b)?0:(V[nodeOf(e.a)]-V[nodeOf(e.b)])/R; });
+  SOL=S; }
+const ammEl=()=>elems.find(e=>e.kind==='amm');
+const voltEl=()=>elems.find(e=>e.kind==='volt');
+function readI(){ const e=ammEl(); return e? Math.abs(SOL.I[e.id]||0) : 0; }
+function readV(){ const e=voltEl(); if(!e) return 0; const a=SOL.V[nodeOf(e.a)]||0, b=SOL.V[nodeOf(e.b)]||0; return Math.abs(a-b); }
+/* โวลต์มิเตอร์คร่อมอะไรอยู่ */
+function voltLabel(){ const e=voltEl(); if(!e) return '—'; const na=nodeOf(e.a), nb=nodeOf(e.b);
+  if(na===nb) return 'คร่อมโหนดเดียวกัน (อ่านได้ 0)';
+  const same=elems.filter(x=>['A','B','X'].includes(x.kind)&&((nodeOf(x.a)===na&&nodeOf(x.b)===nb)||(nodeOf(x.a)===nb&&nodeOf(x.b)===na)));
+  if(same.length===1) return 'คร่อม '+KINDS[same[0].kind].n;
+  if(same.length>1) return 'คร่อม '+same.map(x=>x.kind).join(' ∥ ')+' (ขนาน)';
+  return 'คร่อมช่วง '+holeName(e.a)+' – '+holeName(e.b); }
+const settled=()=>Math.abs(nV-readV())<0.01&&Math.abs(nI-readI())<0.0008;
+const over=()=>readI()>RANGES[rng].max*1.02;
+function stepPhys(dt){ const f=1-Math.exp(-dt/0.22); nV+=(readV()-nV)*f; nI+=(readI()-nI)*f; }
+
+/* ── การหยิบวาง ── */
+function countOf(k){ return elems.filter(e=>e.kind===k).length; }
+function pick(k){ if(k&&countOf(k)>=KINDS[k].max){ lockWarn(KINDS[k].n+' มีในวงจรแล้ว (ถอดก่อนจึงจะวางใหม่ได้)'); return; }
+  held=k; pending=null; sel=null; syncCtl(); drawAll(); }
+function place(a,b){ const k=held;
+  if(a.c===b.c&&a.r===b.r){ pending=null; lockWarn('ต้องเป็นคนละรู'); return; }
+  elems.push({id:eid++,kind:k,a,b}); const same=nodeOf(a)===nodeOf(b);
+  held= countOf(k)<KINDS[k].max? k : null;      /* ยังหยิบชนิดเดิมต่อได้ถ้ายังมีเหลือ (เช่น จัมเปอร์) */
+  pending=null;
+  if(same) lockWarn('สองรูนี้เป็นโหนดเดียวกัน — ' + (k==='amm'?'มิเตอร์จะอ่านได้ 0':'อุปกรณ์ถูกลัด'));
+  onCircuitChange(); }
+function removeSel(){ if(sel==null){ lockWarn('แตะชิ้นที่ต้องการถอดในภาพก่อน'); return; } elems=elems.filter(e=>e.id!==sel); sel=null; onCircuitChange(); }
+function clearAll(){ elems=[]; held=null; pending=null; sel=null; onCircuitChange(); }
+function onCircuitChange(){ solveCircuit(); buildParts(); syncCtl(); renderAll(); }
+function tapHole(h){ if(!held){ lockWarn('หยิบอุปกรณ์จากกล่องก่อน'); return; } if(!pending){ pending=h; drawAll(); return; } place(pending,h); }
+
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',3200); }
+function markBtns(sel_,i){ document.querySelectorAll(sel_+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function setRange(r){ rng=r?1:0; markBtns('#rangeBtns',rng); if(P.amtex){ amKey=''; redrawTex(P.amtex); } drawAll(); }
+function setMeterType(t){ mtype=t?1:0; markBtns('#mtBtns',mtype); const b=$('mtBtn'); if(b){ b.classList.toggle('on',mtype===1); b.textContent= mtype? '🔢 มิเตอร์ดิจิทัล':'🔢 มิเตอร์เข็ม'; }
+  if(P.amtex){ amKey=''; vmKey=''; redrawTex(P.amtex); redrawTex(P.vmtex); } drawAll(); }
+function cycleMeterType(){ setMeterType(mtype?0:1); }
+function setKnob(v){ Vs=Math.max(0,Math.min(VMAX,Math.round(v*100)/100)); solveCircuit(); syncCtl(); drawAll(); }
+function nudgeKnob(d){ setKnob(Vs+d); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }
+  ['in-v','in-i'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; }); $('modeNote').textContent= mode==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริง':'โหมดวัดเอง: อ่านหน้าปัดมัลติมิเตอร์บนโต๊ะ'; $('ansRMsg').innerHTML=''; renderAll(); }
+function resetLab(){ clearAll(); setKnob(0); setRange(0); nV=0; nI=0; recMsg('',''); setView('iso'); drawAll(); }
+function syncCtl(){ const kn=voltLabel(); if($('in-known').value!==kn) $('in-known').value=kn;
+  document.querySelectorAll('#pickBtns button').forEach((b,i)=>{ const k=['src','A','B','X','jmp','amm','volt'][i]; b.classList.toggle('active',held===k); b.style.opacity= countOf(k)>=KINDS[k].max?'0.45':'1'; });
+  const ids={src:'ab-src',A:'ab-a',B:'ab-b',X:'ab-x',jmp:'ab-j',amm:'ab-am',volt:'ab-vm'};
+  Object.keys(ids).forEach(k=>{ const e=$(ids[k]); if(e){ e.style.outline= held===k?'3px solid #fde047':'none'; e.style.opacity= countOf(k)>=KINDS[k].max?'0.5':'1'; } });
+  const pl=elems.map(e=>`<div>${sel===e.id?'▶ ':'· '}<b style="color:#${KINDS[e.kind].c.toString(16).padStart(6,'0')}">${KINDS[e.kind].n}</b> : ${holeName(e.a)} ↔ ${holeName(e.b)}${nodeOf(e.a)===nodeOf(e.b)?' <span style="color:#fda4af">(โหนดเดียวกัน)</span>':''}</div>`).join('')
+    || '<span style="color:var(--muted)">ยังไม่มีอุปกรณ์บนเบรดบอร์ด — หยิบจากกล่องอุปกรณ์แล้วแตะรู 2 รู</span>';
+  if($('partList').dataset.t!==pl){ $('partList').innerHTML=pl; $('partList').dataset.t=pl; } }
+function hintState(){
+  if(held) return ['info','กำลังถือ <b>'+KINDS[held].n+'</b> — แตะรูบนเบรดบอร์ด'+(pending?' <b>อีก 1 รู</b> เพื่อวาง (แตะรูแรกไว้ที่ '+holeName(pending)+')':' 2 รูเพื่อวาง')];
+  if(!elems.some(e=>e.kind==='src')) return ['info','เริ่มจากหยิบ <b>🔋 สายไฟเลี้ยง</b> แล้วแตะรูราง + และราง − (หรือรูที่ต้องการจ่ายไฟ)'];
+  if(!elems.some(e=>['A','B','X'].includes(e.kind))) return ['info','หยิบตัวต้านทาน (เช่น <b>R<sub>A</sub></b>) วางคร่อม 2 คอลัมน์ แล้วใช้ <b>จัมเปอร์</b> ต่อให้ครบวง'];
+  if(Vs<0.2) return ['info','ปรับแรงดันแหล่งจ่าย (ลากปุ่มกลม หรือกด ▶) ให้มีกระแสไหล'];
+  if(SOL.shorted) return ['warn','<b>ลัดวงจร!</b> แหล่งจ่ายกำลังจำกัดกระแสที่ '+ILIM+' A — ตรวจว่ามีเส้นทางที่ไม่ผ่านตัวต้านทานหรือเอามิเตอร์ ① ไปคร่อมตัวต้านทานหรือไม่'];
+  if(SOL.open) return ['warn','ยังไม่มีกระแส — วงจรไม่ครบวง ตรวจว่าเส้นทางจากราง + ผ่านอุปกรณ์กลับไปราง − ต่อถึงกันหรือยัง (รูคนละคอลัมน์ต้องใช้จัมเปอร์)'];
+  if(!ammEl()) return ['info','มีกระแสไหลแล้ว ✓ หยิบ <b>มิเตอร์ ① (A)</b> มาต่อ<b>อนุกรม</b> คั่นทางเดินกระแส (เช่น ถอดจัมเปอร์เส้นหนึ่งออกแล้ววางมิเตอร์แทน)'];
+  if(!voltEl()) return ['info','หยิบ <b>มิเตอร์ ② (V)</b> มาต่อ<b>คร่อม</b>ตัวต้านทานที่ต้องการวัด'];
+  if(over()) return ['warn','กระแสเกินย่านวัด — หมุนย่านมิเตอร์ ① เป็น <b>1 A</b> หรือลดแรงดัน'];
+  if(readI()<1e-6) return ['warn','มิเตอร์ ① อ่านได้ 0 — มิเตอร์อาจไม่ได้อยู่ในทางเดินกระแส (ต้องต่ออนุกรม ไม่ใช่คร่อม)'];
+  if(!settled()) return ['warn','เข็มกำลังขยับ — <b>รอให้นิ่ง</b>ก่อนอ่าน'];
+  const n=rows.length;
+  if(n<4) return ['info','อ่าน V และ I แล้วกด <b>📝 บันทึก</b> · เปลี่ยนแรงดันแล้ววัดใหม่ให้ได้หลายจุด (ตอนนี้ '+n+' จุด)'];
+  if(!rows.some(r=>r.lab.includes('R_X'))) return ['info','วัด R<sub>A</sub> และ R<sub>B</sub> แล้ว ✓ ลองวัด <b>❓R<sub>X</sub></b> บ้าง แล้วหาค่าจากความชันกราฟ'];
+  return ['ok','ข้อมูลพอแล้ว ✓ ความชันกราฟ V–I ของแต่ละชิ้น = ความต้านทาน · กรอกค่า R<sub>X</sub> ในกรอบ 🎯']; }
+function updateHint(){ const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const sl=`<b>${held?'กำลังถือ: '+KINDS[held].n:(voltEl()?voltLabel():'ยังไม่ได้ต่อโวลต์มิเตอร์')}</b> · ปุ่มปรับ <b>${fmt(Vs,1)} V</b> · ย่าน ${RANGES[rng].range}`
+    +(mode==='auto'?` · V = <b>${fmt(readV(),2)} V</b> · I = <b>${fmt(readI(),3)} A</b> · I จากแหล่งจ่าย ${fmt(Math.abs(SOL.Isrc),3)} A`:' · อ่านหน้าปัดมัลติมิเตอร์บนโต๊ะ');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){ const html=`<div class="readout-box"><div class="label">V (มิเตอร์ ②)</div><div class="value">${fmt(readV(),2)} V</div></div><div class="readout-box"><div class="label">I (มิเตอร์ ①)</div><div class="value">${fmt(readI(),3)} A</div></div><div class="readout-box"><div class="label">กระแสจากแหล่งจ่าย</div><div class="value">${fmt(Math.abs(SOL.Isrc),3)} A</div></div><div class="readout-box"><div class="label">R<sub>X</sub> (จริง)</div><div class="value">${RX} Ω</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    $('in-v').value=readV().toFixed(2); $('in-i').value=readI().toFixed(3); } }
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){ if(!ammEl()||!voltEl()){ recMsg('warn','⚠️ ต้องต่อทั้งมิเตอร์ ① (อนุกรม) และมิเตอร์ ② (คร่อม) ก่อน'); return; }
+  if(over()){ recMsg('warn','⚠️ กระแสเกินย่านวัด — เปลี่ยนย่านก่อน'); return; }
+  if(!settled()){ recMsg('warn','⚠️ รอให้เข็มนิ่งก่อน'); return; }
+  let V,I; if(mode==='auto'){ V=Math.round(readV()*100)/100; I=Math.round(readI()*1000)/1000; } else { V=parseFloat($('in-v').value); I=parseFloat($('in-i').value); }
+  if(isNaN(V)||V<0||isNaN(I)||I<=0){ recMsg('warn','⚠️ กรอก V และ I (I ต้องมากกว่า 0)'); return; }
+  rows.push({lab:voltLabel(),V,I}); if(mode==='manual'){ $('in-v').value=''; $('in-i').value=''; } renderAll(); renderLast(rows.length-1); recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว`); }
+function Rfit(lab){ const P2=rows.filter(r=>r.lab===lab); if(!P2.length) return null; let sxx=0,sxy=0; P2.forEach(r=>{ sxx+=r.I*r.I; sxy+=r.I*r.V; }); return {R:sxy/sxx,n:P2.length}; }
+function renderLast(i){ const r=rows[i]; if(!r) return; const F=Rfit(r.lab);
+  $('lastRec').innerHTML=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">วัดอะไร</span><span class="v">${r.lab}</span><span class="k">V · I</span><span class="v">${fmt(r.V,2)} V · ${fmt(r.I,3)} A</span><span class="k">R = V/I</span><span class="v big">${fmt(r.V/r.I,1)} Ω</span>`
+   +(F&&F.n>1?`<span class="k">ความชันกราฟ (${F.n} จุด)</span><span class="v">${fmt(F.R,1)} Ω</span>`:''); }
+function renderTable(){ const labs=[...new Set(rows.map(r=>r.lab))];
+  let h='<table><thead><tr><th>#</th><th>วัดอะไร</th><th>V<br>(V)</th><th>I<br>(A)</th><th>R = V/I<br>(Ω)</th></tr></thead><tbody>'
+   +rows.map((r,i)=>`<tr><td>${i+1}</td><td style="white-space:normal">${r.lab}</td><td class="mono">${fmt(r.V,2)}</td><td class="mono">${fmt(r.I,3)}</td><td class="mono" style="color:#facc15">${fmt(r.V/r.I,1)}</td></tr>`).join('');
+  if(!rows.length) h+='<tr><td colspan="5" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const fits=labs.map(l=>{ const F=Rfit(l); return F&&F.n>1?`${l} → <b class="mono">${fmt(F.R,1)} Ω</b>`:null; }).filter(Boolean);
+  $('tableA').innerHTML=h+'</tbody></table>'+(fits.length?`<div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.6">ความชันกราฟ: ${fits.join(' · ')}`+(mode==='auto'?` · R<sub>X</sub> จริง ${RX} Ω`:'')+'</div>':''); }
+function exportCSV(){ const csv='﻿row,measured,V_volt,I_amp,R_ohm\n'+rows.map((r,i)=>[i+1,'"'+r.lab+'"',r.V,r.I,(r.V/r.I).toFixed(2)].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab110_breadboard.csv'; a.click(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); }
+const GC=['#38bdf8','#34d399','#fb7185','#fbbf24','#a78bfa','#f472b6','#4ade80','#fb923c'];
+function drawGraph(){ const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const labs=[...new Set(rows.map(r=>r.lab))], ml=42,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb;
+  const xmax=Math.max(0.1,...rows.map(r=>r.I))*1.15, ymax=Math.max(2,...rows.map(r=>r.V))*1.15, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh, notes=[];
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"'; g.fillStyle='#94a3b8'; g.textAlign='center';
+  const xs=xmax>0.5?0.2:(xmax>0.2?0.05:0.02); for(let v=0;v<=xmax;v+=xs) g.fillText(v.toFixed(2),X(v),H-mb+12);
+  g.textAlign='right'; const ys=ymax>8?2:1; for(let v=0;v<=ymax;v+=ys) g.fillText(String(v),ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText('I (A)',ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('V (V)',0,0); g.restore();
+  g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+  labs.forEach((l,i)=>{ const F=Rfit(l); if(!F||F.n<2) return; g.strokeStyle=GC[i%GC.length]; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(0),Y(0)); g.lineTo(X(xmax),Y(F.R*xmax)); g.stroke();
+    notes.push(`<span style="color:${GC[i%GC.length]}">━</span> ${l} · R = <b class="mono">${fmt(F.R,1)} Ω</b>`); });
+  g.restore(); rows.forEach(r=>{ const i=labs.indexOf(r.lab); g.fillStyle=GC[i%GC.length]; g.beginPath(); g.arc(X(r.I),Y(r.V),4,0,Math.PI*2); g.fill(); });
+  if(!rows.length) notes.push('บันทึกอย่างน้อย 2 จุดต่อสิ่งที่วัด แล้วความชันจะบอกความต้านทาน'); $('graphNote').innerHTML=notes.join('<br>'); }
+function checkR(){ const v=parseFloat($('ans-r').value), el=$('ansRMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกความต้านทาน (Ω)</span>'; return; } const err=(v-RX)/RX*100, ok=Math.abs(err)<=5;
+  el.innerHTML= mode==='auto'?`<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง ${RX} Ω · คลาด ${err.toFixed(1)}% ${ok?'✓':''}</span>`:(ok?'<span style="color:#86efac">✓ ถูกต้อง! คลาดไม่เกิน 5%</span>':'<span style="color:#fca5a5">✗ ยังไม่ถูก — ต่อ ❓R<sub>X</sub> ให้มีกระแสผ่าน แล้ววัด V คร่อมตัวมันกับ I ที่ผ่านมัน · ใช้หลายจุดแล้วดูความชันกราฟ</span>'); }
+</script>
+
+<script>
+/* ═══════════ 3D: เบรดบอร์ด · กล่องอุปกรณ์ · มัลติมิเตอร์ 2 ตัว ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const PSX=-32, AMX=-16, AMZ=20, VMX=12, VMZ=20, BBZ=-2;
+const orbit={target:null,dist:70,az:0.15,el:0.5};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360); return Math.max(3,Math.min(900, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={ iso:{t:[-4,3,4], d:()=>fitDist(112,72), az:0.05, el:0.66},
+  bb:{t:[0,1.5,BBZ], d:()=>fitDist(32,22), az:0.0001, el:1.24},
+  am:{t:[AMX,2,AMZ], d:()=>fitDist(19,24), az:0.0001, el:1.16}, vm:{t:[VMX,2,VMZ], d:()=>fitDist(19,24), az:0.0001, el:1.16} };
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){} t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding; t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col,bg){ const tex=canvasTex(512,128,(g,W,Hh)=>{ g.fillStyle=bg||'#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=col; g.font='bold 54px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,W/2,Hh/2); }); return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); }
+function pathWire(pts,col,r){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(20,V.length*10),r||0.2,9,false),new THREE.MeshStandardMaterial({color:col,roughness:.5})); }
+/* ── หน้าปัดมัลติมิเตอร์ (เหมือน Lab 108/109) ── */
+function dmmArc(g,cx,cy,R,cfg,val){ const A0=Math.PI*1.13, A1=Math.PI*1.87, ang=v=>A0+(A1-A0)*v/cfg.max;
+  g.strokeStyle='#0f172a'; g.lineWidth=R*0.045; g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
+  const N=Math.round(cfg.max/cfg.minor);
+  for(let k=0;k<=N;k++){ const v=k*cfg.minor, a=ang(v), big=Math.abs(v/cfg.major-Math.round(v/cfg.major))<1e-6, mid=Math.abs(v/(cfg.major/2)-Math.round(v/(cfg.major/2)))<1e-6;
+    g.lineWidth=big?R*0.06:mid?R*0.04:R*0.025; g.beginPath(); g.moveTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); g.lineTo(cx+Math.cos(a)*R*(big?0.80:mid?0.85:0.90),cy+Math.sin(a)*R*(big?0.80:mid?0.85:0.90)); g.stroke();
+    if(big){ g.fillStyle='#0f172a'; g.font='bold '+Math.round(R*0.15)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(cfg.fmt(v),cx+Math.cos(a)*R*0.66,cy+Math.sin(a)*R*0.66); } }
+  const ov=val>cfg.max*1.02, a=ang(Math.max(0,Math.min(cfg.max,val)));
+  g.strokeStyle=ov?'#ea580c':'#b91c1c'; g.lineWidth=R*0.035; g.beginPath(); g.moveTo(cx-Math.cos(a)*R*0.12,cy-Math.sin(a)*R*0.12); g.lineTo(cx+Math.cos(a)*R*0.97,cy+Math.sin(a)*R*0.97); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.05,0,Math.PI*2); g.fill();
+  if(ov){ g.fillStyle='#ea580c'; g.font='bold '+Math.round(R*0.17)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('เกินย่านวัด!',cx,cy-R*0.45); } }
+function dmmFace(g,w,h,cfg,val,tag){
+  g.fillStyle='#1c2431'; g.fillRect(0,0,w,h);
+  g.fillStyle='#ea580c'; g.fillRect(0,0,w,h*0.035); g.fillRect(0,h*0.965,w,h*0.035);
+  g.fillStyle='#e2e8f0'; g.font='bold '+Math.round(h*0.027)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='middle';
+  g.fillText('KP-DMM '+tag,w*0.06,h*0.072);
+  g.textAlign='right'; g.fillStyle='#fdba74'; g.fillText('สวิตช์: '+cfg.sel,w*0.94,h*0.072);
+  const dx=w*0.07, dy=h*0.105, dw=w*0.86, dh=h*0.345;
+  if(mtype){ g.fillStyle='#05312c'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f766e'; g.lineWidth=h*0.006; g.strokeRect(dx,dy,dw,dh);
+    const ov=val>cfg.max*1.02; g.fillStyle=ov?'#fb923c':'#22d3ee'; g.font='bold '+Math.round(dh*0.62)+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle';
+    g.fillText(ov?'OL':cfg.dfmt(Math.max(0,val)),dx+dw*0.80,dy+dh*0.54);
+    g.fillStyle='#67e8f9'; g.font='bold '+Math.round(dh*0.3)+'px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText(cfg.unit,dx+dw*0.83,dy+dh*0.60);
+    g.fillStyle='#5eead4'; g.font='bold '+Math.round(dh*0.16)+'px "Share Tech Mono",monospace'; g.fillText('DC',dx+dw*0.05,dy+dh*0.22); }
+  else { g.fillStyle='#f8fafc'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f172a'; g.lineWidth=h*0.005; g.strokeRect(dx,dy,dw,dh);
+    dmmArc(g,dx+dw/2,dy+dh*0.92,dh*0.78,cfg,val);
+    g.fillStyle='#475569'; g.font='bold '+Math.round(dh*0.12)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('สเกล DC '+cfg.unit,dx+dw/2,dy+dh*0.16); }
+  const cx=w*0.5, cy=h*0.63, R=h*0.145;
+  g.fillStyle='#334155'; g.beginPath(); g.arc(cx,cy,R*1.5,0,Math.PI*2); g.fill();
+  g.fillStyle='#e2e8f0'; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fill();
+  const FUN=[['OFF',-Math.PI/2],['V⎓',-Math.PI/2+1.2],['A⎓',-Math.PI/2+2.4],['Ω',-Math.PI/2-1.2],['V∼',-Math.PI/2-2.4]];
+  g.font='bold '+Math.round(h*0.03)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  FUN.forEach(([t,a])=>{ const on=(t==='A⎓'&&cfg.unit==='A')||(t==='V⎓'&&cfg.unit==='V'); g.fillStyle=on?'#fbbf24':'#94a3b8';
+    g.fillText(t,cx+Math.cos(a)*R*1.95,cy+Math.sin(a)*R*1.95);
+    g.strokeStyle=on?'#fbbf24':'#64748b'; g.lineWidth=h*0.004; g.beginPath(); g.moveTo(cx+Math.cos(a)*R*1.58,cy+Math.sin(a)*R*1.58); g.lineTo(cx+Math.cos(a)*R*1.72,cy+Math.sin(a)*R*1.72); g.stroke(); });
+  const sa=cfg.unit==='A'? -Math.PI/2+2.4 : -Math.PI/2+1.2;
+  g.strokeStyle='#b91c1c'; g.lineWidth=h*0.012; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(sa)*R*0.86,cy+Math.sin(sa)*R*0.86); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.16,0,Math.PI*2); g.fill();
+  g.font='bold '+Math.round(h*0.028)+'px "Share Tech Mono",monospace'; g.textAlign='center';
+  [['COM',w*0.33,'#e2e8f0'],[cfg.unit==='A'?'mA':'VΩ',w*0.67,'#fca5a5']].forEach(([t,jx,col])=>{
+    g.fillStyle='#0f172a'; g.beginPath(); g.arc(jx,h*0.875,h*0.032,0,Math.PI*2); g.fill();
+    g.strokeStyle=col; g.lineWidth=h*0.006; g.beginPath(); g.arc(jx,h*0.875,h*0.042,0,Math.PI*2); g.stroke();
+    g.fillStyle=col; g.fillText(t,jx,h*0.935); }); }
+const VMC={max:12,minor:0.1,major:2,unit:'V',name:'มัลติมิเตอร์ ② (V)',sel:'DCV 20 V',fmt:v=>v.toFixed(0),dfmt:v=>v.toFixed(2)};
+const AMC=()=>Object.assign({unit:'A',name:'มัลติมิเตอร์ ① (A)',sel:'DCA '+RANGES[rng].range},RANGES[rng]);
+/* ── พื้นผิวเบรดบอร์ด ── */
+function bbFn(g,w,h){ const X=x=>(x+14)/28*w, Z=z=>(z+9)/18*h;
+  g.fillStyle='#e9e6dc'; g.fillRect(0,0,w,h);
+  g.fillStyle='#d8d4c6'; g.fillRect(0,Z(-1.1),w,Z(1.1)-Z(-1.1));                       /* ร่องกลาง */
+  [[-7.6,'#dc2626'],[7.6,'#2563eb']].forEach(([z,c],k)=>{ g.strokeStyle=c; g.lineWidth=h*0.006;
+    g.beginPath(); g.moveTo(X(-13),Z(z+(k?0.9:-0.9))); g.lineTo(X(13),Z(z+(k?0.9:-0.9))); g.stroke();
+    g.fillStyle=c; g.font='bold '+Math.round(h*0.045)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(k?'−':'+',X(-13.1),Z(z)); g.fillText(k?'−':'+',X(13.1),Z(z)); });
+  g.fillStyle='#1f2937';
+  for(let c=0;c<COLS;c++) for(let r=0;r<12;r++){ const x=X(holeX(c)), z=Z(holeZ(r)), s=h*0.016; g.fillRect(x-s,z-s,2*s,2*s); }
+  g.fillStyle='#64748b'; g.font='bold '+Math.round(h*0.034)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  for(let c=0;c<COLS;c++){ g.fillText(String(c+1),X(holeX(c)),Z(-0.05)); }
+  for(let r=1;r<=10;r++){ const nm='ABCDEFGHIJ'[r-1]; g.fillText(nm,X(-13.1),Z(holeZ(r))); g.fillText(nm,X(13.1),Z(holeZ(r))); } }
+function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(-4,3,4); try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.98)); const d1=new THREE.DirectionalLight(0xffffff,0.6); d1.position.set(30,90,60); scene.add(d1); const d2=new THREE.DirectionalLight(0xffffff,0.34); d2.position.set(-40,50,80); scene.add(d2);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45}), dark=new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.7});
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(112,2,64),new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85})); bench.position.set(-4,-1,6); scene.add(bench);
+  /* เบรดบอร์ด */
+  const bb=new THREE.Mesh(new THREE.BoxGeometry(28,1.2,18),new THREE.MeshStandardMaterial({color:0xd6d2c4,roughness:.8})); bb.position.set(0,0.6,BBZ); scene.add(bb);
+  P.board=new THREE.Mesh(new THREE.PlaneGeometry(28,18),new THREE.MeshBasicMaterial({map:canvasTex(1400,900,bbFn)})); P.board.rotation.x=-Math.PI/2; P.board.position.set(0,1.21,BBZ); scene.add(P.board);
+  /* แหล่งจ่ายไฟ */
+  const ps=new THREE.Mesh(new THREE.BoxGeometry(18,12,12),dark); ps.position.set(PSX,6,-4); scene.add(ps);
+  const psLab=labelPlane(12,2.4,'แหล่งจ่ายไฟตรง 0–10 V','#93c5fd','#0b1220'); psLab.position.set(PSX,11,2.06); scene.add(psLab);
+  P.knob=new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.6,28),new THREE.MeshStandardMaterial({color:0xe2e8f0,roughness:.35})); P.knob.rotation.x=Math.PI/2; P.knob.position.set(PSX,5.5,2.2); scene.add(P.knob);
+  P.knobMark=new THREE.Mesh(new THREE.BoxGeometry(0.5,2.2,0.3),new THREE.MeshStandardMaterial({color:0xb91c1c})); P.knobMark.rotation.x=-Math.PI/2; P.knobMark.position.set(0,0.9,-1.1); P.knob.add(P.knobMark);
+  P.dial=new THREE.Mesh(new THREE.PlaneGeometry(9,4),new THREE.MeshBasicMaterial({map:canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#0b1220'; g.fillRect(0,0,w,h); g.strokeStyle='#334155'; g.lineWidth=6; g.strokeRect(4,4,w-8,h-8);
+    g.fillStyle='#fbbf24'; g.font='bold 110px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(Vs.toFixed(1),w/2,h*0.56); g.fillStyle='#94a3b8'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillText('ปุ่มปรับ (V)',w/2,h*0.16); })})); P.dial.position.set(PSX,9.2,2.06); scene.add(P.dial); P.dialKey='';
+  P.srcTerm=[[PSX-3,2.4,3.2],[PSX+3,2.4,3.2]];                                   /* ขั้ว + และ − ของแหล่งจ่าย */
+  P.srcTerm.forEach((p,i)=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.8,2.4,12),new THREE.MeshStandardMaterial({color:i?0x1e293b:0xdc2626,metalness:.5})); t.position.set(p[0],1.2,p[2]); scene.add(t); });
+  /* มัลติมิเตอร์ 2 ตัว */
+  const mkDMM=(x,z,cfgf,key,tag)=>{ const g0=new THREE.Group(); g0.position.set(x,0,z); scene.add(g0);
+    const boot=new THREE.Mesh(new THREE.BoxGeometry(16.4,1.6,20.4),new THREE.MeshStandardMaterial({color:0x111827,roughness:.85})); boot.position.y=0.8; g0.add(boot);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(15,2.4,19),new THREE.MeshStandardMaterial({color:0xea580c,roughness:.6})); body.position.y=1.2; g0.add(body);
+    const tex=canvasTex(896,1120,(g,w,h)=>dmmFace(g,w,h,typeof cfgf==='function'?cfgf():cfgf,P[key+'val']||0,tag));
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(14,17.6),new THREE.MeshBasicMaterial({map:tex})); face.rotation.x=-Math.PI/2; face.position.set(0,2.42,0); g0.add(face);
+    [[-2.4,-7.7],[2.4,-7.7]].forEach(([jx,jz],i)=>{ const j=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1.1,12),new THREE.MeshStandardMaterial({color:i?0xdc2626:0x0f172a,metalness:.5})); j.position.set(jx,2.5,jz); g0.add(j); });
+    P[key+'jack']=[[x-2.4,3.0,z-7.7],[x+2.4,3.0,z-7.7]]; P[key+'tex']=tex; return face; };
+  P.amFace=mkDMM(AMX,AMZ,AMC,'am','①'); P.vmFace=mkDMM(VMX,VMZ,VMC,'vm','②');
+  /* กล่องอุปกรณ์ (ตกแต่ง) */
+  const tray=new THREE.Mesh(new THREE.BoxGeometry(20,1.4,10),new THREE.MeshStandardMaterial({color:0x334155,roughness:.8})); tray.position.set(30,0.7,-2); scene.add(tray);
+  const trayLab=labelPlane(12,2.2,'🧰 กล่องอุปกรณ์','#fde68a','#0b1220'); trayLab.position.set(30,0.05,4.6); trayLab.rotation.x=-Math.PI/2; scene.add(trayLab);
+  ['A','B','X'].forEach((k,i)=>{ const g0=new THREE.Group(); g0.position.set(24+i*5,1.9,-2); g0.rotation.y=Math.PI/2; scene.add(g0);
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,4.4,16),new THREE.MeshStandardMaterial({color:k==='X'?0x94a3b8:0xd6c39a,roughness:.7})); body.rotation.z=Math.PI/2; g0.add(body);
+    KINDS[k].bands.forEach((col,bi)=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.89,0.89,0.36,16),new THREE.MeshStandardMaterial({color:col})); b.rotation.z=Math.PI/2; b.position.x=-1.1+bi*0.8; g0.add(b); }); });
+  P.parts=new THREE.Group(); scene.add(P.parts);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redrawTexs()).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); buildParts(); update3D();
+  let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%3; if(fr===0){ drawAll(); const e=$('view3d'), sk=e.clientWidth+'x'+e.clientHeight; if(sk!==szKey){ szKey=sk; resizeAll(); } } })(last); }
+let fr=0, szKey='', amKey='', vmKey='';
+const holePos=h=>[holeX(h.c),1.3,BBZ+holeZ(h.r)];
+/* สร้างภาพอุปกรณ์ทั้งหมดใหม่ตามรายการที่วางไว้ */
+function buildParts(){ if(!P.parts) return;
+  while(P.parts.children.length){ const m=P.parts.children.pop(); if(m.geometry) m.geometry.dispose(); if(m.material&&m.material.dispose) m.material.dispose(); P.parts.remove(m); }
+  const tag=(m,e)=>{ m.userData.eid=e.id; P.parts.add(m); return m; };
+  elems.forEach(e=>{ const A=holePos(e.a), B=holePos(e.b), k=e.kind, col=KINDS[k].c;
+    if(k==='A'||k==='B'||k==='X'){
+      const a=new THREE.Vector3(A[0],2.6,A[2]), b=new THREE.Vector3(B[0],2.6,B[2]), d=b.clone().sub(a), len=d.length();
+      const body=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,Math.max(1.2,len-1.6),16),new THREE.MeshStandardMaterial({color:k==='X'?0x94a3b8:0xd6c39a,roughness:.7}));
+      body.position.copy(a).add(b).multiplyScalar(0.5); body.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize()); tag(body,e);
+      KINDS[k].bands.forEach((c2,bi)=>{ const bm=new THREE.Mesh(new THREE.CylinderGeometry(0.89,0.89,0.34,16),new THREE.MeshStandardMaterial({color:c2}));
+        bm.quaternion.copy(body.quaternion); bm.position.copy(a).add(d.clone().multiplyScalar(0.34+bi*0.12)); tag(bm,e); });
+      [A,B].forEach(p=>tag(pathWire([[p[0],1.2,p[2]],[p[0],2.6,p[2]]],0xcbd5e1,0.12),e)); }
+    else if(k==='jmp') tag(pathWire([[A[0],1.2,A[2]],[A[0],2.6,A[2]],[(A[0]+B[0])/2,3.6,(A[2]+B[2])/2],[B[0],2.6,B[2]],[B[0],1.2,B[2]]],col,0.18),e);
+    else if(k==='src'){ tag(pathWire([P.srcTerm[0],[PSX+6,2,6],[A[0]-3,2.4,A[2]+4],[A[0],1.2,A[2]]],0xdc2626,0.2),e);
+      tag(pathWire([P.srcTerm[1],[PSX+8,1.6,8],[B[0]-2,2.0,B[2]+5],[B[0],1.2,B[2]]],0x1e293b,0.2),e); }
+    else if(k==='amm'||k==='volt'){ const J= k==='amm'?P.amjack:P.vmjack, c2= k==='amm'?0xea580c:0x16a34a;
+      tag(pathWire([J[1],[(J[1][0]+A[0])/2,2.2,(J[1][2]+A[2])/2-2],[A[0],2.4,A[2]+1],[A[0],1.2,A[2]]],c2,0.18),e);
+      tag(pathWire([J[0],[(J[0][0]+B[0])/2,2.2,(J[0][2]+B[2])/2-2],[B[0],2.4,B[2]+1],[B[0],1.2,B[2]]],c2===0xea580c?0xfb923c:0x86efac,0.18),e); } });
+  /* จุดที่เลือก/รอวาง */
+  if(pending){ const p=holePos(pending); const m=new THREE.Mesh(new THREE.TorusGeometry(0.75,0.14,8,20),new THREE.MeshBasicMaterial({color:0xfde047})); m.rotation.x=-Math.PI/2; m.position.set(p[0],1.35,p[2]); P.parts.add(m); }
+  if(sel!=null){ const e=elems.find(x=>x.id===sel); if(e) [e.a,e.b].forEach(h=>{ const p=holePos(h); const m=new THREE.Mesh(new THREE.TorusGeometry(0.85,0.12,8,20),new THREE.MeshBasicMaterial({color:0x38bdf8})); m.rotation.x=-Math.PI/2; m.position.set(p[0],1.35,p[2]); P.parts.add(m); }); } }
+function update3D(){ if(!scene) return;
+  P.knob.rotation.y=-(Vs/VMAX)*Math.PI*1.5;
+  const dk=Vs.toFixed(1); if(dk!==P.dialKey){ P.dialKey=dk; redrawTex(P.dial.material.map); }
+  const ak=nI.toFixed(3)+rng+mtype; if(ak!==amKey){ amKey=ak; P.amval=nI; redrawTex(P.amtex); }
+  const vk=nV.toFixed(2)+mtype; if(vk!==vmKey){ vmKey=vk; P.vmval=nV; redrawTex(P.vmtex); }
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView)); if(!V||!orbit.target) return; const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+/* ── การชี้/แตะ ── */
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); } const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null; NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.board) return null;
+  if(RAY.intersectObject(P.knob,true).length) return {t:'knob'};
+  const pr=RAY.intersectObjects(P.parts.children,false); const bd=RAY.intersectObject(P.board,false);
+  if(pr.length&&(!bd.length||pr[0].distance<bd[0].distance+0.6)&&pr[0].object.userData.eid) return {t:'part',eid:pr[0].object.userData.eid};
+  if(bd.length){ const p=bd[0].point, lx=p.x, lz=p.z-BBZ;
+    let best=null,bd2=9; for(let c=0;c<COLS;c++) for(let r=0;r<12;r++){ const d=Math.hypot(lx-holeX(c),lz-holeZ(r)); if(d<bd2){ bd2=d; best={c,r}; } }
+    if(best&&bd2<0.85) return {t:'hole',h:best}; return {t:'board'}; }
+  if(RAY.intersectObject(P.amFace,false).length) return {t:'am'}; if(RAY.intersectObject(P.vmFace,false).length) return {t:'vm'};
+  return null; }
+function tapAt(cx,cy){ const p=pickAt(cx,cy); if(!p) return false;
+  if(p.t==='knob'){ setView('iso'); return true; }
+  if(p.t==='am'){ setView('am'); return true; } if(p.t==='vm'){ setView('vm'); return true; }
+  if(p.t==='hole'){ tapHole(p.h); buildParts(); return true; }
+  if(p.t==='part'){ sel= sel===p.eid?null:p.eid; held=null; pending=null; buildParts(); syncCtl(); drawAll(); return true; }
+  return false; }
+/* ลากปุ่มปรับแรงดัน */
+const HD={on:false,fin:false,t:0,x0:0,v0:0}, HD_LAG=0.12;
+function cancelHand(){ HD.on=false; HD.fin=false; }
+function hdStart(cx,cy){ const p=pickAt(cx,cy); if(!p||p.t!=='knob') return false; cancelHand(); HD.on=true; HD.x0=cx; HD.v0=Vs; HD.t=Vs; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const rc=renderer.domElement.getBoundingClientRect(); HD.t=Math.max(0,Math.min(VMAX,HD.v0+(cx-HD.x0)/(rc.width*0.42)*VMAX)); }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return; const tg=Math.round(HD.t*20)/20; let nv=Vs+(tg-Vs)*(1-Math.exp(-dt/HD_LAG)); if(Math.abs(tg-nv)<0.01) nv=tg; setKnob(nv); if(!HD.on&&Vs===tg) HD.fin=false; }
+let panMode=false; function setPanMode(on){ panMode=!!on; const b=$('panBtn'); if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; } }
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1]; function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=$('spdBtn'); if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } } function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); } function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0,sx:0,sy:0,moved:false}; const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  const begin=(x,y,pan)=>{ T.mode=pan?'pan':'rot'; T.lx=T.sx=x; T.ly=T.sy=y; T.moved=false; };
+  const drag=(x,y)=>{ if(Math.hypot(x-T.sx,y-T.sy)>6) T.moved=true; const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); if(e.button===0&&!e.shiftKey&&!panMode&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; T.moved=false; T.sx=e.clientX; T.sy=e.clientY; return; } begin(e.clientX,e.clientY,e.button===1||e.button===2||e.shiftKey||panMode); T.btn0=e.button===0&&!e.shiftKey; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; const p=pickAt(e.clientX,e.clientY); cv.style.cursor= p&&p.t==='knob'?'ew-resize':(p&&(p.t==='hole'||p.t==='part'||p.t==='am'||p.t==='vm')?'pointer':'grab'); });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; return; } if(T.mode==='hand'){ if(Math.hypot(e.clientX-T.sx,e.clientY-T.sy)>6) T.moved=true; hdMove(e.clientX,e.clientY); return; } drag(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',e=>{ if(T.mode==='hand'){ hdEnd(); if(!T.moved) tapAt(e.clientX,e.clientY); } else if(T.mode&&T.mode!=='pinch'&&!T.moved&&T.btn0) tapAt(e.clientX,e.clientY); if(T.mode!=='pinch') T.mode=null; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.moved=true; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0]; if(!panMode&&hdStart(t.clientX,t.clientY)){ T.mode='hand'; T.moved=false; T.sx=t.clientX; T.sy=t.clientY; return; } begin(t.clientX,t.clientY,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; if(Math.hypot(t.clientX-T.sx,t.clientY-T.sy)>6) T.moved=true; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; drag(t.clientX,t.clientY); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ const t=e.changedTouches&&e.changedTouches[0]; if(T.mode==='hand'){ hdEnd(); if(!T.moved&&t) tapAt(t.clientX,t.clientY); } else if((T.mode==='rot'||T.mode==='pan')&&!T.moved&&t) tapAt(t.clientX,t.clientY); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',()=>{ cancelHand(); T.mode=null; }); cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.4,Math.min(1.45,orbit.el+dy*0.006)); } function camZoom(f){ orbit.dist=Math.max(4,Math.min(900,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow(); const o=orbit; if(!o.target||!camera) return; const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el); o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const x0=W*0.06, x1=W*0.66, cols=12, pitch=(x1-x0)/(cols-1);
+  g.fillStyle='#e9e6dc'; g.fillRect(x0-14,H*0.12,x1-x0+28,H*0.74); g.fillStyle='#d8d4c6'; g.fillRect(x0-14,H*0.47,x1-x0+28,H*0.06);
+  const rowsY=[H*0.19,H*0.28,H*0.34,H*0.40,H*0.62,H*0.68,H*0.74,H*0.80];
+  g.strokeStyle='#dc2626'; g.lineWidth=2; g.beginPath(); g.moveTo(x0-8,H*0.16); g.lineTo(x1+8,H*0.16); g.stroke();
+  g.strokeStyle='#2563eb'; g.beginPath(); g.moveTo(x0-8,H*0.84); g.lineTo(x1+8,H*0.84); g.stroke();
+  for(let c=0;c<cols;c++){ const x=x0+c*pitch; rowsY.forEach(y=>{ g.fillStyle='#1f2937'; g.fillRect(x-3,y-3,6,6); }); }
+  g.strokeStyle='rgba(56,189,248,.55)'; g.lineWidth=10; g.lineCap='round';
+  [3,7].forEach(c=>{ const x=x0+c*pitch; g.beginPath(); g.moveTo(x,rowsY[0]); g.lineTo(x,rowsY[3]); g.stroke(); g.beginPath(); g.moveTo(x,rowsY[4]); g.lineTo(x,rowsY[7]); g.stroke(); });
+  g.lineCap='butt'; g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='left';
+  ['รางไฟ + และ − ต่อถึงกันตลอดแนว','คอลัมน์เดียวกันฝั่งเดียวกัน (5 รู) ต่อถึงกัน','ร่องกลางแยกฝั่งบนกับฝั่งล่างออกจากกัน','อุปกรณ์ 2 ขาในโหนดเดียวกัน = ถูกลัด'].forEach((t,i)=>g.fillText(t,W*0.70,H*0.24+i*26));
+  g.fillStyle='#38bdf8'; g.fillText('แถบฟ้า = รูที่ต่อถึงกัน',W*0.70,H*0.24+4*26+6); }
+function drawTheoryAll(){ drawTheory0(); }
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{ ['in-v','in-i'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); if(window.ResizeObserver) new ResizeObserver(()=>resizeAll()).observe($('view3d')); setMode('manual'); solveCircuit(); syncCtl(); renderAll(); drawTheoryAll(); });
+</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260923-2"></script>
+<script>
+  (function(){ var w = setInterval(function(){ if (typeof kpPageAccess === "function") { clearInterval(w); kpPageAccess("vlab:vpl06:lab-110", "../virtual-physics-lab-06.html"); } }, 50); setTimeout(function(){clearInterval(w)}, 5000); })();
+</script>
+</body>
+</html>
