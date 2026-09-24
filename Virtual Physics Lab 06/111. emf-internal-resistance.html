@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 111 — แรงเคลื่อนไฟฟ้าและความต้านทานภายในของเซลล์ (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+<body data-access="vlab:vpl06:lab-111">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">🔋</div>
+  <div>
+    <h1>Lab 111 — แรงเคลื่อนไฟฟ้าและความต้านทานภายในของเซลล์ (3D)</h1>
+    <p>EMF &amp; Internal Resistance — ต่อเซลล์กับรีโอสแตต ลากปุ่มเลื่อนเปลี่ยนความต้านทานภายนอก · มัลติมิเตอร์ ① วัดกระแส ② วัดความต่างศักย์ที่ขั้วเซลล์ · กราฟ V–I เป็นเส้นตรง จุดตัดแกน V = แรงเคลื่อนไฟฟ้า ε และความชัน = −r · เทียบเซลล์ใหม่กับเซลล์เก่า แล้วหา ε และ r ของเซลล์ปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องวัด:</b> ความต่างศักย์ที่ขั้วเซลล์ V (มัลติมิเตอร์ ②) และกระแส I (มัลติมิเตอร์ ①) ที่ตำแหน่งต่าง ๆ ของรีโอสแตต — <span style="color:var(--muted)">รายละเอียดวัตถุประสงค์อยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)">✋ เลื่อนภาพ</button>
+          <button id="mtBtn" onclick="cycleMeterType()" title="สลับหน้าปัดมิเตอร์ระหว่างแบบเข็มกับแบบดิจิทัล">🔢 มิเตอร์ดิจิทัล</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="cell" onclick="setView('cell')">🔋 เซลล์</button>
+          <button data-vw="rhe" onclick="setView('rhe')">🎚 รีโอสแตต</button>
+          <button data-vw="am" onclick="setView('am')">🔍 มิเตอร์ ① A</button>
+          <button data-vw="vm" onclick="setView('vm')">🔍 มิเตอร์ ② V</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 <b>ลากปุ่มเลื่อน</b>บนรีโอสแตตเพื่อเปลี่ยนความต้านทานภายนอก · แตะ<b>เซลล์</b>เพื่อเปลี่ยนก้อน · แตะ<b>สวิตช์</b>เปิด/ปิดวงจร · แตะ<b>มัลติมิเตอร์</b>เพื่อซูมอ่าน<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — เปลี่ยนเป็นโหมด <b>⚡ อัตโนมัติ</b></div>
+      </div>
+      <div class="actbar" id="actBar" style="grid-template-columns:repeat(8,1fr)">
+        <button id="ab-cell" style="background:#b45309" onclick="cycleCell()">🔋 เซลล์ A</button>
+        <button id="ab-sw"   style="background:#0e7490" onclick="toggleSw()">🔘 ปิดวงจร</button>
+        <button id="ab-dn"   style="background:#1d4ed8" onclick="nudgeR(-1)">◀ ลด R</button>
+        <button id="ab-up"   style="background:#1d4ed8" onclick="nudgeR(1)">เพิ่ม R ▶</button>
+        <button id="ab-am"   style="background:#ea580c" onclick="setView('am')">🔍 I</button>
+        <button id="ab-vm"   style="background:#16a34a" onclick="setView('vm')">🔍 V</button>
+        <button id="ab-rng"  style="background:#6d28d9" onclick="setRange(rng?0:1)">🎚 ย่าน 200 mA</button>
+        <button id="ab-rec"  style="background:#4338ca" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด <span style="font-weight:400;color:var(--muted);font-size:.74rem">— อ่านหน้าปัดตอนเข็มนิ่งแล้ว</span>
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① เซลล์ <small>— ทราบค่า</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.78rem"></span></label>
+          <label class="rf-f"><span>② ความต่างศักย์ที่ขั้ว V</span><span class="rf-in"><input class="val-input" type="number" id="in-v" step="0.01" inputmode="decimal" placeholder="?"> V</span></label>
+          <label class="rf-f"><span>③ กระแส I</span><span class="rf-in"><input class="val-input" type="number" id="in-i" step="0.001" inputmode="decimal" placeholder="?"> A</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns"><button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button><button onclick="setMode('auto')">⚡ อัตโนมัติ</button></div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — เซลล์ A · สวิตช์เปิด · รีโอสแตตค่ามาก · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและค่าปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🔋 เซลล์ไฟฟ้า <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="cellBtns"><button class="active" onclick="setCell(0)">A (ใหม่)</button><button onclick="setCell(1)">B (เก่า)</button><button onclick="setCell(2)" style="color:#fda4af">❓X</button></div>
+        <div class="note">เซลล์ A และ B เป็นถ่านไฟฉายที่รู้จักกันดี (แรงเคลื่อนไฟฟ้าเท่ากัน แต่ก้อนเก่ามีความต้านทานภายในสูงกว่ามาก) · <b style="color:#fda4af">เซลล์ X ไม่บอกทั้ง ε และ r</b><br>ตอนสวิตช์เปิด (ไม่มีกระแส) โวลต์มิเตอร์อ่านได้เท่ากับ ε พอดี — ใช้ตรวจคำตอบได้ แต่ควรหาจากกราฟด้วย</div>
+        <div class="btn-row" style="margin-top:6px"><button class="btn btn-amber btn-sm" id="swBtn" onclick="toggleSw()">🔘 ปิดวงจร (ให้กระแสไหล)</button></div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" onclick="nudgeR(-3)">◀◀ R น้อย</button><button class="btn btn-outline btn-sm" onclick="nudgeR(-1)">◀ R</button><button class="btn btn-outline btn-sm" onclick="nudgeR(1)">R ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeR(3)">R มาก ▶▶</button></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">🔬 เครื่องมือวัด</div>
+        <div class="mode-btns" id="mtBtns"><button onclick="setMeterType(0)">🧭 แบบเข็ม</button><button class="active" onclick="setMeterType(1)">🔢 แบบดิจิทัล</button></div>
+        <div class="panel-title" style="margin-top:8px">ย่านวัดของมัลติมิเตอร์ ① (DCA)</div>
+        <div class="mode-btns" id="rangeBtns"><button class="active" onclick="setRange(0)">200 mA</button><button onclick="setRange(1)">2 A</button></div>
+      </div>
+      <div id="autoCtrl" class="panel-section hidden"><div class="panel-title">⚡ ค่าจากแบบจำลอง</div><div class="readout-grid" id="autoGrid"></div></div>
+      <div class="panel-section"><div class="panel-title">📊 ผลที่บันทึกล่าสุด</div><div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก</span></div></div>
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">V = ε − I r · ฟิตเส้นตรงของแต่ละเซลล์</div><div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-actions"><button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button><button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button><button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">📈 กราฟ V – I</div><canvas id="graphCanvas"></canvas><div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ (เซลล์ ❓X)</div>
+        <div class="ans-row">แรงเคลื่อนไฟฟ้า ε =<input class="val-input" type="number" id="ans-e" step="0.01" inputmode="decimal" placeholder="?"> V <button class="btn btn-green btn-sm" onclick="checkE()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansEMsg"></div>
+        <div class="ans-row" style="margin-top:6px">ความต้านทานภายใน r =<input class="val-input" type="number" id="ans-r" step="0.01" inputmode="decimal" placeholder="?"> Ω <button class="btn btn-green btn-sm" onclick="checkRr()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansRMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">ε ถือว่าถูกเมื่อคลาดไม่เกิน 3% · r ไม่เกิน 10% (ความชันอ่านยากกว่า) · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>อธิบายว่าความต่างศักย์ที่ขั้วเซลล์ลดลงเมื่อจ่ายกระแสมากขึ้น เพราะมีความต้านทานภายใน r</li>
+      <li>วัด V และ I หลายค่าโดยเปลี่ยนความต้านทานภายนอกด้วยรีโอสแตต แล้วเขียนกราฟ V–I</li>
+      <li>หาแรงเคลื่อนไฟฟ้า ε จากจุดตัดแกน V และหา r จากความชันของกราฟ (ความชัน = −r)</li>
+      <li>เปรียบเทียบเซลล์ใหม่กับเซลล์เก่า และหา ε กับ r ของเซลล์ปริศนา X</li>
+    </ol>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>เซลล์ไฟฟ้า 3 ก้อนให้เลือก: A (ใหม่) · B (เก่า) · ❓X · วางในรางถ่าน</li>
+      <li>รีโอสแตต (ตัวต้านทานปรับค่าได้) ลากปุ่มเลื่อนเปลี่ยนความต้านทานภายนอก · สวิตช์เปิด-ปิดวงจร</li>
+      <li>มัลติมิเตอร์ 2 ตัววางด้านบนโต๊ะ: ① ตั้ง DCA ต่ออนุกรม (2 ย่าน) · ② ตั้ง DCV คร่อมขั้วเซลล์ · หน้าปัดสลับดิจิทัล/เข็มได้</li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>เลือกเซลล์ A · <b>เปิดสวิตช์</b> (ยังไม่มีกระแส) อ่าน V — ค่านี้คือ ε โดยประมาณ เพราะไม่มีกระแสจึงไม่เสียความต่างศักย์ในเซลล์</li>
+      <li>ปิดสวิตช์ · ลากปุ่มรีโอสแตตไปตำแหน่งที่ให้กระแสน้อย อ่าน V และ I แล้วบันทึก</li>
+      <li>เลื่อนรีโอสแตตให้ความต้านทานลดลงทีละขั้น (กระแสมากขึ้น) บันทึกอย่างน้อย 5 จุดกระจายทั้งช่วง · อย่าลืมเปลี่ยนย่านวัดของมิเตอร์ ① เมื่อกระแสเกิน</li>
+      <li>เปลี่ยนเป็นเซลล์ B แล้วทำซ้ำ · เทียบความชันของสองเส้น (เซลล์เก่าชันกว่าเพราะ r สูงกว่า)</li>
+      <li>เปลี่ยนเป็นเซลล์ ❓X ทำซ้ำ แล้วอ่าน ε จากจุดตัดแกน V และ r จากความชัน</li>
+    </ol>
+    <div class="note-box">⚠️ อ่านค่าจากหน้าปัดเอง — โหมดวัดค่าเองไม่บอกตัวเลข · กระแสสูงทำให้ค่าที่อ่านเปลี่ยนเร็ว ให้รอจนนิ่งก่อนบันทึก · ห้ามตั้งรีโอสแตตต่ำสุดค้างไว้นาน ๆ ในของจริงเพราะเซลล์จะร้อน</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>ทำไม V ที่ขั้วเซลล์จึงน้อยกว่า ε เสมอเมื่อมีกระแสไหล</li>
+      <li>ถ้าลัดวงจรเซลล์ (R ภายนอก = 0) กระแสจะเป็นเท่าใด และเขียนในรูป ε กับ r อย่างไร</li>
+      <li>เซลล์เก่ากับเซลล์ใหม่ต่างกันที่ ε หรือที่ r และสังเกตจากกราฟอย่างไร</li>
+      <li>เพราะเหตุใดไฟหน้ารถจึงหรี่ลงชั่วขณะตอนสตาร์ทเครื่อง</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. แรงเคลื่อนไฟฟ้ากับความต้านทานภายใน</h2>
+    <p>เซลล์ไฟฟ้าเปลี่ยนพลังงานเคมีเป็นพลังงานไฟฟ้าได้ ε จูลต่อประจุ 1 คูลอมบ์ แต่ภายในเซลล์เองก็มีความต้านทาน r ทำให้เสียความต่างศักย์ไปส่วนหนึ่งเมื่อมีกระแสไหล</p>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="250"></canvas></div>
+    <div class="formula-box">V = ε − I r   ·   I = ε / (R + r)<br>กราฟ V–I เป็นเส้นตรง: <b>จุดตัดแกน V คือ ε</b> และ <b>ความชัน = −r</b></div>
+    <h2>2. กำลังและการสูญเสียในเซลล์</h2>
+    <div class="formula-box">กำลังที่เซลล์ผลิต P<sub>รวม</sub> = εI · กำลังที่จ่ายให้วงจรภายนอก P = VI · สูญเสียในเซลล์ I²r<br>กำลังภายนอกสูงสุดเมื่อ R = r (การถ่ายโอนกำลังสูงสุด)</div>
+    <h2>3. ทำไมเซลล์เก่าจึงจ่ายกระแสได้น้อย</h2>
+    <p>เมื่อใช้ไปนาน ปฏิกิริยาเคมีและสารภายในเปลี่ยนไป ทำให้ r สูงขึ้นมาก แม้ ε แทบไม่เปลี่ยน วัดด้วยโวลต์มิเตอร์ตอนไม่มีโหลดจึงยังเห็นเกือบ 1.5 V แต่พอต่อโหลด V ตกลงทันที</p>
+    <div class="note-box">💡 แบบจำลอง: รีโอสแตตปรับได้ต่อเนื่อง · แอมมิเตอร์มีความต้านทาน 0.05 Ω (รวมอยู่ในวงจรแล้ว) · โวลต์มิเตอร์ 1 MΩ คร่อมขั้วเซลล์ · ค่า ε และ r ของเซลล์ X สุ่มต่อการเปิดหน้า · เข็ม/ตัวเลขมีความหน่วงเล็กน้อยเหมือนของจริง</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.6 (สสวท.) — ไฟฟ้ากระแส · แรงเคลื่อนไฟฟ้าและความต้านทานภายใน · เทียบเคียง EMF &amp; internal resistance practical (A-level / IB Physics)<br>
+  Lab 111 — EMF and Internal Resistance of a Cell (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 111 แรงเคลื่อนไฟฟ้าและความต้านทานภายใน (3D) · หน่วย V, A, Ω
+   วงจร: เซลล์ (ε, r) → สวิตช์ → แอมมิเตอร์ (0.05 Ω) → รีโอสแตต R → กลับเซลล์ · โวลต์มิเตอร์คร่อมขั้วเซลล์
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL06 Lab 111 — build v1.0 3D-only (2569-09-24)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const R_AMM=0.05, RMIN=2.0, RMAX=60;
+const EX=Math.round(rnd(2.2,4.6)*100)/100, RXi=Math.round(rnd(0.8,3.6)*100)/100;
+const CELLS=[{n:'เซลล์ A (ใหม่)',s:'A',e:1.50,r:0.60,c:0x38bdf8},{n:'เซลล์ B (เก่า)',s:'B',e:1.48,r:3.40,c:0x34d399},{n:'❓ เซลล์ X',s:'X',e:EX,r:RXi,c:0xfb7185}];
+const RANGES=[{max:0.2,minor:0.005,major:0.05,dfmt:v=>v.toFixed(3),range:'200 mA',fmt:v=>v.toFixed(2)},{max:2.0,minor:0.05,major:0.5,dfmt:v=>v.toFixed(3),range:'2 A',fmt:v=>v.toFixed(1)}];
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+let cell=0, Rpos=1, swOn=false, nV=0, nI=0, mode='manual', rows=[], curView='iso', mtype=1, rng=0;
+const Rload=()=>RMIN*Math.pow(RMAX/RMIN,Rpos);
+const EMF=()=>CELLS[cell].e, RINT=()=>CELLS[cell].r;
+function curI(){ return swOn? EMF()/(Rload()+RINT()+R_AMM) : 0; }
+function curV(){ return EMF()-curI()*RINT(); }
+const over=()=>curI()>RANGES[rng].max*1.02;
+const settled=()=>Math.abs(nV-curV())<0.004&&Math.abs(nI-curI())<0.0006;
+function stepPhys(dt){ const f=1-Math.exp(-dt/0.25); nV+=(curV()-nV)*f; nI+=(curI()-nI)*f; }
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',2800); }
+function markBtns(sel,i){ document.querySelectorAll(sel+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function setCell(i){ cell=(i+3)%3; markBtns('#cellBtns',cell); if(mode==='manual'){ $('in-v').value=''; $('in-i').value=''; } syncCtl(); drawAll(); }
+function cycleCell(){ setCell(cell+1); }
+function toggleSw(){ swOn=!swOn; syncCtl(); drawAll(); }
+function setR(p){ Rpos=Math.max(0,Math.min(1,p)); syncCtl(); drawAll(); }
+function nudgeR(k){ setR(Rpos+k*0.06); }
+function setRange(r){ rng=r?1:0; markBtns('#rangeBtns',rng); if(P.amtex){ amKey=''; redrawTex(P.amtex); } syncCtl(); drawAll(); }
+function setMeterType(t){ mtype=t?1:0; markBtns('#mtBtns',mtype); const b=$('mtBtn'); if(b){ b.classList.toggle('on',mtype===1); b.textContent= mtype?'🔢 มิเตอร์ดิจิทัล':'🔢 มิเตอร์เข็ม'; }
+  if(P.amtex){ amKey=''; vmKey=''; redrawTex(P.amtex); redrawTex(P.vmtex); } drawAll(); }
+function cycleMeterType(){ setMeterType(mtype?0:1); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }
+  ['in-v','in-i'].forEach(id=>{ $(id).readOnly= m==='auto'; if(m==='manual') $(id).value=''; }); $('modeNote').textContent= m==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริง':'โหมดวัดเอง: อ่านหน้าปัดมัลติมิเตอร์บนโต๊ะ';
+  $('ansEMsg').innerHTML=''; $('ansRMsg').innerHTML=''; renderAll(); }
+function resetLab(){ setCell(0); swOn=false; setR(1); setRange(0); nV=0; nI=0; recMsg('',''); setView('iso'); drawAll(); }
+function syncCtl(){ const kn=CELLS[cell].n; if($('in-known').value!==kn) $('in-known').value=kn; const s=(id,t)=>{ const e=$(id); if(e&&e.textContent!==t) e.textContent=t; };
+  s('ab-cell','🔋 '+CELLS[cell].s); s('ab-sw',swOn?'⏹ เปิดวงจร':'🔘 ปิดวงจร'); s('swBtn',swOn?'⏹ เปิดวงจร (ตัดกระแส)':'🔘 ปิดวงจร (ให้กระแสไหล)');
+  s('ab-rng','🎚 ย่าน '+RANGES[rng].range); }
+function nOf(i){ return rows.filter(r=>r.cell===i).length; }
+function hintState(){
+  if(!swOn&&nOf(cell)===0) return ['info','สวิตช์เปิดอยู่ (ไม่มีกระแส) — โวลต์มิเตอร์ตอนนี้อ่านได้เท่ากับ <b>ε</b> ของ'+CELLS[cell].n+' · จดไว้ แล้วกด <b>🔘 ปิดวงจร</b>'];
+  if(!swOn) return ['info','สวิตช์เปิดอยู่ — กด <b>🔘 ปิดวงจร</b> ให้กระแสไหลก่อนวัดจุดถัดไป'];
+  if(over()) return ['warn','กระแสเกินย่านวัด — กด <b>🎚 ย่าน</b> เปลี่ยนเป็น 2 A หรือเพิ่มความต้านทานรีโอสแตต'];
+  if(!settled()) return ['warn','ค่ากำลังเปลี่ยน — <b>รอให้นิ่ง</b>ก่อนอ่าน'];
+  const n=nOf(cell);
+  if(n<5) return ['info',CELLS[cell].n+': อ่าน V และ I แล้วบันทึก — มีแล้ว <b>'+n+'/5</b> จุด · <b>ลากปุ่มรีโอสแตต</b>เปลี่ยนกระแสแล้ววัดใหม่'];
+  const miss=[0,1,2].filter(i=>nOf(i)<5);
+  if(miss.length) return ['info','ครบ '+CELLS[cell].n+' แล้ว ✓ เปลี่ยนเป็น <b>'+CELLS[miss[0]].n+'</b> แล้ววัดต่อ'];
+  return ['ok','ครบทุกเซลล์แล้ว ✓ ดูกราฟ V–I: จุดตัดแกน V = ε · ความชัน = −r · กรอกคำตอบของเซลล์ X ในกรอบ 🎯']; }
+function updateHint(){ const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const sl=`<b>${CELLS[cell].n}</b> · สวิตช์${swOn?'ปิด (มีกระแส)':'เปิด (ไม่มีกระแส)'} · ย่าน ${RANGES[rng].range}`
+    +(mode==='auto'?` · V = <b>${fmt(curV(),3)} V</b> · I = <b>${fmt(curI(),3)} A</b> · R ภายนอก ${fmt(Rload(),1)} Ω`:' · อ่านหน้าปัดมัลติมิเตอร์บนโต๊ะ');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){ const html=`<div class="readout-box"><div class="label">V ที่ขั้ว</div><div class="value">${fmt(curV(),3)} V</div></div><div class="readout-box"><div class="label">I</div><div class="value">${fmt(curI(),3)} A</div></div><div class="readout-box"><div class="label">R ภายนอก</div><div class="value">${fmt(Rload(),1)} Ω</div></div><div class="readout-box"><div class="label">ε · r (จริง)</div><div class="value">${CELLS[cell].e} V · ${CELLS[cell].r} Ω</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    $('in-v').value=curV().toFixed(3); $('in-i').value=curI().toFixed(3); } }
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){ if(!swOn){ recMsg('warn','⚠️ ปิดสวิตช์ให้มีกระแสก่อน (จุดที่ I = 0 ใช้เป็น ε ได้ แต่ไม่ต้องบันทึกลงตาราง)'); return; }
+  if(over()){ recMsg('warn','⚠️ กระแสเกินย่านวัด — เปลี่ยนย่านก่อน'); return; }
+  if(!settled()){ recMsg('warn','⚠️ รอให้ค่านิ่งก่อน'); return; }
+  let V,I; if(mode==='auto'){ V=Math.round(curV()*1000)/1000; I=Math.round(curI()*1000)/1000; } else { V=parseFloat($('in-v').value); I=parseFloat($('in-i').value); }
+  if(isNaN(V)||V<=0||isNaN(I)||I<=0){ recMsg('warn','⚠️ กรอก V และ I (ต้องมากกว่า 0)'); return; }
+  rows.push({cell,V,I}); if(mode==='manual'){ $('in-v').value=''; $('in-i').value=''; } renderAll(); renderLast(rows.length-1); recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว`); }
+/* ฟิตเส้นตรง V = a + bI → ε = a · r = −b */
+function fitCell(i){ const P2=rows.filter(r=>r.cell===i); const n=P2.length; if(n<2) return null;
+  let sx=0,sy=0,sxx=0,sxy=0; P2.forEach(r=>{ sx+=r.I; sy+=r.V; sxx+=r.I*r.I; sxy+=r.I*r.V; });
+  const d=n*sxx-sx*sx; if(Math.abs(d)<1e-12) return null;
+  const b=(n*sxy-sx*sy)/d, a=(sy-b*sx)/n; return {e:a,r:-b,n}; }
+function renderLast(i){ const r=rows[i]; if(!r) return; const F=fitCell(r.cell);
+  $('lastRec').innerHTML=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">เซลล์</span><span class="v">${CELLS[r.cell].n}</span><span class="k">V · I</span><span class="v">${fmt(r.V,3)} V · ${fmt(r.I,3)} A</span><span class="k">R ภายนอก = V/I</span><span class="v big">${fmt(r.V/r.I,1)} Ω</span>`
+   +(F&&F.n>1?`<span class="k">ฟิต (${F.n} จุด): ε · r</span><span class="v">${fmt(F.e,3)} V · ${fmt(F.r,2)} Ω</span>`:''); }
+function renderTable(){ let h='<table><thead><tr><th>#</th><th>เซลล์</th><th>V<br>(V)</th><th>I<br>(A)</th><th>R<sub>นอก</sub> = V/I<br>(Ω)</th><th>P = VI<br>(W)</th></tr></thead><tbody>'
+   +rows.map((r,i)=>`<tr style="${r.cell===2?'color:#fda4af':''}"><td>${i+1}</td><td>${CELLS[r.cell].s}</td><td class="mono">${fmt(r.V,3)}</td><td class="mono">${fmt(r.I,3)}</td><td class="mono" style="color:#facc15">${fmt(r.V/r.I,1)}</td><td class="mono">${fmt(r.V*r.I,3)}</td></tr>`).join('');
+  if(!rows.length) h+='<tr><td colspan="6" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const fits=[0,1,2].map(i=>{ const F=fitCell(i); return F&&F.n>1?`${CELLS[i].s}: ε = <b class="mono">${fmt(F.e,2)} V</b> · r = <b class="mono">${fmt(F.r,2)} Ω</b>`:null; }).filter(Boolean);
+  $('tableA').innerHTML=h+'</tbody></table>'+(fits.length?`<div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.6">จากการฟิตเส้นตรง: ${fits.join(' · ')}`+(mode==='auto'?` · X จริง ε ${EX} V · r ${RXi} Ω`:'')+'</div>':''); }
+function exportCSV(){ const csv='﻿row,cell,V_volt,I_amp,R_ext_ohm\n'+rows.map((r,i)=>[i+1,CELLS[r.cell].s,r.V,r.I,(r.V/r.I).toFixed(2)].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab111_emf_internal_resistance.csv'; a.click(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); }
+const CC=['#38bdf8','#34d399','#fb7185'];
+function drawGraph(){ const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const ml=44,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, xmax=Math.max(0.2,...rows.map(r=>r.I))*1.2, ymax=Math.max(2,...rows.map(r=>r.V))*1.15, X=v=>ml+v/xmax*gw, Y=v=>mt+gh-v/ymax*gh, notes=[];
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.font='9px "Share Tech Mono"'; g.fillStyle='#94a3b8'; g.textAlign='center';
+  const xs= xmax>1?0.2:(xmax>0.4?0.1:0.05); for(let v=0;v<=xmax;v+=xs) g.fillText(v.toFixed(2),X(v),H-mb+12);
+  g.textAlign='right'; const ys= ymax>4?1:0.5; for(let v=0;v<=ymax;v+=ys) g.fillText(v.toFixed(1),ml-4,Y(v)+3);
+  g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText('I (A)',ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('V ที่ขั้ว (V)',0,0); g.restore();
+  g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+  [0,1,2].forEach(i=>{ const F=fitCell(i); if(!F||F.n<2) return; g.strokeStyle=CC[i]; g.lineWidth=1.6; g.beginPath(); g.moveTo(X(0),Y(F.e)); g.lineTo(X(xmax),Y(F.e-F.r*xmax)); g.stroke();
+    g.fillStyle=CC[i]; g.beginPath(); g.arc(X(0),Y(F.e),3.5,0,Math.PI*2); g.fill();
+    notes.push(`<span style="color:${CC[i]}">━</span> ${CELLS[i].n}: ตัดแกน ε = <b class="mono">${fmt(F.e,2)} V</b> · ความชัน −r → r = <b class="mono">${fmt(F.r,2)} Ω</b>`); });
+  g.restore(); rows.forEach(r=>{ g.fillStyle=CC[r.cell]; g.beginPath(); g.arc(X(r.I),Y(r.V),4,0,Math.PI*2); g.fill(); });
+  if(!rows.length) notes.push('บันทึกอย่างน้อย 2 จุดต่อเซลล์ แล้วเส้นตรงจะบอก ε (จุดตัดแกน) และ r (ความชัน)'); $('graphNote').innerHTML=notes.join('<br>'); }
+function checkE(){ const v=parseFloat($('ans-e').value), el=$('ansEMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกแรงเคลื่อนไฟฟ้า (V)</span>'; return; } const err=(v-EX)/EX*100, ok=Math.abs(err)<=3;
+  el.innerHTML= mode==='auto'?`<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง ${EX} V · คลาด ${err.toFixed(1)}% ${ok?'✓':''}</span>`:(ok?'<span style="color:#86efac">✓ ถูกต้อง! คลาดไม่เกิน 3%</span>':'<span style="color:#fca5a5">✗ ยังไม่ถูก — ε คือจุดตัดแกน V ของกราฟ (หรืออ่าน V ตอนเปิดสวิตช์ ซึ่งไม่มีกระแส)</span>'); }
+function checkRr(){ const v=parseFloat($('ans-r').value), el=$('ansRMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกความต้านทานภายใน (Ω)</span>'; return; } const err=(v-RXi)/RXi*100, ok=Math.abs(err)<=10;
+  el.innerHTML= mode==='auto'?`<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง ${RXi} Ω · คลาด ${err.toFixed(1)}% ${ok?'✓':''}</span>`:(ok?'<span style="color:#86efac">✓ ถูกต้อง! คลาดไม่เกิน 10%</span>':'<span style="color:#fca5a5">✗ ยังไม่ถูก — r คือขนาดของความชันกราฟ V–I (V ลดลงเท่าใดต่อกระแส 1 A) · ใช้จุดที่กระจายห่างกันมากจะแม่นกว่า</span>'); }
+</script>
+
+<script>
+/* ═══════════ 3D: เซลล์ · สวิตช์ · รีโอสแตต · มัลติมิเตอร์ 2 ตัวด้านบน ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const CX=-14, CZ=2, RX0=4, RL=20, RZ=2, SWX=0, SWZ=11, AMX=-12, AMZ=-22, VMX=12, VMZ=-22;
+const orbit={target:null,dist:70,az:0.15,el:0.5};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360); return Math.max(3,Math.min(900, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={ iso:{t:[0,3,-3], d:()=>fitDist(100,62), az:0.05, el:0.64},
+  cell:{t:[CX,3,CZ], d:()=>fitDist(22,15), az:0.0001, el:0.45},
+  rhe:{t:[RX0+RL/2,3,RZ], d:()=>fitDist(30,18), az:0.0001, el:0.55},
+  am:{t:[AMX,2,AMZ], d:()=>fitDist(19,25), az:0.0001, el:1.14}, vm:{t:[VMX,2,VMZ], d:()=>fitDist(19,25), az:0.0001, el:1.14} };
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){} t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding; t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col,bg){ const tex=canvasTex(512,128,(g,W,Hh)=>{ g.fillStyle=bg||'#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=col; g.font='bold 54px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,W/2,Hh/2); }); return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); }
+function pathWire(pts,col,r){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(20,V.length*10),r||0.2,9,false),new THREE.MeshStandardMaterial({color:col,roughness:.5})); }
+/* ── หน้าปัดมัลติมิเตอร์ (ชุดเดียวกับ Lab 108–110) ── */
+function dmmArc(g,cx,cy,R,cfg,val){ const A0=Math.PI*1.13, A1=Math.PI*1.87, ang=v=>A0+(A1-A0)*v/cfg.max;
+  g.strokeStyle='#0f172a'; g.lineWidth=R*0.045; g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
+  const N=Math.round(cfg.max/cfg.minor);
+  for(let k=0;k<=N;k++){ const v=k*cfg.minor, a=ang(v), big=Math.abs(v/cfg.major-Math.round(v/cfg.major))<1e-6, mid=Math.abs(v/(cfg.major/2)-Math.round(v/(cfg.major/2)))<1e-6;
+    g.lineWidth=big?R*0.06:mid?R*0.04:R*0.025; g.beginPath(); g.moveTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); g.lineTo(cx+Math.cos(a)*R*(big?0.80:mid?0.85:0.90),cy+Math.sin(a)*R*(big?0.80:mid?0.85:0.90)); g.stroke();
+    if(big){ g.fillStyle='#0f172a'; g.font='bold '+Math.round(R*0.15)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(cfg.fmt(v),cx+Math.cos(a)*R*0.66,cy+Math.sin(a)*R*0.66); } }
+  const ov=val>cfg.max*1.02, a=ang(Math.max(0,Math.min(cfg.max,val)));
+  g.strokeStyle=ov?'#ea580c':'#b91c1c'; g.lineWidth=R*0.035; g.beginPath(); g.moveTo(cx-Math.cos(a)*R*0.12,cy-Math.sin(a)*R*0.12); g.lineTo(cx+Math.cos(a)*R*0.97,cy+Math.sin(a)*R*0.97); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.05,0,Math.PI*2); g.fill();
+  if(ov){ g.fillStyle='#ea580c'; g.font='bold '+Math.round(R*0.17)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('เกินย่านวัด!',cx,cy-R*0.45); } }
+function dmmFace(g,w,h,cfg,val,tag){
+  g.fillStyle='#1c2431'; g.fillRect(0,0,w,h);
+  g.fillStyle='#ea580c'; g.fillRect(0,0,w,h*0.035); g.fillRect(0,h*0.965,w,h*0.035);
+  g.fillStyle='#e2e8f0'; g.font='bold '+Math.round(h*0.027)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='middle';
+  g.fillText('KP-DMM '+tag,w*0.06,h*0.072);
+  g.textAlign='right'; g.fillStyle='#fdba74'; g.fillText('สวิตช์: '+cfg.sel,w*0.94,h*0.072);
+  const dx=w*0.05, dy=h*0.10, dw=w*0.90, dh=h*0.46;
+  if(mtype){ g.fillStyle='#05312c'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f766e'; g.lineWidth=h*0.006; g.strokeRect(dx,dy,dw,dh);
+    const ov=val>cfg.max*1.02; g.fillStyle=ov?'#fb923c':'#22d3ee'; g.font='bold '+Math.round(Math.min(dh*0.62,dw*0.215))+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle';
+    g.fillText(ov?'OL':cfg.dfmt(Math.max(0,val)),dx+dw*0.80,dy+dh*0.54);
+    g.fillStyle='#67e8f9'; g.font='bold '+Math.round(Math.min(dh*0.3,dw*0.1))+'px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText(cfg.unit,dx+dw*0.83,dy+dh*0.62);
+    g.fillStyle='#5eead4'; g.font='bold '+Math.round(dh*0.16)+'px "Share Tech Mono",monospace'; g.fillText('DC',dx+dw*0.05,dy+dh*0.22); }
+  else { g.fillStyle='#f8fafc'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f172a'; g.lineWidth=h*0.005; g.strokeRect(dx,dy,dw,dh);
+    dmmArc(g,dx+dw/2,dy+dh*0.92,dh*0.78,cfg,val);
+    g.fillStyle='#475569'; g.font='bold '+Math.round(dh*0.12)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('สเกล DC '+cfg.unit,dx+dw/2,dy+dh*0.16); }
+  const cx=w*0.5, cy=h*0.735, R=h*0.093;
+  g.fillStyle='#334155'; g.beginPath(); g.arc(cx,cy,R*1.5,0,Math.PI*2); g.fill();
+  g.fillStyle='#e2e8f0'; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fill();
+  const FUN=[['OFF',-Math.PI/2],['V⎓',-Math.PI/2+1.2],['A⎓',-Math.PI/2+2.4],['Ω',-Math.PI/2-1.2],['V∼',-Math.PI/2-2.4]];
+  g.font='bold '+Math.round(h*0.024)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  FUN.forEach(([t,a])=>{ const on=(t==='A⎓'&&cfg.unit==='A')||(t==='V⎓'&&cfg.unit==='V'); g.fillStyle=on?'#fbbf24':'#94a3b8';
+    g.fillText(t,cx+Math.cos(a)*R*1.95,cy+Math.sin(a)*R*1.95);
+    g.strokeStyle=on?'#fbbf24':'#64748b'; g.lineWidth=h*0.004; g.beginPath(); g.moveTo(cx+Math.cos(a)*R*1.58,cy+Math.sin(a)*R*1.58); g.lineTo(cx+Math.cos(a)*R*1.72,cy+Math.sin(a)*R*1.72); g.stroke(); });
+  const sa=cfg.unit==='A'? -Math.PI/2+2.4 : -Math.PI/2+1.2;
+  g.strokeStyle='#b91c1c'; g.lineWidth=h*0.012; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(sa)*R*0.86,cy+Math.sin(sa)*R*0.86); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.16,0,Math.PI*2); g.fill();
+  g.font='bold '+Math.round(h*0.028)+'px "Share Tech Mono",monospace'; g.textAlign='center';
+  [['COM',w*0.33,'#e2e8f0'],[cfg.unit==='A'?'mA':'VΩ',w*0.67,'#fca5a5']].forEach(([t,jx,col])=>{
+    g.fillStyle='#0f172a'; g.beginPath(); g.arc(jx,h*0.905,h*0.03,0,Math.PI*2); g.fill();
+    g.strokeStyle=col; g.lineWidth=h*0.006; g.beginPath(); g.arc(jx,h*0.905,h*0.04,0,Math.PI*2); g.stroke();
+    g.fillStyle=col; g.fillText(t,jx,h*0.958); }); }
+const VMC={max:6,minor:0.05,major:1,unit:'V',name:'มัลติมิเตอร์ ② (V)',sel:'DCV 6 V',fmt:v=>v.toFixed(0),dfmt:v=>v.toFixed(3)};
+const AMC=()=>Object.assign({unit:'A',name:'มัลติมิเตอร์ ① (A)',sel:'DCA '+RANGES[rng].range},RANGES[rng]);
+function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(0,3,-3); try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.98)); const d1=new THREE.DirectionalLight(0xffffff,0.6); d1.position.set(30,90,60); scene.add(d1); const d2=new THREE.DirectionalLight(0xffffff,0.34); d2.position.set(-40,50,80); scene.add(d2);
+  const met=new THREE.MeshStandardMaterial({color:0x64748b,metalness:.55,roughness:.45}), dark=new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.7});
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(100,2,58),new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85})); bench.position.set(0,-1,-6); scene.add(bench);
+  /* รางถ่าน + เซลล์ */
+  const hold=new THREE.Mesh(new THREE.BoxGeometry(14,1.4,7),new THREE.MeshStandardMaterial({color:0x334155,roughness:.8})); hold.position.set(CX,0.7,CZ); scene.add(hold);
+  P.cell=new THREE.Group(); P.cell.position.set(CX,2.6,CZ); scene.add(P.cell);
+  P.cellBody=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,10,24),new THREE.MeshStandardMaterial({color:0x38bdf8,roughness:.5})); P.cellBody.rotation.z=Math.PI/2; P.cell.add(P.cellBody);
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,1.2,16),met); cap.rotation.z=Math.PI/2; cap.position.x=5.5; P.cell.add(cap);
+  const capN=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,0.5,24),met); capN.rotation.z=Math.PI/2; capN.position.x=-5.2; P.cell.add(capN);
+  P.cellHit=new THREE.Mesh(new THREE.BoxGeometry(14,6,8),new THREE.MeshBasicMaterial({visible:false})); P.cellHit.position.set(CX,3,CZ); scene.add(P.cellHit);
+  P.cellLab=labelPlane(11,2.2,'เซลล์ A (ใหม่)','#7dd3fc','#0b1220'); P.cellLab.position.set(CX,0.05,CZ+6.2); P.cellLab.rotation.x=-Math.PI/2; scene.add(P.cellLab); P.cellLabKey='';
+  P.termP=[CX+6.6,2.6,CZ]; P.termN=[CX-6.4,2.6,CZ];
+  /* สวิตช์ */
+  P.sw=new THREE.Group(); P.sw.position.set(SWX,1.2,SWZ); scene.add(P.sw);
+  const swb=new THREE.Mesh(new THREE.BoxGeometry(7,1.4,4),new THREE.MeshStandardMaterial({color:0x4b5563})); P.sw.add(swb);
+  [[-2.6],[2.6]].forEach(([dx])=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,1.8,12),met); t.position.set(dx,1.2,0); P.sw.add(t); });
+  P.swLever=new THREE.Mesh(new THREE.BoxGeometry(5.4,0.5,0.9),new THREE.MeshStandardMaterial({color:0xdc2626,metalness:.4})); P.swLever.position.set(0,2.0,0); P.sw.add(P.swLever);
+  P.swHit=new THREE.Mesh(new THREE.BoxGeometry(9,6,6),new THREE.MeshBasicMaterial({visible:false})); P.swHit.position.set(SWX,3,SWZ); scene.add(P.swHit);
+  P.swLab=labelPlane(8,2,'สวิตช์: เปิด','#fde68a','#0b1220'); P.swLab.position.set(SWX,0.05,SWZ+4.4); P.swLab.rotation.x=-Math.PI/2; scene.add(P.swLab); P.swLabKey='';
+  /* รีโอสแตต */
+  const rb=new THREE.Mesh(new THREE.BoxGeometry(RL+6,1.4,8),new THREE.MeshStandardMaterial({color:0x475569,roughness:.8})); rb.position.set(RX0+RL/2,0.7,RZ); scene.add(rb);
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,RL+2,24),new THREE.MeshStandardMaterial({color:0xd6d3d1,roughness:.85})); tube.rotation.z=Math.PI/2; tube.position.set(RX0+RL/2,2.6,RZ); scene.add(tube);
+  for(let k=0;k<=RL;k+=0.8){ const w2=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.12,6,18),new THREE.MeshStandardMaterial({color:0xb45309,metalness:.6,roughness:.5})); w2.rotation.y=Math.PI/2; w2.position.set(RX0+k,2.6,RZ); scene.add(w2); }
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(RL+2,0.5,0.7),met); rail.position.set(RX0+RL/2,4.6,RZ); scene.add(rail);
+  P.slider=new THREE.Group(); scene.add(P.slider);
+  const sb=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.6,2.6),new THREE.MeshStandardMaterial({color:0x0ea5e9,metalness:.3})); sb.position.y=0.4; P.slider.add(sb);
+  const spost=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.5,1.6,12),met); spost.position.y=2.0; P.slider.add(spost);
+  P.sliderHit=new THREE.Mesh(new THREE.BoxGeometry(5,7,6),new THREE.MeshBasicMaterial({visible:false})); scene.add(P.sliderHit);
+  const rLab=labelPlane(12,2.2,'รีโอสแตต — ลากปุ่มเลื่อน','#a5b4fc','#0b1220'); rLab.position.set(RX0+RL/2,0.05,RZ+6.4); rLab.rotation.x=-Math.PI/2; scene.add(rLab);
+  P.rTermL=[RX0-1.6,2.6,RZ];
+  /* มัลติมิเตอร์ 2 ตัวด้านบน */
+  const mkDMM=(x,z,cfgf,key,tag)=>{ const g0=new THREE.Group(); g0.position.set(x,0,z); scene.add(g0);
+    const boot=new THREE.Mesh(new THREE.BoxGeometry(16.4,1.6,20.4),new THREE.MeshStandardMaterial({color:0x111827,roughness:.85})); boot.position.y=0.8; g0.add(boot);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(15,2.4,19),new THREE.MeshStandardMaterial({color:0xea580c,roughness:.6})); body.position.y=1.2; g0.add(body);
+    const tex=canvasTex(896,1120,(g,w,h)=>dmmFace(g,w,h,typeof cfgf==='function'?cfgf():cfgf,P[key+'val']||0,tag));
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(14,17.6),new THREE.MeshBasicMaterial({map:tex})); face.rotation.x=-Math.PI/2; face.position.set(0,2.42,0); g0.add(face);
+    [[-2.4,8.2],[2.4,8.2]].forEach(([jx,jz],i)=>{ const j=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1.1,12),new THREE.MeshStandardMaterial({color:i?0xdc2626:0x0f172a,metalness:.5})); j.position.set(jx,2.5,jz); g0.add(j); });
+    P[key+'jack']=[[x-2.4,3.0,z+8.2],[x+2.4,3.0,z+8.2]]; P[key+'tex']=tex; return face; };
+  P.amFace=mkDMM(AMX,AMZ,AMC,'am','①'); P.vmFace=mkDMM(VMX,VMZ,VMC,'vm','②');
+  P.wireGrp=new THREE.Group(); scene.add(P.wireGrp); P.wireKey='';
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redrawTexs()).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); update3D();
+  let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%3; if(fr===0){ drawAll(); const e=$('view3d'), sk=e.clientWidth+'x'+e.clientHeight; if(sk!==szKey){ szKey=sk; resizeAll(); } } })(last); }
+let fr=0, szKey='', amKey='', vmKey='';
+const sliderX=()=>RX0+RL*Rpos;
+function buildWires(){ const key=Rpos.toFixed(3)+swOn+cell; if(key===P.wireKey) return; P.wireKey=key;
+  while(P.wireGrp.children.length){ const m=P.wireGrp.children.pop(); m.geometry.dispose(); m.material.dispose(); P.wireGrp.remove(m); }
+  const add=(pts,c,r)=>P.wireGrp.add(pathWire(pts,c,r||0.2));
+  const swA=[SWX-2.6,2.6,SWZ], swB=[SWX+2.6,2.6,SWZ], JA=P.amjack, JV=P.vmjack;
+  add([P.termP,[CX+9,2.4,CZ+5],[SWX-6,2.2,SWZ-1],swA],0xdc2626);                          /* ขั้ว + → สวิตช์ */
+  add([swB,[SWX+7,2.2,SWZ-3],[JA[1][0]-2,2.4,AMZ+13],JA[1]],0xdc2626);                     /* สวิตช์ → มิเตอร์ ① (mA) */
+  add([JA[0],[AMX-6,2.2,AMZ+13],[RX0-6,2.6,RZ-6],P.rTermL],0xea580c);                      /* มิเตอร์ ① (COM) → ปลายซ้ายรีโอสแตต */
+  add([[sliderX(),4.8,RZ],[sliderX()-4,5.6,RZ-4],[CX+2,3.2,CZ-6],P.termN],0x1e293b);       /* ปุ่มเลื่อน → ขั้ว − */
+  add([P.termP,[CX+8,1.6,CZ-4],[JV[1][0]-4,2.2,VMZ+13],JV[1]],0x16a34a);                   /* มิเตอร์ ② คร่อมขั้วเซลล์ */
+  add([P.termN,[CX-8,1.2,CZ-8],[VMX+9,1.6,VMZ+15],JV[0]],0x86efac); }
+function update3D(){ if(!scene) return;
+  P.cellBody.material.color.setHex(CELLS[cell].c);
+  const ck=CELLS[cell].n; if(ck!==P.cellLabKey){ P.cellLabKey=ck; const o=TEXS.find(o=>o.t===P.cellLab.material.map);
+    o.fn=(g,W,Hh)=>{ g.fillStyle='#0b1220'; g.fillRect(0,0,W,Hh); g.fillStyle=cell===2?'#fda4af':'#7dd3fc'; g.font='bold 50px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText(cell===2?'❓ เซลล์ X (ไม่ทราบค่า)':CELLS[cell].n+'  ε '+CELLS[cell].e.toFixed(2)+' V',W/2,Hh/2); }; redrawTex(P.cellLab.material.map); }
+  P.swLever.rotation.z= swOn? 0 : 0.6; P.swLever.position.y= swOn? 2.0 : 2.3;
+  const sk=swOn?'ปิด (มีกระแส)':'เปิด (ไม่มีกระแส)'; if(sk!==P.swLabKey){ P.swLabKey=sk; const o=TEXS.find(o=>o.t===P.swLab.material.map);
+    o.fn=(g,W,Hh)=>{ g.fillStyle='#0b1220'; g.fillRect(0,0,W,Hh); g.fillStyle=swOn?'#86efac':'#fde68a'; g.font='bold 46px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('สวิตช์: '+sk,W/2,Hh/2); }; redrawTex(P.swLab.material.map); }
+  P.slider.position.set(sliderX(),4.2,RZ); P.sliderHit.position.set(sliderX(),4.5,RZ);
+  const ak=nI.toFixed(3)+rng+mtype; if(ak!==amKey){ amKey=ak; P.amval=nI; redrawTex(P.amtex); }
+  const vk=nV.toFixed(3)+mtype; if(vk!==vmKey){ vmKey=vk; P.vmval=nV; redrawTex(P.vmtex); }
+  buildWires();
+  const V=VIEWS[curView]; if(V&&V.follow){ const t=vnum(V.follow); orbit.target.x+=(t[0]-orbit.target.x)*0.25; orbit.target.y+=(t[1]-orbit.target.y)*0.25; orbit.target.z+=(t[2]-orbit.target.z)*0.25; }
+  const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView)); if(!V||!orbit.target) return; const t= V.t? V.t : vnum(V.follow); orbit.target.set(t[0],t[1],t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+/* ── ลากปุ่มเลื่อนรีโอสแตต · แตะเซลล์/สวิตช์/หน้าปัด ── */
+const HD={on:false,fin:false,t:0,off:0}, HD_LAG=0.10;
+function cancelHand(){ HD.on=false; HD.fin=false; }
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); } const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null; NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.slider) return null;
+  if(RAY.intersectObject(P.sliderHit,false).length) return 'slider';
+  if(RAY.intersectObject(P.swHit,false).length) return 'sw';
+  if(RAY.intersectObject(P.cellHit,false).length) return 'cell';
+  if(RAY.intersectObject(P.amFace,false).length) return 'am'; if(RAY.intersectObject(P.vmFace,false).length) return 'vm';
+  const R0=Math.max(34,Math.min(rc.width,rc.height)*0.06), C=[]; [['slider',new THREE.Vector3(sliderX(),4.5,RZ)],['sw',new THREE.Vector3(SWX,3,SWZ)],['cell',new THREE.Vector3(CX,3,CZ)]].forEach(([w,v])=>{ const V=v.project(camera); if(V.z<1) C.push([w,Math.hypot(cx-(rc.left+(V.x*0.5+0.5)*rc.width),cy-(rc.top+(-V.y*0.5+0.5)*rc.height))]); });
+  C.sort((a,b)=>a[1]-b[1]); return C.length&&C[0][1]<=R0?C[0][0]:null; }
+function ptrX(cx,cy){ if(!setRay(cx,cy)) return null; const o=RAY.ray.origin, r=RAY.ray.direction; if(Math.abs(r.y)<1e-4) return null; const s=(4.2-o.y)/r.y; if(s<=0) return null; return o.x+r.x*s; }
+function hdStart(cx,cy){ if(pickAt(cx,cy)!=='slider') return false; const x=ptrX(cx,cy); if(x===null) return false; cancelHand(); HD.on=true; HD.off=sliderX()-x; HD.t=Rpos; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const x=ptrX(cx,cy); if(x===null) return; HD.t=Math.max(0,Math.min(1,(x+HD.off-RX0)/RL)); }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return; const tg=Math.round(HD.t*200)/200; let nv=Rpos+(tg-Rpos)*(1-Math.exp(-dt/HD_LAG)); if(Math.abs(tg-nv)<0.002) nv=tg; setR(nv); if(!HD.on&&Rpos===tg) HD.fin=false; }
+function tapAt(cx,cy){ const w=pickAt(cx,cy); if(!w) return false;
+  if(w==='sw') toggleSw(); else if(w==='cell') cycleCell(); else if(w==='am') setView('am'); else if(w==='vm') setView('vm'); else if(w==='slider') setView('rhe'); return true; }
+let panMode=false; function setPanMode(on){ panMode=!!on; const b=$('panBtn'); if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; } }
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1]; function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=$('spdBtn'); if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } } function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); } function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0,sx:0,sy:0,moved:false}; const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  const begin=(x,y,pan)=>{ T.mode=pan?'pan':'rot'; T.lx=T.sx=x; T.ly=T.sy=y; T.moved=false; };
+  const drag=(x,y)=>{ if(Math.hypot(x-T.sx,y-T.sy)>6) T.moved=true; const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); if(e.button===0&&!e.shiftKey&&!panMode&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; T.moved=false; T.sx=e.clientX; T.sy=e.clientY; return; } begin(e.clientX,e.clientY,e.button===1||e.button===2||e.shiftKey||panMode); T.btn0=e.button===0&&!e.shiftKey; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; const p=pickAt(e.clientX,e.clientY); cv.style.cursor= p==='slider'?'ew-resize':(p?'pointer':'grab'); });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; return; } if(T.mode==='hand'){ if(Math.hypot(e.clientX-T.sx,e.clientY-T.sy)>6) T.moved=true; hdMove(e.clientX,e.clientY); return; } drag(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',e=>{ if(T.mode==='hand'){ hdEnd(); if(!T.moved) tapAt(e.clientX,e.clientY); } else if(T.mode&&T.mode!=='pinch'&&!T.moved&&T.btn0) tapAt(e.clientX,e.clientY); if(T.mode!=='pinch') T.mode=null; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.moved=true; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0]; if(!panMode&&hdStart(t.clientX,t.clientY)){ T.mode='hand'; T.moved=false; T.sx=t.clientX; T.sy=t.clientY; return; } begin(t.clientX,t.clientY,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; if(Math.hypot(t.clientX-T.sx,t.clientY-T.sy)>6) T.moved=true; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; drag(t.clientX,t.clientY); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ const t=e.changedTouches&&e.changedTouches[0]; if(T.mode==='hand'){ hdEnd(); if(!T.moved&&t) tapAt(t.clientX,t.clientY); } else if((T.mode==='rot'||T.mode==='pan')&&!T.moved&&t) tapAt(t.clientX,t.clientY); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',()=>{ cancelHand(); T.mode=null; }); cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.4,Math.min(1.45,orbit.el+dy*0.006)); } function camZoom(f){ orbit.dist=Math.max(4,Math.min(900,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow(); const o=orbit; if(!o.target||!camera) return; const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el); o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p; const ml=48,mb=38,gw=W*0.58-ml,gh=H-mb-20, X=v=>ml+v*gw, Y=v=>20+gh-v*gh;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,20,gw,gh); g.fillStyle='#94a3b8'; g.font='11px IBM Plex Sans Thai'; g.textAlign='center'; g.fillText('I (กระแส)',ml+gw/2,H-12); g.save(); g.translate(16,20+gh/2); g.rotate(-Math.PI/2); g.fillText('V ที่ขั้ว',0,0); g.restore();
+  [[0.92,0.30,'#38bdf8','เซลล์ใหม่ (r น้อย)'],[0.92,0.78,'#34d399','เซลล์เก่า (r มาก)']].forEach(([a,slope,col,txt],i)=>{
+    g.strokeStyle=col; g.lineWidth=2; g.beginPath(); g.moveTo(X(0),Y(a)); g.lineTo(X(1),Y(a-slope)); g.stroke();
+    g.fillStyle=col; g.beginPath(); g.arc(X(0),Y(a),4,0,Math.PI*2); g.fill();
+    g.font='12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText(txt,W*0.62,44+i*24); });
+  g.fillStyle='#facc15'; g.font='12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('จุดตัดแกน V = ε',X(0.04),Y(0.96));
+  g.fillStyle='#e2e8f0'; ['V = ε − I r','ความชัน = −r','I = ε/(R + r)','R = r → กำลังภายนอกสูงสุด'].forEach((t,i)=>g.fillText(t,W*0.62,H*0.45+i*24)); }
+function drawTheoryAll(){ drawTheory0(); }
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{ ['in-v','in-i'].forEach(id=>$(id).addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }));
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); setMeterType(mtype); if(window.ResizeObserver) new ResizeObserver(()=>resizeAll()).observe($('view3d')); setMode('manual'); syncCtl(); renderAll(); drawTheoryAll();
+  if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-last)/1000); last=now; stepPhys(dt); drawAll(); },40); } });
+</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260923-2"></script>
+<script>
+  (function(){ var w = setInterval(function(){ if (typeof kpPageAccess === "function") { clearInterval(w); kpPageAccess("vlab:vpl06:lab-111", "../virtual-physics-lab-06.html"); } }, 50); setTimeout(function(){clearInterval(w)}, 5000); })();
+</script>
+</body>
+</html>
