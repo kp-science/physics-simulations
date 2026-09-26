@@ -3876,3 +3876,6 @@ match /settings/{docId} {
 
 ### ไฟล์ที่แก้
 - `Virtual Physics Lab 02/32B. light-reflection.html`, `33B. light-refraction-glass.html`
+
+## [2026-09-26] — Lab 32B: รังสีสะท้อนเป็นเส้นทึบ
+- รังสีสะท้อน (สีเขียว) หลังกด ✓ เสร็จสิ้น เดิมช่วงจากกระจกถึง P₃ เป็นเส้นประ → เปลี่ยนเป็นเส้นทึบต่อเนื่องจากจุดบนกระจกผ่าน P₃ P₄ (มีหัวลูกศร) · ไฟล์ `Virtual Physics Lab 02/32B. light-reflection.html`
