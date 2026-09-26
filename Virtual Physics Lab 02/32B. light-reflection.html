@@ -289,7 +289,7 @@ td.err-cell{color:#facc15;font-family:'Share Tech Mono',monospace}
       <li><strong>ขั้นตอน 1 — วางเข็มหมุดตกกระทบ:</strong> คลิกบนกระดาษ<strong>หน้ากระจก</strong> วาง P₁ แล้ว P₂ → เส้นรังสีตกกระทบพุ่งเข้ากระจก</li>
       <li><strong>ขั้นตอน 2 — วางเข็มหมุดสะท้อน:</strong> กด <strong>👁 มุมจากตา</strong> ในภาพ 3D → เห็นภาพ P₁′ P₂′ ในกระจก → คลิกวาง P₃ แล้ว P₄ ให้อยู่ในแนวสายตาเดียวกับภาพในกระจก (ในมุมจากตา หมุดจริงและภาพในกระจกซ้อนเป็นแนวเดียว)</li>
       <li><strong>ยืนยัน:</strong> เมื่อพอใจตำแหน่ง P₃, P₄ แล้ว กดปุ่ม <strong>✓ เสร็จสิ้น</strong> (มุมล่างขวาของภาพ 3D) → P₃, P₄ จะล็อค และรังสีสะท้อนปรากฏ</li>
-      <li><strong>ขั้นตอน 3 — วางเส้น Normal:</strong> เส้นตั้งฉาก (เส้นประ) ปรากฏ → <strong>ลากเลื่อน</strong> ให้ตรงจุดที่รังสีตกกระทบชนกระจก</li>
+      <li><strong>ขั้นตอน 3 — เส้น Normal:</strong> เส้นตั้งฉากกับกระจก (เส้นประ N) ปรากฏที่<strong>จุดตกกระทบ</strong> — จุดที่รังสีตกกระทบและรังสีสะท้อนพบกันที่กระจก</li>
       <li><strong>ขั้นตอน 4 — วัดมุม:</strong> กดปุ่ม <strong>📐 โปรแทรกเตอร์ 360°</strong> → ลากไปวางที่จุดตกกระทบ → <strong>หมุน</strong>ให้ 0° ทาบเส้น Normal → อ่าน θ<sub>i</sub> และ θ<sub>r</sub></li>
       <li><strong>บันทึก:</strong> กรอก θ<sub>i</sub>, θ<sub>r</sub> ในตาราง แล้วกด <strong>✓</strong> → ระบบแสดง %Error เทียบกับค่าจริง</li>
       <li><strong>ทำซ้ำ:</strong> กด <strong>🗑 ล้างทั้งหมด</strong> แล้วเริ่มใหม่ด้วยมุมตกกระทบที่ต่างกัน อย่างน้อย 5 ครั้ง</li>
@@ -392,7 +392,7 @@ function setMode(m){ mode=m; $('btnManual').classList.toggle('active',m==='manua
 function resetLab(){ autoAngle=35; $('sl-angle').value=35; $('vi-angle').value=35; updateAutoReadout(); resetAll(); setView('iso'); drawAll(); if(mode==='auto') drawGraph(); }
 function resetAll(){ incPins=[]; reflPins=[]; normalX=-1; step=1; showProt=false; pinsLocked=false; $('protBtn').textContent='📐 โปรแทรกเตอร์ 360°: ปิด'; $('confirmPinsBtn').style.display='none'; if(curView==='eye') curView='iso'; updateHint(); drawAll(); }
 function toggleProtractor(){ showProt=!showProt; $('protBtn').textContent='📐 โปรแทรกเตอร์ 360°: '+(showProt?'เปิด':'ปิด'); if(showProt){ const poi=poiOf(); prot.x=poi?poi.x:15; prot.y=MY+3.5; prot.rot=0; } drawAll(); }
-function confirmPins(){ pinsLocked=true; $('confirmPinsBtn').style.display='none'; step=3; normalX=15; updateHint(); drawAll(); }
+function confirmPins(){ pinsLocked=true; $('confirmPinsBtn').style.display='none'; const poi=poiOf(); normalX=poi?poi.x:15; step=poi?4:3; updateHint(); drawAll(); }   // เส้น Normal ลากผ่านจุดตกกระทบ (จุดที่รังสีตกกระทบและรังสีสะท้อนพบกันที่กระจก)
 function updateHint(){
   const h=$('hintArea'); [1,2,3,4].forEach(i=>{ $('sd'+i).className='step-dot'+(i===step?' active':(i<step?' done':'')); });
   const poi=poiOf();
@@ -441,11 +441,12 @@ function angleArcs(c,X,Y,poi,incFar,refFar,ppc,ti,tr){ const R=ppc*1.7, cx=X(poi
   arc(ai,'#fb923c','rgba(251,146,60,.1)','θi'+(ti!==undefined?'='+ti.toFixed(1)+'°':'')); arc(ar,'#38bdf8','rgba(56,189,248,.1)','θr'+(tr!==undefined?'='+tr.toFixed(1)+'°':'')); }
 function rayLine(c,X,Y,a,b,col,ppc){ c.strokeStyle=col; c.lineWidth=Math.max(1.5,ppc*.08); c.beginPath(); c.moveTo(X(a.x),Y(a.y)); c.lineTo(X(b.x),Y(b.y)); c.stroke(); const ang=Math.atan2(b.y-a.y,b.x-a.x), s=ppc*.35; c.save(); c.translate(X(b.x),Y(b.y)); c.rotate(ang); c.fillStyle=col; c.beginPath(); c.moveTo(0,0); c.lineTo(-s,-s*.4); c.lineTo(-s,s*.4); c.closePath(); c.fill(); c.restore(); c.beginPath(); c.arc(X(b.x),Y(b.y),ppc*.12,0,Math.PI*2); c.fillStyle='#fff'; c.fill(); }
 function pin2D(c,X,Y,p,label,fill,stroke,ppc,T){ const r=ppc*.3; c.beginPath(); c.arc(X(p.x),Y(p.y),r,0,Math.PI*2); c.fillStyle=fill; c.fill(); c.strokeStyle=stroke; c.lineWidth=1.5; c.stroke(); c.fillStyle=T.pinText; c.font=`700 ${ppc*.36}px IBM Plex Sans Thai`; c.textAlign='center'; c.textBaseline='middle'; c.fillText(label,X(p.x),Y(p.y)); c.textBaseline='alphabetic'; }
-function protractor(c,X,Y,ppc){ const R=prot.r*ppc; c.save(); c.translate(X(prot.x),Y(prot.y)); c.rotate(prot.rot);
-  c.beginPath(); c.arc(0,0,R,0,Math.PI*2); c.fillStyle='rgba(255,240,180,.10)'; c.fill(); c.strokeStyle='rgba(200,170,80,.6)'; c.lineWidth=1.5; c.stroke();
-  for(let d=0;d<360;d++){ let tl; if(d%10===0) tl=R*.12; else if(d%5===0) tl=R*.07; else if(ppc>26) tl=R*.035; else continue; const a=d*Math.PI/180, cs=Math.cos(a), sn=Math.sin(a), ax=(d%90===0); c.beginPath(); c.moveTo(cs*(R-tl),sn*(R-tl)); c.lineTo(cs*R,sn*R); c.strokeStyle=ax?'rgba(255,90,90,.9)':'rgba(200,170,80,.7)'; c.lineWidth=d%10===0?1.2:.6; c.stroke(); if(d%10===0){ c.fillStyle=ax?'rgba(255,90,90,.95)':'rgba(120,100,40,.9)'; c.font=(ax?'700 ':'')+Math.max(7,R*.075)+'px "Share Tech Mono"'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(d+'°',cs*(R-R*.2),sn*(R-R*.2)); } }
-  c.setLineDash([4,3]); c.strokeStyle='rgba(255,90,90,.45)'; c.lineWidth=1; c.beginPath(); c.moveTo(-R,0); c.lineTo(R,0); c.moveTo(0,-R); c.lineTo(0,R); c.stroke(); c.setLineDash([]); c.strokeStyle='rgba(255,90,90,.8)'; c.beginPath(); c.moveTo(-8,0); c.lineTo(8,0); c.moveTo(0,-8); c.lineTo(0,8); c.stroke(); c.beginPath(); c.arc(0,0,2.5,0,Math.PI*2); c.fillStyle='rgba(255,90,90,.9)'; c.fill();
-  c.beginPath(); c.arc(0,0,R+7,0,Math.PI*2); c.strokeStyle='rgba(255,240,180,.22)'; c.lineWidth=14; c.stroke(); c.fillStyle='rgba(180,150,60,.8)'; c.font='10px IBM Plex Sans Thai'; c.textAlign='center'; c.textBaseline='alphabetic'; c.fillText('↻ ลากขอบเพื่อหมุน · ลากกลางเพื่อย้าย',0,-R-14); c.restore(); }
+function protractor(c,X,Y,ppc){ const R=prot.r*ppc, k=ppc/20; c.save(); c.translate(X(prot.x),Y(prot.y)); c.rotate(prot.rot);   /* หมึกเข้ม + เส้นหนาตาม ppc — อ่านได้บนกระดาษขาวในภาพ 3D */
+  c.beginPath(); c.arc(0,0,R,0,Math.PI*2); c.fillStyle='rgba(255,236,170,.28)'; c.fill(); c.strokeStyle='#7c5e10'; c.lineWidth=1.6*k; c.stroke();
+  c.beginPath(); c.arc(0,0,R*.62,0,Math.PI*2); c.strokeStyle='rgba(124,94,16,.45)'; c.lineWidth=.8*k; c.stroke();
+  for(let d=0;d<360;d++){ let tl; if(d%10===0) tl=R*.12; else if(d%5===0) tl=R*.07; else tl=R*.035; const a=d*Math.PI/180, cs=Math.cos(a), sn=Math.sin(a), ax=(d%90===0); c.beginPath(); c.moveTo(cs*(R-tl),sn*(R-tl)); c.lineTo(cs*R,sn*R); c.strokeStyle=ax?'#dc2626':'#5b450c'; c.lineWidth=(d%10===0?1.3:d%5===0?.9:.55)*k; c.stroke(); if(d%10===0){ c.fillStyle=ax?'#dc2626':'#5b450c'; c.font=(ax?'700 ':'600 ')+Math.max(7,R*.075)+'px "Share Tech Mono"'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(d+'°',cs*(R-R*.2),sn*(R-R*.2)); } }
+  c.setLineDash([4*k,3*k]); c.strokeStyle='rgba(220,38,38,.6)'; c.lineWidth=.8*k; c.beginPath(); c.moveTo(-R,0); c.lineTo(R,0); c.moveTo(0,-R); c.lineTo(0,R); c.stroke(); c.setLineDash([]); c.strokeStyle='#dc2626'; c.lineWidth=1.2*k; c.beginPath(); c.moveTo(-8*k,0); c.lineTo(8*k,0); c.moveTo(0,-8*k); c.lineTo(0,8*k); c.stroke(); c.beginPath(); c.arc(0,0,2.5*k,0,Math.PI*2); c.fillStyle='#dc2626'; c.fill();
+  c.beginPath(); c.arc(0,0,R+7*k,0,Math.PI*2); c.strokeStyle='rgba(180,140,40,.28)'; c.lineWidth=14*k; c.stroke(); c.fillStyle='#7c5e10'; c.font=`600 ${Math.max(10,ppc*.4)}px IBM Plex Sans Thai`; c.textAlign='center'; c.textBaseline='alphabetic'; c.fillText('↻ ลากขอบเพื่อหมุน · ลากกลางเพื่อย้าย',0,-R-16*k); c.restore(); }
 
 /* ── การโต้ตอบบนกระดาษ (พิกัด cm จาก raycast ในภาพ 3D) ── */
 const dcm=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -562,7 +563,7 @@ function init3D(){
   scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.8)); const d1=new THREE.DirectionalLight(0xffffff,0.7); d1.position.set(20,50,30); scene.add(d1); const d2=new THREE.DirectionalLight(0xbfd8ff,0.3); d2.position.set(-30,20,-20); scene.add(d2);
   const table=new THREE.Mesh(new THREE.PlaneGeometry(80,60),new THREE.MeshStandardMaterial({color:0x3b2f25,roughness:.95})); table.rotation.x=-Math.PI/2; table.position.y=-0.03; scene.add(table);
   paperCanvas=document.createElement('canvas'); paperCanvas.width=1800; paperCanvas.height=1260; paperTex=new THREE.CanvasTexture(paperCanvas); paperTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  const paper=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),new THREE.MeshStandardMaterial({map:paperTex,roughness:.9})); paper.rotation.x=-Math.PI/2; scene.add(paper);
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),new THREE.MeshStandardMaterial({map:paperTex,roughness:.9,color:0xd4d4d4})); paper.rotation.x=-Math.PI/2; scene.add(paper);
   // กระจกเงาราบ: ระนาบสะท้อน (render-to-texture) + แท่งไม้ค้ำด้านหลัง + ขอบ
   rtMir=new THREE.WebGLRenderTarget(4,4); clipPlane=new THREE.Plane(new THREE.Vector3(0,0,1),-MZ);   // เก็บเฉพาะวัตถุหน้ากระจก (z > MZ) ตอน render ภาพสะท้อน
   mirMat=new THREE.ShaderMaterial({vertexShader:MIR_VERT,fragmentShader:MIR_FRAG,uniforms:{tDiffuse:{value:rtMir.texture},uTex:{value:texMat}}});
