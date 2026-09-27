@@ -3920,7 +3920,7 @@ match /settings/{docId} {
 - `kp-auth.js`, `_admin/admin.html`, `_admin/labs_data.py` · build (virtual-lab.html, library.html, virtual-physics-lab-06.html, index.html) · `?v=` ทุกไฟล์ (177 ไฟล์)
 
 ### ค้างไว้ที่ไหน / ต้องทำต่อ
-- ยังไม่ commit / push — รอเจ้าของสั่ง "อัพขึ้นเว็บ"
+- ✅ push แล้ว (commit `1eb431d`) · ตรวจเว็บจริง: Lab 115 = 200 · kp-auth มี lab-115 · หน้า VPL06 มีการ์ด
 - ถัดไป: Lab 116 เทอร์มิสเตอร์-LDR (ใช้เบรดบอร์ดแบบเดียวกันได้)
 
 ### หมายเหตุ
