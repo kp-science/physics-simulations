@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="th">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
+<!-- © 2569 KP Science | สงวนลิขสิทธิ์ | ห้ามแจกจ่ายโดยไม่ได้รับอนุญาต -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<title>Lab 115 — สะพานวีตสโตน: ต่อบนเบรดบอร์ดด้วยตัวเอง (3D) | KP Science simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#38bdf8;--accent2:#818cf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#22d3ee;--text:#e2e8f0;--muted:#94a3b8;--warn:#facc15;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Share Tech Mono',monospace}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .icon{font-size:1.8rem}
+header h1{font-size:1.15rem;font-weight:700;color:var(--accent)}
+header p{font-size:.8rem;color:var(--muted)}
+header .badge{margin-left:auto;background:#0c2a3a;border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+nav.tabs{display:flex;gap:4px;padding:10px 20px;background:#0f172a;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .2s}
+nav.tabs button:hover{border-color:var(--accent);color:var(--accent)}
+nav.tabs button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a}
+.tab-section{display:none}
+.tab-section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+.sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.view3d{position:relative;height:430px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+/* ปุ่มความเร็ว/มุมมอง/รีเซตอยู่มุมล่างซ้ายของภาพ 3D · จอ ≤ 900 px เป็นแถวเดียวปัดซ้าย-ขวาได้ (↺ รีเซตค่า อยู่หน้าสุด)
+   ⚙️ ตั้งค่า / 📊 ผล บนจอเล็กอยู่ที่แถบขอบล่างของจอ (kp-mobile-panel.js) */
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+button.reset3d{background:#16a34a;border:1px solid #22c55e;color:#fff;font-weight:700;font-size:.8rem;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+.view3d .viewbtns button.reset3d{background:#16a34a;border-color:#22c55e;color:#fff}
+button.reset3d:hover,.view3d .viewbtns button.reset3d:hover{background:#22c55e;border-color:#4ade80;color:#fff}
+@media(max-width:900px){
+  .view3d .viewbtns .reset3d{order:-1;box-shadow:none}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.obj-box{background:#0b1220;border:1.5px solid #0e7490;border-radius:10px;padding:6px 12px}
+.obj-box b{color:#fde68a}
+.obj-box summary{cursor:pointer;font-weight:700;color:#67e8f9;font-size:.88rem;list-style-position:inside}
+.obj-box ol{margin:6px 0 2px 20px;padding:0;font-size:.8rem;line-height:1.6;color:#e2e8f0}
+.obj-box b{color:#fde68a}
+.status-line{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 12px;font-size:.8rem;color:var(--muted);line-height:1.5}
+.status-line b{color:var(--accent)}
+
+/* แถบปุ่มหลักใต้ภาพ 3D */
+.actbar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:8px}
+.actbar button{display:flex;align-items:center;justify-content:center;min-height:44px;padding:6px 4px;border:1.5px solid rgba(255,255,255,.28);border-radius:9px;color:#fff;font-family:inherit;font-weight:700;font-size:.88rem;line-height:1.2;cursor:pointer;text-align:center;touch-action:manipulation;transition:filter .15s}
+.actbar button:hover{filter:brightness(1.18)}
+.actbar button:disabled{background:#1e293b!important;border-color:#334155;color:#64748b;cursor:not-allowed;filter:none}
+@media(max-width:700px){.actbar{grid-template-columns:repeat(4,1fr)}.actbar button{font-size:.8rem}}
+
+.rec-form{background:#0b1220;border:1.5px solid #15803d;border-radius:10px;padding:8px 10px}
+.rec-form .rf-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;color:#86efac;font-size:.86rem;margin-bottom:6px}
+.rec-form .rf-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.rec-form .rf-f{flex:1;min-width:128px;display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--text)}
+.rec-form .rf-f small{color:var(--muted);font-size:.66rem}
+.rec-form .rf-in{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem}
+.rec-form .rf-in input{width:100%;max-width:110px;font-size:1rem;padding:5px 6px}
+.rec-form .rf-in input[readonly]{border-color:var(--border);color:var(--accent)}
+.rec-form .rf-btn{min-width:110px;font-size:.95rem;padding:8px 14px;background:#16a34a}
+.rec-form .rf-btn:hover{background:#22c55e}
+.rec-form .rf-msg{font-size:.74rem;margin-top:5px;min-height:1em;color:var(--muted);line-height:1.5}
+.rec-form .rf-msg.warn{color:#fde047}
+.rec-form .rf-msg.ok{color:#86efac}
+.last-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.78rem;align-items:baseline}
+.last-grid .k{color:var(--muted)}
+.last-grid .v{font-family:'Share Tech Mono',monospace;color:var(--accent3);font-weight:700}
+.last-grid .big{font-size:1rem;color:#facc15}
+
+.sim-panel{background:var(--panel);border-left:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px);overflow-y:auto;min-width:0}
+.panel-section{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px}
+.panel-title{font-size:.85rem;font-weight:700;color:var(--accent);margin-bottom:8px}
+.mode-btns{display:flex;gap:6px;flex-wrap:wrap}
+.mode-btns button{flex:1;min-width:64px;padding:7px 4px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;line-height:1.25}
+.mode-btns button.active{background:var(--accent4);border-color:var(--accent4);color:#0a0e1a}
+.hint-box{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.5;border:1px solid var(--border);background:var(--panel)}
+.hint-box.info{border-color:var(--accent5);color:#bae6fd;background:rgba(56,189,248,.06)}
+.hint-box.ok{border-color:var(--accent3);color:#a7f3d0;background:rgba(52,211,153,.08)}
+.hint-box.warn{border-color:var(--warn);color:#fef08a;background:rgba(250,204,21,.07)}
+.val-input{width:80px;padding:2px 6px;background:var(--panel);border:1.5px solid var(--accent2);border-radius:5px;color:var(--accent3);font-weight:700;font-size:.84rem;text-align:center;font-family:'Share Tech Mono',monospace;-moz-appearance:textfield}
+.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.readout-box .label{font-size:.68rem;color:var(--muted)}
+.readout-box .value{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent3);font-weight:700}
+.btn{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem;font-family:inherit;color:#fff;transition:.15s}
+.btn-green{background:#1b5e20}.btn-green:hover{background:#2e7d32}
+.btn-red{background:#7c2d12}.btn-red:hover{background:#9a3412}
+.btn-amber{background:#a16207}.btn-amber:hover{background:#ca8a04}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 8px;font-size:.74rem}
+.btn-row{display:flex;gap:4px;margin-bottom:5px}
+.btn-row .btn{flex:1}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:.68rem}
+th,td{padding:3px 2px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+th{color:var(--accent);background:var(--panel);font-weight:700;position:sticky;top:0}
+td.mono{font-family:'Share Tech Mono',monospace;color:var(--accent3)}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:6px;max-height:250px}
+.tbl-cap{font-size:.74rem;color:#facc15;font-weight:700;margin:6px 0 3px}
+.tbl-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+#graphCanvas{width:100%;height:240px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:block}
+.ans-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
+.ans-msg{font-size:.74rem;line-height:1.5;margin:2px 0 8px;min-height:1em}
+.note{font-size:.7rem;color:var(--muted);line-height:1.55;margin-top:5px}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:18px 20px}
+.content-wrap h2{color:var(--accent);font-size:1.05rem;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.content-wrap h3{color:var(--accent2);font-size:.92rem;margin:12px 0 6px}
+.content-wrap p,.content-wrap li{color:var(--text);line-height:1.7;font-size:.88rem}
+.content-wrap ul,.content-wrap ol{padding-left:22px;margin:6px 0}
+.formula-box{background:#0c1424;border-left:3px solid var(--accent3);padding:8px 12px;border-radius:6px;margin:8px 0;font-family:'Share Tech Mono',monospace;color:var(--accent3);font-size:.88rem;line-height:1.75;overflow-x:auto}
+.note-box{background:#2a1f10;border:1px solid var(--accent4);color:#fed7aa;border-radius:8px;padding:8px 12px;font-size:.84rem;margin:8px 0;line-height:1.6}
+.theory-canvas-wrap{width:100%;max-width:820px;margin:12px auto;background:#0c1424;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.theory-canvas-wrap canvas{width:100%;display:block}
+footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border-top:1px solid var(--border);margin-top:20px;line-height:1.6}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr}.sim-panel{max-height:none;border-left:none;border-top:1px solid var(--border)}.view3d{height:370px}
+  .view3d .viewhint{display:none}}
+
+/* === KP Topbar === */
+.kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-topbar .tb-logo{display:flex;align-items:center;gap:.4rem;text-decoration:none;flex-shrink:0}
+.kp-topbar .tb-logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#38bdf8,#818cf8);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#06090f}
+.kp-topbar .tb-logo-text{font-size:.9rem;font-weight:700}.kp-topbar .tb-kp{color:#38bdf8}.kp-topbar .tb-sc{color:#f0f4f8}
+.kp-topbar .tb-links{display:flex;gap:1.2rem;margin-left:auto}
+.kp-topbar .tb-links a{color:#7c8fa6;text-decoration:none;font-size:.8rem;font-weight:600;transition:.2s}
+.kp-topbar .tb-links a:hover{color:#f0f4f8}
+.kp-topbar .tb-cta{background:#38bdf8;color:#06090f;padding:5px 14px;border-radius:6px;font-size:.78rem;font-weight:700;text-decoration:none;transition:.2s;white-space:nowrap}
+.kp-topbar .tb-cta:hover{background:#7dd3fc}
+.kp-topbar .tb-login{display:flex;align-items:center;gap:.3rem;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit;white-space:nowrap}
+.kp-topbar .tb-login:hover{background:rgba(56,189,248,0.2)}
+.kp-topbar .tb-user{display:none;align-items:center;gap:.5rem}
+.kp-topbar .tb-user-email{font-size:.75rem;color:#38bdf8;font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp-topbar .tb-user-logout{font-size:.72rem;color:#7c8fa6;background:none;border:none;cursor:pointer;font-family:inherit}
+@media(max-width:768px){.kp-topbar .tb-links{display:none}.kp-topbar .tb-cta{display:none}}
+</style>
+<script>
+/* KP Science — Frame Protection */
+(function(){
+  try{ if(window.self !== window.top){ window.top.location.href = window.self.location.href; } }
+  catch(e){ document.documentElement.innerHTML='<body style="background:#0a0e1a;color:#e2e8f0;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:20px"><div><h1 style="color:#38bdf8">KP Science</h1><p style="margin:1rem 0">This simulation cannot be embedded on other websites.</p><p><a href="../index.html" style="color:#38bdf8">Go to KP Science</a></p></div></body>'; }
+})();
+</script>
+</head>
+
+
+<body data-access="vlab:vpl06:lab-115">
+<!-- KP Topbar -->
+<nav class="kp-topbar">
+  <a href="../index.html" class="tb-logo"><div class="tb-logo-mark">KP</div><div class="tb-logo-text"><span class="tb-kp">KP</span><span class="tb-sc">Science</span></div></a>
+  <div class="tb-links"><a href="../index.html#demos">Demo</a><a href="../index.html#collections">Collections</a><a href="../library.html">Library</a><a href="../index.html#about">เกี่ยวกับ</a><a href="../index.html#contact">ติดต่อ</a></div>
+  <a href="../index.html#demos" class="tb-cta">🎬 ใช้งานฟรี</a>
+  <button class="tb-login" id="kp-tb-login" onclick="if(typeof showModal==='function')showModal('login')">🔑 เข้าสู่ระบบ</button>
+  <div class="tb-user" id="kp-tb-user"><span class="tb-user-email" id="kp-tb-email"></span><button class="tb-user-logout" onclick="if(typeof kpLogout==='function')kpLogout()">ออก</button></div>
+</nav>
+
+<header>
+  <div class="icon">⚖️</div>
+  <div>
+    <h1>Lab 115 — สะพานวีตสโตน: ต่อบนเบรดบอร์ดด้วยตัวเอง (3D)</h1>
+    <p>Wheatstone Bridge — หยิบตัวต้านทานกับสายไฟมาต่อเป็นสะพาน 4 แขนบนเบรดบอร์ดเอง · ต่อ<b>กล่องความต้านทาน</b> (R<sub>S</sub>) และ<b>แกลแวนอมิเตอร์</b>ด้วยสายไฟแบบรู → รู เหมือน Lab 110 · หมุนกล่องความต้านทานจนเข็มแกลแวนอมิเตอร์ชี้ศูนย์ (สะพานสมดุล) แล้วหาความต้านทานปริศนา X</p>
+  </div>
+  <span class="badge" style="background:#1e2a45;border-color:#818cf8;color:#c7d2fe">3D · three.js</span>
+  <span class="badge">KP Science simulation</span>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="showTab('sim',this)">🎬 การทดลอง</button>
+  <button onclick="showTab('proc',this)">📋 วิธีการทดลอง · บันทึกผล</button>
+  <button onclick="showTab('theory',this)">📐 ทฤษฎี · อธิบาย</button>
+</nav>
+
+<div id="tab-sim" class="tab-section active">
+  <div class="sim-layout">
+    <div class="sim-main">
+      <div class="obj-box" style="font-size:.82rem;line-height:1.6">🎯 <b style="color:#67e8f9">สิ่งที่ต้องทำ:</b> ต่อสะพานวีตสโตนบนเบรดบอร์ด (แขน 4 แขน · แกลแวนอมิเตอร์ต่อคร่อมจุดกลางทั้งสอง) · ปรับกล่องความต้านทาน R<sub>S</sub> จนกระแสผ่านแกลแวนอมิเตอร์เป็นศูนย์ · ใช้ <b>P/Q = X/R<sub>S</sub></b> หาค่า ❓X — <span style="color:var(--muted)">รายละเอียดอยู่ในแท็บ 📋 วิธีการทดลอง</span></div>
+      <div class="view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="spdBtn" onclick="cycleSimSpeed()" title="ปรับความเร็วการแสดงผลให้ช้าลง (ค่าที่วัดได้ไม่เปลี่ยน)">🐢 ความเร็วปกติ ×1</button>
+          <button id="panBtn" onclick="setPanMode(!panMode)">✋ เลื่อนภาพ</button>
+          <button id="mtBtn" onclick="cycleMeterType()" title="สลับหน้าปัดแกลแวนอมิเตอร์ระหว่างแบบเข็มกับแบบดิจิทัล">🔢 มิเตอร์ดิจิทัล</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="bb" onclick="setView('bb')">🧩 เบรดบอร์ด</button>
+          <button data-vw="am" onclick="setView('am')">🔍 แกลแวนอมิเตอร์</button>
+          <button data-vw="box" onclick="setView('box')">🔍 กล่องความต้านทาน</button>
+          <button class="reset3d" onclick="resetLab()">↺ รีเซตค่า</button>
+        </div>
+        <div class="viewhint">🖐 แตะอุปกรณ์ในกล่อง (หรือกดปุ่มด้านล่าง) = หยิบ · แตะ<b>รู</b> 2 รู = วางคร่อมสองรูนั้น · แตะ <b>▲ / ▼</b> บนกล่องความต้านทาน = ปรับ R<sub>S</sub> · <b>ลากปุ่มกลม</b>บนแหล่งจ่าย = ปรับแรงดัน<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = แตะ/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — แลปนี้ต้องใช้ภาพ 3D</div>
+      </div>
+      <div class="actbar" id="actBar" style="grid-template-columns:repeat(8,1fr)">
+        <button id="ab-w" style="background:#6d28d9" onclick="pick('w')">🔌 สายไฟ</button>
+        <button id="ab-H" style="background:#a16207" onclick="pick('H')">🟫 100 Ω</button>
+        <button id="ab-M" style="background:#9d174d" onclick="pick('M')">🟫 1 kΩ</button>
+        <button id="ab-K" style="background:#047857" onclick="pick('K')">🟫 220 Ω</button>
+        <button id="ab-X" style="background:#9f1239" onclick="pick('X')">🟫 ❓X</button>
+        <button id="ab-del" style="background:#7f1d1d" onclick="removeSel()">🗑 ถอดชิ้นที่เลือก</button>
+        <button id="ab-bb" style="background:#0e7490" onclick="setView('bb')">🧩 เบรดบอร์ด</button>
+        <button id="ab-rec" style="background:#4338ca" onclick="recordRow()">📝 บันทึก</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      <div class="rec-form" id="recForm">
+        <div class="rf-head">📝 บันทึกผลการวัด <span style="font-weight:400;color:var(--muted);font-size:.74rem">— อ่านแกลแวนอมิเตอร์ตอนนิ่งแล้ว (มีเครื่องหมาย + / −)</span>
+          <span id="modeNote" style="margin-left:auto;font-weight:400;color:var(--muted);font-size:.74rem"></span></div>
+        <div class="rf-row">
+          <label class="rf-f"><span>① สะพานที่ต่ออยู่ <small>— บันทึกให้อัตโนมัติ</small></span><span class="rf-in"><input class="val-input" type="text" id="in-known" readonly style="max-width:none;width:100%;font-size:.76rem"></span></label>
+          <label class="rf-f"><span>② R<sub>S</sub> บนกล่องความต้านทาน</span><span class="rf-in"><input class="val-input" type="number" id="in-rs" readonly> Ω</span></label>
+          <label class="rf-f"><span>③ กระแสแกลแวนอมิเตอร์ I<sub>G</sub> <small>— กรอกเป็น µA</small></span><span class="rf-in"><input class="val-input" type="number" id="in-i" step="0.1" inputmode="decimal" placeholder="?"> µA</span></label>
+          <button class="btn rf-btn" onclick="recordRow()">📝 บันทึก</button>
+        </div>
+        <div class="rf-msg" id="recMsg"></div>
+      </div>
+    </div>
+    <div class="sim-panel" id="simPanel">
+      <div class="panel-section">
+        <div class="panel-title">โหมดการทดลอง</div>
+        <div class="mode-btns" id="modeBtns"><button class="active" onclick="setMode('manual')">🖐 วัดค่าเอง</button><button onclick="setMode('auto')">⚡ อัตโนมัติ</button></div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="resetLab()">↺ รีเซตค่า — รื้อวงจร · แหล่งจ่าย 0 V · มุมมองเริ่มต้น</button>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;text-align:center">ตารางบันทึกผลและค่าปริศนาที่ซ่อนไว้ไม่เปลี่ยน</div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🧭 ตอนนี้ต้องทำอะไร</div><div class="hint-box info" id="hint"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🧰 กล่องอุปกรณ์ <span id="lockNote" style="font-size:.68rem;color:var(--warn);font-weight:600"></span></div>
+        <div class="mode-btns" id="pickBtns">
+          <button onclick="pick('w')">🔌 สายไฟ</button><button onclick="pick('H')">100 Ω <small>×2</small></button><button onclick="pick('M')">1 kΩ</button><button onclick="pick('K')">220 Ω</button><button onclick="pick('X')" style="color:#fda4af">❓ X</button>
+        </div>
+        <div class="btn-row" style="margin-top:7px"><button class="btn btn-outline btn-sm" onclick="pick(null)">✋ วางมือ (ยกเลิกการหยิบ)</button><button class="btn btn-red btn-sm" onclick="removeSel()">🗑 ถอดชิ้นที่เลือก</button></div>
+        <div class="note"><b>การต่อใช้ระบบเดียวกับ Lab 110</b>: กดอุปกรณ์ → แตะรูที่ 1 → แตะรูที่ 2 · <b>รูขั้วของเครื่องมือ</b> (แหล่งจ่าย +/− · แกลแวนอมิเตอร์ +/COM · กล่องความต้านทาน ขั้ว 1/2) แตะได้เหมือนรูบนเบรดบอร์ด · ตัวต้านทานเสียบได้เฉพาะรูบนเบรดบอร์ด · กล่องความต้านทานต้องใช้สายไฟ 2 เส้นต่อเข้ามา<br><b style="color:#fda4af">ย้ายจุดเชื่อม</b>: แตะชิ้นที่วางแล้ว → แตะวงแหวนปลายสาย (หรือปุ่ม "ย้าย" ในรายการ) → แตะรูใหม่</div>
+        <div class="panel-title" style="margin-top:8px">แหล่งจ่ายไฟตรง</div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-1)">◀ 1 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(-0.2)">◀ 0.2 V</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(0.2)">0.2 V ▶</button><button class="btn btn-outline btn-sm" onclick="nudgeKnob(1)">1 V ▶</button></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">🎛 กล่องความต้านทาน R<sub>S</sub> (0 – 9999 Ω)</div>
+        <div id="decBox" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;text-align:center"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:7px;font-size:.76rem;color:var(--muted);flex-wrap:wrap">ตั้งค่าตรง <input class="val-input" type="number" id="rsSet" min="0" max="9999" step="1" inputmode="numeric"> Ω <button class="btn btn-outline btn-sm" onclick="setRSFromInput()">ตั้ง</button></div>
+        <div class="note">หน้าปัดแต่ละหลักหมุนได้ 0–9 (×1000 · ×100 · ×10 · ×1) · R<sub>S</sub> = ผลรวมของทุกหลัก</div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">🔬 แกลแวนอมิเตอร์ (มัลติมิเตอร์ DCA · เข็มศูนย์กลาง)</div>
+        <div class="mode-btns" id="mtBtns"><button onclick="setMeterType(0)">🧭 แบบเข็ม</button><button class="active" onclick="setMeterType(1)">🔢 แบบดิจิทัล</button></div>
+        <div class="panel-title" style="margin-top:8px">ย่านวัด (เริ่มจากย่านใหญ่ก่อน)</div>
+        <div class="mode-btns" id="rangeBtns"><button class="active" onclick="setRange(0)">20 mA</button><button onclick="setRange(1)">2 mA</button><button onclick="setRange(2)">200 µA</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">🔌 ชิ้นที่วางอยู่</div><div id="partList" style="font-size:.76rem;line-height:1.7"></div></div>
+      <div id="autoCtrl" class="panel-section hidden"><div class="panel-title">⚡ ค่าจากแบบจำลอง</div><div class="readout-grid" id="autoGrid"></div></div>
+      <div class="panel-section"><div class="panel-title">📊 ผลที่บันทึกล่าสุด</div><div id="lastRec" class="last-grid"><span class="k" style="grid-column:1/-1">ยังไม่มีการบันทึก</span></div></div>
+      <div class="panel-section">
+        <div class="panel-title">📋 ตารางบันทึกผล</div>
+        <div class="tbl-cap">I<sub>G</sub> ที่ค่า R<sub>S</sub> ต่าง ๆ ของแต่ละสะพาน</div><div class="tbl-wrap" id="tableA"></div>
+        <div class="tbl-actions"><button class="btn btn-red btn-sm" onclick="if(confirm('ล้างตาราง?')){rows=[];renderAll();}">🗑 ล้าง</button><button class="btn btn-outline btn-sm" onclick="if(rows.length){rows.pop();renderAll();}">↩ ลบแถวล่าสุด</button><button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV</button></div>
+      </div>
+      <div class="panel-section"><div class="panel-title">📈 กราฟ I<sub>G</sub> – R<sub>S</sub> (หาจุดสมดุล)</div><canvas id="graphCanvas"></canvas><div id="graphNote" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.6"></div></div>
+      <div class="panel-section">
+        <div class="panel-title">🎯 ตรวจคำตอบ</div>
+        <div class="ans-row">ความต้านทานของ ❓X =<input class="val-input" type="number" id="ans-r" step="0.1" inputmode="decimal" placeholder="?"> Ω <button class="btn btn-green btn-sm" onclick="checkR()">ตรวจ</button></div>
+        <div class="ans-msg" id="ansRMsg"></div>
+        <div style="font-size:.68rem;color:var(--muted);line-height:1.5">สะพานวีตสโตนแม่นยำมาก — ถือว่าถูกเมื่อคลาดไม่เกิน 1% · โหมดวัดเองไม่แสดงค่าจริง</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-proc" class="tab-section">
+  <div class="content-wrap">
+    <h2>วัตถุประสงค์</h2>
+    <p>เมื่อจบการทดลองนี้ นักเรียนสามารถ</p>
+    <ol>
+      <li>ต่อสะพานวีตสโตนบนเบรดบอร์ดจากอุปกรณ์จริงได้ โดยระบุแขนทั้ง 4 และตำแหน่งแกลแวนอมิเตอร์ได้ถูกต้อง</li>
+      <li>ปรับสะพานให้สมดุล (I<sub>G</sub> = 0) และใช้เงื่อนไข P/Q = X/R<sub>S</sub> หาความต้านทานที่ไม่ทราบค่า</li>
+      <li>ใช้กราฟ I<sub>G</sub>–R<sub>S</sub> หาจุดสมดุลให้ละเอียดกว่าขั้นของกล่องความต้านทาน (การประมาณค่าในช่วง)</li>
+      <li>อธิบายว่าทำไมวิธีเข็มชี้ศูนย์ (null method) จึงแม่นยำกว่าการวัด V และ I โดยตรง และอัตราส่วน P/Q มีผลต่อความละเอียดอย่างไร</li>
+    </ol>
+    <h2>อุปกรณ์ (เสมือนจริง)</h2>
+    <ul>
+      <li>เบรดบอร์ด (เหมือน Lab 110): รางไฟ + และ − ต่อถึงกันตลอดแนว · คอลัมน์เดียวกันฝั่งเดียวกัน 5 รูต่อถึงกัน</li>
+      <li>แหล่งจ่ายไฟตรง 0–10 V (ลากปุ่มกลม) มีรูขั้ว + และ −</li>
+      <li>ตัวต้านทาน 100 Ω 2 ตัว · 1 kΩ 1 ตัว · 220 Ω 1 ตัว (ใช้ทดสอบวิธี) · ❓X 1 ตัว (ไม่บอกค่า) · สายไฟ 12 เส้น</li>
+      <li>กล่องความต้านทาน (decade box) R<sub>S</sub> 0–9999 Ω ปรับทีละหลัก มีขั้ว 2 ขั้ว</li>
+      <li>แกลแวนอมิเตอร์ (มัลติมิเตอร์ตั้ง DCA มี 3 ย่าน 20 mA · 2 mA · 200 µA) อ่านได้ทั้งค่าบวกและลบ — หน้าปัดเข็มเป็นแบบศูนย์อยู่ตรงกลาง</li>
+    </ul>
+    <h2>ขั้นตอน</h2>
+    <ol>
+      <li>ต่อสายจาก<b>ขั้ว +</b> ของแหล่งจ่ายไปรางไฟ + และจาก<b>ขั้ว −</b> ไปรางไฟ −</li>
+      <li>สร้างแขนคู่ที่ 1: เสียบ <b>100 Ω (P)</b> จากคอลัมน์ที่ต่อราง + ไปยัง<b>จุดกลาง B</b> แล้วเสียบ <b>100 Ω (Q)</b> จากจุด B ไปคอลัมน์ที่ต่อราง − (ใช้สายไฟต่อคอลัมน์กับรางไฟ)</li>
+      <li>สร้างแขนคู่ที่ 2: เสียบ <b>❓X</b> จากราง + ไปยัง<b>จุดกลาง D</b> แล้วใช้สายไฟ 2 เส้นต่อ<b>กล่องความต้านทาน R<sub>S</sub></b> ระหว่างจุด D กับราง −</li>
+      <li>ต่อ<b>แกลแวนอมิเตอร์</b>ระหว่างจุด B กับจุด D (สายจากรู + และรู COM)</li>
+      <li>ตั้งแรงดัน 2–4 V · เริ่มที่ย่าน <b>20 mA</b> แล้วปรับ R<sub>S</sub> (หลักใหญ่ก่อน) จนกระแสเล็กลง · เปลี่ยนเป็นย่าน 2 mA และ 200 µA ตามลำดับ</li>
+      <li>เมื่อใกล้สมดุล ให้บันทึก I<sub>G</sub> ที่ R<sub>S</sub> หลายค่าทั้งฝั่งที่ I<sub>G</sub> เป็นบวกและลบ แล้วหาจุดที่กราฟตัดแกน I<sub>G</sub> = 0</li>
+      <li>คำนวณ X = R<sub>S</sub> × P/Q · ทดสอบวิธีด้วยตัวต้านทาน <b>220 Ω</b> ก่อนก็ได้ · ลองเปลี่ยน Q เป็น <b>1 kΩ</b> (อัตราส่วน 1 : 10) แล้วเทียบความละเอียด</li>
+    </ol>
+    <div class="note-box">⚠️ ลองผิดได้ ระบบไม่ตัดคะแนน — ถ้าแกลแวนอมิเตอร์ไม่ได้ต่อคร่อมจุดกลางทั้งสอง หรือแขนใดมีอุปกรณ์มากกว่า 1 ชิ้น ช่อง "สะพานที่ต่ออยู่" จะบอกว่ายังไม่เป็นสะพานวีตสโตน · ค่า R<sub>S</sub> อ่านจากกล่องความต้านทาน ส่วน I<sub>G</sub> ต้องอ่านจากหน้าปัดเอง</div>
+    <h3>คำถามท้ายการทดลอง</h3>
+    <ol>
+      <li>เมื่อสะพานสมดุล ศักย์ไฟฟ้าที่จุด B กับจุด D สัมพันธ์กันอย่างไร เพราะเหตุใดจึงไม่มีกระแสผ่านแกลแวนอมิเตอร์</li>
+      <li>ถ้าเปลี่ยนแรงดันของแหล่งจ่าย ค่า R<sub>S</sub> ที่สมดุลเปลี่ยนหรือไม่ อธิบาย</li>
+      <li>เมื่อใช้ P : Q = 100 : 1000 ค่า R<sub>S</sub> ที่สมดุลเป็นกี่เท่าของ X และได้ความละเอียดของ X ดีขึ้นอย่างไร</li>
+      <li>ทำไมจึงต้องเริ่มจากย่านวัดใหญ่ก่อน แล้วค่อยเปลี่ยนเป็นย่านที่ไวขึ้น</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-theory" class="tab-section">
+  <div class="content-wrap">
+    <h2>1. สะพานวีตสโตน</h2>
+    <div class="theory-canvas-wrap"><canvas id="theoryCanvas0" height="280"></canvas></div>
+    <p>ตัวต้านทาน 4 ตัว P, Q, X, R<sub>S</sub> ต่อเป็นสองแขนคู่ขนานกันระหว่างจุด A (ขั้ว +) กับจุด C (ขั้ว −) · แกลแวนอมิเตอร์ G ต่อระหว่างจุดกลาง B กับ D · ถ้าปรับจน <b>ไม่มีกระแสผ่าน G</b> แสดงว่า V<sub>B</sub> = V<sub>D</sub> เรียกว่าสะพาน<b>สมดุล</b></p>
+    <div class="formula-box">สมดุล: I<sub>G</sub> = 0 → กระแส I<sub>1</sub> ผ่าน P และ Q เท่ากัน · กระแส I<sub>2</sub> ผ่าน X และ R<sub>S</sub> เท่ากัน<br>V<sub>AB</sub> = V<sub>AD</sub> → I<sub>1</sub>P = I<sub>2</sub>X<br>V<sub>BC</sub> = V<sub>DC</sub> → I<sub>1</sub>Q = I<sub>2</sub>R<sub>S</sub><br>หารกัน: <b>P / Q = X / R<sub>S</sub></b>  →  <b>X = R<sub>S</sub> × P / Q</b></div>
+    <h2>2. ทำไมจึงแม่นยำ (วิธีเข็มชี้ศูนย์)</h2>
+    <ul>
+      <li>ไม่ต้องอ่านค่า V หรือ I เลย แกลแวนอมิเตอร์มีหน้าที่แค่<b>บอกว่าเป็นศูนย์หรือไม่</b> ความคลาดเคลื่อนของสเกลมิเตอร์จึงไม่มีผล</li>
+      <li>เงื่อนไขสมดุลไม่ขึ้นกับแรงดันของแหล่งจ่าย และไม่ขึ้นกับความต้านทานของแกลแวนอมิเตอร์</li>
+      <li>ความแม่นยำขึ้นกับค่าที่ทราบ (P, Q, R<sub>S</sub>) และความไวของแกลแวนอมิเตอร์ — แรงดันสูงขึ้นทำให้ I<sub>G</sub> เปลี่ยนมากขึ้นเมื่อ R<sub>S</sub> คลาดจากสมดุล จึงหาจุดศูนย์ได้ชัดขึ้น</li>
+    </ul>
+    <h2>3. หาจุดสมดุลจากกราฟ</h2>
+    <p>กล่องความต้านทานปรับได้ทีละ 1 Ω จึงมักหาค่าที่ I<sub>G</sub> = 0 พอดีไม่ได้ ใกล้จุดสมดุล I<sub>G</sub> เปลี่ยนตาม R<sub>S</sub> เกือบเป็นเส้นตรง บันทึกค่าทั้งสองฝั่ง (I<sub>G</sub> บวกและลบ) แล้ว<b>ลากเส้นตรงหาจุดตัดแกน I<sub>G</sub> = 0</b> จะได้ R<sub>S</sub> ที่สมดุลละเอียดกว่า 1 Ω</p>
+    <h2>4. การเลือกอัตราส่วน P : Q</h2>
+    <div class="formula-box">P : Q = 100 : 100 → X = R<sub>S</sub> (ละเอียด 1 Ω)<br>P : Q = 100 : 1000 → X = R<sub>S</sub> / 10 (ละเอียด 0.1 Ω แต่ R<sub>S</sub> ต้องได้ถึง 10X)</div>
+    <div class="note-box">💡 แบบจำลอง: แหล่งจ่ายมีความต้านทานภายในรวมสาย ~1 Ω · แกลแวนอมิเตอร์ (มัลติมิเตอร์ย่าน DCA) มีความต้านทาน 50 Ω · กล่องความต้านทานละเอียด 1 Ω · ตัวต้านทานที่บอกค่าถือว่าเท่าค่าที่ระบุพอดี · ค่า X สุ่มต่อการเปิดหน้า (ทศนิยม 1 ตำแหน่ง)</div>
+  </div>
+</div>
+
+<footer>
+  อ้างอิง: หนังสือเรียนรายวิชาเพิ่มเติมฟิสิกส์ ม.6 (สสวท.) — ไฟฟ้ากระแส · การวัดความต้านทาน · เทียบเคียง Wheatstone bridge practical (A-level / IB Physics)<br>
+  Lab 115 — Wheatstone Bridge on a Breadboard (3D) · © 2569 KP Science simulation — สร้างโดย ครูโกเมน ปาปะโถ
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   KP Science — Lab 115 สะพานวีตสโตนบนเบรดบอร์ด (3D) · หน่วย V, A, Ω
+   ใช้ระบบต่อวงจรของ Lab 110 (รู → รู · union-find + วิเคราะห์โหนด) แล้วตรวจรูปสะพานจากโหนด
+   ═══════════════════════════════════════════════════════════ */
+console.log('KP Science VPL06 Lab 115 — build v1.0 3D (2569-09-28)');
+const $ = id => document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const RINT=1.0, VMAX=10, ILIM=2.0, R_G=50;
+const RX=(()=>{ let v; do{ v=Math.round(rnd(60,480)*10)/10; }while(Math.abs(v-100)<8||Math.abs(v-220)<12); return v; })();
+const KINDS={ w:{n:'สายไฟ',c:0xa78bfa,max:12},
+  H:{n:'R 100 Ω',s:'100',c:0xfbbf24,R:100,max:2,bands:[0x7c2d12,0x000000,0x7c2d12]},
+  M:{n:'R 1 kΩ',s:'1000',c:0xf472b6,R:1000,max:1,bands:[0x7c2d12,0x000000,0xdc2626]},
+  K:{n:'R 220 Ω',s:'220',c:0x34d399,R:220,max:1,bands:[0xdc2626,0xdc2626,0x7c2d12]},
+  X:{n:'❓R_X',s:'X',c:0xfb7185,R:RX,max:1,bands:[0x475569,0x475569,0x475569]} };
+const RES=['H','M','K','X'];
+/* รูขั้วของเครื่องมือ — ใช้ระบบเดียวกับรูบนเบรดบอร์ด */
+const JACKS={ SP:{n:'แหล่งจ่าย ขั้ว +',c:0xdc2626}, SN:{n:'แหล่งจ่าย ขั้ว −',c:0x94a3b8},
+  GA:{n:'แกลแวนอมิเตอร์ รู +',c:0xea580c}, GC:{n:'แกลแวนอมิเตอร์ รู COM',c:0xcbd5e1},
+  BA:{n:'กล่องความต้านทาน ขั้ว 1',c:0xfacc15}, BB:{n:'กล่องความต้านทาน ขั้ว 2',c:0xfacc15} };
+let DEC=[0,1,0,0];                                   /* หน้าปัด ×1000 ×100 ×10 ×1 */
+const RSv=()=>DEC[0]*1000+DEC[1]*100+DEC[2]*10+DEC[3];
+const DEVS=[{id:-1,kind:'src',a:{j:'SP'},b:{j:'SN'},R:RINT},{id:-2,kind:'gal',a:{j:'GA'},b:{j:'GC'},R:R_G},{id:-3,kind:'box',a:{j:'BA'},b:{j:'BB'},get R(){ return Math.max(RSv(),1e-3); }}];
+const COLS=16, ROWZ=[-7.6,-5.0,-4.2,-3.4,-2.6,-1.8,1.8,2.6,3.4,4.2,5.0,7.6];
+const holeX=c=>-12+c*1.6, holeZ=r=>ROWZ[r];
+const nodeOf=h=> h.j? 'J'+h.j : (h.r===0?'P': h.r===11?'N': (h.r<=5?'T':'B')+h.c);
+const rowName=r=> r===0?'+':(r===11?'−':'ABCDEFGHIJ'[r-1]);
+const holeName=h=> h.j? JACKS[h.j].n : (nodeOf(h)==='P'?'ราง +':(nodeOf(h)==='N'?'ราง −':(rowName(h.r)+(h.c+1))));
+const RANGES=[{max:0.02,sc:1e3,unit:'mA',range:'20 mA',minor:1,major:5,fmt:v=>v.toFixed(0),dfmt:v=>v.toFixed(2)},
+  {max:0.002,sc:1e3,unit:'mA',range:'2 mA',minor:0.1,major:0.5,fmt:v=>v.toFixed(1),dfmt:v=>v.toFixed(3)},
+  {max:0.0002,sc:1e6,unit:'µA',range:'200 µA',minor:10,major:50,fmt:v=>v.toFixed(0),dfmt:v=>v.toFixed(1)}];
+const fmt=(x,n)=>(x===undefined||x===null||!isFinite(x))?'—':x.toFixed(n===undefined?1:n);
+let elems=[], held=null, pending=null, sel=null, moveEnd=null, Vs=0, nI=0, mode='manual', rows=[], curView='iso', mtype=1, rng=0, eid=1;
+let SOL={V:{},I:{},Isrc:0,shorted:false,open:true,Ig:0,br:{ok:false}};
+
+/* ── ตัวแก้วงจร (เหมือน Lab 110): สายไฟรวมโหนด แล้ววิเคราะห์โหนด ── */
+function mkFind(){ const par={};
+  const find=x=>{ if(par[x]===undefined) par[x]=x; return par[x]===x?x:(par[x]=find(par[x])); };
+  elems.filter(e=>e.kind==='w').forEach(e=>{ const ra=find(nodeOf(e.a)), rb=find(nodeOf(e.b)); if(ra!==rb) par[ra]=rb; });
+  return find; }
+function branches(){ return elems.filter(e=>RES.includes(e.kind)).map(e=>({id:e.id,kind:e.kind,a:e.a,b:e.b,R:KINDS[e.kind].R})).concat(DEVS.filter(d=>d.kind!=='src')); }
+function solveCircuit(){
+  const S={V:{},I:{},Isrc:0,shorted:false,open:true,Ig:0}; const find=mkFind(); S.find=find; S.br=detectBridge(find);
+  if(Vs<=0){ SOL=S; return; }
+  const src=DEVS[0], sa=find(nodeOf(src.a)), sb=find(nodeOf(src.b));
+  if(sa===sb){ SOL=S; return; }
+  const br=branches().map(e=>({e,na:find(nodeOf(e.a)),nb:find(nodeOf(e.b))})).filter(o=>o.na!==o.nb);
+  const ns=[...new Set(br.flatMap(o=>[o.na,o.nb]).concat([sa,sb]))], idx={}; ns.forEach((n,i)=>idx[n]=i);
+  const N=ns.length, G=Array.from({length:N},()=>new Array(N).fill(0)), J=new Array(N).fill(0);
+  const stamp=(n1,n2,g)=>{ const i=idx[n1], j=idx[n2]; G[i][i]+=g; G[j][j]+=g; G[i][j]-=g; G[j][i]-=g; };
+  br.forEach(o=>stamp(o.na,o.nb,1/o.e.R));
+  stamp(sa,sb,1/RINT); J[idx[sa]]+=Vs/RINT; J[idx[sb]]-=Vs/RINT;
+  for(let i=0;i<N;i++) G[i][i]+=1e-9;                       /* กันเมทริกซ์เอกฐานจากโหนดลอย */
+  const gnd=idx[sb];
+  for(let i=0;i<N;i++){ G[gnd][i]= i===gnd?1:0; } J[gnd]=0;
+  for(let i=0;i<N;i++){ if(i!==gnd) G[i][gnd]=0; }
+  const M=G.map((row,i)=>row.concat([J[i]]));
+  for(let c=0;c<N;c++){ let p=c; for(let r2=c+1;r2<N;r2++) if(Math.abs(M[r2][c])>Math.abs(M[p][c])) p=r2;
+    if(Math.abs(M[p][c])<1e-14) continue; const t=M[c]; M[c]=M[p]; M[p]=t;
+    for(let r2=0;r2<N;r2++){ if(r2===c) continue; const fq=M[r2][c]/M[c][c]; if(!fq) continue; for(let k=c;k<=N;k++) M[r2][k]-=fq*M[c][k]; } }
+  const V={}; ns.forEach((n,i)=>{ V[n]= Math.abs(M[i][i])<1e-14?0:M[i][N]/M[i][i]; });
+  let Isrc=(Vs-(V[sa]-V[sb]))/RINT;
+  if(Math.abs(Isrc)>ILIM){ const k=ILIM/Math.abs(Isrc); ns.forEach(n=>V[n]*=k); Isrc*=k; S.shorted=true; }
+  S.V=V; S.Isrc=Isrc; S.open=Math.abs(Isrc)<5e-5;
+  br.forEach(o=>{ S.I[o.e.id]=((V[o.na]||0)-(V[o.nb]||0))/o.e.R; });
+  const ga=find(nodeOf(DEVS[1].a)), gc=find(nodeOf(DEVS[1].b)); S.Ig= (ga===gc||!galHooked())?0:(S.I[-2]||0);   /* มีเครื่องหมาย: + เมื่อกระแสเข้ารู + */
+  SOL=S; }
+const wiredTo=j=>elems.some(e=>e.kind==='w'&&((e.a.j===j)||(e.b.j===j)));
+const galHooked=()=>wiredTo('GA')&&wiredTo('GC');
+const boxHooked=()=>wiredTo('BA')&&wiredTo('BB');
+const srcHooked=()=>wiredTo('SP')&&wiredTo('SN');
+function readI(){ return SOL.Ig||0; }
+/* ── ตรวจรูปสะพาน: แขน 4 แขนระหว่าง (ขั้ว+, ขั้ว−) กับ (จุดกลาง B, D ที่แกลแวนอมิเตอร์คร่อม) แขนละ 1 ชิ้น ── */
+function detectBridge(find){
+  if(!srcHooked()) return {ok:false,why:'src'};
+  if(!galHooked()) return {ok:false,why:'gal'};
+  const sp=find('JSP'), sn=find('JSN'), g1=find('JGA'), g2=find('JGC');
+  if(new Set([sp,sn,g1,g2]).size<4) return {ok:false,why:'node'};
+  const comps=elems.filter(e=>RES.includes(e.kind)).map(e=>({nm:KINDS[e.kind].s,kind:e.kind,R:KINDS[e.kind].R,na:find(nodeOf(e.a)),nb:find(nodeOf(e.b))}));
+  if(boxHooked()) comps.push({nm:'R_S',kind:'box',R:null,na:find('JBA'),nb:find('JBB')});
+  const arm=(x,y)=>comps.filter(c=>(c.na===x&&c.nb===y)||(c.na===y&&c.nb===x));
+  const A=[arm(sp,g1),arm(g1,sn),arm(sp,g2),arm(g2,sn)];
+  if(A.some(a=>a.length!==1)) return {ok:false,why:'arms',cnt:A.map(a=>a.length)};
+  const arms=A.map(a=>a[0]), extra=comps.length-4;
+  const bi=arms.findIndex(c=>c.kind==='box'); let ti=arms.findIndex(c=>c.kind==='X'); if(ti<0) ti=arms.findIndex(c=>c.kind==='K');
+  const desc='แขน '+arms[0].nm+' · '+arms[1].nm+' | '+arms[2].nm+' · '+arms[3].nm;
+  if(bi<0) return {ok:true,noBox:true,arms,desc,extra};
+  if(ti<0) return {ok:true,noT:true,arms,desc,extra};
+  const tn= arms[ti].kind==='X'?'X':'R₂₂₀', D=i=>3-i;          /* คู่ทแยง (0,3) (1,2): สมดุลเมื่อ a0·a3 = a1·a2 */
+  let type,k,key;
+  if(D(ti)===bi){ const o=[0,1,2,3].filter(i=>i!==ti&&i!==bi); k=arms[o[0]].R*arms[o[1]].R; type='inv'; key=`${tn} = ${arms[o[0]].nm} × ${arms[o[1]].nm} / R_S`; }
+  else { const E=arms[D(bi)], Dt=arms[D(ti)]; k=E.R/Dt.R; type='mul'; key=`${tn} = R_S × ${E.nm}/${Dt.nm}`; }
+  return {ok:true,arms,desc,extra,type,k,key,tn,tkind:arms[ti].kind}; }
+const Tof=(b,rs)=> b.type==='mul'? b.k*rs : b.k/Math.max(rs,1e-9);
+const RSbal=b=>{ const T=KINDS[b.tkind].R; return b.type==='mul'? T/b.k : b.k/T; };
+const settled=()=>Math.abs(nI-readI())<RANGES[rng].max*0.004;
+const over=()=>Math.abs(readI())>RANGES[rng].max*1.02;
+function stepPhys(dt){ const f=1-Math.exp(-dt/0.25); nI+=(readI()-nI)*f; }
+
+/* ── การหยิบวาง (ระบบเดียวกับ Lab 110) ── */
+function countOf(k){ return elems.filter(e=>e.kind===k).length; }
+function pick(k){ moveEnd=null; if(k&&countOf(k)>=KINDS[k].max){ lockWarn(KINDS[k].n+' ใช้ครบแล้ว (ถอดก่อนจึงจะวางใหม่ได้)'); return; }
+  held=k; pending=null; sel=null;
+  if(k&&curView!=='bb') setView('bb');
+  if(k) lockWarn('แตะรูที่ 1 แล้วแตะรูที่ 2 — '+KINDS[k].n+'จะปรากฏพาดระหว่างสองรูนั้น');
+  buildParts(); syncCtl(); drawAll(); }
+function place(a,b){ const k=held;
+  if(nodeOf(a)===nodeOf(b)&&a.j===b.j&&((a.j&&b.j)||(a.c===b.c&&a.r===b.r))){ pending=null; lockWarn('ต้องเป็นคนละรู'); return; }
+  if(k!=='w'&&(a.j||b.j)){ pending=null; lockWarn('ตัวต้านทานต้องเสียบลงรูบนเบรดบอร์ด — ใช้สายไฟต่อไปยังรูขั้วของเครื่องมือ'); return; }
+  elems.push({id:eid++,kind:k,a,b}); const same=nodeOf(a)===nodeOf(b);
+  held= countOf(k)<KINDS[k].max? k : null;
+  pending=null;
+  if(same) lockWarn('สองรูนี้เป็นโหนดเดียวกันอยู่แล้ว — ชิ้นนี้ถูกลัด');
+  onCircuitChange(); }
+function removeSel(){ moveEnd=null; if(sel==null){ lockWarn('แตะชิ้นที่ต้องการถอดในภาพก่อน'); return; } elems=elems.filter(e=>e.id!==sel); sel=null; onCircuitChange(); }
+function clearAll(){ elems=[]; held=null; pending=null; sel=null; moveEnd=null; onCircuitChange(); }
+function onCircuitChange(){ solveCircuit(); buildParts(); syncCtl(); renderAll(); }
+function startMove(id,k){ const e=elems.find(x=>x.id===id); if(!e) return; sel=id; moveEnd={id,k}; held=null; pending=null; buildParts(); syncCtl(); drawAll(); }
+function tapHole(h){
+  if(moveEnd){ const e=elems.find(x=>x.id===moveEnd.id); if(e){ const other= moveEnd.k? e.a : e.b;
+      if((other.j&&other.j===h.j)||(!other.j&&!h.j&&other.c===h.c&&other.r===h.r)){ lockWarn('ปลายทั้งสองอยู่รูเดียวกันไม่ได้'); return; }
+      if(e.kind!=='w'&&h.j){ lockWarn('ขาตัวต้านทานต้องอยู่บนเบรดบอร์ด'); return; }
+      if(moveEnd.k) e.b=h; else e.a=h; if(nodeOf(e.a)===nodeOf(e.b)) lockWarn('ตอนนี้ปลายทั้งสองอยู่โหนดเดียวกัน — อุปกรณ์ถูกลัด'); }
+    moveEnd=null; onCircuitChange(); return; }
+  if(!held){ lockWarn('หยิบอุปกรณ์จากกล่องก่อน หรือแตะชิ้นที่วางแล้วเพื่อย้ายปลายสาย'); return; }
+  if(!pending){ pending=h; drawAll(); return; } place(pending,h); }
+
+/* ── กล่องความต้านทาน ── */
+function stepDec(i,d){ DEC[i]=(DEC[i]+d+10)%10; onRS(); }
+function setRS(v){ v=Math.max(0,Math.min(9999,Math.round(v))); DEC=[Math.floor(v/1000),Math.floor(v/100)%10,Math.floor(v/10)%10,v%10]; onRS(); }
+function setRSFromInput(){ const v=parseFloat($('rsSet').value); if(isNaN(v)){ lockWarn('กรอก R_S เป็นตัวเลข 0–9999'); return; } setRS(v); }
+function onRS(){ solveCircuit(); boxKey=''; renderDec(); syncCtl(); drawAll(); }
+function renderDec(){ const lab=['×1000','×100','×10','×1'];
+  const h=DEC.map((d,i)=>`<div style="background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:4px 2px"><div style="font-size:.64rem;color:var(--muted)">${lab[i]}</div>
+    <button class="btn btn-outline btn-sm" style="width:100%;padding:3px 0" onclick="stepDec(${i},1)">▲</button>
+    <div class="mono" style="font-size:1.25rem;color:#fde047;line-height:1.5">${d}</div>
+    <button class="btn btn-outline btn-sm" style="width:100%;padding:3px 0" onclick="stepDec(${i},-1)">▼</button></div>`).join('')
+    +`<div style="grid-column:1/-1;font-size:.8rem;color:var(--muted)">R<sub>S</sub> = <b class="mono" style="color:#fde047;font-size:.95rem">${RSv()} Ω</b></div>`;
+  if($('decBox').dataset.t!==h){ $('decBox').innerHTML=h; $('decBox').dataset.t=h; } }
+
+function showTab(name,btn){ document.querySelectorAll('.tab-section').forEach(x=>x.classList.remove('active')); document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); $('tab-'+name).classList.add('active'); btn.classList.add('active'); if(name==='sim'){ resizeAll(); drawAll(); } if(name==='theory') setTimeout(drawTheoryAll,50); }
+function lockWarn(msg){ $('lockNote').textContent='· '+msg; clearTimeout(lockWarn.t); lockWarn.t=setTimeout(()=>$('lockNote').textContent='',3200); }
+function markBtns(sel_,i){ document.querySelectorAll(sel_+' button').forEach((b,k)=>b.classList.toggle('active',k===i)); }
+function setRange(r){ rng=Math.max(0,Math.min(2,r)); markBtns('#rangeBtns',rng); amKey=''; if(P.amtex) redrawTex(P.amtex); drawAll(); }
+function setMeterType(t){ mtype=t?1:0; markBtns('#mtBtns',mtype); const b=$('mtBtn'); if(b){ b.classList.toggle('on',mtype===1); b.textContent= mtype? '🔢 มิเตอร์ดิจิทัล':'🔢 มิเตอร์เข็ม'; }
+  amKey=''; if(P.amtex) redrawTex(P.amtex); drawAll(); }
+function cycleMeterType(){ setMeterType(mtype?0:1); }
+function setKnob(v){ Vs=Math.max(0,Math.min(VMAX,Math.round(v*100)/100)); solveCircuit(); syncCtl(); drawAll(); }
+function nudgeKnob(d){ setKnob(Vs+d); }
+function setMode(m){ mode=m; document.querySelectorAll('#modeBtns button').forEach((b,i)=>b.classList.toggle('active',(i===0)===(m==='manual')));
+  $('autoCtrl').classList.toggle('hidden',m!=='auto'); if(m!=='auto'){ $('autoGrid').innerHTML=''; $('autoGrid').dataset.t=''; }
+  $('in-i').readOnly= m==='auto'; if(m==='manual') $('in-i').value='';
+  $('modeNote').textContent= mode==='auto'?'โหมดอัตโนมัติ: แสดงค่าจริง':'โหมดวัดเอง: อ่านแกลแวนอมิเตอร์บนโต๊ะ'; $('ansRMsg').innerHTML=''; renderAll(); }
+function resetLab(){ clearAll(); setKnob(0); setRange(0); setRS(100); nI=0; recMsg('',''); setView('iso'); drawAll(); }
+function bridgeLabel(){ const b=SOL.br||{};
+  if(!b.ok){ return {src:'ยังไม่ได้ต่อแหล่งจ่าย',gal:'ยังไม่ได้ต่อแกลแวนอมิเตอร์',node:'แกลแวนอมิเตอร์ต่อผิดจุด',arms:'ยังไม่เป็นสะพานวีตสโตน'}[b.why]||'—'; }
+  if(b.noBox) return b.desc+' (ยังไม่มีกล่องความต้านทาน)';
+  if(b.noT) return b.desc+' (ยังไม่มี X หรือ 220 Ω)';
+  return b.key; }
+function syncCtl(){ const kn=bridgeLabel(); if($('in-known').value!==kn) $('in-known').value=kn;
+  const rs=String(RSv()); if($('in-rs').value!==rs) $('in-rs').value=rs;
+  const keys=['w','H','M','K','X'];
+  document.querySelectorAll('#pickBtns button').forEach((b,i)=>{ const k=keys[i]; b.classList.toggle('active',held===k); b.style.opacity= countOf(k)>=KINDS[k].max?'0.45':'1'; });
+  keys.forEach(k=>{ const e=$('ab-'+k); if(e){ e.style.outline= held===k?'3px solid #fde047':'none'; e.style.opacity= countOf(k)>=KINDS[k].max?'0.5':'1'; } });
+  const mv=(id,k)=>`<button class="btn btn-outline btn-sm" style="padding:2px 7px;font-size:.68rem;${moveEnd&&moveEnd.id===id&&moveEnd.k===k?'border-color:#fde047;color:#fde047':''}" onclick="startMove(${id},${k})">ย้าย</button>`;
+  const pl=elems.map(e=>`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px">${sel===e.id?'▶':'·'} <b style="color:#${KINDS[e.kind].c.toString(16).padStart(6,'0')}">${KINDS[e.kind].n}</b>
+    <span class="mono" style="color:var(--accent3)">${holeName(e.a)}</span>${mv(e.id,0)} <span style="color:var(--muted)">↔</span> <span class="mono" style="color:var(--accent3)">${holeName(e.b)}</span>${mv(e.id,1)}
+    <button class="btn btn-outline btn-sm" style="padding:2px 7px;font-size:.68rem;color:#fca5a5" onclick="sel=${e.id};removeSel()">ถอด</button>
+    ${nodeOf(e.a)===nodeOf(e.b)?'<span style="color:#fda4af;font-size:.68rem">(โหนดเดียวกัน)</span>':''}</div>`).join('')
+    || '<span style="color:var(--muted)">ยังไม่มีอุปกรณ์ — หยิบจากกล่องอุปกรณ์แล้วแตะรู 2 รู</span>';
+  if($('partList').dataset.t!==pl){ $('partList').innerHTML=pl; $('partList').dataset.t=pl; } }
+function hintState(){
+  if(moveEnd){ const e=elems.find(x=>x.id===moveEnd.id); return ['info','กำลังย้ายปลาย'+(moveEnd.k?' 2':' 1')+' ของ <b>'+(e?KINDS[e.kind].n:'')+'</b> — แตะรูใหม่ที่ต้องการย้ายไป']; }
+  if(held) return ['info','กำลังถือ <b>'+KINDS[held].n+'</b> — แตะรู'+(pending?' <b>อีก 1 รู</b> เพื่อวาง (รูแรกอยู่ที่ '+holeName(pending)+')':' 2 รูเพื่อวาง')];
+  const b=SOL.br||{}, nres=elems.filter(e=>RES.includes(e.kind)).length;
+  if(!srcHooked()) return ['info','เริ่มจากกด <b>🔌 สายไฟ</b> ต่อจาก<b>ขั้ว + ของแหล่งจ่าย</b>ไปราง + ของเบรดบอร์ด · แล้วต่อขั้ว − ไปราง −'];
+  if(nres<3||!boxHooked()) return ['info','สร้างแขนสะพาน: <b>100 Ω (P)</b> ต่อกับ <b>100 Ω (Q)</b> เป็นคู่หนึ่ง · <b>❓X</b> ต่อกับ<b>กล่องความต้านทาน</b> (สายไฟ 2 เส้นจากขั้ว 1 และขั้ว 2) เป็นอีกคู่ · ทั้งสองคู่ต่อระหว่างราง + กับราง − · จุดต่อกลางของแต่ละคู่คือ B และ D'];
+  if(!galHooked()) return ['info','ต่อ<b>แกลแวนอมิเตอร์</b>ระหว่างจุดกลาง B (ระหว่าง P กับ Q) และจุดกลาง D (ระหว่าง X กับ R<sub>S</sub>) — สายจากรู + และรู COM'];
+  if(!b.ok){ if(b.why==='node') return ['warn','รู + กับ COM ของแกลแวนอมิเตอร์ต้องต่อกับ<b>จุดกลางคนละจุด</b> และไม่ใช่รางไฟ'];
+    const c=b.cnt||[]; return ['warn','ยังไม่เป็นสะพานวีตสโตน — ต้องมีแขนละ 1 ชิ้นพอดี: ราง+→B, B→ราง−, ราง+→D, D→ราง− (ตอนนี้แต่ละแขนมี '+c.join(' · ')+' ชิ้น) · ตรวจว่าขาตัวต้านทานอยู่ในคอลัมน์เดียวกับจุดที่แกลแวนอมิเตอร์ต่อ']; }
+  if(b.noBox) return ['info','กล่องความต้านทาน R<sub>S</sub> ต้องเป็นหนึ่งในแขนของสะพาน'];
+  if(b.noT) return ['info','ใส่ <b>❓X</b> (หรือ 220 Ω เพื่อทดสอบวิธี) เป็นแขนหนึ่งของสะพาน'];
+  if(Vs<0.5) return ['info','สะพานต่อครบแล้ว ✓ ('+b.key+') · ปรับแรงดันแหล่งจ่ายเป็น 2–4 V'];
+  if(SOL.shorted) return ['warn','<b>ลัดวงจร!</b> แหล่งจ่ายจำกัดกระแสที่ '+ILIM+' A — มีสายไฟต่อรางไฟตรงถึงกัน หรือ R<sub>S</sub> = 0 ร่วมกับสายลัดหรือไม่'];
+  if(over()) return ['warn','แกลแวนอมิเตอร์<b>เกินย่านวัด</b> — ใช้ย่านที่ใหญ่ขึ้น แล้วปรับ R<sub>S</sub> (หลักใหญ่ก่อน) ให้กระแสลดลง'];
+  if(!settled()) return ['warn','เข็มกำลังขยับ — <b>รอให้นิ่ง</b>ก่อนอ่าน'];
+  const I=Math.abs(readI());
+  if(rng<2&&I<RANGES[rng+1].max*0.9) return ['info','กระแสเล็กลงแล้ว — เปลี่ยนเป็นย่าน <b>'+RANGES[rng+1].range+'</b> เพื่อให้เห็นการเปลี่ยนแปลงละเอียดขึ้น'];
+  const n=rows.filter(r=>r.key===b.key).length, rk=rows.filter(r=>r.key===b.key);
+  if(rng<2) return ['info','ปรับ R<sub>S</sub> ให้กระแสเข้าใกล้ศูนย์มากขึ้น (ดูเครื่องหมาย + / − เพื่อรู้ว่าต้องเพิ่มหรือลด)'];
+  if(n<4||!(rk.some(r=>r.I>0)&&rk.some(r=>r.I<0))) return ['info','ใกล้สมดุลแล้ว · บันทึก I<sub>G</sub> ที่ R<sub>S</sub> หลายค่า <b>ให้มีทั้งค่าบวกและลบ</b> (ตอนนี้ '+n+' จุด) แล้วดูว่ากราฟตัดศูนย์ตรงไหน'];
+  if(b.tkind==='K') return ['ok','วิธีใช้ได้ ✓ ลองคำนวณ 220 Ω จากกราฟเทียบค่าจริง · จากนั้นเปลี่ยน 220 Ω เป็น <b>❓X</b>'];
+  if(!rows.some(r=>r.k!==1&&r.tkind==='X')) return ['ok','ได้จุดสมดุลแล้ว ✓ คำนวณ X = R<sub>S</sub> × P/Q แล้วกรอกในกรอบ 🎯 · ลองเปลี่ยน Q เป็น <b>1 kΩ</b> (อัตราส่วน 1 : 10) เพื่อได้ความละเอียดเพิ่มอีก 1 หลัก'];
+  return ['ok','ข้อมูลพอแล้ว ✓ เทียบค่า X จากอัตราส่วนทั้งสองแบบ แล้วกรอกในกรอบ 🎯']; }
+function updateHint(){ const [cls,txt]=hintState(); const h=$('hint'); if(h.dataset.t!==txt){ h.innerHTML=txt; h.dataset.t=txt; } h.className='hint-box '+cls;
+  const b=SOL.br||{};
+  const sl=`<b>${held?'กำลังถือ: '+KINDS[held].n:bridgeLabel()}</b> · แหล่งจ่าย <b>${fmt(Vs,1)} V</b> · R<sub>S</sub> <b>${RSv()} Ω</b> · ย่าน ${RANGES[rng].range}`
+    +(mode==='auto'?` · I<sub>G</sub> = <b>${fmt(readI()*1e6,1)} µA</b>`:' · อ่านแกลแวนอมิเตอร์บนโต๊ะ');
+  if($('statusLine').dataset.t!==sl){ $('statusLine').innerHTML=sl; $('statusLine').dataset.t=sl; }
+  if(mode==='auto'){ const bal= b.ok&&b.type? fmt(RSbal(b),1)+' Ω':'—';
+    const html=`<div class="readout-box"><div class="label">I<sub>G</sub></div><div class="value">${fmt(readI()*1e6,1)} µA</div></div><div class="readout-box"><div class="label">R<sub>S</sub> ที่สมดุลจริง</div><div class="value">${bal}</div></div><div class="readout-box"><div class="label">กระแสจากแหล่งจ่าย</div><div class="value">${fmt(Math.abs(SOL.Isrc)*1000,2)} mA</div></div><div class="readout-box"><div class="label">X (จริง)</div><div class="value">${RX} Ω</div></div>`;
+    if($('autoGrid').dataset.t!==html){ $('autoGrid').innerHTML=html; $('autoGrid').dataset.t=html; }
+    $('in-i').value=(readI()*1e6).toFixed(1); } }
+function recMsg(cls,txt){ const el=$('recMsg'); el.className='rf-msg '+cls; el.innerHTML=txt; }
+function recordRow(){ const b=SOL.br||{};
+  if(!b.ok||!b.type){ recMsg('warn','⚠️ ต้องต่อเป็นสะพานวีตสโตนให้ครบก่อน (มีกล่องความต้านทานและ X หรือ 220 Ω เป็นแขน)'); return; }
+  if(Vs<0.2){ recMsg('warn','⚠️ ปรับแรงดันแหล่งจ่ายก่อน'); return; }
+  if(over()){ recMsg('warn','⚠️ เกินย่านวัด — เปลี่ยนย่านก่อน'); return; }
+  if(!settled()){ recMsg('warn','⚠️ รอให้เข็มนิ่งก่อน'); return; }
+  let I; if(mode==='auto'){ I=Math.round(readI()*1e7)/10; } else { I=parseFloat($('in-i').value); }
+  if(isNaN(I)){ recMsg('warn','⚠️ กรอก I<sub>G</sub> เป็น µA (ใส่เครื่องหมาย − ถ้าค่าติดลบ) · ถ้าหน้าจอแสดงเป็น mA ให้คูณ 1000'); return; }
+  rows.push({key:b.key,type:b.type,k:b.k,tkind:b.tkind,RS:RSv(),I,V:Vs}); if(mode==='manual') $('in-i').value='';
+  renderAll(); renderLast(rows.length-1); recMsg('ok',`✓ บันทึกแถวที่ ${rows.length} แล้ว`); }
+/* ฟิตเส้นตรง I_G–R_S ใกล้จุดสมดุล (ใช้จุดที่ |I_G| ≤ 150 µA) หาจุดตัดศูนย์ */
+function balFit(key){ let P2=rows.filter(r=>r.key===key&&Math.abs(r.I)<=150); if(new Set(P2.map(r=>r.RS)).size<2) return null;
+  const n=P2.length; let sx=0,sy=0,sxx=0,sxy=0; P2.forEach(r=>{ sx+=r.RS; sy+=r.I; sxx+=r.RS*r.RS; sxy+=r.RS*r.I; });
+  const den=n*sxx-sx*sx; if(Math.abs(den)<1e-12) return null; const m=(n*sxy-sx*sy)/den, c=(sy-m*sx)/n; if(Math.abs(m)<1e-9) return null;
+  return {m,c,R0:-c/m,n,bracket:P2.some(r=>r.I>0)&&P2.some(r=>r.I<0)}; }
+function renderLast(i){ const r=rows[i]; if(!r) return; const F=balFit(r.key);
+  $('lastRec').innerHTML=`<span class="k">แถวที่</span><span class="v" style="color:#facc15">${i+1}</span><span class="k">สะพาน</span><span class="v">${r.key}</span><span class="k">R<sub>S</sub> · I<sub>G</sub></span><span class="v">${r.RS} Ω · <span class="big">${fmt(r.I,1)} µA</span></span>`
+   +(F?`<span class="k">R<sub>S</sub> ที่ I<sub>G</sub> = 0 (${F.n} จุด)</span><span class="v">${fmt(F.R0,1)} Ω${F.bracket?'':' <span style="color:#fde047">(ประมาณนอกช่วง)</span>'}</span>`:''); }
+function renderTable(){ const keys=[...new Set(rows.map(r=>r.key))];
+  let h='<table><thead><tr><th>#</th><th>สะพาน</th><th>R<sub>S</sub><br>(Ω)</th><th>I<sub>G</sub><br>(µA)</th></tr></thead><tbody>'
+   +rows.map((r,i)=>`<tr><td>${i+1}</td><td style="white-space:normal">${r.key}</td><td class="mono">${r.RS}</td><td class="mono" style="color:${Math.abs(r.I)<0.05?'#facc15':(r.I>0?'#86efac':'#fca5a5')}">${r.I>0?'+':''}${fmt(r.I,1)}</td></tr>`).join('');
+  if(!rows.length) h+='<tr><td colspan="4" style="color:var(--muted)">ยังไม่มีข้อมูล</td></tr>';
+  const fits=keys.map(k=>{ const F=balFit(k); return F?`${k} → R<sub>S</sub> สมดุล <b class="mono">${fmt(F.R0,1)} Ω</b>`:null; }).filter(Boolean);
+  $('tableA').innerHTML=h+'</tbody></table>'+(fits.length?`<div style="font-size:.66rem;color:var(--muted);margin:4px;line-height:1.6">จุดตัดศูนย์จากกราฟ: ${fits.join(' · ')}`+(mode==='auto'?` · X จริง ${RX} Ω`:'')+'</div>':''); }
+function exportCSV(){ const csv='﻿row,bridge,R_S_ohm,I_G_microamp,supply_V\n'+rows.map((r,i)=>[i+1,'"'+r.key+'"',r.RS,r.I,r.V].join(',')).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='Lab115_wheatstone.csv'; a.click(); }
+function renderAll(){ renderTable(); drawGraph(); updateHint(); syncCtl(); renderDec(); }
+const GC=['#38bdf8','#34d399','#fb7185','#fbbf24','#a78bfa','#f472b6','#4ade80','#fb923c'];
+function drawGraph(){ const c=$('graphCanvas'); if(!c||!c.clientWidth) return; const W=c.clientWidth,H=c.clientHeight||240; c.width=W*devicePixelRatio; c.height=H*devicePixelRatio; const g=c.getContext('2d'); g.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); g.clearRect(0,0,W,H);
+  const keys=[...new Set(rows.map(r=>r.key))], ml=44,mr=12,mt=12,mb=32,gw=W-ml-mr,gh=H-mt-mb, notes=[];
+  const P2=rows.filter(r=>Math.abs(r.I)<=150), use=P2.length?P2:rows;
+  let x0=Math.min(...use.map(r=>r.RS)), x1=Math.max(...use.map(r=>r.RS)); if(!use.length){ x0=0; x1=10; } if(x1-x0<4){ const m=(x0+x1)/2; x0=m-2; x1=m+2; } const pad=(x1-x0)*0.12; x0-=pad; x1+=pad;
+  const ym=Math.max(5,...use.map(r=>Math.abs(r.I)))*1.15, X=v=>ml+(v-x0)/(x1-x0)*gw, Y=v=>mt+gh/2-v/ym*gh/2;
+  g.strokeStyle='#1e3a5f'; g.strokeRect(ml,mt,gw,gh); g.strokeStyle='#475569'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(ml,Y(0)); g.lineTo(ml+gw,Y(0)); g.stroke(); g.setLineDash([]);
+  g.font='9px "Share Tech Mono"'; g.fillStyle='#94a3b8'; g.textAlign='center';
+  const span=x1-x0, st=[0.5,1,2,5,10,20,50,100,200,500,1000].find(s=>span/s<=6)||1000; for(let v=Math.ceil(x0/st)*st;v<=x1;v+=st) g.fillText(st<1?v.toFixed(1):v.toFixed(0),X(v),H-mb+12);
+  g.textAlign='right'; [-ym*0.8,-ym*0.4,0,ym*0.4,ym*0.8].forEach(v=>g.fillText(v.toFixed(Math.abs(ym)<20?1:0),ml-4,Y(v)+3));
+  g.textAlign='center'; g.font='10px IBM Plex Sans Thai'; g.fillText('R_S (Ω)',ml+gw/2,H-4); g.save(); g.translate(11,mt+gh/2); g.rotate(-Math.PI/2); g.fillText('I_G (µA)',0,0); g.restore();
+  g.save(); g.beginPath(); g.rect(ml,mt,gw,gh); g.clip();
+  keys.forEach((k,i)=>{ const F=balFit(k); if(!F) return; const col=GC[i%GC.length]; g.strokeStyle=col; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(x0),Y(F.m*x0+F.c)); g.lineTo(X(x1),Y(F.m*x1+F.c)); g.stroke();
+    g.strokeStyle='#facc15'; g.lineWidth=2; g.beginPath(); g.arc(X(F.R0),Y(0),6,0,Math.PI*2); g.stroke();
+    notes.push(`<span style="color:${col}">━</span> ${k} · I<sub>G</sub> = 0 ที่ R<sub>S</sub> = <b class="mono">${fmt(F.R0,1)} Ω</b>`); });
+  g.restore(); rows.forEach(r=>{ const i=keys.indexOf(r.key); if(r.RS<x0||r.RS>x1||Math.abs(r.I)>ym) return; g.fillStyle=GC[i%GC.length]; g.beginPath(); g.arc(X(r.RS),Y(r.I),4,0,Math.PI*2); g.fill(); });
+  if(!rows.length) notes.push('บันทึก I<sub>G</sub> ที่ R<sub>S</sub> หลายค่าใกล้จุดสมดุล (|I<sub>G</sub>| ≤ 150 µA) ทั้งค่าบวกและลบ — จุดที่เส้นตัดแกนกลางคือ R<sub>S</sub> ที่สมดุล'); $('graphNote').innerHTML=notes.join('<br>'); }
+function checkR(){ const v=parseFloat($('ans-r').value), el=$('ansRMsg'); if(isNaN(v)||v<=0){ el.innerHTML='<span style="color:#fde047">กรอกความต้านทาน (Ω)</span>'; return; } const err=(v-RX)/RX*100, ok=Math.abs(err)<=1;
+  if(mode==='auto'){ el.innerHTML=`<span style="color:${ok?'#86efac':'#fca5a5'}">ค่าจริง ${RX} Ω · คลาด ${err.toFixed(2)}% ${ok?'✓':''}</span>`; return; }
+  if(ok){ el.innerHTML='<span style="color:#86efac">✓ ถูกต้อง! คลาดไม่เกิน 1%</span>'; return; }
+  const q=v/RX; let tip='ตรวจว่าสะพานสมดุลจริง (I<sub>G</sub> ≈ 0 ที่ย่าน 200 µA) แล้วใช้ X = R<sub>S</sub> × P/Q';
+  if(Math.abs(q-10)<0.3||Math.abs(q-0.1)<0.003) tip='ค่าคลาดไปราว 10 เท่า — อัตราส่วน P/Q กลับด้านหรือไม่ (ดูว่าแขนไหนอยู่ติดกับ X และแขนไหนอยู่ติดกับ R<sub>S</sub>)';
+  else if(Math.abs(err)<4) tip='ใกล้แล้ว — ใช้กราฟ I<sub>G</sub>–R<sub>S</sub> หาจุดตัดศูนย์ให้ละเอียดขึ้น หรือใช้อัตราส่วน 1 : 10';
+  el.innerHTML='<span style="color:#fca5a5">✗ ยังไม่ถูก — '+tip+'</span>'; }
+</script>
+
+<script>
+/* ═══════════ 3D: เบรดบอร์ด · แกลแวนอมิเตอร์ · กล่องความต้านทาน ═══════════ */
+let renderer,scene,camera,P={},TEXS=[];
+const PSX=-32, AMX=-13, AMZ=-26, BXX=14, BXZ=-26, BBZ=-2;
+const orbit={target:null,dist:70,az:0.15,el:0.5};
+function fitDist(wCm,hCm){ const el=$('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||380)), t=Math.tan(36*Math.PI/360); return Math.max(3,Math.min(900, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+const VIEWS={ iso:{t:[-2,3,-8], d:()=>fitDist(108,74), az:0.04, el:0.70},
+  bb:{t:[0,1.5,-6], d:()=>fitDist(46,44), az:0.0001, el:1.18},
+  am:{t:[AMX,2,AMZ], d:()=>fitDist(19,25), az:0.0001, el:1.14}, box:{t:[BXX,3,BXZ+2.5], d:()=>fitDist(24,29), az:0.0001, el:1.14} };
+const vnum=q=>(typeof q==='function')?q():q;
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){} t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding; t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
+function redrawTex(t){ const o=TEXS.find(o=>o.t===t); if(!o) return; const c=t.image; o.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function labelPlane(w,h,txt,col,bg){ const tex=canvasTex(512,128,(g,W,Hh)=>{ g.fillStyle=bg||'#0f172a'; g.fillRect(0,0,W,Hh); g.fillStyle=col; g.font='bold 54px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,W/2,Hh/2); }); return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex})); }
+function pathWire(pts,col,r){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(20,V.length*10),r||0.2,9,false),new THREE.MeshStandardMaterial({color:col,roughness:.5})); }
+/* ── หน้าปัดแกลแวนอมิเตอร์: เข็มศูนย์กลาง (−max … 0 … +max) ── */
+function galArc(g,cx,cy,R,cfg,v){ const A0=Math.PI*1.13, A1=Math.PI*1.87, ang=x=>(A0+A1)/2+(A1-A0)/2*x/cfg.dmax;
+  g.strokeStyle='#0f172a'; g.lineWidth=R*0.045; g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
+  const N=Math.round(cfg.dmax/cfg.minor);
+  for(let k=-N;k<=N;k++){ const x=k*cfg.minor, a=ang(x), big=Math.abs(x/cfg.major-Math.round(x/cfg.major))<1e-6;
+    g.lineWidth=big?R*0.055:R*0.025; g.beginPath(); g.moveTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); g.lineTo(cx+Math.cos(a)*R*(big?0.81:0.9),cy+Math.sin(a)*R*(big?0.81:0.9)); g.stroke();
+    if(big){ g.fillStyle=k===0?'#b91c1c':'#0f172a'; g.font='bold '+Math.round(R*0.13)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(k>0?'+'+cfg.fmt(x):cfg.fmt(x),cx+Math.cos(a)*R*0.67,cy+Math.sin(a)*R*0.67); } }
+  const ov=Math.abs(v)>cfg.dmax*1.02, a=ang(Math.max(-cfg.dmax*1.04,Math.min(cfg.dmax*1.04,v)));
+  g.strokeStyle=ov?'#ea580c':'#b91c1c'; g.lineWidth=R*0.035; g.beginPath(); g.moveTo(cx-Math.cos(a)*R*0.12,cy-Math.sin(a)*R*0.12); g.lineTo(cx+Math.cos(a)*R*0.97,cy+Math.sin(a)*R*0.97); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.05,0,Math.PI*2); g.fill();
+  if(ov){ g.fillStyle='#ea580c'; g.font='bold '+Math.round(R*0.17)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('เกินย่านวัด!',cx,cy-R*0.42); } }
+function galFace(g,w,h){ const cfg=Object.assign({dmax:RANGES[rng].max*RANGES[rng].sc},RANGES[rng]), val=(P.amval||0)*cfg.sc;
+  g.fillStyle='#1c2431'; g.fillRect(0,0,w,h);
+  g.fillStyle='#ea580c'; g.fillRect(0,0,w,h*0.035); g.fillRect(0,h*0.965,w,h*0.035);
+  g.fillStyle='#e2e8f0'; g.font='bold '+Math.round(h*0.027)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.textBaseline='middle';
+  g.fillText('KP-DMM · แกลแวนอมิเตอร์',w*0.06,h*0.072);
+  g.textAlign='right'; g.fillStyle='#fdba74'; g.fillText('DCA '+cfg.range,w*0.94,h*0.072);
+  const dx=w*0.05, dy=h*0.10, dw=w*0.90, dh=h*0.46;
+  if(mtype){ g.fillStyle='#05312c'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f766e'; g.lineWidth=h*0.006; g.strokeRect(dx,dy,dw,dh);
+    const ov=Math.abs(val)>cfg.dmax*1.02; g.fillStyle=ov?'#fb923c':'#22d3ee'; g.font='bold '+Math.round(Math.min(dh*0.6,dw*0.19))+'px "Share Tech Mono",monospace'; g.textAlign='right'; g.textBaseline='middle';
+    const shown=cfg.dfmt(Math.abs(val)), neg=val<0&&parseFloat(shown)!==0;
+    g.fillText(ov?(val<0?'-OL':'OL'):(neg?'-':'')+shown,dx+dw*0.80,dy+dh*0.54);
+    g.fillStyle='#67e8f9'; g.font='bold '+Math.round(Math.min(dh*0.26,dw*0.09))+'px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText(cfg.unit,dx+dw*0.82,dy+dh*0.62);
+    g.fillStyle='#5eead4'; g.font='bold '+Math.round(dh*0.16)+'px "Share Tech Mono",monospace'; g.fillText('DC',dx+dw*0.05,dy+dh*0.22); }
+  else { g.fillStyle='#f8fafc'; g.fillRect(dx,dy,dw,dh); g.strokeStyle='#0f172a'; g.lineWidth=h*0.005; g.strokeRect(dx,dy,dw,dh);
+    galArc(g,dx+dw/2,dy+dh*0.92,dh*0.78,cfg,val);
+    g.fillStyle='#475569'; g.font='bold '+Math.round(dh*0.11)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('ศูนย์กลาง · '+cfg.unit,dx+dw/2,dy+dh*0.14); }
+  const cx=w*0.5, cy=h*0.735, R=h*0.093;
+  g.fillStyle='#334155'; g.beginPath(); g.arc(cx,cy,R*1.5,0,Math.PI*2); g.fill();
+  g.fillStyle='#e2e8f0'; g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fill();
+  const FUN=[['OFF',-Math.PI/2],['V⎓',-Math.PI/2+1.2],['A⎓',-Math.PI/2+2.4],['Ω',-Math.PI/2-1.2],['V∼',-Math.PI/2-2.4]];
+  g.font='bold '+Math.round(h*0.024)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  FUN.forEach(([t,a])=>{ const on=t==='A⎓'; g.fillStyle=on?'#fbbf24':'#94a3b8'; g.fillText(t,cx+Math.cos(a)*R*1.95,cy+Math.sin(a)*R*1.95);
+    g.strokeStyle=on?'#fbbf24':'#64748b'; g.lineWidth=h*0.004; g.beginPath(); g.moveTo(cx+Math.cos(a)*R*1.58,cy+Math.sin(a)*R*1.58); g.lineTo(cx+Math.cos(a)*R*1.72,cy+Math.sin(a)*R*1.72); g.stroke(); });
+  const sa=-Math.PI/2+2.4; g.strokeStyle='#b91c1c'; g.lineWidth=h*0.012; g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(sa)*R*0.86,cy+Math.sin(sa)*R*0.86); g.stroke();
+  g.fillStyle='#0f172a'; g.beginPath(); g.arc(cx,cy,R*0.16,0,Math.PI*2); g.fill();
+  g.font='bold '+Math.round(h*0.028)+'px "Share Tech Mono",monospace'; g.textAlign='center';
+  [['COM',w*0.33,'#e2e8f0'],['+ mA/µA',w*0.67,'#fca5a5']].forEach(([t,jx,col])=>{
+    g.fillStyle='#0f172a'; g.beginPath(); g.arc(jx,h*0.905,h*0.03,0,Math.PI*2); g.fill();
+    g.strokeStyle=col; g.lineWidth=h*0.006; g.beginPath(); g.arc(jx,h*0.905,h*0.04,0,Math.PI*2); g.stroke();
+    g.fillStyle=col; g.fillText(t,jx,h*0.958); }); }
+/* ── หน้ากล่องความต้านทาน (แตะ ▲/▼ ของแต่ละหลัก) ── */
+const BOXW=20, BOXD=14, BOXH=4, DCOL=u=>{ const i=Math.floor((u-0.04)/0.23); return i>=0&&i<4?i:-1; };
+function boxFace(g,w,h){ g.fillStyle='#1f1a17'; g.fillRect(0,0,w,h); g.strokeStyle='#a16207'; g.lineWidth=h*0.012; g.strokeRect(h*0.01,h*0.01,w-h*0.02,h-h*0.02);
+  g.fillStyle='#fde68a'; g.font='bold '+Math.round(h*0.07)+'px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('กล่องความต้านทาน R_S',w/2,h*0.075);
+  const lab=['×1000','×100','×10','×1'];
+  for(let i=0;i<4;i++){ const x0=w*(0.04+i*0.23), cw=w*0.21, cx=x0+cw/2;
+    g.fillStyle='#cbd5e1'; g.font='bold '+Math.round(h*0.055)+'px "Share Tech Mono",monospace'; g.fillText(lab[i]+' Ω',cx,h*0.19);
+    [[0.24,0.42,'▲'],[0.62,0.80,'▼']].forEach(([a,b,t])=>{ g.fillStyle='#334155'; g.fillRect(x0+cw*0.1,h*a+h*0.015,cw*0.8,h*(b-a)-h*0.03); g.strokeStyle='#64748b'; g.lineWidth=h*0.006; g.strokeRect(x0+cw*0.1,h*a+h*0.015,cw*0.8,h*(b-a)-h*0.03);
+      g.fillStyle='#e2e8f0'; g.font='bold '+Math.round(h*0.1)+'px sans-serif'; g.fillText(t,cx,h*(a+b)/2); });
+    g.fillStyle='#0b1220'; g.fillRect(x0+cw*0.15,h*0.43,cw*0.7,h*0.18); g.fillStyle='#fde047'; g.font='bold '+Math.round(h*0.15)+'px "Share Tech Mono",monospace'; g.fillText(String(DEC[i]),cx,h*0.525); }
+  g.fillStyle='#fef3c7'; g.font='bold '+Math.round(h*0.085)+'px "Share Tech Mono",monospace'; g.fillText('R_S = '+RSv()+' Ω',w/2,h*0.89); }
+/* ── พื้นผิวเบรดบอร์ด ── */
+function bbFn(g,w,h){ const X=x=>(x+14)/28*w, Z=z=>(z+9)/18*h;
+  g.fillStyle='#e9e6dc'; g.fillRect(0,0,w,h);
+  g.fillStyle='#d8d4c6'; g.fillRect(0,Z(-1.1),w,Z(1.1)-Z(-1.1));
+  [[-7.6,'#dc2626'],[7.6,'#2563eb']].forEach(([z,c],k)=>{ g.strokeStyle=c; g.lineWidth=h*0.006;
+    g.beginPath(); g.moveTo(X(-13),Z(z+(k?0.9:-0.9))); g.lineTo(X(13),Z(z+(k?0.9:-0.9))); g.stroke();
+    g.fillStyle=c; g.font='bold '+Math.round(h*0.045)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(k?'−':'+',X(-13.1),Z(z)); g.fillText(k?'−':'+',X(13.1),Z(z)); });
+  g.fillStyle='#1f2937';
+  for(let c=0;c<COLS;c++) for(let r=0;r<12;r++){ const x=X(holeX(c)), z=Z(holeZ(r)), s=h*0.016; g.fillRect(x-s,z-s,2*s,2*s); }
+  g.fillStyle='#64748b'; g.font='bold '+Math.round(h*0.034)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  for(let c=0;c<COLS;c++){ g.fillText(String(c+1),X(holeX(c)),Z(-0.05)); }
+  for(let r=1;r<=10;r++){ const nm='ABCDEFGHIJ'[r-1]; g.fillText(nm,X(-13.1),Z(holeZ(r))); g.fillText(nm,X(13.1),Z(holeZ(r))); } }
+function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(-4,3,4); try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.98)); const d1=new THREE.DirectionalLight(0xffffff,0.6); d1.position.set(30,90,60); scene.add(d1); const d2=new THREE.DirectionalLight(0xffffff,0.34); d2.position.set(-40,50,80); scene.add(d2);
+  const dark=new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.7});
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(108,2,62),new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.85})); bench.position.set(-2,-1,-12); scene.add(bench);
+  const bb=new THREE.Mesh(new THREE.BoxGeometry(28,1.2,18),new THREE.MeshStandardMaterial({color:0xd6d2c4,roughness:.8})); bb.position.set(0,0.6,BBZ); scene.add(bb);
+  P.board=new THREE.Mesh(new THREE.PlaneGeometry(28,18),new THREE.MeshBasicMaterial({map:canvasTex(1400,900,bbFn)})); P.board.rotation.x=-Math.PI/2; P.board.position.set(0,1.21,BBZ); scene.add(P.board);
+  /* แหล่งจ่ายไฟ */
+  const ps=new THREE.Mesh(new THREE.BoxGeometry(18,12,12),dark); ps.position.set(PSX,6,-4); scene.add(ps);
+  const psLab=labelPlane(12,2.4,'แหล่งจ่ายไฟตรง 0–10 V','#93c5fd','#0b1220'); psLab.position.set(PSX,11,2.06); scene.add(psLab);
+  P.knob=new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.6,28),new THREE.MeshStandardMaterial({color:0xe2e8f0,roughness:.35})); P.knob.rotation.x=Math.PI/2; P.knob.position.set(PSX,5.5,2.2); scene.add(P.knob);
+  P.knobMark=new THREE.Mesh(new THREE.BoxGeometry(0.5,2.2,0.3),new THREE.MeshStandardMaterial({color:0xb91c1c})); P.knobMark.rotation.x=-Math.PI/2; P.knobMark.position.set(0,0.9,-1.1); P.knob.add(P.knobMark);
+  P.dial=new THREE.Mesh(new THREE.PlaneGeometry(9,4),new THREE.MeshBasicMaterial({map:canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#0b1220'; g.fillRect(0,0,w,h); g.strokeStyle='#334155'; g.lineWidth=6; g.strokeRect(4,4,w-8,h-8);
+    g.fillStyle='#fbbf24'; g.font='bold 110px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(Vs.toFixed(1),w/2,h*0.56); g.fillStyle='#94a3b8'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillText('ปุ่มปรับ (V)',w/2,h*0.16); })})); P.dial.position.set(PSX,9.2,2.06); scene.add(P.dial); P.dialKey='';
+  P.jackPos={}; P.jackMesh=[];
+  const mkJack=(id,x,y,z,txt)=>{ P.jackPos[id]=[x,y,z];
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.0,0.5,16),new THREE.MeshStandardMaterial({color:0x0f172a,roughness:.6})); base.position.set(x,y-0.2,z); scene.add(base);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.18,8,20),new THREE.MeshStandardMaterial({color:JACKS[id].c,metalness:.4,roughness:.5})); ring.rotation.x=-Math.PI/2; ring.position.set(x,y,z); scene.add(ring);
+    const hit=new THREE.Mesh(new THREE.CircleGeometry(2.2,20),new THREE.MeshBasicMaterial({visible:false})); hit.rotation.x=-Math.PI/2; hit.position.set(x,y+0.1,z); hit.userData.hole={j:id}; scene.add(hit); P.jackMesh.push(hit);
+    const lb=labelPlane(5.2,1.6,txt,'#'+JACKS[id].c.toString(16).padStart(6,'0'),'#0b1220'); lb.rotation.x=-Math.PI/2; lb.position.set(x,y-0.45,z+2.3); scene.add(lb); };
+  mkJack('SP',PSX-3.2,2.5,3.6,'ขั้ว +'); mkJack('SN',PSX+3.2,2.5,3.6,'ขั้ว −');
+  /* แกลแวนอมิเตอร์ (มัลติมิเตอร์ DCA) */
+  { const g0=new THREE.Group(); g0.position.set(AMX,0,AMZ); scene.add(g0);
+    const boot=new THREE.Mesh(new THREE.BoxGeometry(16.4,1.6,20.4),new THREE.MeshStandardMaterial({color:0x111827,roughness:.85})); boot.position.y=0.8; g0.add(boot);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(15,2.4,19),new THREE.MeshStandardMaterial({color:0xea580c,roughness:.6})); body.position.y=1.2; g0.add(body);
+    P.amtex=canvasTex(896,1120,galFace);
+    P.amFace=new THREE.Mesh(new THREE.PlaneGeometry(14,17.6),new THREE.MeshBasicMaterial({map:P.amtex})); P.amFace.rotation.x=-Math.PI/2; P.amFace.position.set(0,2.42,0); g0.add(P.amFace); }
+  mkJack('GC',AMX-2.4,2.6,AMZ+8.4,'COM'); mkJack('GA',AMX+2.4,2.6,AMZ+8.4,'+ (mA)');
+  /* กล่องความต้านทาน */
+  { const body=new THREE.Mesh(new THREE.BoxGeometry(BOXW,BOXH,BOXD),new THREE.MeshStandardMaterial({color:0x3f2d20,roughness:.7})); body.position.set(BXX,BOXH/2,BXZ-0.2); scene.add(body);
+    P.boxtex=canvasTex(1000,700,boxFace);
+    P.boxTop=new THREE.Mesh(new THREE.PlaneGeometry(BOXW-0.4,BOXD-0.4),new THREE.MeshBasicMaterial({map:P.boxtex})); P.boxTop.rotation.x=-Math.PI/2; P.boxTop.position.set(BXX,BOXH+0.02,BXZ-0.2); scene.add(P.boxTop);
+    const pl=new THREE.Mesh(new THREE.BoxGeometry(12,2.4,3),new THREE.MeshStandardMaterial({color:0x292524,roughness:.7})); pl.position.set(BXX,1.2,BXZ+8.4); scene.add(pl); }
+  mkJack('BA',BXX-3,2.6,BXZ+8.4,'ขั้ว 1'); mkJack('BB',BXX+3,2.6,BXZ+8.4,'ขั้ว 2');
+  /* กล่องอุปกรณ์ (ตกแต่ง) */
+  const tray=new THREE.Mesh(new THREE.BoxGeometry(24,1.4,10),new THREE.MeshStandardMaterial({color:0x334155,roughness:.8})); tray.position.set(31,0.7,-2); scene.add(tray);
+  const trayLab=labelPlane(12,2.2,'🧰 กล่องอุปกรณ์','#fde68a','#0b1220'); trayLab.position.set(31,0.05,4.6); trayLab.rotation.x=-Math.PI/2; scene.add(trayLab);
+  ['H','H','M','K','X'].forEach((k,i)=>{ const g0=new THREE.Group(); g0.position.set(22.6+i*4.2,1.9,-2); g0.rotation.y=Math.PI/2; scene.add(g0);
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,4.4,16),new THREE.MeshStandardMaterial({color:k==='X'?0x94a3b8:0xd6c39a,roughness:.7})); body.rotation.z=Math.PI/2; g0.add(body);
+    KINDS[k].bands.forEach((col,bi)=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.89,0.89,0.36,16),new THREE.MeshStandardMaterial({color:col})); b.rotation.z=Math.PI/2; b.position.x=-1.1+bi*0.8; g0.add(b); }); });
+  P.parts=new THREE.Group(); scene.add(P.parts);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>redrawTexs()).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso'); buildParts(); update3D();
+  let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; stepHand(dt0); stepPhys(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%3; if(fr===0){ drawAll(); const e=$('view3d'), sk=e.clientWidth+'x'+e.clientHeight; if(sk!==szKey){ szKey=sk; resizeAll(); } } })(last); }
+let fr=0, szKey='', amKey='', boxKey='';
+const holePos=h=> h.j? (P.jackPos&&P.jackPos[h.j]? P.jackPos[h.j] : [0,2.6,0]) : [holeX(h.c),1.3,BBZ+holeZ(h.r)];
+function buildParts(){ if(!P.parts) return;
+  while(P.parts.children.length){ const m=P.parts.children.pop(); if(m.geometry) m.geometry.dispose(); if(m.material&&m.material.dispose) m.material.dispose(); P.parts.remove(m); }
+  const tag=(m,e)=>{ m.userData.eid=e.id; P.parts.add(m); return m; };
+  elems.forEach(e=>{ const A=holePos(e.a), B=holePos(e.b), k=e.kind, col=KINDS[k].c;
+    if(RES.includes(k)){
+      const a=new THREE.Vector3(A[0],2.6,A[2]), b=new THREE.Vector3(B[0],2.6,B[2]), d=b.clone().sub(a), len=d.length();
+      const body=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,Math.max(1.2,len-1.6),16),new THREE.MeshStandardMaterial({color:k==='X'?0x94a3b8:0xd6c39a,roughness:.7}));
+      body.position.copy(a).add(b).multiplyScalar(0.5); body.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize()); tag(body,e);
+      KINDS[k].bands.forEach((c2,bi)=>{ const bm=new THREE.Mesh(new THREE.CylinderGeometry(0.89,0.89,0.34,16),new THREE.MeshStandardMaterial({color:c2}));
+        bm.quaternion.copy(body.quaternion); bm.position.copy(a).add(d.clone().multiplyScalar(0.34+bi*0.12)); tag(bm,e); });
+      [A,B].forEach(p=>tag(pathWire([[p[0],1.2,p[2]],[p[0],2.6,p[2]]],0xcbd5e1,0.12),e)); }
+    else { const jc= e.a.j? JACKS[e.a.j].c : (e.b.j? JACKS[e.b.j].c : col);
+      const ay= e.a.j?A[1]:1.2, by= e.b.j?B[1]:1.2, lift=3.2+Math.min(6,Math.hypot(A[0]-B[0],A[2]-B[2])*0.12);
+      tag(pathWire([[A[0],ay,A[2]],[A[0],ay+1.2,A[2]],[(A[0]+B[0])/2,lift,(A[2]+B[2])/2],[B[0],by+1.2,B[2]],[B[0],by,B[2]]],jc,0.18),e); } });
+  if(pending){ const p=holePos(pending); const m=new THREE.Mesh(new THREE.TorusGeometry(0.75,0.14,8,20),new THREE.MeshBasicMaterial({color:0xfde047})); m.rotation.x=-Math.PI/2; m.position.set(p[0],(pending.j?p[1]:1.35),p[2]); P.parts.add(m); }
+  if(sel!=null){ const e=elems.find(x=>x.id===sel); if(e) [e.a,e.b].forEach((h,k)=>{ const p=holePos(h), on=moveEnd&&moveEnd.id===e.id&&moveEnd.k===k, y=h.j?p[1]+0.05:1.35;
+    const m=new THREE.Mesh(new THREE.TorusGeometry(on?1.0:0.85,on?0.18:0.12,8,20),new THREE.MeshBasicMaterial({color:on?0xfde047:0x38bdf8}));
+    m.rotation.x=-Math.PI/2; m.position.set(p[0],y,p[2]); m.userData.endOf={id:e.id,k}; P.parts.add(m);
+    const hit=new THREE.Mesh(new THREE.CircleGeometry(1.15,16),new THREE.MeshBasicMaterial({visible:false}));
+    hit.rotation.x=-Math.PI/2; hit.position.set(p[0],y+0.15,p[2]); hit.userData.endOf={id:e.id,k}; P.parts.add(hit); }); } }
+function setHover(h){ const key=h?(h.j||h.c+'_'+h.r):''; if(key===P.hovKey) return; P.hovKey=key;
+  if(!P.hov){ P.hov=new THREE.Mesh(new THREE.RingGeometry(0.55,0.95,20),new THREE.MeshBasicMaterial({color:0xfde047,transparent:true,opacity:.85,side:THREE.DoubleSide})); P.hov.rotation.x=-Math.PI/2; scene.add(P.hov); }
+  P.hov.visible=!!h; if(h){ const p=holePos(h); P.hov.position.set(p[0],h.j?p[1]+0.05:1.3,p[2]); } }
+function update3D(){ if(!scene) return;
+  P.knob.rotation.y=-(Vs/VMAX)*Math.PI*1.5;
+  const dk=Vs.toFixed(1); if(dk!==P.dialKey){ P.dialKey=dk; redrawTex(P.dial.material.map); }
+  const ak=(nI*RANGES[rng].sc).toFixed(3)+rng+mtype; if(ak!==amKey){ amKey=ak; P.amval=nI; redrawTex(P.amtex); }
+  const bk=DEC.join(''); if(bk!==boxKey){ boxKey=bk; redrawTex(P.boxtex); }
+  const tg=orbit.target; camera.up.set(0,1,0); camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const w=$('view3d').clientWidth||800,h=$('view3d').clientHeight||360; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView)); if(!V||!orbit.target) return; orbit.target.set(V.t[0],V.t[1],V.t[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+/* ── การชี้/แตะ ── */
+let RAY=null,NDC=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); } const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null; NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function pickAt(cx,cy){ const rc=setRay(cx,cy); if(!rc||!P.board) return null;
+  if(RAY.intersectObject(P.knob,true).length) return {t:'knob'};
+  const jk=P.jackMesh?RAY.intersectObjects(P.jackMesh,false):[]; if(jk.length) return {t:'hole',h:jk[0].object.userData.hole};
+  const pr=RAY.intersectObjects(P.parts.children,false); const bd=RAY.intersectObject(P.board,false);
+  const endHit=pr.find(o=>o.object.userData.endOf); if(endHit) return {t:'end',e:endHit.object.userData.endOf};
+  if(pr.length&&(!bd.length||pr[0].distance<bd[0].distance+0.6)&&pr[0].object.userData.eid) return {t:'part',eid:pr[0].object.userData.eid};
+  if(bd.length){ const p=bd[0].point, lx=p.x, lz=p.z-BBZ;
+    let best=null,bd2=9; for(let c=0;c<COLS;c++) for(let r=0;r<12;r++){ const d=Math.hypot(lx-holeX(c),lz-holeZ(r)); if(d<bd2){ bd2=d; best={c,r}; } }
+    if(best&&bd2<1.7) return {t:'hole',h:best}; return {t:'board'}; }
+  const bx=RAY.intersectObject(P.boxTop,false);
+  if(bx.length){ const p=bx[0].point, u=(p.x-(BXX-(BOXW-0.4)/2))/(BOXW-0.4), v=(p.z-(BXZ-0.2-(BOXD-0.4)/2))/(BOXD-0.4), i=DCOL(u);
+    if(i>=0&&v>=0.22&&v<=0.44) return {t:'dec',i,d:1}; if(i>=0&&v>=0.60&&v<=0.82) return {t:'dec',i,d:-1}; return {t:'box'}; }
+  if(RAY.intersectObject(P.amFace,false).length) return {t:'am'};
+  return null; }
+function tapAt(cx,cy){ const p=pickAt(cx,cy); if(!p) return false;
+  if(p.t==='knob'){ setView('iso'); return true; }
+  if(p.t==='am'){ setView('am'); return true; } if(p.t==='box'){ setView('box'); return true; }
+  if(p.t==='dec'){ stepDec(p.i,p.d); return true; }
+  if(p.t==='hole'){ tapHole(p.h); buildParts(); return true; }
+  if(p.t==='board'){ if(held||moveEnd) lockWarn('แตะให้ตรงแถวของรูบนเบรดบอร์ด (กด 🧩 เบรดบอร์ด เพื่อซูมเข้าไปใกล้ ๆ)'); return true; }
+  if(p.t==='end'){ if(moveEnd&&moveEnd.id===p.e.id&&moveEnd.k===p.e.k) moveEnd=null; else startMove(p.e.id,p.e.k); buildParts(); syncCtl(); drawAll(); return true; }
+  if(p.t==='part'){ sel= sel===p.eid?null:p.eid; moveEnd=null; held=null; pending=null; if(sel!=null) lockWarn('แตะวงแหวนที่ปลายสาย (หรือปุ่ม "ย้าย" ในรายการ) เพื่อย้ายไปรูอื่น'); buildParts(); syncCtl(); drawAll(); return true; }
+  return false; }
+/* ลากปุ่มปรับแรงดัน */
+const HD={on:false,fin:false,t:0,x0:0,v0:0}, HD_LAG=0.12;
+function cancelHand(){ HD.on=false; HD.fin=false; }
+function hdStart(cx,cy){ const p=pickAt(cx,cy); if(!p||p.t!=='knob') return false; cancelHand(); HD.on=true; HD.x0=cx; HD.v0=Vs; HD.t=Vs; return true; }
+function hdMove(cx,cy){ if(!HD.on) return; const rc=renderer.domElement.getBoundingClientRect(); HD.t=Math.max(0,Math.min(VMAX,HD.v0+(cx-HD.x0)/(rc.width*0.42)*VMAX)); }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.fin=true; }
+function stepHand(dt){ if(!HD.on&&!HD.fin) return; const tg=Math.round(HD.t*20)/20; let nv=Vs+(tg-Vs)*(1-Math.exp(-dt/HD_LAG)); if(Math.abs(tg-nv)<0.01) nv=tg; setKnob(nv); if(!HD.on&&Vs===tg) HD.fin=false; }
+let panMode=false; function setPanMode(on){ panMode=!!on; const b=$('panBtn'); if(b){ b.classList.toggle('on',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; } }
+let simSpeed=1; const SPD_STEPS=[1,0.5,0.25,0.1]; function spdLabel(v){ return v===1?'ความเร็วปกติ ×1':(v===0.5?'ช้าลง ×½':(v===0.25?'ช้าลง ×¼':'ช้ามาก ×⅒')); }
+function setSimSpeed(v){ simSpeed=v; const b=$('spdBtn'); if(b){ b.classList.toggle('on',v!==1); b.innerHTML='🐢 '+spdLabel(v); } } function cycleSimSpeed(){ setSimSpeed(SPD_STEPS[(SPD_STEPS.indexOf(simSpeed)+1)%SPD_STEPS.length]); } function simDt(dt){ return dt*simSpeed; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0,sx:0,sy:0,moved:false}; const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  const begin=(x,y,pan)=>{ T.mode=pan?'pan':'rot'; T.lx=T.sx=x; T.ly=T.sy=y; T.moved=false; };
+  const drag=(x,y)=>{ if(Math.hypot(x-T.sx,y-T.sy)>6) T.moved=true; const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); };
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); if(e.button===0&&!e.shiftKey&&!panMode&&hdStart(e.clientX,e.clientY)){ T.mode='hand'; T.moved=false; T.sx=e.clientX; T.sy=e.clientY; return; } begin(e.clientX,e.clientY,e.button===1||e.button===2||e.shiftKey||panMode); T.btn0=e.button===0&&!e.shiftKey; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode){ setHover(null); return; } const p=pickAt(e.clientX,e.clientY);
+    setHover((held||moveEnd)&&p&&p.t==='hole'? p.h : null);
+    cv.style.cursor= p&&p.t==='knob'?'ew-resize':(p&&['hole','part','am','box','dec','end'].includes(p.t)?'pointer':'grab'); });
+  cv.addEventListener('mouseleave',()=>setHover(null));
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return; if(e.buttons===0){ if(T.mode==='hand') hdEnd(); T.mode=null; return; } if(T.mode==='hand'){ if(Math.hypot(e.clientX-T.sx,e.clientY-T.sy)>6) T.moved=true; hdMove(e.clientX,e.clientY); return; } drag(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',e=>{ if(T.mode==='hand'){ hdEnd(); if(!T.moved) tapAt(e.clientX,e.clientY); } else if(T.mode&&T.mode!=='pinch'&&!T.moved&&T.btn0) tapAt(e.clientX,e.clientY); if(T.mode!=='pinch') T.mode=null; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.moved=true; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t=e.touches[0]; if(!panMode&&hdStart(t.clientX,t.clientY)){ T.mode='hand'; T.moved=false; T.sx=t.clientX; T.sy=t.clientY; return; } begin(t.clientX,t.clientY,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault(); if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(T.mode==='hand'&&e.touches.length===1){ const t=e.touches[0]; if(Math.hypot(t.clientX-T.sx,t.clientY-T.sy)>6) T.moved=true; hdMove(t.clientX,t.clientY); }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t=e.touches[0]; drag(t.clientX,t.clientY); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ const t=e.changedTouches&&e.changedTouches[0]; if(T.mode==='hand'){ hdEnd(); if(!T.moved&&t) tapAt(t.clientX,t.clientY); } else if((T.mode==='rot'||T.mode==='pan')&&!T.moved&&t) tapAt(t.clientX,t.clientY); T.mode=null; } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',()=>{ cancelHand(); T.mode=null; }); cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function unfollow(){ if(VIEWS[curView]){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.4,Math.min(1.45,orbit.el+dy*0.006)); } function camZoom(f){ orbit.dist=Math.max(4,Math.min(900,orbit.dist*f)); }
+function camPan(dx,dy){ unfollow(); const o=orbit; if(!o.target||!camera) return; const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/(($('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el); o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
+function prep(id){ const c=$(id); if(!c||!c.clientWidth) return null; const W=c.clientWidth,H=parseInt(c.getAttribute('height'))||250; c.width=W; c.height=H; const g=c.getContext('2d'); g.clearRect(0,0,W,H); return {g,W,H}; }
+/* แผนภาพสะพานวีตสโตน */
+function drawTheory0(){ const p=prep('theoryCanvas0'); if(!p) return; const {g,W,H}=p;
+  const cx=W*0.36, cy=H*0.5, r=Math.min(W*0.22,H*0.31), A=[cx-r,cy], B=[cx,cy-r], C=[cx+r,cy], D=[cx,cy+r];
+  const res=(p1,p2,lab,col)=>{ const mx=(p1[0]+p2[0])/2, my=(p1[1]+p2[1])/2, ang=Math.atan2(p2[1]-p1[1],p2[0]-p1[0]);
+    g.strokeStyle='#94a3b8'; g.lineWidth=2; g.beginPath(); g.moveTo(...p1); g.lineTo(...p2); g.stroke();
+    g.save(); g.translate(mx,my); g.rotate(ang); g.fillStyle='#0c1424'; g.fillRect(-24,-9,48,18); g.strokeStyle=col; g.lineWidth=2.5; g.strokeRect(-24,-9,48,18); g.restore();
+    const dx=mx-cx, dy=my-cy, dl=Math.hypot(dx,dy)||1; g.fillStyle=col; g.font='bold 14px IBM Plex Sans Thai'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(lab,mx+dx/dl*26,my+dy/dl*26); };
+  res(A,B,'P','#fbbf24'); res(B,C,'Q','#fbbf24'); res(A,D,'X','#fb7185'); res(D,C,'R_S','#fde047');
+  g.strokeStyle='#94a3b8'; g.lineWidth=2; g.beginPath(); g.moveTo(...B); g.lineTo(B[0],cy-16); g.moveTo(D[0],cy+16); g.lineTo(...D); g.stroke();
+  g.fillStyle='#0c1424'; g.beginPath(); g.arc(cx,cy,16,0,Math.PI*2); g.fill(); g.strokeStyle='#ea580c'; g.lineWidth=2.5; g.stroke(); g.fillStyle='#ea580c'; g.font='bold 15px IBM Plex Sans Thai'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('G',cx,cy+1);
+  const by=H*0.93; g.strokeStyle='#94a3b8'; g.lineWidth=2; g.beginPath(); g.moveTo(...A); g.lineTo(A[0],by); g.lineTo(cx-10,by); g.moveTo(cx+10,by); g.lineTo(C[0],by); g.lineTo(...C); g.stroke();
+  g.strokeStyle='#e2e8f0'; g.lineWidth=3; g.beginPath(); g.moveTo(cx-10,by-12); g.lineTo(cx-10,by+12); g.stroke(); g.lineWidth=5; g.beginPath(); g.moveTo(cx+10,by-7); g.lineTo(cx+10,by+7); g.stroke();
+  g.fillStyle='#e2e8f0'; g.font='12px IBM Plex Sans Thai'; g.textAlign='left'; g.fillText('แหล่งจ่าย',cx+22,by); g.textAlign='center';
+  [['A',A,-14,0],['B',B,0,-14],['C',C,14,0],['D',D,0,14]].forEach(([t,pt,dx,dy])=>{ g.fillStyle='#38bdf8'; g.beginPath(); g.arc(pt[0],pt[1],4,0,Math.PI*2); g.fill(); g.font='bold 13px IBM Plex Sans Thai'; g.fillText(t,pt[0]+dx,pt[1]+dy); });
+  g.textAlign='left'; g.fillStyle='#e2e8f0'; g.font='13px IBM Plex Sans Thai';
+  ['สมดุลเมื่อ I_G = 0  (V_B = V_D)','P / Q = X / R_S','X = R_S × P / Q','• ไม่ขึ้นกับแรงดันแหล่งจ่าย','• แกลแวนอมิเตอร์บอกแค่ "ศูนย์หรือไม่"'].forEach((t,i)=>{ g.fillStyle=i<3?'#86efac':'#cbd5e1'; g.fillText(t,W*0.64,H*0.22+i*28); }); }
+function drawTheoryAll(){ drawTheory0(); }
+function drawAll(){ updateHint(); syncCtl(); }
+function resizeAll(){ resize3D(); if(VIEWS[curView]&&typeof VIEWS[curView].d==='function') orbit.dist=vnum(VIEWS[curView].d); drawGraph(); }
+window.addEventListener('DOMContentLoaded',()=>{ $('in-i').addEventListener('keydown',e=>{ if(e.key==='Enter') recordRow(); }); $('rsSet').addEventListener('keydown',e=>{ if(e.key==='Enter') setRSFromInput(); });
+  window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheoryAll(); });
+  init3D(); resizeAll(); setMeterType(mtype); if(window.ResizeObserver) new ResizeObserver(()=>resizeAll()).observe($('view3d')); setMode('manual'); solveCircuit(); renderDec(); syncCtl(); renderAll(); drawTheoryAll(); });
+</script>
+<script src="../_shared/kp-mobile-panel.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../kp-auth.js?v=20260928"></script>
+<script>
+  (function(){ var w = setInterval(function(){ if (typeof kpPageAccess === "function") { clearInterval(w); kpPageAccess("vlab:vpl06:lab-115", "../virtual-physics-lab-06.html"); } }, 50); setTimeout(function(){clearInterval(w)}, 5000); })();
+</script>
+</body>
+</html>
