@@ -235,7 +235,7 @@ table.tb td{background:var(--panel2);color:var(--muted);padding:6px 10px;border:
   <h2>สมการกระจกและเลนส์</h2>
   <div class="law-box">
     <div class="law-eq">1/f = 1/s + 1/s′ &nbsp;&nbsp; m = y′/y = s′/s</div>
-    <p style="font-size:.84rem">s = ระยะวัตถุ · s′ = ระยะภาพ · y = ขนาดวัตถุ · y′ = ขนาดภาพ<br>s เป็นบวกเสมอ (วัตถุจริง) · s′ เป็นบวก = ภาพจริง · s′ เป็นลบ = ภาพเสมือน · f ของกระจกเว้าและเลนส์นูนเป็นบวก · f ของกระจกนูนและเลนส์เว้าเป็นลบ · R = 2f สำหรับกระจกโค้ง (ในแบบจำลองวาดผิวกระจกเป็นส่วนโค้งวงกลมรัศมี R = 2f จุดศูนย์กลางที่ C จริง มาตราส่วนแนวนอนเท่าแนวดิ่ง)</p>
+    <p style="font-size:.84rem">s = ระยะวัตถุ · s′ = ระยะภาพ · y = ขนาดวัตถุ · y′ = ขนาดภาพ<br>s เป็นบวกเสมอ (วัตถุจริง) · s′ เป็นบวก = ภาพจริง · s′ เป็นลบ = ภาพเสมือน<br><b style="color:var(--text)">m และ y′ เครื่องหมายเดียวกับ s′: m เป็นบวก = ภาพจริง หัวกลับ · m เป็นลบ = ภาพเสมือน หัวตั้ง</b> (|m| &gt; 1 ขยาย · |m| &lt; 1 ย่อ)<br> f ของกระจกเว้าและเลนส์นูนเป็นบวก · f ของกระจกนูนและเลนส์เว้าเป็นลบ · R = 2f สำหรับกระจกโค้ง (ในแบบจำลองวาดผิวกระจกเป็นส่วนโค้งวงกลมรัศมี R = 2f จุดศูนย์กลางที่ C จริง มาตราส่วนแนวนอนเท่าแนวดิ่ง)</p>
   </div>
 
   <h2>ภาพเมื่อวัตถุเลื่อนจากไกลมากเข้าหาทัศนอุปกรณ์</h2>
@@ -277,7 +277,7 @@ function uToP(v){ const f=F0(); if(!isFinite(v)) return 1000; if(v<=4*f) return 
 function image(){   /* คืน {v, m, kind} */
   const f=fSigned();
   if(!isFinite(u)) return {v: isFinite(f)? f : Infinity, m:0, inf:true};
-  if(u<1e-6) return {v:0, m:1};
+  if(u<1e-6) return {v:0, m:-1};                 /* วัตถุชิด: ภาพเสมือนขนาดเท่า (ลิมิต s′/s → −1) */
   if(!isFinite(f)) return {v:-u, m:-1};          /* กระจกราบ: m = v/u = −1 → หัวตั้ง ขนาดเท่า */
   if(Math.abs(u-f)<1e-6) return {v:Infinity, m:Infinity};
   const v=u*f/(u-f); return {v, m:v/u};
@@ -477,14 +477,16 @@ function updateReadout(img){
   $('roU').textContent= inf? '∞' : fmt(u)+' cm';
   $('roF').textContent= isFinite(f)? (f>0?'+':'')+f+' cm' : '∞';
   $('roY').textContent= H_OBJ.toFixed(1)+' cm';
-  const yi = inf ? (isFinite(f)? 0 : NaN) : img.m===Infinity ? Infinity : (u<1e-6 ? H_OBJ : (dev==='plane'? H_OBJ : -H_OBJ*img.v/u));   /* y′ < 0 = หัวกลับ */
-  $('roY2').textContent= isNaN(yi)? '—' : !isFinite(yi)? '∞' : inf? '→ 0 (จุด)' : fmt(Math.abs(yi))+' cm '+(yi<0?'(หัวกลับ)':'(หัวตั้ง)');
+  /* สัญนิยม สสวท: m = y′/y = s′/s · m, y′ บวก = ภาพจริง หัวกลับ · ลบ = ภาพเสมือน หัวตั้ง */
+  const yi = inf ? (isFinite(f)? 0 : NaN) : img.m===Infinity ? Infinity : img.m*H_OBJ;
+  const sg=v=> v>0?'+':v<0?'−':'';
+  $('roY2').textContent= isNaN(yi)? '—' : !isFinite(yi)? '∞' : inf? '→ 0 (จุด)' : sg(yi)+fmt(Math.abs(yi))+' cm '+(yi>0?'(หัวกลับ)':'(หัวตั้ง)');
   const cb=$('charBox'); let txt='', cls='';
   if(inf){ if(!isFinite(f)){ $('roV').textContent='∞'; $('roM').textContent='—'; txt='วัตถุไกลอนันต์ — กระจกราบสะท้อนรังสีขนานกลับ ภาพอยู่ไกลอนันต์หลังกระจก'; cls='virt'; }
     else { $('roV').textContent=(f>0?'+':'−')+Math.abs(f)+' cm'; $('roM').textContent='→ 0'; txt= f>0 ? 'ภาพจริง เป็นจุดที่จุดโฟกัส F' : 'ภาพเสมือน เป็นจุดที่จุดโฟกัส F ('+(isLens()?'ด้านเดียวกับวัตถุ':'หลังกระจก')+')'; cls= f>0?'':'virt'; } }
   else if(img.m===Infinity){ $('roV').textContent='∞'; $('roM').textContent='∞'; txt='วัตถุอยู่ที่ F — รังสีออกไปขนานกัน ไม่เกิดภาพ (ภาพอยู่ที่อนันต์)'; cls='none'; }
-  else { const v=img.v, m=Math.abs(img.m), real=v>1e-9;
-    $('roV').textContent= (v>0?'+':v<0?'−':'')+fmt(Math.abs(v))+' cm'; $('roM').textContent= m.toFixed(2);
+  else { const v=img.v, m=Math.abs(img.m), real=v>1e-9, ms=img.m;
+    $('roV').textContent= (v>0?'+':v<0?'−':'')+fmt(Math.abs(v))+' cm'; $('roM').textContent= sg(ms)+m.toFixed(2);
     const size= m>1.005?'ขยาย':m<0.995?'ย่อ':'ขนาดเท่าวัตถุ';
     const where= real ? (isLens()?'อยู่อีกด้านของเลนส์':'อยู่หน้ากระจก') : (isLens()?'อยู่ด้านเดียวกับวัตถุ':'อยู่หลังกระจก');
     txt= (real?'<b>ภาพจริง</b> หัวกลับ ':'<b>ภาพเสมือน</b> หัวตั้ง ')+size+' · '+where; cls= real?'':'virt'; }
