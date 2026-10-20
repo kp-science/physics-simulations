@@ -57,6 +57,8 @@
     '@keyframes kplmShake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}' +
     '#kplm-tip .warn{display:none;margin-top:6px;font-size:.78rem;color:#b91c1c;font-weight:600}' +
     '#kplm-tip.shake .warn{display:block}' +
+    '#kplm-tip .skip{display:none;margin-top:8px;background:none;border:none;padding:0;color:#a16207;font:600 .78rem/1.3 inherit;text-decoration:underline;cursor:pointer}' +
+    '#kplm-tip.stuck .skip{display:block}' +
     '@media(max-width:640px){#kplm-tip{left:10px!important;right:10px;bottom:10px;top:auto!important;max-width:none}}';
   function addCSS(){ if (document.getElementById('kplm-css')) return; var s = document.createElement('style'); s.id = 'kplm-css'; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -144,6 +146,7 @@
       var a = e.target.getAttribute('data-a');
       if (a === 'next') next();
       if (a === 'quit') stop();
+      if (a === 'skip') next();
     });
     document.addEventListener('click', guard, true);
     document.addEventListener('pointerdown', guard, true);
@@ -183,16 +186,20 @@
     var all = T.cfg.steps, n = all.length, last = T.i === n - 1;
     var acts = all.filter(function(x){ return x.el; }).length, k = all.slice(0, T.i + 1).filter(function(x){ return x.el; }).length;
     var lbl = s.el ? 'ขั้น ' + k + '/' + acts : (last ? 'เสร็จแล้ว ✓' : '');
-    T.tip.className = '';
+    T.tip.className = '';   /* ล้าง shake / stuck */
     T.tip.innerHTML = '<div class="hd">🎓 ' + (T.cfg.title || 'โหมดสอน') + (lbl ? ' · ' + lbl : '') +
       '<button class="x" data-a="quit">ออกจากโหมดสอน ✕</button></div><div class="bar"><i style="width:' + Math.round((last ? acts : k) / Math.max(1, acts) * 100) + '%"></i></div>' +
       '<div>' + s.text + '</div>' +
       (!s.el ? '<button class="nx" data-a="next">' + (last ? 'จบ ✓' : (T.i === 0 ? 'เริ่มเลย ▶' : 'ถัดไป ▶')) + '</button>' : '') +
-      '<div class="warn">👆 กดที่กรอบสีเหลืองก่อนนะ</div>';
+      '<div class="warn">👆 กดที่กรอบสีเหลืองก่อนนะ</div>' +
+      (s.el && !last ? '<button class="skip" data-a="skip">ติดอยู่? ข้ามขั้นนี้ ▶</button>' : '');
+    T.t0 = Date.now();
     place(true);
   }
   function check(){
     var s = step(); if (!s || !s.el || T.adv) return;
+    /* ค้างขั้นเดิมนาน → แสดงปุ่มข้าม (กันผู้เรียนติด เช่น อ่านค่าผิดเกินเกณฑ์) */
+    if (Date.now() - T.t0 > 25000 && !T.tip.classList.contains('stuck')) { T.tip.classList.add('stuck'); place(); }
     var ok = false;
     if (s.done) { try { ok = !!s.done(); } catch (e) {} }
     else ok = T.clicked;

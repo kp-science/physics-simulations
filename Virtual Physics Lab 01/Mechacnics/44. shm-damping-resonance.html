@@ -1943,6 +1943,33 @@ window.addEventListener('resize',()=>{ resizeAll(); draw(); drawGraph(); });
 <!-- KP Speed (ปุ่มปรับความเร็วการแสดงผล) -->
 <script src="../../_shared/kp-speed.js"></script>
 
+<!-- 🎓 ขั้นตอนโหมดสอนทำแลป (KP Lab Mode) -->
+<script>
+window.KP_TUTOR = {
+  title: 'วัดคาบการสั่นแบบหน่วง',
+  okT: () => { const p = getParams(), w0 = Math.sqrt(p.k / p.m), g = p.b / (2 * p.m), T = 2 * Math.PI / Math.sqrt(Math.max(1e-9, w0 * w0 - g * g)), dt = Math.abs(caliper.x2 - caliper.x1) * 8;
+    return !caliper.dragging && Math.abs(dt - T) / T < 0.05; },
+  onStart: () => { setMode('manual'); setBase('A', document.querySelector('.subnav button')); resetCaliper(); },
+  steps: [
+    { el: '#playBtn', text: 'กด <b>▶ เริ่ม</b><br><small>มวลติดสปริงสั่น แอมพลิจูดค่อย ๆ ลดลง</small>',
+      done: () => isPlaying },
+    { el: '#playBtn', dim: false, text: 'ให้กราฟ A(t) วาดได้หลายยอด แล้วกด <b>⏸ หยุด</b><br><small>หยุดแล้ว caliper จะดูดเข้ายอดคลื่นให้</small>',
+      done: () => !isPlaying && t > 2 },
+    { el: '#graphCanvas', free: true, dim: false, text: 'ลาก<b>เส้นประ 1 และ 2</b> ไปวางบนยอดคลื่น 2 ยอดติดกัน<br><small>Δt บนกราฟ = คาบ T</small>',
+      done: function(){ if (!KP_TUTOR.okT()) { this.t0 = 0; return false; } this.t0 = this.t0 || Date.now(); return Date.now() - this.t0 > 800; } },
+    { el: '[onclick="recordCaliper()"]', text: 'กด <b>📍 บันทึกคาบนี้</b><br><small>ได้ T₁ แล้ว ต่อไปวัดซ้ำอีกคู่</small>',
+      done: () => caliper.T1 !== null },
+    { el: '#graphCanvas', free: true, dim: false, text: 'เลื่อน caliper ไปวัด<b>ยอดคู่ถัดไป</b><br><small>วัด 2 ครั้งเพื่อเช็กความแม่น</small>',
+      start: function(){ this.x = caliper.x1 + caliper.x2; },
+      done: function(){ const ok = KP_TUTOR.okT() && Math.abs(caliper.x1 + caliper.x2 - this.x) > 0.02;
+        if (!ok) { this.t0 = 0; return false; } this.t0 = this.t0 || Date.now(); return Date.now() - this.t0 > 800; } },
+    { el: '[onclick="recordCaliper()"]', text: 'กด <b>📍 บันทึกคาบนี้</b> อีกครั้ง<br><small>ได้ T₂ และคาบเฉลี่ยลงตาราง</small>',
+      start: function(){ this.n0 = damping_log.length; }, done: function(){ return damping_log.length > this.n0; } },
+    { text: 'ได้คาบเฉลี่ย 1 แถวแล้ว 🎉<br><small>ทำต่อ: เปลี่ยนค่า b (เช่น กด b=0.5) แล้ววัดซ้ำ — สังเกตว่า T แทบไม่เปลี่ยน</small>' }
+  ]
+};
+</script>
+
 <!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->
 <script src="../../_shared/kp-labmode.js"></script>
 </body>
