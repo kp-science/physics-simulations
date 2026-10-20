@@ -12,7 +12,7 @@
 import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {'.git', 'node_modules', 'poe', '_admin'}
+SKIP_DIRS = {'.git', '.claude', 'node_modules', 'poe', '_admin'}
 FALLBACK = re.compile(r'<script>if\(typeof THREE==="undefined"\)\{ document\.write\(\'<script src="((?:\.\./)*)_shared/three\.min\.js"><\\/script>\'\); \}</script>')
 TAG = '<script src="{p}_shared/kp-real3d.js"></script>'
 

@@ -445,8 +445,79 @@ function showTopicAlert(el) {
   }
 }
 
+
+// ── หน้าต่างล็อกอิน: สร้างเองถ้าหน้านั้นไม่มี (หน้าแลปส่วนใหญ่ไม่มี markup นี้) ──
+const KP_AUTH_MODAL_CSS = `#kp-auth-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:1rem}
+#kp-auth-modal.open{display:flex}
+.kp-modal-box{background:#0d1421;border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.5)}
+.kp-modal-head{padding:1.25rem 1.5rem 0;display:flex;justify-content:space-between;align-items:center}
+.kp-modal-head h3{font-size:1.05rem;font-weight:700}
+.kp-modal-close{background:none;border:none;color:var(--muted,#7c8fa6);font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.2s}
+.kp-modal-close:hover{color:var(--text,#e2e8f0);background:rgba(255,255,255,0.07)}
+.kp-tabs{display:flex;gap:0;padding:1rem 1.5rem 0;border-bottom:1px solid rgba(255,255,255,0.07)}
+.kp-tab{background:none;border:none;color:var(--muted,#7c8fa6);font-size:.9rem;font-weight:600;padding:.5rem 1rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.2s;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
+.kp-tab.active{color:var(--accent,#38bdf8);border-bottom-color:var(--accent,#38bdf8)}
+.kp-tab-pane{display:none;padding:1.5rem}
+.kp-tab-pane.active{display:block}
+.kp-field{margin-bottom:1rem}
+.kp-field label{display:block;font-size:.8rem;color:var(--muted,#7c8fa6);margin-bottom:.35rem;font-weight:600}
+.kp-field input{width:100%;background:#161b27;border:1px solid rgba(255,255,255,0.1);color:var(--text,#e2e8f0);padding:.65rem .9rem;border-radius:8px;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;font-size:.9rem;outline:none;transition:.2s;box-sizing:border-box}
+.kp-field input:focus{border-color:var(--accent,#38bdf8)}
+.kp-err{color:#f87171;font-size:.8rem;margin-bottom:.5rem;min-height:1.1em}
+.kp-submit{width:100%;padding:.7rem;border:none;border-radius:8px;background:var(--accent,#38bdf8);color:#06090f;font-weight:700;font-size:.95rem;cursor:pointer;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;transition:.2s}
+.kp-submit:hover{background:#7dd3fc}
+.kp-google-btn{display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.65rem;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text,#e2e8f0);font-size:.9rem;font-weight:600;cursor:pointer;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif;transition:.2s;margin-bottom:.8rem}
+.kp-google-btn:hover{background:rgba(255,255,255,0.08)}
+.kp-google-btn img{width:20px;height:20px}
+.kp-divider{text-align:center;color:var(--muted,#7c8fa6);font-size:.8rem;margin:.8rem 0;position:relative}
+.kp-switch{text-align:center;padding:1rem;font-size:.85rem;color:var(--muted,#7c8fa6);border-top:1px solid rgba(255,255,255,0.07)}
+.kp-switch button{background:none;border:none;color:var(--accent,#38bdf8);font-weight:600;cursor:pointer;font-family:inherit;font-size:inherit}
+.kp-switch a{color:var(--accent,#38bdf8);cursor:pointer;font-weight:600;text-decoration:none}`;
+const KP_AUTH_MODAL_HTML = `<div id="kp-auth-modal">
+  <div class="kp-modal-box">
+    <div class="kp-modal-head">
+      <h3>🔑 KP Science — สมาชิก</h3>
+      <button class="kp-modal-close" onclick="hideModal()">✕</button>
+    </div>
+    <div class="kp-tabs">
+      <button class="kp-tab active" id="tab-login" onclick="switchTab('login')">เข้าสู่ระบบ</button>
+      <button class="kp-tab" id="tab-register" onclick="switchTab('register')">สมัครสมาชิก</button>
+    </div>
+    <div class="kp-tab-pane active" id="pane-login">
+      <button class="kp-google-btn" onclick="kpLoginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        เข้าสู่ระบบด้วย Google
+      </button>
+      <div class="kp-divider">หรือ</div>
+      <div class="kp-field"><label>อีเมล</label><input type="email" id="kp-login-email" placeholder="your@email.com" /></div>
+      <div class="kp-field"><label>รหัสผ่าน</label><input type="password" id="kp-login-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')kpLogin()" /></div>
+      <div class="kp-err" id="kp-login-err"></div>
+      <button class="kp-submit" onclick="kpLogin()">เข้าสู่ระบบ</button>
+      <div class="kp-switch">ยังไม่มีบัญชี? <button onclick="switchTab('register')">สมัครฟรี</button></div>
+    </div>
+    <div class="kp-tab-pane" id="pane-register">
+      <button class="kp-google-btn" onclick="kpLoginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        สมัครด้วย Google
+      </button>
+      <div class="kp-divider">หรือสมัครด้วยอีเมล</div>
+      <div class="kp-field"><label>อีเมล</label><input type="email" id="kp-reg-email" placeholder="your@email.com" /></div>
+      <div class="kp-field"><label>รหัสผ่าน</label><input type="password" id="kp-reg-pass" placeholder="อย่างน้อย 6 ตัวอักษร" /></div>
+      <div class="kp-field"><label>ยืนยันรหัสผ่าน</label><input type="password" id="kp-reg-pass2" placeholder="••••••" onkeydown="if(event.key==='Enter')kpRegister()" /></div>
+      <div class="kp-err" id="kp-reg-err"></div>
+      <button class="kp-submit" onclick="kpRegister()">สมัครสมาชิกฟรี</button>
+      <div class="kp-switch">มีบัญชีแล้ว? <button onclick="switchTab('login')">เข้าสู่ระบบ</button></div>
+    </div>
+  </div>
+</div>`;
+function kpEnsureAuthModal() {
+  if (document.getElementById('kp-auth-modal') || !document.body) return;
+  const st = document.createElement('style'); st.id = 'kp-auth-modal-css'; st.textContent = KP_AUTH_MODAL_CSS; document.head.appendChild(st);
+  const wrap = document.createElement('div'); wrap.innerHTML = KP_AUTH_MODAL_HTML; document.body.appendChild(wrap.firstElementChild);
+}
 // ── Modal ─────────────────────────────────────────────────
 function showModal(tab = 'login') {
+  kpEnsureAuthModal();
   const modal = document.getElementById('kp-auth-modal');
   if (modal) {
     // ถ้าเปิดแท็บ login/register ปกติ → แสดง login+register tabs, ซ่อน profile

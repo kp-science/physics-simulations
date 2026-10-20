@@ -237,6 +237,11 @@ def check_file(filepath):
             and 'kp-real3d.js' not in content):
         issues.append('REAL3D')
 
+    # 7d. โหมดสอน + ล็อกโหมดอัตโนมัติสำหรับสมาชิก — แลปที่มีปุ่มโหมดอัตโนมัติ
+    if (is_vlab_file and fname != 'index.html' and 'kp-labmode.js' not in content
+            and re.search(r'onclick="[^"]*\b\w*Mode\w*\(\s*\'auto\'', content)):
+        issues.append('LABMODE')
+
     # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
     is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Virtual Physics Lab 03/' in filepath or '/Virtual Physics Lab 04/' in filepath or '/Virtual Physics Lab 05/' in filepath
     is_demo_sim = '/Demo/' in filepath  # Demo ก็ต้องการ page guard
@@ -344,6 +349,13 @@ def fix_file(filepath, issues=None):
             content = content[:m.end()] + r3_tag + content[m.end():]
             changed = True
 
+    if 'LABMODE' in issues and 'kp-labmode.js' not in content:
+        lm_tag = f'\n<!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->\n<script src="{get_root_path(filepath)}_shared/kp-labmode.js"></script>\n'
+        body_end = content.rfind('</body>')
+        if body_end != -1:
+            content = content[:body_end] + lm_tag + content[body_end:]
+            changed = True
+
     # เติม ?v= ให้ kp-auth.js ที่ยังไม่มี
     if 'AUTH_VER' in issues:
         new = re.sub(r'(src="[^"]*)kp-auth\.js"', lambda m: m.group(1) + AUTH_SRC + '"', content)
@@ -443,7 +455,7 @@ def scan_all():
     all_files = []
     for root, dirs, fnames in os.walk(BASE):
         # Skip folders
-        skip = ['_admin', '_marketing', 'lab-manuals', 'node_modules', '.git']
+        skip = ['_admin', '_marketing', 'lab-manuals', 'node_modules', '.git', '/.claude']
         if any(s in root for s in skip):
             continue
         for fn in fnames:
@@ -474,6 +486,7 @@ def scan_all():
                     'ACCESS_GUARD': 'ขาด Page Access Guard',
                     'AUTH_VER': 'kp-auth.js ยังไม่มี ?v= (cache busting)',
                     'REAL3D': 'ขาด kp-real3d.js (ภาพ 3D สมจริง)',
+                    'LABMODE': 'ขาด kp-labmode.js (โหมดสอน · ล็อกโหมดอัตโนมัติ)',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1
@@ -494,7 +507,7 @@ if __name__ == '__main__':
         if '--fix' in sys.argv and issues > 0:
             print("\n═══ Auto-fixing... ═══\n")
             for root, dirs, fnames in os.walk(BASE):
-                skip = ['_admin', '_marketing', 'lab-manuals', 'node_modules', '.git']
+                skip = ['_admin', '_marketing', 'lab-manuals', 'node_modules', '.git', '/.claude']
                 if any(s in root for s in skip):
                     continue
                 for fn in fnames:
