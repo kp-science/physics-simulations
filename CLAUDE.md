@@ -288,3 +288,12 @@ KPWatermark.show();   // ลายน้ำกลับมา
 - **Lab 62–78** มีปุ่มในตัว (`simSpeed` / `setSimSpeed()` / `simDt(dt)` ในไฟล์ · ขณะลากด้วยมือใช้เวลาจริง)
 - **แลปอื่นทั้งหมด** ใช้ `_shared/kp-speed.js` — ชะลอ timestamp ของ `requestAnimationFrame` และ `performance.now()` แล้วแทรกปุ่มเองข้างปุ่มมุมมอง (หรือสร้างแถบใต้ canvas)
 - `protect_new_file.py` แทรก `kp-speed.js` ให้ไฟล์แลปใหม่อัตโนมัติ (ข้ามไฟล์ที่มี `setSimSpeed` เอง)
+
+## 🪵 ภาพ 3D สมจริง (kp-real3d.js)
+
+ทุกแลป 3D (three.js) โหลด `_shared/kp-real3d.js` **ต่อจากบรรทัด fallback ของ three.js ทันที** — สคริปต์ครอบ `THREE.WebGLRenderer` แล้วตอนเรนเดอร์ครั้งแรกเติมให้เอง: แสงสะท้อนรอบตัว (environment map) · เงานุ่ม · tone mapping ACES (เฉพาะวัสดุที่รับแสง — ลำแสง/จอ/ป้าย สีเดิม) · ห้อง (ผนังเทา + โต๊ะลายไม้ · พื้นเรียบของแลปเปลี่ยนเป็นลายไม้) · ป้าย Sprite ได้กรอบทึบ · ไม่แตะฟิสิกส์/การวัด · ภาพคมทุกจุด
+
+- ใส่ให้ไฟล์ที่ยังไม่มี: `python3 _admin/add_real3d.py` (`--check` ดู · `--remove` เอาออก) · `protect_new_file.py --scan --fix` ใส่ให้แลปใหม่เอง (issue `REAL3D`)
+- ตั้งค่ารายแลปที่ `PRESETS` ในสคริปต์: `dark` = ห้องมืด (แลปแสงบนรางแสง 35 36 46 47 50 51 52 53) · `space` = ไม่มีห้อง/เงา (69)
+- หรือใส่ในไฟล์ก่อนโหลด: `<script>window.KP_REAL3D={room:false, shadows:false, env:0.5, exposure:1.25}</script>`
+- ดูภาพแบบเดิม (เทียบ/ดีบัก): เติม `?real3d=0` ท้าย URL

@@ -232,6 +232,11 @@ def check_file(filepath):
             and ('requestAnimationFrame' in content or 'setInterval' in content)):
         issues.append('SPEED')
 
+    # 7c. ภาพ 3D สมจริง (แสงสะท้อน · เงา · โต๊ะไม้) — แลปที่ใช้ three.js
+    if (is_vlab_file and fname != 'index.html' and 'THREE.WebGLRenderer' in content
+            and 'kp-real3d.js' not in content):
+        issues.append('REAL3D')
+
     # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
     is_vlab = '/Virtual Physics Lab 01/' in filepath or '/Virtual Physics Lab 02/' in filepath or '/Virtual Physics Lab 03/' in filepath or '/Virtual Physics Lab 04/' in filepath or '/Virtual Physics Lab 05/' in filepath
     is_demo_sim = '/Demo/' in filepath  # Demo ก็ต้องการ page guard
@@ -328,6 +333,15 @@ def fix_file(filepath, issues=None):
         body_end = content.rfind('</body>')
         if body_end != -1:
             content = content[:body_end] + sp_tag + content[body_end:]
+            changed = True
+
+    # Add realistic 3D script — ต้องโหลดต่อจาก three.js ทันที (ก่อนแลปสร้าง renderer)
+    if 'REAL3D' in issues and 'kp-real3d.js' not in content:
+        r3_tag = f'\n<script src="{get_root_path(filepath)}_shared/kp-real3d.js"></script>'
+        m = (re.search(r'<script>if\(typeof THREE==="undefined"\)\{[^\n]*?three\.min\.js[^\n]*?</script>', content)
+             or re.search(r'<script[^>]+three(?:\.min)?\.js[^>]*></script>', content))
+        if m:
+            content = content[:m.end()] + r3_tag + content[m.end():]
             changed = True
 
     # เติม ?v= ให้ kp-auth.js ที่ยังไม่มี
@@ -459,6 +473,7 @@ def scan_all():
                     'KP_AUTH': 'ขาด kp-auth.js',
                     'ACCESS_GUARD': 'ขาด Page Access Guard',
                     'AUTH_VER': 'kp-auth.js ยังไม่มี ?v= (cache busting)',
+                    'REAL3D': 'ขาด kp-real3d.js (ภาพ 3D สมจริง)',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1
