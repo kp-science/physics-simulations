@@ -21,7 +21,12 @@
   var preset = {};
   if (PRESETS.dark.indexOf(labNo) >= 0) preset = { room: 'dark' };
   if (PRESETS.space.indexOf(labNo) >= 0) preset = { room: false, shadows: false };
-  var CFG = Object.assign({ exposure: 1.25, env: 0.7, shadows: true, room: true, table: true, labels: true }, preset, window.KP_REAL3D || {});
+  var CFG = Object.assign({ exposure: 1.25, env: 0.45, rim: 0.6, keyBoost: 1.5, shadows: true, room: true, table: true, labels: true }, preset, window.KP_REAL3D || {});
+  /* เทียบสไตล์ห้องได้ทาง URL: ?room=studio | wood | dark */
+  var qRoom = (location.search.match(/[?&]room=(studio|wood|dark)\b/) || [])[1];
+  if (qRoom) CFG.room = qRoom === 'wood' ? true : qRoom;
+  var STUDIO = CFG.room === 'studio';
+  if (STUDIO && !(window.KP_REAL3D && window.KP_REAL3D.exposure)) CFG.exposure = 1.15;
   var Orig = THREE.WebGLRenderer;
   var renderers = [], scenes = [];
   var busy = false;   /* PMREM เรียก render ซ้อน — กันวนซ้ำ */
@@ -97,11 +102,23 @@
     return woodTex;
   }
 
+  /* ฉากหลังสตูดิโอ: เทาเข้มไล่เฉด กลางสว่าง ขอบมืด (แบบผ้าฉากถ่ายสินค้า) */
+  function studioTex(){
+    var c = document.createElement('canvas'); c.width = 512; c.height = 512;
+    var g = c.getContext('2d'), v = g.createLinearGradient(0, 0, 0, 512);
+    v.addColorStop(0, '#26292c'); v.addColorStop(0.42, '#373a3e'); v.addColorStop(1, '#373a3e');   /* ครึ่งล่าง = สีหมอกพื้น → ไม่เห็นขอบ */
+    g.fillStyle = v; g.fillRect(0, 0, 512, 512);
+    var r = g.createRadialGradient(256, 230, 30, 256, 256, 380);
+    r.addColorStop(0, 'rgba(255,255,255,.07)'); r.addColorStop(0.6, 'rgba(255,255,255,0)'); r.addColorStop(1, 'rgba(0,0,0,.28)');
+    g.fillStyle = r; g.fillRect(0, 0, 512, 512);
+    return new THREE.CanvasTexture(c);
+  }
   function wallTex(dark){
+    if (STUDIO) return studioTex();
     var c = document.createElement('canvas'); c.width = 4; c.height = 256;
     var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
     if (dark) { gr.addColorStop(0, '#0b0e13'); gr.addColorStop(0.6, '#161a21'); gr.addColorStop(1, '#12151a'); }
-    else { gr.addColorStop(0, '#c9ccd1'); gr.addColorStop(0.6, '#dfe1e4'); gr.addColorStop(1, '#d4d6da'); }
+    else { gr.addColorStop(0, '#9fa3a9'); gr.addColorStop(0.6, '#bfc2c7'); gr.addColorStop(1, '#b3b6bb'); }
     g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
     return new THREE.CanvasTexture(c);
   }
@@ -198,7 +215,7 @@
         if (!litMat(m)) noTone(m);
         if (litMat(m)) lit = true;
         if (m.transparent && m.opacity < 0.9 || m.blending === THREE.AdditiveBlending || m.wireframe) solid = false;
-        if (m.isMeshStandardMaterial && !m.__kpEnv) { m.__kpEnv = true; m.envMapIntensity = st.room === 'dark' ? CFG.env * 0.5 : CFG.env; }
+        if (m.isMeshStandardMaterial && !m.__kpEnv) { m.__kpEnv = true; m.envMapIntensity = st.room === 'dark' ? CFG.env * 0.5 : (STUDIO ? CFG.env * 1.25 : CFG.env); }
       });
       if (lit && CFG.shadows) { o.receiveShadow = true; o.castShadow = solid; }
     });
@@ -227,7 +244,7 @@
     if (CFG.env > 0) {
       scene.environment = envFor(r);
       scene.traverse(function(o){
-        if ((o.isHemisphereLight || o.isAmbientLight) && !o.__kpDim) { o.__kpDim = true; o.intensity *= 0.5; }
+        if ((o.isHemisphereLight || o.isAmbientLight) && !o.__kpDim) { o.__kpDim = true; o.intensity *= 0.38; }
       });
     }
 
@@ -241,11 +258,14 @@
         key.target.position.copy(ctr); scene.add(key); scene.add(key.target);
       }
       key.castShadow = true;
+      /* ไฟหลักแรงขึ้น → ด้านสว่าง/ด้านเงาต่างกันชัด วัตถุดูมีมิติ */
+      if (!key.__kpBoost) { key.__kpBoost = true; key.intensity *= CFG.keyBoost; }
       var ms = LOW ? 1024 : 2048;
       key.shadow.mapSize.set(ms, ms);
       key.shadow.radius = 4;
       /* วางไฟให้มองครอบอุปกรณ์ทั้งหมด (ทิศเดิมของไฟ) */
       var dir = key.position.clone().sub(key.target.position); if (dir.lengthSq() < 1e-6) dir.set(0.5, 1, 0.6);
+      if (STUDIO) dir.set(0.25, 1, 0.6);   /* ไฟนุ่มจากหน้าเฉียงบน (ฝั่งกล้อง) */
       dir.normalize();
       if (key.target.parent == null) scene.add(key.target);
       key.target.position.copy(ctr);
@@ -256,11 +276,19 @@
       key.shadow.bias = -0.0004; key.shadow.normalBias = span * 0.0015;
     }
 
+    /* 2b) ไฟขอบจากด้านหลังเฉียงบน → ขอบวัตถุสว่างเป็นเส้น แยกจากฉากหลัง */
+    if (CFG.rim > 0 && st.room !== 'dark') {
+      var rim = new THREE.DirectionalLight(0xe6eeff, CFG.rim);
+      rim.position.set(ctr.x - span * 0.6, ctr.y + span * 1.2, ctr.z - span * 2);
+      rim.target.position.copy(ctr); rim.userData.__kpRoom = true;
+      scene.add(rim); scene.add(rim.target);
+    }
+
     /* 3) ห้อง: ผนัง + โต๊ะไม้ */
     if (st.room) {
       scene.background = wallTex(DARK);
       /* พื้นสีเรียบของแลปเอง → ลายไม้ */
-      if (CFG.table) B.floors.forEach(function(fl){
+      if (CFG.table && !STUDIO) B.floors.forEach(function(fl){
         var m = fl.material;
         if (Array.isArray(m) || !litMat(m) || m.map || m.transparent) return;
         var w = wood().clone(); w.needsUpdate = true;
@@ -270,7 +298,16 @@
         if (m.isMeshStandardMaterial) { m.roughness = 0.55; m.metalness = 0; }
         m.needsUpdate = true;
       });
-      if (CFG.table) {
+      if (CFG.table && STUDIO) {
+        /* พื้นสตูดิโอเทา กลืนเข้ากับฉากหลังด้วยหมอกสีเดียวกัน (ไม่เห็นขอบพื้น) */
+        var sw = span * 8;
+        var sf = new THREE.Mesh(new THREE.PlaneGeometry(sw, sw), new THREE.MeshStandardMaterial({ color: 0x3b3f44, roughness: 0.95, metalness: 0, envMapIntensity: 0.35 }));
+        sf.rotation.x = -Math.PI / 2;
+        sf.position.set(ctr.x, B.all.min.y - span * 0.004, ctr.z);
+        sf.receiveShadow = true; sf.userData.__kpRoom = sf.userData.__kpSeen = true;
+        scene.add(sf);
+        if (!scene.fog) { scene.fog = new THREE.Fog(0x373a3e, span * 2.2, span * 4.5); scene.fog.__kp = true; scene.fog.__studio = true; }
+      } else if (CFG.table) {
         var t = wood(), tw = span * 6;
         t.repeat.set(tw / (span * 1.6), tw / (span * 1.6));
         var tm = new THREE.MeshStandardMaterial({ map: t, color: DARK ? 0x6b6b6b : 0xffffff, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 });
@@ -279,7 +316,7 @@
         table.position.set(ctr.x, B.all.min.y - span * 0.004, ctr.z);
         table.receiveShadow = true; table.userData.__kpRoom = table.userData.__kpSeen = true;
         scene.add(table);
-        if (!scene.fog) { scene.fog = new THREE.Fog(DARK ? 0x14171c : 0xd6d8dc, span * 2.2, span * 4.5); scene.fog.__kp = true; }
+        if (!scene.fog) { scene.fog = new THREE.Fog(DARK ? 0x14171c : 0xb7babf, span * 2.2, span * 4.5); scene.fog.__kp = true; }
       }
     }
     st.ctr = ctr; st.span = span;
@@ -291,7 +328,8 @@
   function fogFollow(scene, st, camera){
     var f = scene.fog; if (!f || !f.__kp || !camera || !camera.position) return;
     var d = camera.getWorldPosition ? camera.getWorldPosition(new THREE.Vector3()).distanceTo(st.ctr) : camera.position.distanceTo(st.ctr);
-    f.near = d + st.span * 1.2; f.far = d + st.span * 4.5;
+    if (f.__studio) { f.near = d + st.span * 0.5; f.far = d + st.span * 2.4; }
+    else { f.near = d + st.span * 1.2; f.far = d + st.span * 4.5; }
   }
   function collectPills(scene, st){
     st.pills = [];
