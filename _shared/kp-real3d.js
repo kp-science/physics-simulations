@@ -54,9 +54,32 @@
       if (scene && scene.isScene && camera && !scene.userData.__kpEnvScene) { try { undo = labelPass(r, scene, camera); } catch (e) { undo = null; if (!r.__kpLblErr) { r.__kpLblErr = 1; console.warn('kp-real3d labels:', e); } } }
       var out = rawRender(scene, camera);
       if (undo) undo();
+      if (scene && scene.isScene && !scene.userData.__kpEnvScene) perfWatch(r, scene);
       return out;
     };
     return r;
+  }
+
+  /* ── เครื่องช้า (มือถือรุ่นเก่า) → ลดคุณภาพภาพอัตโนมัติ ทีละขั้น ──
+     วัดช่วงเวลาระหว่างเฟรม (เฉพาะแลปที่วาดต่อเนื่อง · ไม่นับช่วงหยุด > 250 ms หรือแท็บซ่อน)
+     เฉลี่ยทุก 90 เฟรม ถ้าช้ากว่า ~45 ms/เฟรม (< 22 fps): ① ความละเอียดภาพ ×1 → ② ปิดเงา → ③ ความละเอียด ×0.75
+     ไม่แตะฟิสิกส์/การวัด · ปิดได้ด้วย ?hq=1 */
+  var HQ = /[?&]hq=1\b/.test(location.search);
+  function perfWatch(r, scene){
+    if (HQ || r.__kpQ >= 3) return;
+    var now = performance.now(), last = r.__kpT || 0; r.__kpT = now;
+    if (!last || document.hidden) return;
+    var dt = now - last; if (dt > 250) return;
+    r.__kpN = (r.__kpN || 0) + 1; r.__kpSum = (r.__kpSum || 0) + dt;
+    if (r.__kpN < 90) return;
+    var avg = r.__kpSum / r.__kpN; r.__kpN = 0; r.__kpSum = 0;
+    if (avg < 45) return;
+    var q = r.__kpQ = (r.__kpQ || 0) + 1, pr = r.getPixelRatio();
+    if (q === 1 && pr > 1) r.setPixelRatio(1);
+    else if (q <= 2) { r.__kpQ = 2; scene.traverse(function(o){ if (o.isLight && o.castShadow) o.castShadow = false; }); }
+    else r.setPixelRatio(Math.min(pr, 0.75));
+    var sz = new THREE.Vector2(); r.getSize(sz); r.setSize(sz.x, sz.y, false);
+    console.info('kp-real3d: เครื่องช้า (' + Math.round(1000 / avg) + ' fps) → ลดคุณภาพภาพขั้น ' + r.__kpQ);
   }
   Wrapped.prototype = Orig.prototype;
   Wrapped.__kpReal = true;
@@ -466,5 +489,5 @@
     if (CFG.room === 'studio') return ['vec3(0.21,0.22,0.24)', 'vec3(0.23,0.24,0.26)', h];
     return ['vec3(0.62,0.53,0.44)', 'vec3(0.78,0.80,0.83)', h];
   }
-  window.KPReal3D = { config: CFG, renderers: renderers, scenes: scenes, shaderBg: shaderBg };
+  window.KPReal3D = { config: CFG, renderers: renderers, scenes: scenes, shaderBg: shaderBg, quality: function(){ return renderers.map(function(r){ return r.__kpQ || 0; }); } };
 })();
