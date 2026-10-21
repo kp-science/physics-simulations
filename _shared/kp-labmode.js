@@ -67,7 +67,34 @@
   function autoButtons(){
     var out = [];
     document.querySelectorAll('[onclick]').forEach(function(b){ if (AUTO_RE.test(b.getAttribute('onclick') || '')) out.push(b); });
+    /* แลปที่ปุ่มอัตโนมัติเขียนแบบอื่น (14 30 31 39 40 42) — ป้าย 🔒 ติดที่ตัวที่ผู้ใช้เห็น */
+    document.querySelectorAll(ALT_SEL).forEach(function(b){ out.push(b); });
+    ['label[for="mAuto"]', '#rec-label-auto'].forEach(function(q){ var x = document.querySelector(q); if (x) out.push(x); });
     return out;
+  }
+  /* ปุ่ม/สวิตช์อัตโนมัติแบบอื่น: data-mode="auto" (39 40) · data-rec="auto" (42) · วิทยุ #mAuto (14) · สวิตช์ #rec-toggle (30 31) */
+  var ALT_SEL = '[data-mode="auto"],[data-rec="auto"]';
+  function autoTarget(t){
+    if (!t || !t.closest) return null;
+    var b = t.closest('[onclick]');
+    if (b && AUTO_RE.test(b.getAttribute('onclick') || '')) return b;
+    b = t.closest(ALT_SEL); if (b) return b;
+    b = t.closest('#mAuto,label[for="mAuto"]'); if (b) return document.getElementById('mAuto');
+    b = t.closest('#rec-toggle,label.switch');
+    if (b) { var tg = document.getElementById('rec-toggle');
+      /* คลิกที่ช่องติ๊กเอง: สถานะสลับไปก่อน event ถึงเรา → checked = กำลังเปิด · คลิกที่ป้าย: ยังไม่สลับ → !checked = กำลังเปิด */
+      if (tg && b === tg && tg.checked) return tg;
+      if (tg && b !== tg && b.contains(tg) && !tg.checked) return tg; }
+    return null;
+  }
+  /* กลับเป็นโหมดวัดค่าเอง (ตอนออกจากระบบ) */
+  function toManual(){
+    try { if (typeof mode !== 'undefined' && mode === 'auto' && typeof setMode === 'function') setMode('manual'); } catch (e) {}
+    ['[data-mode="manual"]', '[data-rec="manual"]', '#mManual'].forEach(function(q){
+      var x = document.querySelector(q), a = document.querySelector(q.replace('manual', 'auto').replace('#mManual', '#mAuto'));
+      if (x && a && (a.classList.contains('active') || a.checked)) x.click();
+    });
+    var tg = document.getElementById('rec-toggle'); if (tg && tg.checked) tg.click();
   }
   function paintLocks(){
     var m = isMember();
@@ -99,8 +126,8 @@
     gate.classList.add('open');
   }
   document.addEventListener('click', function(e){
-    var b = e.target.closest && e.target.closest('[onclick]');
-    if (!b || !AUTO_RE.test(b.getAttribute('onclick') || '')) return;
+    var b = autoTarget(e.target);
+    if (!b) return;
     if (isMember()) return;
     e.preventDefault(); e.stopImmediatePropagation();
     openGate(b);
@@ -113,7 +140,7 @@
     if (m !== lastM) {
       lastM = m; paintLocks();
       /* ออกจากระบบขณะอยู่ในโหมดอัตโนมัติ → กลับเป็นวัดค่าเอง */
-      if (!m) { try { if (typeof mode !== 'undefined' && mode === 'auto' && typeof setMode === 'function') setMode('manual'); } catch (e) {} }
+      if (!m) toManual();
       if (m && pending) { var b = pending; pending = null; setTimeout(function(){ b.click(); }, 150); }
     }
   }, 600);

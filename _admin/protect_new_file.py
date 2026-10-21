@@ -239,7 +239,7 @@ def check_file(filepath):
 
     # 7d. โหมดสอน + ล็อกโหมดอัตโนมัติสำหรับสมาชิก — แลปที่มีปุ่มโหมดอัตโนมัติ
     if (is_vlab_file and fname != 'index.html' and 'kp-labmode.js' not in content
-            and re.search(r'onclick="[^"]*\b\w*Mode\w*\(\s*\'auto\'', content)):
+            and re.search(r'onclick="[^"]*\b\w*Mode\w*\(\s*\'auto\'|data-(?:mode|rec)="auto"|id="mAuto"|id="rec-toggle"', content)):
         issues.append('LABMODE')
 
     # 8. Access Guard (VPL01/VPL02/Demo files — ต้องมี firebase + kp-auth.js + kpPageAccess)
