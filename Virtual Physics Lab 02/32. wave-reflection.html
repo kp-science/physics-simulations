@@ -2253,6 +2253,52 @@ if (window.self !== window.top) {
 <!-- KP Speed (ปุ่มปรับความเร็วการแสดงผล) -->
 <script src="../_shared/kp-speed.js"></script>
 
+<!-- 🎓 ขั้นตอนโหมดสอนทำแลป (KP Lab Mode) -->
+<script>
+window.KP_TUTOR = {
+  title: 'วัดมุมตกกระทบ–มุมสะท้อน',
+  after: () => document.getElementById('sw-rec').closest('.toggle-row'),
+  onStart: () => {
+    const sw = document.getElementById('sw-rec');
+    if (sw.checked) { sw.checked = false; toggleRecMode(); }
+    if (reflType !== 'flat') setReflType('flat');
+    if (waveType !== 'plane') setWaveType('plane');
+    resetSim();
+    if (protToolVisible) toggleProtractorTool();
+    setFlatAngle(30);
+    if (measurements.length >= 7) clearTable(); else buildTable();
+  },
+  steps: [
+    { el: '#playBtn', text: 'กด <b>▶ เริ่ม</b><br><small>คลื่นหน้าตรงวิ่งไปกระทบแผ่นกั้นแล้วสะท้อนกลับ</small>',
+      done: () => isPlaying },
+    { el: () => document.getElementById('sl-angle').closest('.sl-row'), dim: false,
+      text: '<b>เลื่อน α</b> ไปมุมที่อยากวัด เช่น 40°<br><small>แผ่นกั้นในถาดหมุนตาม · ลากแผ่นกั้นในภาพ 3D ก็ได้</small>',
+      start: function(){ this.a0 = flatAngle; this.a = null; this.t0 = 0; },
+      done: function(){ if (flatAngle === this.a0) { this.t0 = 0; return false; }
+        if (this.a !== flatAngle) { this.a = flatAngle; this.t0 = Date.now(); } return Date.now() - this.t0 > 1000; } },
+    { el: '#btn-protractor', text: 'กด <b>📐 เครื่องวัดมุม</b><br><small>วางไม้โปรแทรกเตอร์ใสบนกระดาษใต้ถาด ตรงจุดตกกระทบ</small>',
+      done: () => protToolVisible },
+    { el: '#view3d', dim: false,
+      text: 'ลาก<b>ขอบไม้โปรแทรกเตอร์</b> หมุนให้<b>เส้น 0°–180° ทับเส้น Normal</b><br><small>ลากตรงกลาง = เลื่อน · จุดกลางต้องอยู่ที่จุดตกกระทบ</small>',
+      start: function(){ this.t0 = 0; if (typeof setView === 'function') setView('read'); },
+      done: function(){ const n = Math.PI - flatAngle * Math.PI / 180;
+        let d = ((protToolAngle - n) % Math.PI + Math.PI) % Math.PI; d = Math.min(d, Math.PI - d);
+        const ok = protShown() && !LH.mode && d < 3 * Math.PI / 180 && Math.hypot(protToolX - reflXcm, protToolY - reflYcm) < 1;
+        if (!ok) { this.t0 = 0; return false; } this.t0 = this.t0 || Date.now(); return Date.now() - this.t0 > 800; } },
+    { el: () => document.querySelectorAll('#data-tbody tr')[measurements.length], dim: false,
+      text: '<b>พิมพ์ θ<sub>i</sub> และ θ<sub>r</sub></b> ที่อ่านได้ลงตาราง<br><small>มุมจาก Normal ถึงทิศคลื่นตกกระทบ / คลื่นสะท้อน · ระบบใส่ α ให้แล้ว</small>',
+      start: function(){ this.t0 = 0; this.k = null; const al = document.getElementById('td-al-' + measurements.length); if (al) al.value = flatAngle; },
+      done: function(){ const i = measurements.length, ti = parseFloat((document.getElementById('td-ti-' + i) || {}).value),
+          tr = parseFloat((document.getElementById('td-tr-' + i) || {}).value), k = ti + '|' + tr;
+        const ok = Math.abs(ti - flatAngle) <= 5 && Math.abs(tr - flatAngle) <= 5;
+        if (!ok) { this.t0 = 0; return false; } if (this.k !== k) { this.k = k; this.t0 = Date.now(); } return Date.now() - this.t0 > 1000; } },
+    { el: '[onclick="saveMeasurement()"]', text: 'กด <b>💾 บันทึก</b><br><small>โปรแกรมคำนวณ % ผิดพลาด และลงจุดบนกราฟ</small>',
+      start: function(){ this.n0 = measurements.length; }, done: function(){ return measurements.length > this.n0; } },
+    { text: 'ได้ θ<sub>i</sub> และ θ<sub>r</sub> แล้ว 1 คู่ 🎉<br><small>วัดเพิ่ม: เปลี่ยน α แล้ววัดซ้ำ — θ<sub>i</sub> = θ<sub>r</sub> ทุกครั้งไหม?</small>' }
+  ]
+};
+</script>
+
 <!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->
 <script src="../_shared/kp-labmode.js?v=20261021-18"></script>
 </body>
