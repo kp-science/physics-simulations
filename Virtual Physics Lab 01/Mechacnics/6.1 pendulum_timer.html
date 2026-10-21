@@ -28,7 +28,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KP Science simulation — ลูกตุ้มนาฬิกา (Pendulum Timer)</title>
+<title>KP Science simulation — ลูกตุ้มนาฬิกา (Pendulum Timer) (3D)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -87,8 +87,26 @@ nav button.active { background: var(--accent); border-color: var(--accent); colo
   .sim-center{order:-1} .sim-wrap { grid-template-columns: 1fr; } }
 
 /* Canvas area */
-.canvas-box { background: radial-gradient(ellipse at top, #0f1a30, #050810); border-right: 1px solid var(--border); position: relative; min-height: 480px; }
+.canvas-box { background: linear-gradient(180deg,#141c2c,#0a0f1c); border-right: 1px solid var(--border); position: relative; overflow: hidden; min-height: 480px; height: calc(100vh - 160px); max-height: 760px; }
+@media (max-width: 900px) { .canvas-box { height: max(100vw, 360px); min-height: 0; max-height: none; border-right: none; border-bottom: 1px solid var(--border); } }
 #simCanvas { width: 100%; height: 100%; display: block; }
+/* ภาพ 3D: ปุ่มมุมมองมุมล่างซ้าย · คำแนะนำมุมบนซ้าย · ข้อมูลมุมบนขวา (แบบ Lab 19/86) */
+.view3d canvas{cursor:grab;touch-action:none}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on,.view3d .viewbtns button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0}}
+.view3d .hud3d{position:absolute;right:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 9px;font-size:.7rem;color:#cbd5e1;font-family:'Share Tech Mono',monospace;line-height:1.5;pointer-events:none;text-align:right}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+@media(max-width:900px){
+  .view3d .viewhint{display:none}
+  .view3d .hud3d{right:6px;top:6px;font-size:.64rem;padding:2px 7px}
+  .view3d .viewbtns{left:6px;right:6px;bottom:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{white-space:nowrap;flex-shrink:0;padding:5px 9px;font-size:.72rem;background:rgba(15,23,42,.82)}
+}
 
 /* Side panel */
 .side { background: var(--panel); padding: 14px; overflow-y: auto; max-height: calc(100vh - 160px); }
@@ -229,7 +247,7 @@ footer { padding: 12px; text-align: center; color: var(--muted); font-size: 0.75
 <header>
   <div class="icon">⏱️</div>
   <div>
-    <h1>ลูกตุ้มนาฬิกา — Pendulum Timer</h1>
+    <h1>ลูกตุ้มนาฬิกา — Pendulum Timer (3D)</h1>
     <p>Lab 6 · ศึกษาคาบและความยาวของลูกตุ้มเพื่อใช้เป็นเครื่องวัดเวลา</p>
   </div>
   <div class="badge">KP Science simulation</div>
@@ -256,8 +274,20 @@ footer { padding: 12px; text-align: center; color: var(--muted); font-size: 0.75
 
   <div class="sim-wrap">
 
-    <div class="canvas-box">
+    <div class="canvas-box view3d" id="view3d">
       <canvas id="simCanvas"></canvas>
+      <div class="viewbtns" id="viewBtns">
+        <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+        <button data-vw="iso" onclick="setView('iso')">มุมเฉียง</button>
+        <button data-vw="front" onclick="setView('front')">👁 ตรงหน้า</button>
+        <button data-vw="zang" onclick="setView('zang')">🔍 อ่านมุม θ</button>
+        <button data-vw="zl" onclick="setView('zl')">🔍 อ่านความยาว L</button>
+        <button data-vw="zsw" onclick="setView('zsw')">🔍 นาฬิกาจับเวลา</button>
+        <button data-vw="all" onclick="setView('all')">ทั้งชุด</button>
+      </div>
+      <div class="viewhint">🖐 จับ <b>ลูกตุ้ม</b> ลากออกข้าง ๆ เพื่อตั้งมุมเริ่ม θ₀ (ก่อนกด ▶ เริ่ม)<br>⏱ แตะปุ่ม<b>เขียว</b>บนนาฬิกาจับเวลา = เริ่ม/หยุด · ปุ่มเทา = ล้าง<br>🖱 ลากที่ว่าง = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = ลาก/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+      <div class="hud3d" id="hud3d"></div>
+      <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ยังจับเวลาและบันทึกค่าจากแผงด้านข้างได้ตามปกติ</div>
     </div>
 
     <div class="side">
@@ -577,8 +607,11 @@ T = 2π/ω = 2π √(L/g)</div>
   </div>
 </div>
 
-<footer>KP Science simulation · Pendulum Timer Lab 6</footer>
+<footer>KP Science simulation · Pendulum Timer Lab 6 (3D)</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../../_shared/three.min.js"><\/script>'); }</script>
+<script src="../../_shared/kp-real3d.js?v=20261021-8"></script>
 <script>
 // ================= STATE =================
 let isPlaying = false, animId = null, lastTs = null;
@@ -668,170 +701,336 @@ function stepPhysics(dt) {
   }
 }
 
-// ================= DRAW =================
+// ================= 3D VIEW (three.js r128) =================
+/* หน่วย cm · x = แนวแกว่ง · y = สูงจากโต๊ะ · z = ลึก (ผู้ชมอยู่ +z)
+   ภาพ 3D เป็นเพียง "มุมมอง" ของสถานะเดียวกัน (theta, L_cm, theta0_deg, mass_g, swTime …) — ไม่แตะฟิสิกส์ */
 const canvas = document.getElementById('simCanvas');
-const ctx = canvas.getContext('2d');
+const $3 = id => document.getElementById(id);
+const PIV_Y = 118;         /* ความสูงจุดแขวน (cm เหนือโต๊ะ) — L สูงสุด 100 cm ลูกตุ้มยังลอยเหนือโต๊ะ */
+const ROD_H = 134;         /* ความสูงเสาขาตั้ง */
+const ROD_Z = -20;         /* เสาขาตั้งอยู่หลังระนาบการแกว่ง */
+const RUL_X = -5.5, RUL_Z = -4, RUL_W = 3;   /* ไม้เมตรแขวนข้างจุดแขวน (0 = ระดับจุดแขวน) */
+const RUL_LO = -2, RUL_HI = 105;
+const PR = 14, PROT_Z = -1.5;                /* โปรแทรกเตอร์: รัศมี · ระนาบหลังเชือกเล็กน้อย */
+const SW_POS = [30, -0.06, 16], SW_YAW = -0.42, SW_TILT = 0.25;   /* นาฬิกาจับเวลาวางบนโต๊ะ */
+let renderer = null, scene = null, camera = null, P3 = {}, TEXS = [], curView = 'iso';
+const orbit = {target: null, dist: 200, az: 0.45, el: 0.18};
+/* ลูกตุ้มทองเหลือง ρ ≈ 8.5 g/cm³ → รัศมีตามมวลจริง */
+const bobR = () => Math.cbrt(mass_g / 8.5 * 3 / (4 * Math.PI));
+const th0 = () => theta0_deg * Math.PI / 180;
 
-function resizeCanvas() {
-  const box = canvas.parentElement;
-  canvas.width = box.clientWidth || 700;
-  canvas.height = box.clientHeight || 500;
-  if (!isPlaying) draw();
+function texApply(t){ let an = 8; try{ if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) an = Math.max(8, renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy = an; if (renderer && 'outputEncoding' in renderer && 'encoding' in t) t.encoding = renderer.outputEncoding;
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t; }
+function canvasTex(w, h, fn){ const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); const t = texApply(new THREE.CanvasTexture(c)); TEXS.push({t, fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o => { const c = o.t.image; o.fn(c.getContext('2d'), c.width, c.height); o.t.needsUpdate = true; }); }
+function redrawTex(t){ const o = TEXS.find(o => o.t === t); if (!o) return; const c = t.image; o.fn(c.getContext('2d'), c.width, c.height); t.needsUpdate = true; }
+
+/* ── ตัวช่วยปั้นอุปกรณ์แบบแลปจริง (เหมือน Lab 19/86) ── */
+function rbox(w,h,d,r,mt){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,mt); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+let RM=null;
+function rsMats(){ if(RM) return RM; RM={ chrome:new THREE.MeshStandardMaterial({color:0xdfe3ea,metalness:.95,roughness:.22}),
+  alu:new THREE.MeshStandardMaterial({color:0xb9c0ca,metalness:.88,roughness:.32}),
+  anod:new THREE.MeshPhysicalMaterial({color:0x2a2d33,metalness:.75,roughness:.35,clearcoat:.3,clearcoatRoughness:.4}),
+  knob:enamel(0x15171c,0.35,0.5), rib:new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5}), black:enamel(0x17191e,0.4,0.4),
+  rubber:new THREE.MeshStandardMaterial({color:0x111214,roughness:.9}), brass:new THREE.MeshStandardMaterial({color:0xc9a25a,metalness:.9,roughness:.26}) }; return RM; }
+function ribKnob(r,h,n){ const R=rsMats(), k=new THREE.Group(); n=n||20; k.add(new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,h,32),R.knob));
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.08,h*0.86,r*0.14),R.rib); rib.position.set(Math.cos(a)*r*1.02,0,Math.sin(a)*r*1.02); rib.rotation.y=-a; k.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.6,r*0.6,0.05,32),R.chrome); cap.position.y=h/2+0.01; k.add(cap); return k; }
+function chromeRod(a,b,r,mat){ const A=new THREE.Vector3(...a), B=new THREE.Vector3(...b), d=B.clone().sub(A);
+  const mm=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),20),mat||rsMats().chrome); mm.position.copy(A).add(B).multiplyScalar(0.5); mm.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return mm; }
+function levelFoot(hh,r){ const R=rsMats(), g=new THREE.Group(); r=r||1.2;
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.15,hh*0.25,24),R.rubber); pad.position.y=hh*0.125; g.add(pad);
+  const sc=new THREE.Mesh(new THREE.CylinderGeometry(r*0.28,r*0.28,hh*0.75,12),R.chrome); sc.position.y=hh*0.25+hh*0.375; g.add(sc);
+  const kn=ribKnob(r*0.8,hh*0.3,16); kn.position.y=hh*0.45; g.add(kn); return g; }
+function bossClamp(s){ const R=rsMats(), g=new THREE.Group(); g.add(rbox(s,s,s,s*0.2,R.anod));
+  const sc=new THREE.Mesh(new THREE.CylinderGeometry(s*0.12,s*0.12,s*0.5,12),R.chrome); sc.rotation.x=Math.PI/2; sc.position.z=s*0.7; g.add(sc);
+  const kn=ribKnob(s*0.32,s*0.3,14); kn.rotation.x=Math.PI/2; kn.position.z=s*0.95; g.add(kn); return g; }
+function rubberFoot(r,hh){ return new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r,hh,18),rsMats().rubber); }
+
+/* ── ป้ายข้อความ (ขนาดคงที่บนจอ อ่านได้ทุกระยะซูม) ── */
+function makeLabel(txt, col){
+  const st = {txt: txt};
+  const tex = canvasTex(512, 128, (g, w, h) => { g.clearRect(0,0,w,h);
+    g.fillStyle = 'rgba(15,23,42,.9)'; g.beginPath(); const R = 40; g.moveTo(R,0); g.arcTo(w,0,w,h,R); g.arcTo(w,h,0,h,R); g.arcTo(0,h,0,0,R); g.arcTo(0,0,w,0,R); g.closePath(); g.fill();
+    g.fillStyle = col; g.font = 'bold 58px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(st.txt, w/2, h/2 + 2); });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false, sizeAttenuation: false}));
+  sp.scale.set(0.13, 0.0325, 1); sp.renderOrder = 20;
+  sp.userData.setText = s => { if (st.txt === s) return; st.txt = s; redrawTex(tex); };
+  return sp;
 }
 
-function draw() {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-
-  // pivot
-  const pivotX = W / 2;
-  const pivotY = 50;
-
-  // scale: 100 cm → 60% of available height
-  const pxPerCm = Math.min((H - 120) / 100, 4);
-  const L_px = L_cm * pxPerCm;
-
-  // ceiling
-  ctx.fillStyle = '#1e3a5f';
-  ctx.fillRect(pivotX - 80, pivotY - 16, 160, 10);
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(pivotX - 80, pivotY - 16, 160, 10);
-
-  // hatch
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 1;
-  for (let i = -70; i <= 70; i += 12) {
-    ctx.beginPath();
-    ctx.moveTo(pivotX + i, pivotY - 16);
-    ctx.lineTo(pivotX + i - 6, pivotY - 24);
-    ctx.stroke();
+/* ── ไม้เมตร: cm วัดลงจากระดับจุดแขวน (ขีดอยู่ขอบขวา ฝั่งลูกตุ้ม) ── */
+function rulerFn(g, w, h){
+  g.fillStyle = '#f3e7c4'; g.fillRect(0,0,w,h);
+  const cmPx = h / (RUL_HI - RUL_LO), Y = c => (c - RUL_LO) * cmPx;
+  g.strokeStyle = '#1f1a10'; g.fillStyle = '#1f1a10';
+  for (let mm = 0; mm <= 1040; mm++){
+    const y = Y(mm / 10), big = mm % 10 === 0, mid = mm % 5 === 0;
+    g.lineWidth = big ? 3 : mid ? 2.2 : 1.4; g.beginPath(); g.moveTo(w, y); g.lineTo(w - w * (big ? 0.42 : mid ? 0.3 : 0.18), y); g.stroke();
+    if (big){ const c = mm / 10; g.font = (c % 10 === 0 ? 'bold 30px' : '22px') + ' "Share Tech Mono",monospace'; g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(String(c), w * 0.54, y); }
   }
-
-  // vertical reference
-  ctx.setLineDash([4, 6]);
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(pivotX, pivotY);
-  ctx.lineTo(pivotX, pivotY + L_px + 50);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // arc trail of amplitude
-  ctx.beginPath();
-  ctx.arc(pivotX, pivotY, L_px, Math.PI/2 - theta0_deg*Math.PI/180, Math.PI/2 + theta0_deg*Math.PI/180);
-  ctx.strokeStyle = '#475569';
-  ctx.setLineDash([3, 4]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // bob position
-  const bx = pivotX + L_px * Math.sin(theta);
-  const by = pivotY + L_px * Math.cos(theta);
-
-  // string
-  ctx.beginPath();
-  ctx.moveTo(pivotX, pivotY);
-  ctx.lineTo(bx, by);
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // pivot dot
-  ctx.beginPath();
-  ctx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#e2e8f0';
-  ctx.fill();
-
-  // bob — radius scales slightly with mass
-  const bobR = 12 + Math.sqrt(mass_g / 200) * 6;
-  const grad = ctx.createRadialGradient(bx - bobR*0.3, by - bobR*0.3, 2, bx, by, bobR);
-  grad.addColorStop(0, '#7dd3fc');
-  grad.addColorStop(1, '#0369a1');
-  ctx.beginPath();
-  ctx.arc(bx, by, bobR, 0, Math.PI * 2);
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // angle label
-  ctx.fillStyle = '#fb923c';
-  ctx.font = 'bold 14px Share Tech Mono';
-  ctx.fillText('θ = ' + (theta * 180 / Math.PI).toFixed(1) + '°', 20, 30);
-
-  // L label
-  ctx.fillStyle = '#38bdf8';
-  ctx.fillText('L = ' + L_cm + ' cm', 20, 52);
-  ctx.fillStyle = '#34d399';
-  ctx.fillText('g = ' + g_val.toFixed(2) + ' m/s²', 20, 74);
-
-  // ============ STOPWATCH UI inside canvas (top-right) ============
-  const compact = W < 520;
-  const swW = compact ? 150 : 224;
-  const swH = compact ? 74 : 112;
-  const swX = W - swW - (compact ? 8 : 16), swY = compact ? 6 : 14;
-  const accentSW = swRunning ? '#34d399' : '#38bdf8';
-
-  // panel bg
-  ctx.fillStyle = 'rgba(12,18,34,0.92)';
-  ctx.strokeStyle = accentSW;
-  ctx.lineWidth = compact ? 1.5 : 2;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(swX, swY, swW, swH, compact ? 7 : 10);
-  else ctx.rect(swX, swY, swW, swH);
-  ctx.fill();
-  ctx.stroke();
-
-  // title row
-  ctx.fillStyle = accentSW;
-  ctx.font = compact ? 'bold 9px IBM Plex Sans Thai' : 'bold 11px IBM Plex Sans Thai';
-  ctx.textAlign = 'left';
-  ctx.fillText('⏱ STOPWATCH', swX + 8, swY + (compact ? 13 : 18));
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = compact ? '8px IBM Plex Sans Thai' : '10px IBM Plex Sans Thai';
-  ctx.textAlign = 'right';
-  ctx.fillText(swRunning ? '● RUNNING' : (swTime > 0 ? '⏸ STOPPED' : 'READY'), swX + swW - 8, swY + (compact ? 13 : 18));
-
-  // big time display
-  ctx.fillStyle = accentSW;
-  ctx.font = compact ? 'bold 22px Share Tech Mono' : 'bold 34px Share Tech Mono';
-  ctx.textAlign = 'center';
-  ctx.fillText(swTime.toFixed(3), swX + swW / 2, swY + (compact ? 40 : 62));
-  ctx.font = compact ? '9px Share Tech Mono' : '11px Share Tech Mono';
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('seconds', swX + swW / 2, swY + (compact ? 52 : 78));
-
-  // N target + computed T
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = compact ? 'bold 9px Share Tech Mono' : 'bold 11px Share Tech Mono';
-  ctx.textAlign = 'left';
-  ctx.fillText('N: ' + N_target, swX + 8, swY + (compact ? 67 : 100));
-
-  if (swTime > 0) {
-    const Tm = swTime / N_target;
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#34d399';
-    ctx.fillText('T=' + Tm.toFixed(3) + 's', swX + swW - 8, swY + (compact ? 67 : 100));
-  }
-  ctx.textAlign = 'left';
-
-  // meter scale on left — every 10 cm
-  ctx.strokeStyle = '#1e3a5f';
-  ctx.lineWidth = 1;
-  ctx.fillStyle = '#64748b';
-  ctx.font = '10px Share Tech Mono';
-  for (let c = 0; c <= 100; c += 10) {
-    const y = pivotY + c * pxPerCm;
-    ctx.beginPath();
-    ctx.moveTo(pivotX - 100, y);
-    ctx.lineTo(pivotX - 92, y);
-    ctx.stroke();
-    if (c % 20 === 0) ctx.fillText(c + 'cm', pivotX - 130, y + 3);
-  }
+  g.fillStyle = '#b91c1c'; g.fillRect(0, Y(0) - 2, w, 4);
+  g.save(); g.translate(w * 0.2, Y(RUL_LO + 1.2)); g.fillStyle = '#5a4520'; g.font = 'bold 20px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText('cm', 0, 0); g.restore();
 }
+/* ── โปรแทรกเตอร์ครึ่งวง: ศูนย์กลาง = จุดแขวน · 0° = ดิ่งลง · ขีดละ 1° (แบบ Lab 86) ── */
+function protFn(g, w, h){ const cx = w/2, cy = h/2, R = w/2;
+  g.clearRect(0,0,w,h);
+  const P2 = (a, r) => { const ph = (-90 + a) * Math.PI / 180; return [cx + r * Math.cos(ph), cy - r * Math.sin(ph)]; };
+  g.fillStyle = 'rgba(241,245,249,.62)'; g.beginPath();
+  for (let a = -42; a <= 42; a += 0.5){ const [x, y] = P2(a, R * 0.99); a === -42 ? g.moveTo(x, y) : g.lineTo(x, y); }
+  for (let a = 42; a >= -42; a -= 0.5){ const [x, y] = P2(a, R * 0.5); g.lineTo(x, y); }
+  g.closePath(); g.fill();
+  for (let a = -40; a <= 40; a++){ const big = a % 10 === 0, mid = a % 5 === 0;
+    const r0 = R * (big ? 0.8 : mid ? 0.86 : 0.91), [x0, y0] = P2(a, r0), [x1, y1] = P2(a, R * 0.975);
+    g.strokeStyle = '#0f172a'; g.lineWidth = big ? 6 : mid ? 4.4 : 2.8; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
+  g.fillStyle = '#0f172a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 64px "Share Tech Mono",monospace';
+  for (let a = -40; a <= 40; a += 10){ const [x, y] = P2(a, R * 0.71); g.fillText(String(Math.abs(a)), x, y); }
+  g.font = 'bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillStyle = '#475569'; const [lx, ly] = P2(0, R * 0.6); g.fillText('องศา · ขีดละ 1°', lx, ly);
+  g.fillStyle = '#0f172a'; g.beginPath(); g.arc(cx, cy, 10, 0, Math.PI * 2); g.fill(); }
+/* ── หน้าปัดนาฬิกาจับเวลาดิจิทัล (จอ LCD) ── */
+function swFaceFn(g, w, h){
+  g.fillStyle = '#1b1f27'; g.fillRect(0,0,w,h);
+  g.fillStyle = '#e2e8f0'; g.font = 'bold 44px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('KP STOPWATCH', w/2, 64);
+  g.fillStyle = '#94a3b8'; g.font = 'bold 30px "IBM Plex Sans Thai",sans-serif';
+  g.textAlign = 'left'; g.fillText('◀ RESET', 36, 120); g.textAlign = 'right'; g.fillText('START/STOP ▶', w - 36, 120);
+  /* หน้าต่าง LCD */
+  const lx = 44, ly = 170, lw = w - 88, lh = 420;
+  g.fillStyle = '#0b0d10'; g.fillRect(lx - 8, ly - 8, lw + 16, lh + 16);
+  g.fillStyle = '#b8c4a2'; g.fillRect(lx, ly, lw, lh);
+  g.fillStyle = '#1d2617';
+  g.font = 'bold 34px "Share Tech Mono",monospace'; g.textAlign = 'left'; g.fillText(swRunning ? '● RUN' : (swTime > 0 ? 'STOP' : 'READY'), lx + 22, ly + 44);
+  g.textAlign = 'right'; g.fillText('N = ' + N_target, lx + lw - 22, ly + 44);
+  g.font = 'bold 150px "Share Tech Mono",monospace'; g.textAlign = 'center'; g.fillText(swTime.toFixed(3), lx + lw/2, ly + 200);
+  g.font = 'bold 34px "Share Tech Mono",monospace'; g.fillText('s', lx + lw - 40, ly + 270);
+  g.font = 'bold 40px "Share Tech Mono",monospace';
+  g.fillText(swTime > 0 ? 'T = t/N = ' + (swTime / N_target).toFixed(3) + ' s' : 'T = t/N = ----', lx + lw/2, ly + 350);
+  g.fillStyle = '#64748b'; g.font = '28px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.fillText('แตะปุ่มเขียว = เริ่ม/หยุด · ปุ่มเทา = ล้าง', w/2, h - 70);
+}
+
+function init3D(){
+  if (typeof THREE === 'undefined'){ $3('nothree').style.display = 'flex'; return; }
+  orbit.target = new THREE.Vector3(0, 90, 0);
+  try { renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, alpha: true}); }
+  catch(e){ renderer = null; $3('nothree').innerHTML = '⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้ — ยังจับเวลาและบันทึกค่าจากแผงด้านข้างได้ตามปกติ'; $3('nothree').style.display = 'flex'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(36, 1, 0.5, 4000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a2235, 0.95));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.62); d1.position.set(80, 240, 180); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xffffff, 0.45); d2.position.set(-60, 80, 240); scene.add(d2);
+  const R = rsMats();
+
+  /* ขาตั้ง: ฐานเหล็กหล่อเคลือบดำ + ขาปรับระดับ + เสาโครเมียม */
+  const base = rbox(34, 2.6, 24, 1.6, enamel(0x17191e, 0.32, 0.65)); base.position.set(0, 1.3 + 1.2, ROD_Z - 2); scene.add(base);
+  [[-14,-9],[14,-9],[-14,9],[14,9]].forEach(([x,z]) => { const f = levelFoot(1.2, 1.2); f.position.set(x, 0, ROD_Z - 2 + z); scene.add(f); });
+  scene.add(chromeRod([0, 3.8, ROD_Z], [0, ROD_H, ROD_Z], 0.8));
+  const cl = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 1.2, 24), R.chrome); cl.position.set(0, 4.3, ROD_Z); scene.add(cl);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(1.0, 20, 14), R.chrome); cap.position.set(0, ROD_H, ROD_Z); scene.add(cap);
+
+  /* ชุดจุดแขวน: ตัวจับยึด + แขนโครเมียม + หัวแขวนมีสกรูหนีบเชือก (หมุดแขวนอยู่ที่ y = PIV_Y พอดี) */
+  const hang = new THREE.Group(); hang.position.set(0, PIV_Y + 1.2, 0); scene.add(hang);
+  const boss = bossClamp(3.2); boss.position.set(0, 0, ROD_Z); boss.rotation.y = Math.PI / 2; hang.add(boss);
+  hang.add(chromeRod([0, 0, ROD_Z], [0, 0, 3.5], 0.6));
+  const head = rbox(4.2, 2.6, 3.2, 0.5, R.anod); head.position.set(0, 0.2, 0); hang.add(head);
+  const hk = ribKnob(0.9, 0.9, 14); hk.rotation.x = Math.PI / 2; hk.position.set(0, 0.4, 2.1); hang.add(hk);
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 3.6, 12), R.chrome); pin.rotation.x = Math.PI / 2; pin.position.set(0, -1.2, 0); hang.add(pin);
+
+  /* ไม้เมตรแขวนจากแขน (0 cm = ระดับจุดแขวน) */
+  hang.add(chromeRod([0, 0, RUL_Z], [RUL_X, 0, RUL_Z], 0.3));
+  const rtex = canvasTex(256, 4096, rulerFn);
+  const rside = new THREE.MeshStandardMaterial({color: 0xe9d8a6, roughness: .8});
+  const rface = new THREE.MeshStandardMaterial({map: rtex, roughness: .9, emissive: 0xffffff, emissiveMap: rtex, emissiveIntensity: 0.3});
+  const RH = RUL_HI - RUL_LO;
+  const rul = new THREE.Mesh(new THREE.BoxGeometry(RUL_W, RH, 0.4), [rside, rside, rside, rside, rface, rside]);
+  rul.position.set(RUL_X, PIV_Y - (RUL_LO + RUL_HI) / 2, RUL_Z); scene.add(rul);
+  /* ตัวชี้ความยาว L บนไม้เมตร (คลิปแดงเลื่อนตาม L) */
+  P3.lMark = new THREE.Group(); scene.add(P3.lMark);
+  const lm = new THREE.Mesh(new THREE.BoxGeometry(RUL_W + 0.8, 0.22, 0.25), new THREE.MeshBasicMaterial({color: 0xdc2626})); lm.position.set(RUL_X, 0, RUL_Z + 0.35); P3.lMark.add(lm);
+  const lmt = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.0, 12), new THREE.MeshBasicMaterial({color: 0xdc2626})); lmt.rotation.z = Math.PI / 2; lmt.position.set(RUL_X - RUL_W / 2 - 0.9, 0, RUL_Z + 0.35); P3.lMark.add(lmt);
+  P3.lLbl = makeLabel('L = 30 cm', '#7dd3fc'); scene.add(P3.lLbl);
+
+  /* โปรแทรกเตอร์ (ศูนย์กลางที่จุดแขวน อยู่หลังเชือกเล็กน้อย) */
+  const prot = new THREE.Mesh(new THREE.PlaneGeometry(2 * PR, 2 * PR), new THREE.MeshBasicMaterial({map: canvasTex(2048, 2048, protFn), transparent: true, side: THREE.DoubleSide, depthWrite: false}));
+  prot.position.set(0, PIV_Y, PROT_Z); prot.renderOrder = 2; scene.add(prot);
+
+  /* ลูกตุ้ม: เชือก + ห่วง + ลูกตุ้มทองเหลือง (กลุ่มหมุนรอบจุดแขวน) */
+  P3.pend = new THREE.Group(); P3.pend.position.set(0, PIV_Y, 0); scene.add(P3.pend);
+  P3.str = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1, 8), new THREE.MeshStandardMaterial({color: 0xe7e2d3, roughness: .8})); P3.pend.add(P3.str);
+  P3.bob = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 28), R.brass); P3.pend.add(P3.bob);
+  P3.eye = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.1, 8, 18), R.chrome); P3.eye.rotation.y = Math.PI / 2; P3.pend.add(P3.eye);
+
+  /* ตำแหน่งปล่อย (เงาจาง) · แนวดิ่งอ้างอิง · เส้นทางแกว่ง */
+  P3.ghost = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), new THREE.MeshBasicMaterial({color: 0x94a3b8, transparent: true, opacity: 0.22, depthWrite: false})); scene.add(P3.ghost);
+  P3.vline = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -1, 0)]), new THREE.LineDashedMaterial({color: 0x64748b, dashSize: 1.2, gapSize: 1.2}));
+  P3.vline.position.set(0, PIV_Y, -0.05); scene.add(P3.vline);
+  P3.arc = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color: 0x38bdf8, dashSize: 1, gapSize: 0.8, transparent: true, opacity: 0.7})); scene.add(P3.arc);
+
+  /* นาฬิกาจับเวลาดิจิทัลวางเอนบนโต๊ะ (ขาค้ำด้านหลัง) */
+  P3.sw = new THREE.Group(); P3.sw.position.set(...SW_POS); P3.sw.rotation.order = 'YXZ'; P3.sw.rotation.set(-SW_TILT, SW_YAW, 0); scene.add(P3.sw);
+  P3.swBody = rbox(8, 10, 2, 1.2, enamel(0x2b313c, 0.42, 0.45)); P3.swBody.position.set(0, 5.6, 0); P3.sw.add(P3.swBody);
+  P3.swTex = canvasTex(768, 960, swFaceFn);
+  P3.swFace = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 9), new THREE.MeshStandardMaterial({map: P3.swTex, roughness: .6, emissive: 0xffffff, emissiveMap: P3.swTex, emissiveIntensity: .45}));
+  P3.swFace.position.set(0, 5.6, 1.02); P3.sw.add(P3.swFace);
+  P3.swGo = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.9, 24), enamel(0x16a34a, 0.35, 0.6)); P3.swGo.position.set(2.3, 11.0, 0); P3.sw.add(P3.swGo);
+  P3.swRst = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.8, 24), enamel(0x9ca3af, 0.35, 0.6)); P3.swRst.position.set(-2.3, 10.95, 0); P3.sw.add(P3.swRst);
+  [2.3, -2.3].forEach(x => { const c = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.3, 24), R.chrome); c.position.set(x, 10.65, 0); P3.sw.add(c); });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.22, 10, 24), R.chrome); ring.position.set(0, 11.5, 0); P3.sw.add(ring);
+  P3.sw.add(chromeRod([0, 6, -1.0], [0, 1, -3.6], 0.22));
+  const sf = rbox(7, 0.6, 1.8, 0.25, R.rubber); sf.position.set(0, 0.6, 0); P3.sw.add(sf);
+  P3.swLbl = makeLabel('⏱ นาฬิกาจับเวลา', '#93c5fd'); P3.swLbl.position.set(0, 14.5, 0); P3.sw.add(P3.swLbl);
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { redrawTexs(); }).catch(() => {});
+  setupPointer3D(canvas); resize3D(); setView('iso'); update3D();
+  (function rloop(){ requestAnimationFrame(rloop);
+    if (!$3('tab-sim').classList.contains('active')) return;
+    update3D(); renderer.render(scene, camera); })();
+}
+
+let lastSwKey = '', lastLtxt = '', lastArcKey = '', lastViewL = null;
+function update3D(){
+  if (!scene) return;
+  if (lastViewL !== L_cm){ if (lastViewL !== null) refitView(true); lastViewL = L_cm; }   /* เปลี่ยน L → จัดมุมมองสำเร็จรูปใหม่ */
+  const Lc = L_cm, r = bobR(), t0 = th0();
+  /* ลูกตุ้ม (ศูนย์กลางลูกตุ้มห่างจุดหมุน L) */
+  const sl = Math.max(0.1, Lc - r - 0.4);
+  P3.str.scale.set(1, sl, 1); P3.str.position.set(0, -sl / 2, 0);
+  P3.bob.scale.setScalar(r); P3.bob.position.set(0, -Lc, 0);
+  P3.eye.position.set(0, -Lc + r + 0.3, 0);
+  P3.pend.rotation.z = theta;
+  /* ตำแหน่งปล่อย · แนวดิ่ง · เส้นทางแกว่ง */
+  P3.ghost.scale.setScalar(r); P3.ghost.position.set(Lc * Math.sin(t0), PIV_Y - Lc * Math.cos(t0), 0);
+  P3.ghost.visible = isPlaying || simTime > 0;
+  P3.vline.scale.set(1, Lc + 8, 1);
+  const ak = Lc + '|' + theta0_deg;
+  if (ak !== lastArcKey){ lastArcKey = ak; const pts = [], N = 64;
+    for (let i = 0; i <= N; i++){ const a = -t0 + 2 * t0 * i / N; pts.push(new THREE.Vector3(Lc * Math.sin(a), PIV_Y - Lc * Math.cos(a), -0.05)); }
+    P3.arc.geometry.dispose(); P3.arc.geometry = new THREE.BufferGeometry().setFromPoints(pts); P3.arc.computeLineDistances(); }
+  /* ตัวชี้ L บนไม้เมตร */
+  P3.lMark.position.set(0, PIV_Y - Lc, 0);
+  P3.lLbl.position.set(RUL_X - 9, PIV_Y - Lc, RUL_Z);
+  const lt = 'L = ' + Lc + ' cm'; if (lt !== lastLtxt){ lastLtxt = lt; P3.lLbl.userData.setText(lt); }
+  /* จอนาฬิกาจับเวลา */
+  const k = swTime.toFixed(3) + '|' + swRunning + '|' + N_target;
+  if (k !== lastSwKey){ lastSwKey = k; redrawTex(P3.swTex); }
+  P3.swGo.material.emissive.setHex(swRunning ? 0x166534 : 0x000000);
+  /* กล้อง */
+  const tg = orbit.target; camera.up.set(0, 1, 0);
+  camera.position.set(tg.x + orbit.dist * Math.sin(orbit.az) * Math.cos(orbit.el), tg.y + orbit.dist * Math.sin(orbit.el), tg.z + orbit.dist * Math.cos(orbit.az) * Math.cos(orbit.el));
+  camera.lookAt(tg);
+  /* ข้อมูลมุมบนขวา (แทนข้อความบนภาพ 2D เดิม) */
+  const hud = $3('hud3d');
+  if (hud){ const t = `θ = ${(theta * 180 / Math.PI).toFixed(1)}° · L = ${Lc} cm<br>g = ${g_val.toFixed(2)} m/s² · m = ${mass_g} g<br>⏱ ${swTime.toFixed(3)} s${swRunning ? ' ●' : ''}`;
+    if (hud.dataset.t !== t){ hud.innerHTML = t; hud.dataset.t = t; } }
+}
+function draw(){ if (!scene) return; update3D(); }
+
+/* ── มุมมอง ── */
+function fitDist(wCm, hCm){ const el = $3('view3d'), asp = Math.max(0.4, (el.clientWidth || 800) / (el.clientHeight || 420)), t = Math.tan(36 * Math.PI / 360);
+  return Math.max(10, Math.min(1500, Math.max(hCm / (2 * t), wCm / (2 * t * asp)) * 1.08)); }
+const pendLow = () => PIV_Y - L_cm - bobR();
+const swingW = () => 2 * L_cm * Math.sin(th0()) + 16;
+const swCenter = () => { const s = Math.sin(SW_YAW), c = Math.cos(SW_YAW), y = 5.6 * Math.cos(SW_TILT), zf = 5.6 * Math.sin(SW_TILT);
+  return [SW_POS[0] - zf * s, y, SW_POS[2] - zf * c]; };
+const VIEWS = {
+  iso:   {t: () => [2, (PIV_Y + 8 + pendLow() - 6) / 2, -2], d: () => fitDist(swingW() + 14, PIV_Y + 8 - pendLow() + 12), az: 0.45, el: 0.16},
+  front: {t: () => [0, (PIV_Y + 6 + pendLow() - 4) / 2, 0], d: () => fitDist(swingW() + 10, PIV_Y + 6 - pendLow() + 6), az: 0.0001, el: 0.0001},
+  all:   {t: () => [10, PIV_Y / 2 + 4, -2], d: () => fitDist(Math.max(swingW(), 70) + 30, PIV_Y + 24), az: 0.5, el: 0.22},
+  zang:  {t: () => [0, PIV_Y - 9, 0], d: () => fitDist(26, 16), az: 0.0001, el: 0.0001},
+  zl:    {t: () => [RUL_X + 1, PIV_Y - L_cm, 0], d: () => fitDist(18, 14), az: 0.0001, el: 0.0001},
+  zsw:   {t: () => swCenter(), d: () => fitDist(16, 15), az: SW_YAW, el: SW_TILT}
+};
+const vnum = q => (typeof q === 'function') ? q() : q;
+function setView(vw){ const V = VIEWS[vw]; curView = V ? vw : 'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.toggle('on', b.dataset.vw === curView));
+  if (!V || !orbit.target) return;
+  const t = vnum(V.t); orbit.target.set(t[0], t[1], t[2]); orbit.dist = vnum(V.d); orbit.az = vnum(V.az); orbit.el = vnum(V.el); }
+function refitView(full){ const V = VIEWS[curView]; if (!V) return; if (full) setView(curView); else orbit.dist = vnum(V.d); }
+function resize3D(){ if (!renderer) return; const el = $3('view3d'), w = el.clientWidth || 800, hh = el.clientHeight || 420; renderer.setSize(w, hh, false); camera.aspect = w / hh; camera.updateProjectionMatrix(); }
+function resizeCanvas(){ resize3D(); refitView(); draw(); }
+
+/* ── จับลูกตุ้มลากออกด้านข้างเพื่อตั้งมุมเริ่ม θ₀ (เฉพาะตอนยังไม่แกว่ง) · แตะปุ่มบนนาฬิกาจับเวลา ── */
+let RAY = null, NDC = null;
+const HD = {on: false, a0: 0, v0: 0}, HD_FINE = 0.5;   /* ลูกตุ้มเปลี่ยนมุม ½ ของมุมที่นิ้วลาก — ตั้งทีละ 1° บนมือถือได้ง่าย */
+function setRay(cx, cy){ if (!renderer || !camera) return null; if (!RAY){ RAY = new THREE.Raycaster(); NDC = new THREE.Vector2(); }
+  const rc = renderer.domElement.getBoundingClientRect(); if (!rc.width || !rc.height) return null;
+  camera.updateMatrixWorld(); NDC.x = ((cx - rc.left) / rc.width) * 2 - 1; NDC.y = -((cy - rc.top) / rc.height) * 2 + 1; RAY.setFromCamera(NDC, camera); return rc; }
+function scrDist(rc, V, cx, cy){ V.project(camera); return Math.hypot(cx - (rc.left + (V.x * 0.5 + 0.5) * rc.width), cy - (rc.top + (-V.y * 0.5 + 0.5) * rc.height)); }
+function pickAt(cx, cy){
+  if (!P3.bob) return null; const rc = setRay(cx, cy); if (!rc) return null; scene.updateMatrixWorld();
+  /* 1) ยิงรังสีตรง ๆ */
+  if (!isPlaying && RAY.intersectObject(P3.bob, false).length) return 'bob';
+  if (RAY.intersectObject(P3.swRst, false).length) return 'swRst';
+  if (RAY.intersectObjects([P3.swGo, P3.swBody, P3.swFace], false).length) return 'swGo';
+  /* 2) เผื่อระยะบนจอรอบลูกตุ้ม/ปุ่มเขียว ≥ 40 px */
+  const R = Math.max(40, Math.min(rc.width, rc.height) * 0.1);
+  if (!isPlaying){ const V = new THREE.Vector3(L_cm * Math.sin(theta), PIV_Y - L_cm * Math.cos(theta), 0); if (scrDist(rc, V, cx, cy) <= R) return 'bob'; }
+  const G = new THREE.Vector3(); P3.swGo.getWorldPosition(G); if (scrDist(rc, G, cx, cy) <= R * 0.8) return 'swGo';
+  return null;
+}
+/* มุม (องศา, บวก = ไปทาง +x) ของตัวชี้รอบจุดแขวนบนระนาบการแกว่ง z = 0 */
+function pointerAngle(cx, cy){
+  if (!setRay(cx, cy)) return null;
+  const o = RAY.ray.origin, r = RAY.ray.direction; if (Math.abs(r.z) < 0.05) return null;
+  const s = -o.z / r.z; if (s <= 0) return null;
+  const x = o.x + r.x * s, y = o.y + r.y * s, dy = PIV_Y - y; if (dy <= 1) return null;
+  const a = Math.atan2(x, dy) * 180 / Math.PI; return isFinite(a) ? a : null;
+}
+function hdStart(cx, cy){ if (isPlaying) return false; const a = pointerAngle(cx, cy); if (a === null) return false;
+  HD.on = true; HD.a0 = a; HD.v0 = theta0_deg; return true; }
+function hdMove(cx, cy){ if (!HD.on) return; const a = pointerAngle(cx, cy); if (a === null) return;
+  const sl = $3('sl-ang'); let v = Math.round(HD.v0 + (a - HD.a0) * HD_FINE);
+  v = Math.max(+sl.min, Math.min(+sl.max, v));
+  if (v === parseFloat(sl.value)) return;
+  sl.value = v; sl.dispatchEvent(new Event('input')); }
+function hdEnd(){ HD.on = false; }
+function tapAction(what){ if (what === 'swGo') toggleStopwatch(); else if (what === 'swRst') resetStopwatch(); }
+let panMode = false;
+function setPanMode(on){ panMode = !!on; const b = $3('panBtn');
+  if (b){ b.classList.toggle('on', panMode); b.innerHTML = panMode ? '✋ เลื่อนภาพ · เปิดอยู่' : '✋ เลื่อนภาพ'; }
+  if (renderer) renderer.domElement.style.cursor = panMode ? 'move' : ''; }
+function setupPointer3D(cv){ const T = {mode: null, lx: 0, ly: 0, d0: 0, cx: 0, cy: 0, tap: null, sx: 0, sy: 0};
+  const mid = e => ({x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2, d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)});
+  /* เริ่มกดด้วย 1 นิ้ว/คลิกซ้าย: ลูกตุ้ม = จับลาก · ปุ่มนาฬิกา = แตะ (ถ้าลากเกิน 10 px กลายเป็นหมุนภาพ) · อื่น ๆ = หมุนภาพ */
+  const start1 = (x, y) => { const p = panMode ? null : pickAt(x, y);
+    if (p === 'bob' && hdStart(x, y)){ T.mode = 'hand'; cv.style.cursor = 'grabbing'; return; }
+    T.tap = (p === 'swGo' || p === 'swRst') ? p : null; T.sx = x; T.sy = y;
+    T.mode = panMode ? 'pan' : 'rot'; T.lx = x; T.ly = y; };
+  const move1 = (x, y) => { if (T.mode === 'hand'){ hdMove(x, y); return; }
+    if (T.tap && Math.hypot(x - T.sx, y - T.sy) > 10) T.tap = null;
+    if (T.tap) return;
+    const dx = x - T.lx, dy = y - T.ly; T.lx = x; T.ly = y; if (T.mode === 'pan') camPan(dx, dy); else if (T.mode === 'rot') camRotate(dx, dy); };
+  const end1 = () => { const tp = T.tap; T.tap = null; if (T.mode !== 'pinch') T.mode = null; hdEnd(); cv.style.cursor = ''; if (tp) tapAction(tp); };
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => { e.preventDefault();
+    if (e.button === 0 && !e.shiftKey){ start1(e.clientX, e.clientY); if (T.mode !== 'hand') cv.style.cursor = panMode ? 'move' : 'grabbing'; return; }
+    T.tap = null; T.mode = 'pan'; T.lx = e.clientX; T.ly = e.clientY; cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('mousemove', e => { if (T.mode) return; const p = panMode ? null : pickAt(e.clientX, e.clientY); cv.style.cursor = panMode ? 'move' : (p ? (p === 'bob' ? 'grab' : 'pointer') : 'default'); });
+  window.addEventListener('mousemove', e => { if (!T.mode || T.mode === 'pinch') return;
+    if (e.buttons === 0){ T.mode = null; T.tap = null; hdEnd(); cv.style.cursor = ''; return; }
+    move1(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (T.mode && T.mode !== 'pinch') end1(); });
+  window.addEventListener('blur', () => { T.mode = null; T.tap = null; hdEnd(); });
+  cv.addEventListener('touchstart', e => { e.preventDefault();
+    if (e.touches.length >= 2){ hdEnd(); T.tap = null; const mm = mid(e); T.mode = 'pinch'; T.d0 = mm.d; T.cx = mm.x; T.cy = mm.y; }
+    else if (e.touches.length === 1){ const t = e.touches[0]; start1(t.clientX, t.clientY); } }, {passive: false});
+  cv.addEventListener('touchmove', e => { e.preventDefault();
+    if (T.mode === 'pinch' && e.touches.length >= 2){ const mm = mid(e); if (T.d0 > 10 && mm.d > 10) camZoom(T.d0 / mm.d); camPan(mm.x - T.cx, mm.y - T.cy); T.d0 = mm.d; T.cx = mm.x; T.cy = mm.y; }
+    else if (e.touches.length === 1 && T.mode && T.mode !== 'pinch'){ const t = e.touches[0]; move1(t.clientX, t.clientY); } }, {passive: false});
+  const tend = e => { if (e.touches.length === 1){ if (T.mode === 'hand') return; T.tap = null; T.mode = panMode ? 'pan' : 'rot'; T.lx = e.touches[0].clientX; T.ly = e.touches[0].clientY; }
+    else if (e.touches.length === 0){ if (T.mode === 'pinch'){ T.mode = null; T.tap = null; } else end1(); } };
+  cv.addEventListener('touchend', tend); cv.addEventListener('touchcancel', e => { T.tap = null; tend(e); });
+  cv.addEventListener('wheel', e => { e.preventDefault(); camZoom(1 + e.deltaY * 0.0012); }, {passive: false}); }
+function camRotate(dx, dy){ orbit.az -= dx * 0.006; orbit.el = Math.max(-0.35, Math.min(1.45, orbit.el + dy * 0.006)); }
+function camZoom(f){ orbit.dist = Math.max(8, Math.min(1500, orbit.dist * f)); }
+function camPan(dx, dy){ const o = orbit; if (!o.target || !camera) return;
+  if (curView !== 'free'){ curView = 'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.remove('on')); }
+  const k = o.dist * 2 * Math.tan(camera.fov * Math.PI / 360) / (($3('view3d').clientHeight) || 300), ca = Math.cos(o.az), sa = Math.sin(o.az), ce = Math.cos(o.el), se = Math.sin(o.el);
+  o.target.x += (-dx * ca + dy * (-se * sa)) * k; o.target.y += dy * ce * k; o.target.z += (dx * sa + dy * (-se * ca)) * k; }
 
 // ================= LOOP =================
 function loop(ts) {
@@ -1113,6 +1312,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   applyParams();
+  init3D();
   resizeCanvas();
   initState();
   syncStopwatchBtn();
