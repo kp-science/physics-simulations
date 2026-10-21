@@ -11,7 +11,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 34 — Diffraction & Interference (He-Ne Laser) | KP Science simulation</title>
+<title>Lab 34 — Diffraction & Interference (He-Ne Laser) (3D) | KP Science simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -56,6 +56,22 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
 .canvas-wrap{position:relative;width:100%;height:clamp(320px,52vh,540px);background:#050810;border-bottom:1px solid var(--border);}
 .canvas-wrap canvas{width:100%;height:100%;display:block;}
 .probe-info{position:absolute;bottom:8px;left:8px;background:rgba(10,14,26,0.9);padding:4px 12px;border-radius:6px;font-size:0.78rem;color:var(--accent3);font-family:'Share Tech Mono',monospace;pointer-events:none;}
+/* 3D view (three.js) — แบบ Lab 31/53 */
+.view3d{position:relative;width:100%;height:clamp(360px,58vh,620px);background:linear-gradient(180deg,#141c2c,#0a0f1c);border-bottom:1px solid var(--border);overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px);z-index:3}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{background:#a78bfa;border-color:#a78bfa;color:#0a0e1a;font-weight:700}
+.view3d .viewhint{position:absolute;left:10px;top:10px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:52%;animation:vhFade .6s ease 12s forwards}
+@keyframes vhFade{to{opacity:0}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.view3d .probe-info{left:auto;right:8px;bottom:auto;top:8px;z-index:2}
+.prof-wrap{width:100%;height:150px;background:#0b1220;border-bottom:1px solid var(--border)}
+.prof-wrap canvas{width:100%;height:100%;display:block}
+@media(max-width:900px){.view3d .viewbtns{top:8px;bottom:auto}.view3d .viewhint{display:none}.view3d .probe-info{top:auto;bottom:8px;right:auto;left:8px}}
+@media(max-width:600px){.view3d{height:min(max(100vw,56vh),660px)}.prof-wrap{height:130px}}
 
 .controls-panel{background:var(--panel);padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;}
 .sl-row{display:flex;align-items:center;gap:6px;}
@@ -164,10 +180,10 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
 <header>
   <div class="icon">🔬</div>
   <div>
-    <h1>Lab 34 — Diffraction & Interference (He-Ne Laser)</h1>
+    <h1>Lab 34 — Diffraction & Interference (He-Ne Laser) (3D)</h1>
     <p>การเลี้ยวเบนและการแทรกสอดของแสงเลเซอร์ฮีเลียม-นีออน</p>
   </div>
-  <span class="badge">KP Science simulation</span>
+  <span class="badge">3D · three.js</span>
 </header>
 
 <nav class="main-nav">
@@ -201,10 +217,21 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
   <div class="controls-panel" id="ctrlPanel"></div>
   <div class="readout" id="readoutBar"></div>
 
-  <div class="canvas-wrap">
+  <!-- 3D view (three.js): เลเซอร์ · ใบมีด/สลิต/เกรตติง · ฉาก + สเกล · หัววัด · มิเตอร์วัดแสง -->
+  <div class="view3d" id="view3d">
     <canvas id="simCanvas"></canvas>
+    <div class="viewbtns" id="viewBtns">
+      <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+      <button data-vw="screen" onclick="setView('screen')">🎯 มองที่ฉาก</button>
+      <button data-vw="read" onclick="setView('read')">🔍 ซูมอ่านค่า</button>
+      <button data-vw="elem" onclick="setView('elem')">🔪 ดูใบมีด/สลิต</button>
+      <button data-vw="iso" onclick="setView('iso')">มุมเฉียง</button>
+    </div>
+    <div class="viewhint">🖐 ลาก <b>หัววัด (เส้นเขียว) บนฉาก</b> = อ่านความเข้มแสง · ตัวเลขที่มิเตอร์ · <b>🔍 ซูมอ่านค่า</b> ดูสเกลชัด<br>🖱 ลากนอกฉาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 แตะฉาก = ย้ายหัววัด · แตะค้างที่หัววัดแล้วลาก = เลื่อนละเอียด · 2 นิ้ว = ซูม/เลื่อน</div>
+    <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงลากหัววัดในภาพ 3D ไม่ได้ — ใช้โหมด <b>⚡ อัตโนมัติ</b> หรือกรอกค่าในตารางเอง</div>
     <div class="probe-info" id="probeInfo" style="display:none;"></div>
   </div>
+  <div class="prof-wrap"><canvas id="profCanvas"></canvas></div>
 
   <div class="hint-box" id="hintBox"></div>
 
@@ -392,6 +419,10 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
 
 <footer>© 2026 KP Science simulation — Lab 34 Diffraction & Interference (He-Ne Laser)</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script>window.KP_REAL3D={room:'dark'};</script>
+<script src="../_shared/kp-real3d.js?v=20261021-17"></script>
 <script>
 'use strict';
 
@@ -556,18 +587,6 @@ function fringeN() { return Math.floor(fringeCounter / 2) + 1; }
 // Cached patterns
 let cacheB = null, cacheA = null;
 
-/* ===== CANVAS ===== */
-const canvas = document.getElementById('simCanvas');
-const ctx = canvas.getContext('2d');
-
-function resizeCanvas() {
-  const c = canvas.parentElement;
-  canvas.width = c.clientWidth || 800;
-  canvas.height = c.clientHeight || 450;
-  cacheA = null; cacheB = null; cacheC = null; cacheD = null;
-  if (!isPlaying) draw();
-}
-
 /* ===== TAB SYSTEM ===== */
 function showTab(name, btn) {
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
@@ -718,948 +737,424 @@ function gratingMaxima(d_m, L_m) {
   return maxima;
 }
 
-/* ===== DRAWING ===== */
-function draw() {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
+/* ═══ 3D VIEW (three.js) — โต๊ะแสงเลเซอร์ในห้องมืด (แบบ Lab 53) ═══════════════════════════════
+   พิกัดโลก (cm): ลำแสงตาม +x ที่ความสูง y = BH, z = 0 · ใบมีด/สลิต/เกรตติงที่ x = 0 · ฉากที่ x = L (cm) หน้าหัน −x
+   ตำแหน่งบนฉาก z (cm) = y ของภาพ 2D เดิม (+ ขึ้น → + ขวา เมื่อมองจากฝั่งเลเซอร์) · ใบมีด/สลิตตั้งแนวดิ่ง ลวดลายเรียงตามแนวนอน
+   ภาพบนฉาก (canvas texture) วาดจาก cacheA/B/C/D ชุดเดียวกับที่หัววัด (probeY) อ่านค่า → สิ่งที่วัด = สิ่งที่เห็น
+   ขนาดจริง 1:1 — การทดลอง A (ขอบมีด) ช่องรับแสงกว้าง ±3 mm จึงต้องกด 🔍 ซูมอ่านค่า */
+const gid=id=>document.getElementById(id);
+const clampN=(v,a,b)=>v<a?a:(v>b?b:v);
+let renderer=null, scene=null, camera=null, P={Lcm:100}, RAY=null, NDC=null;
+let curView='screen';
+const orbit={target:null, dist:200, az:-0.95, el:0.3};
+const BH=15, LASER_X=-14, TAPE_L=260;
+const LOW3=(Math.min(window.innerWidth||1200, window.innerHeight||800) < 700) || !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+const NPAT=LOW3?1536:2048;   /* จำนวนจุดของลวดลาย (= ความกว้าง texture บนฉาก) */
+const F3='"IBM Plex Sans Thai",sans-serif';
 
-  // Layout
-  const laserX = W * 0.06;
-  const elemX = W * 0.28;
-  const screenX = W * 0.62;
-  const graphX = W * 0.68;
-  const graphW = W * 0.28;
-  const margin = H * 0.08;
+/* ── texture / วัสดุ (แบบ Lab 31/53) ── */
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(4,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); t.userData={c,fn}; (P.texs||(P.texs=[])).push(t); return t; }
+function redrawTex(t){ if(!t||!t.userData||!t.userData.c) return; const c=t.userData.c; t.userData.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.005,Math.min(r-b,sw/2-0.002,sh/2-0.002)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.005,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=c=>new THREE.MeshStandardMaterial({color:c==null?0xd8dde4:c,metalness:.95,roughness:.22});
+const anoM=c=>new THREE.MeshPhysicalMaterial({color:c==null?0x2d323c:c,metalness:.6,roughness:.32,clearcoat:.4,clearcoatRoughness:.3});
+const rubberM=()=>new THREE.MeshStandardMaterial({color:0x141518,roughness:.92});
+function ribKnob(r,h,col){ const g=new THREE.Group(), rm=new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5});
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r*0.94,r,h,32),enamel(col==null?0x15171c:col,0.35,0.5)));
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.07,h*0.88,r*0.13),rm); rib.position.set(Math.cos(a)*r*0.97,0,Math.sin(a)*r*0.97); rib.rotation.y=-a; g.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.62,r*0.62,h*0.08,32),chromeM(0xb8bec8)); cap.position.y=h/2+h*0.03; g.add(cap); return g; }
+function rubberFoot(r,h){ return new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r,h,18),rubberM()); }
+function glossTube(pts,r,col){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(48,V.length*16),r,10,false),new THREE.MeshPhysicalMaterial({color:col,roughness:.35,clearcoat:.6,clearcoatRoughness:.3})); }
+function screwHead(r){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(r,r,r*0.5,16),chromeM())); const sl=new THREE.Mesh(new THREE.BoxGeometry(r*1.6,r*0.2,r*0.25),new THREE.MeshBasicMaterial({color:0x222222})); sl.position.y=r*0.26; g.add(sl); return g; }
+/* ป้ายข้อความ Sprite (ขนาดคงที่บนจอ) — kp-real3d ใส่กรอบทึบ/ยกป้ายยาวให้เอง */
+function labelSprite(fn,w,h,sc){ const t=canvasTex(w,h,fn);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,sizeAttenuation:false,depthWrite:false}));
+  s.scale.set(sc*w/h,sc,1); s.userData.tex=t; s.renderOrder=5; return s; }
+function tagFn(txt,bg,fg,font){ return (g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle=bg; g.beginPath(); if(g.roundRect) g.roundRect(4,4,w-8,h-8,h*0.22); else g.rect(4,4,w-8,h-8); g.fill();
+  g.fillStyle=fg; g.font=font||('bold '+Math.round(h*0.5)+'px '+F3); g.textAlign='center'; g.textBaseline='middle'; g.fillText(typeof txt==='function'?txt():txt,w/2,h/2+2); }; }
+const nameTag=(txt,col,w)=>labelSprite(tagFn(txt,'rgba(15,23,42,.9)',col||'#e2e8f0'),w||Math.max(220,(typeof txt==='string'?txt.length:16)*20),72,0.03);
+function disposeTree(o){ o.traverse(c=>{ if(c.geometry) c.geometry.dispose(); const ms=c.material?(Array.isArray(c.material)?c.material:[c.material]):[]; ms.forEach(m=>{ if(m.map&&m.map!==P.patTex&&m.map!==P.rulTex&&m.map!==P.meterTex) m.map.dispose(); m.dispose(); }); }); }
 
-  // Background
-  ctx.fillStyle = '#050810';
-  ctx.fillRect(0, 0, W, H);
+/* ── ลวดลายบนฉาก: cache ของแต่ละการทดลอง (สูตรเดียวกับภาพ 2D เดิม · เรียงจาก +y (บน/ขวา) → −y) ── */
+function screenL_m(){ return curExp==='A'?screenDistA:curExp==='B'?screenDistB:curExp==='D'?screenDistD:screenDistC; }
+function gratingViewHalf_m(){ const d_m=getGratingD(), sp=getActiveSpectrum();
+  const minLam=sp?Math.min(...sp.map(s=>s.nm))*1e-9:(whiteLightC?415e-9:lambdaCm());
+  const maxLam=sp?Math.max(...sp.map(s=>s.nm))*1e-9:(whiteLightC?700e-9:lambdaCm());
+  const nMax=Math.floor(d_m/minLam), lamRef=whiteLightC?maxLam:lambdaCm();
+  return Math.max(0.1, lamRef*1.0/d_m*Math.min(nMax,6)*1.2); }
+function viewHalfCm(){ return curExp==='A'?0.3:(curExp==='C'?gratingViewHalf_m()*100:15); }   /* A: ±3 mm · B, สลิตคู่: ±15 cm · เกรตติง: ตามลำดับที่เห็น */
+function curPattern(){ return curExp==='A'?cacheA:curExp==='B'?cacheB:curExp==='D'?cacheD:cacheC; }
+function ensurePattern(){ const n=NPAT;
+  if(curExp==='A'){ if(!cacheA) cacheA=computeKnifeEdgePattern(n,3,screenDistA,bladePos); return cacheA; }
+  if(curExp==='B'){ if(!cacheB){ const a_m=slitWidth*1e-3, lam=lambdaBm(), vh=0.15; cacheB=[];
+      for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); cacheB.push({y:y_m*100, I:singleSlitIntensity(y_m,a_m,screenDistB,lam)}); } } return cacheB; }
+  if(curExp==='D'){ if(!cacheD){ const d_m=slitSepD*1e-3, a_m=slitWidthD*1e-3, lam=lambdaDm(), vh=0.15; cacheD=[];
+      for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); cacheD.push({y:y_m*100, I:doubleSlitIntensity(y_m,d_m,a_m,screenDistD,lam)}); } } return cacheD; }
+  if(!cacheC){ const d_m=getGratingD(), vh=gratingViewHalf_m(), sp=getActiveSpectrum(); cacheC=[];
+    if(whiteLightC&&sp){ const N=30;   /* หลายความยาวคลื่นพร้อมกัน (แสงขาว / He / Na) */
+      for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); let rS=0,gS=0,bS=0,tot=0;
+        sp.forEach(sc=>{ const spacing=sc.nm*1e-9*screenDistC/d_m; if(spacing<1e-10) return; const ph=Math.PI*y_m/spacing; let I;
+          if(Math.abs(Math.sin(ph))<1e-8) I=1; else { const s=Math.sin(N*ph)/(N*Math.sin(ph)); I=s*s; } I=Math.min(1,I); rS+=sc.r*I; gS+=sc.g*I; bS+=sc.b*I; tot+=I; });
+        cacheC.push({y:y_m*100, I:tot/sp.length, r:Math.min(255,rS*1.8), g:Math.min(255,gS*1.8), b:Math.min(255,bS*1.8)}); }
+    } else { const lam=lambdaCm(), spacing=lam*screenDistC/d_m, N=30;
+      for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); let I=0;
+        if(spacing>1e-8){ const ph=Math.PI*y_m/spacing; if(Math.abs(Math.sin(ph))<1e-8) I=1; else { const s=Math.sin(N*ph)/(N*Math.sin(ph)); I=s*s; } }
+        cacheC.push({y:y_m*100, I:Math.min(1,I)}); } } }
+  return cacheC; }
+function probeOff(){ return curExp==='C'&&gratingLightSource==='white'; }   /* แสงขาว: ไม่มีการวัด (เหมือน 2D) */
+function probeZ(){ const h=viewHalfCm(); return h-2*h*probeY; }
+function setProbeZ(z){ const h=viewHalfCm(); probeY=clampN((h-z)/(2*h),0,1); }
+function patColor(){ if(curExp==='A') return {r:255,g:40,b:20}; if(curExp==='B') return wavelengthToRGB(randomLambdaB); if(curExp==='D') return wavelengthToRGB(randomLambdaD); return whiteLightC?null:wavelengthToRGB(randomLambdaC); }
+const PAT_H=64, PAT_BASE=[24,25,29];
+function paintPattern(cache){ const S=P.pat, d=S.img.data, W=S.c.width, n=cache.length, col=patColor(), cr=S.cr;
+  for(let j=0;j<W;j++){ const p=cache[Math.round((1-j/(W-1))*(n-1))]; let r,g,b;   /* คอลัมน์ซ้าย = −y (ปลาย cache) */
+    if(col){ const I=clampN(p.I,0,1), core=I>0.6?(I-0.6)*150:0; r=col.r*I+core; g=col.g*I+core; b=col.b*I+core; } else { r=p.r; g=p.g; b=p.b; }
+    cr[j*3]=r; cr[j*3+1]=g; cr[j*3+2]=b; }
+  for(let row=0;row<PAT_H;row++){ const v=S.v[row];
+    for(let j=0,o=row*W*4;j<W;j++,o+=4){ const r=PAT_BASE[0]+cr[j*3]*v, g=PAT_BASE[1]+cr[j*3+1]*v, b=PAT_BASE[2]+cr[j*3+2]*v; d[o]=r>255?255:r; d[o+1]=g>255?255:g; d[o+2]=b>255?255:b; d[o+3]=255; } }
+  S.g.putImageData(S.img,0,0); P.patTex.needsUpdate=true; }
 
-  // Optical table line
-  ctx.strokeStyle = '#1e3a5f';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
-  ctx.setLineDash([]);
+/* ── สเกลพิมพ์บนฉาก (ใต้ลวดลาย): A = mm ขีดเล็ก 0.1 mm (มีเครื่องหมาย ±) · อื่น ๆ = cm ขีดเล็ก 1 mm ── */
+function drawRuler3(g,w,h){ const R=P.rul||{half:15,mm:false}, half=R.half, A=R.mm;
+  g.fillStyle=A?'#0f1115':'#e8e5dc'; g.fillRect(0,0,w,h); const ink=A?'#e2e8f0':'#1f2937'; g.strokeStyle=ink; g.fillStyle=ink; g.textAlign='center'; g.textBaseline='alphabetic';
+  const ppc=w/(2*half), X=c=>(c+half)*ppc;
+  if(A){ for(let k=-30;k<=30;k++){ const c=k/100, L2=k%10===0?h*0.46:k%5===0?h*0.32:h*0.2; g.lineWidth=k%10===0?3:1.6; g.beginPath(); g.moveTo(X(c),0); g.lineTo(X(c),L2); g.stroke();
+      if(k%10===0){ g.font='bold '+Math.round(h*0.3)+'px "Share Tech Mono",monospace'; g.fillText((k>0?'+':'')+k/10,X(c),h*0.84); } }
+    g.textAlign='right'; g.font='bold '+Math.round(h*0.22)+'px '+F3; g.fillText('mm',w-6,h*0.84); return; }
+  const pmm=ppc/10, step=pmm>=2.5?1:5, lab=ppc>=34?1:ppc>=8?5:10;
+  for(let mm=-Math.floor(half*10/step)*step;mm<=half*10;mm+=step){ const c=mm/10, L2=mm%100===0?h*0.5:mm%10===0?h*0.36:mm%5===0?h*0.24:h*0.14; g.lineWidth=mm%10===0?2.4:1.2; g.beginPath(); g.moveTo(X(c),0); g.lineTo(X(c),L2); g.stroke();
+    if(mm%10===0&&(mm/10)%lab===0){ g.font=(mm===0?'bold ':'')+Math.round(h*(mm%50===0?0.3:0.24))+'px "Share Tech Mono",monospace'; g.fillText(String(Math.abs(mm/10)),X(c),h*0.86); } }
+  g.textAlign='right'; g.font='bold '+Math.round(h*0.2)+'px '+F3; g.fillText('cm',w-6,h*0.86); }
 
-  if (curExp === 'A') drawExpA(W, H, laserX, elemX, screenX, graphX, graphW, margin);
-  else if (curExp === 'B') drawExpB(W, H, laserX, elemX, screenX, graphX, graphW, margin);
-  else if (curExp === 'D') drawExpD(W, H, laserX, elemX, screenX, graphX, graphW, margin);
-  else drawExpC(W, H, laserX, elemX, screenX, graphX, graphW, margin);
+/* ── จอแสดงผลมิเตอร์วัดแสง (อ่านค่าที่หัววัด) ── */
+function drawMeter(g,w,h){ const r=P.reading;
+  g.fillStyle='#d9dde3'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(0,0,0,.25)'; g.lineWidth=4; g.strokeRect(6,6,w-12,h-12);
+  g.fillStyle='#1e293b'; g.font='bold 30px "Share Tech Mono",monospace'; g.textAlign='left'; g.textBaseline='alphabetic'; g.fillText('KP-LX  PHOTOMETER',24,46);
+  g.fillStyle='#0b1a12'; g.fillRect(24,64,w-48,h-130); g.strokeStyle='#475569'; g.lineWidth=5; g.strokeRect(24,64,w-48,h-130);
+  if(!r){ g.fillStyle='#4ade80'; g.font='bold 40px '+F3; g.textAlign='center'; g.fillText('— ไม่มีการวัด —',w/2,h/2+4); return; }
+  g.fillStyle='#86efac'; g.font='bold 24px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText(r.iu==='a.u.'?'INTENSITY (a.u.)':'INTENSITY  I/I0',40,100);
+  g.fillStyle='#4ade80'; g.font='bold 104px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(r.I.toFixed(2),w-44,196);
+  g.fillStyle='#1e293b'; g.font='bold 30px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText('y = '+r.y.toFixed(2)+' '+r.unit,30,h-26);
+  g.textAlign='right'; g.font='bold 22px '+F3; g.fillText('หัววัด (เส้นเขียว)',w-30,h-28); }
+/* ── ป้ายข้างเลเซอร์ ── */
+function drawLaserPlate(g,w,h){ const A=curExp==='A';
+  g.fillStyle='#f2c230'; g.fillRect(0,0,w,h); g.fillStyle='#16181c'; g.fillRect(8,8,w-16,h-16);
+  g.fillStyle='#f2c230'; g.font='800 46px Arial'; g.textAlign='left'; g.textBaseline='alphabetic'; g.fillText(A?'⚠ He-Ne LASER':'⚠ LASER (λ สุ่ม)',30,72);
+  g.font='600 30px "Share Tech Mono",monospace'; g.fillStyle='#e8edf5'; g.fillText(A?'λ 632.8 nm  ·  < 1 mW  ·  CLASS 2':'λ = ??? nm  ·  < 1 mW  ·  CLASS 2',30,128);
+  g.fillStyle='#9fb0c8'; g.font='600 22px Arial'; g.fillText('AVOID EXPOSURE – LASER RADIATION EMITTED FROM APERTURE',30,176); }
 
-  updateReadout();
+/* ═══ สร้างฉาก ═══ */
+function carrier(x,w){ const g=new THREE.Group(); g.position.x=x; const c=rbox(w,1.4,7,0.3,anoM()); c.position.y=2.2; g.add(c);
+  const kb=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,1.2,20),enamel(0x15171b,0.42,0.3)); kb.rotation.x=Math.PI/2; kb.position.set(0,2.2,4.1); g.add(kb);
+  const sc=screwHead(0.25); sc.position.set(w/2-0.8,2.92,2.4); g.add(sc); scene.add(g); return g; }
+function postRod(x,y0,y1,r){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,y1-y0,24),chromeM(0xd2d6dc)); m.position.set(x,(y0+y1)/2,0); scene.add(m); return m; }
+function buildBench(){
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.7)); const d1=new THREE.DirectionalLight(0xffffff,0.5); d1.position.set(60,120,80); scene.add(d1);
+  /* พื้นโต๊ะ (kp-real3d เปลี่ยนเป็นลายไม้) */
+  const table=new THREE.Mesh(new THREE.PlaneGeometry(380,280),new THREE.MeshStandardMaterial({color:0x1b2230,roughness:.95})); table.rotation.x=-Math.PI/2; table.position.set(110,0,0); scene.add(table);
+  /* รางแสงอะลูมิเนียมมีสเกล + ขารองปลายราง */
+  { const RX0=LASER_X-36, RX1=4, RL=RX1-RX0, RC=(RX0+RX1)/2;
+    const prof=rbox(RL,1.6,6,0.3,new THREE.MeshStandardMaterial({color:0x8d939b,metalness:.9,roughness:.55})); prof.position.set(RC,0.8,0); scene.add(prof);
+    const groove=new THREE.Mesh(new THREE.BoxGeometry(RL-0.4,0.1,1.2),new THREE.MeshStandardMaterial({color:0x24272d,roughness:.6})); groove.position.set(RC,1.62,0); scene.add(groove);
+    const scl=new THREE.Mesh(new THREE.PlaneGeometry(RL-1,1.4),new THREE.MeshStandardMaterial({roughness:.85,color:0xb8bcc2,map:canvasTex(2048,64,(q,w)=>{ q.fillStyle='#e9ecef'; q.fillRect(0,0,w,64); q.fillStyle='#1d2129'; const n=RL-1; for(let c=0;c<=n;c++){ const x=c/n*w; q.fillRect(x-1.5,0,3,c%10===0?40:c%5===0?28:16); } q.font='700 22px Arial'; q.textAlign='center'; for(let c=0;c<=n;c+=10) q.fillText(String(c),c/n*w+14,60); })}));
+    scl.rotation.x=-Math.PI/2; scl.position.set(RC,1.62,2.2); scene.add(scl);
+    [RX0+1.5,RX1-1.5].forEach(x=>{ const ft=rbox(3,1.2,9,0.3,enamel(0x15171b,0.42,0.3)); ft.position.set(x,0.6,0); scene.add(ft); }); }
+  /* เลเซอร์ He-Ne: หลอดทรงกระบอก + ฝาโครเมียม + ป้ายเตือน + ไฟสถานะ + แท่นรูปตัว V 2 ตัว + สายไฟ */
+  { const g=new THREE.Group(); scene.add(g); P.laserG=g; const LEN=28, R=2.0, cx=LASER_X-LEN/2;
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(R,R,LEN-1.6,48),enamel(0x2a2f3a,0.36,0.6)); body.rotation.z=Math.PI/2; body.position.set(cx,BH,0); g.add(body);
+    [LASER_X-0.4,LASER_X-LEN+0.4].forEach(x=>{ const c=new THREE.Mesh(new THREE.CylinderGeometry(R*1.04,R*1.04,0.8,48),chromeM()); c.rotation.z=Math.PI/2; c.position.set(x,BH,0); g.add(c); });
+    const nose=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.9,1.0,32),chromeM(0xb8bec8)); nose.rotation.z=Math.PI/2; nose.position.set(LASER_X+0.5,BH,0); g.add(nose);
+    const lens=new THREE.Mesh(new THREE.CircleGeometry(0.42,24),new THREE.MeshPhysicalMaterial({color:0x220608,roughness:.05,metalness:.2,clearcoat:1})); lens.rotation.y=Math.PI/2; lens.position.set(LASER_X+1.02,BH,0); g.add(lens);
+    P.laserTex=canvasTex(780,216,drawLaserPlate);
+    const plate=new THREE.Mesh(new THREE.PlaneGeometry(13,3.6),new THREE.MeshStandardMaterial({map:P.laserTex,roughness:.5})); plate.position.set(cx,BH,R+0.02); g.add(plate);
+    const led=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,8),new THREE.MeshBasicMaterial({color:0x33ee66})); led.position.set(LASER_X-LEN+3,BH+R-0.05,0.9); g.add(led);
+    [LASER_X-LEN+6,LASER_X-6].forEach(x=>{ const sad=rbox(3,1.6,4.6,0.3,anoM()); sad.position.set(x,BH-R-0.4,0); g.add(sad);
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(R+0.12,0.2,10,40,Math.PI),chromeM()); ring.rotation.y=Math.PI/2; ring.position.set(x,BH,0); g.add(ring);
+      carrier(x,6); postRod(x,2.9,BH-R-1.2,0.6); });
+    scene.add(glossTube([[LASER_X-LEN-0.4,BH,0],[LASER_X-LEN-2.4,BH-1,0.4],[LASER_X-LEN-4,4,2],[LASER_X-LEN-6,0.3,5],[LASER_X-LEN-18,0.3,14]],0.25,0x15171b));
+    const t=nameTag('เลเซอร์ (He-Ne)','#fecaca'); t.position.set(cx,BH+R+3.5,0); g.add(t); P.laserTag=t; }
+  /* หลอดไฟ (แสงขาว / He / Na — เฉพาะเกรตติง): กล่องโคมมีรูแสง + เลนส์รวมแสง */
+  { const g=new THREE.Group(); g.visible=false; scene.add(g); P.lampG=g;
+    const box=rbox(10,8,8,0.6,enamel(0x2b3442,0.42,0.4)); box.position.set(LASER_X-6,BH,0); g.add(box);
+    for(let i=0;i<5;i++){ const fin=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.9,7.6),chromeM(0x9aa3ad)); fin.position.set(LASER_X-9+i*1.5,BH+4.4,0); g.add(fin); }
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,2.4,32),chromeM()); tube.rotation.z=Math.PI/2; tube.position.set(LASER_X+0.6,BH,0); g.add(tube);
+    P.lampGlow=new THREE.Mesh(new THREE.CircleGeometry(1.0,32),new THREE.MeshBasicMaterial({color:0xfff7d6})); P.lampGlow.rotation.y=Math.PI/2; P.lampGlow.position.set(LASER_X+1.82,BH,0); g.add(P.lampGlow);
+    P.lampTxt='หลอดไฟ'; P.lampTag=labelSprite(tagFn(()=>P.lampTxt,'rgba(15,23,42,.9)','#fef3c7'),360,72,0.03); P.lampTag.position.set(LASER_X-6,BH+7,0); g.add(P.lampTag); }
+  /* ลำแสงเลเซอร์ → แผ่นสลิต · ลำแสงกลาง → ฉาก · แผ่นแสงกระจาย (พัด) · เส้นลำแสงไปแต่ละลำดับ (เกรตติง) */
+  const bm=()=>new THREE.MeshBasicMaterial({color:0xff3333,transparent:true,opacity:.6,depthWrite:false});
+  P.beam=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,1,8),bm()); P.beam.rotation.z=Math.PI/2; P.beam.scale.y=-LASER_X-1; P.beam.position.set((LASER_X+1)/2,BH,0); scene.add(P.beam);
+  P.beam2=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1,8),bm()); P.beam2.rotation.z=Math.PI/2; P.beam2.material.opacity=.28; scene.add(P.beam2);
+  { const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
+    P.fan=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xff3333,transparent:true,opacity:.07,side:THREE.DoubleSide,depthWrite:false})); P.fan.frustumCulled=false; P.fan.renderOrder=3; scene.add(P.fan); }
+  P.rays=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xff4444,transparent:true,opacity:.35})); P.rays.frustumCulled=false; scene.add(P.rays);
+  /* หน้าคลื่นที่แผ่ออกจากใบมีด/สลิต (เมื่อกด ▶ เริ่ม เหมือนภาพ 2D) */
+  P.waves=[]; for(let i=0;i<6;i++){ const m=new THREE.Mesh(new THREE.RingGeometry(0.985,1,72,1,-1,2),new THREE.MeshBasicMaterial({color:0xff5533,transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false})); m.rotation.x=-Math.PI/2; m.visible=false; m.renderOrder=3; scene.add(m); P.waves.push(m); }
+  /* แท่นที่ x = 0: แท่นเลื่อน + เสา + ชุดยึดอุปกรณ์ */
+  carrier(0,6); postRod(0,2.9,BH-3.4,0.5);
+  P.slideG=new THREE.Group(); scene.add(P.slideG);   /* แผ่นสลิต/เกรตติง (สร้างใหม่เมื่อค่าเปลี่ยน) */
+  /* ใบมีด (การทดลอง A): บล็อกยึด + สกรูไมโครมิเตอร์ + ใบมีดโครเมียมขอบคม เลื่อนตาม bladePos */
+  { const g=new THREE.Group(); scene.add(g); P.bladeG=g;
+    const blk=rbox(1.6,6.4,2.2,0.3,anoM()); blk.position.set(0,BH-0.4,-7.1); g.add(blk);
+    const knob=ribKnob(0.9,1.2,0x1d4ed8); knob.rotation.x=Math.PI/2; knob.position.set(0,BH,-8.9); g.add(knob); P.bladeKnob=knob;
+    const sh=new THREE.Shape(); sh.moveTo(-6,-1.5); sh.lineTo(0,-1.5); sh.lineTo(0,1.5); sh.lineTo(-6,1.5); sh.lineTo(-6,-1.5);
+    const bg=new THREE.ExtrudeGeometry(sh,{depth:0.04,bevelEnabled:false}); bg.translate(0,0,-0.02);
+    const blade=new THREE.Mesh(bg,new THREE.MeshStandardMaterial({color:0xe5e9ee,metalness:1,roughness:.12,side:THREE.DoubleSide})); blade.rotation.y=-Math.PI/2;   /* แกน x ของรูป → +z ของโลก (ใบมีดอยู่ฝั่ง −y ของขอบ = ฝั่งเงา) */ P.blade=blade; g.add(blade);
+    const hole=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.6,2.2),new THREE.MeshBasicMaterial({color:0x0a0b0d})); P.bladeHole=hole; g.add(hole);
+    P.bladeTxt=''; P.bladeTag=labelSprite(tagFn(()=>P.bladeTxt,'rgba(15,23,42,.9)','#fdba74'),420,72,0.03); P.bladeTag.position.set(0,BH+5,-3); g.add(P.bladeTag); }
+  P.elemTxt=''; P.elemTag=labelSprite(tagFn(()=>P.elemTxt,'rgba(15,23,42,.9)','#e2e8f0'),520,72,0.03); P.elemTag.position.set(0,BH+5.5,0); scene.add(P.elemTag);
+  /* ตลับเมตรบนโต๊ะ: 0 ที่แผ่นสลิต/ใบมีด */
+  { const tape=new THREE.Mesh(new THREE.PlaneGeometry(TAPE_L,2.2),new THREE.MeshBasicMaterial({map:canvasTex(4096,128,(g,w,h)=>{ const k=w/TAPE_L; g.fillStyle='#facc15'; g.fillRect(0,0,w,h); g.strokeStyle='#1f2937'; g.fillStyle='#1f2937'; g.textAlign='center';
+      for(let cm=0;cm<=TAPE_L;cm++){ const x=cm*k, L2=cm%10===0?56:cm%5===0?38:20; g.lineWidth=cm%10===0?3:1.5; g.beginPath(); g.moveTo(x,0); g.lineTo(x,L2); g.stroke(); if(cm%10===0&&cm>0&&cm<TAPE_L){ g.font='bold 34px "Share Tech Mono",monospace'; g.fillText(cm,x,L2+36); } } })}));
+    tape.rotation.x=-Math.PI/2; tape.position.set(TAPE_L/2,0.02,4); scene.add(tape);
+    const cs=rbox(6,6,6,1.2,enamel(0x1f2937,0.4,0.5)); cs.position.set(TAPE_L+3.5,3,4); scene.add(cs);
+    const t=nameTag('ตลับเมตร (0 = ที่สลิต)','#fde68a'); t.position.set(30,2,9); scene.add(t); }
+  P.Ltxt=''; P.Ltag=labelSprite(tagFn(()=>P.Ltxt,'rgba(6,24,18,.92)','#34d399','bold 40px "Share Tech Mono",monospace'),300,72,0.032); P.Ltag.userData.kpLabel=false; scene.add(P.Ltag);
+  /* ฉาก (สร้างใหม่เมื่อช่วงที่เห็นเปลี่ยน) */
+  P.scr=new THREE.Group(); scene.add(P.scr);
+  { const c=document.createElement('canvas'); c.width=NPAT; c.height=PAT_H; const g=c.getContext('2d');
+    const v=new Float32Array(PAT_H); for(let r=0;r<PAT_H;r++){ const q=(r+0.5)/PAT_H*2-1; v[r]=Math.exp(-Math.pow(Math.abs(q)/0.62,6)); }   /* ขอบบน-ล่างนุ่ม (ลำแสงขยาย) */
+    const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter; tex.generateMipmaps=false; if(renderer&&'outputEncoding' in renderer) tex.encoding=renderer.outputEncoding;
+    P.patTex=tex; P.pat={c,g,img:g.createImageData(NPAT,PAT_H),v,cr:new Float32Array(NPAT*3)}; }
+  P.rulTex=canvasTex(LOW3?2048:4096,160,drawRuler3);
+  P.meterTex=canvasTex(640,320,drawMeter);
+}
+/* ฉาก + สเกล + มิเตอร์ + หัววัด ตามช่วง ±half ของการทดลองนี้ */
+function buildScreen(){
+  while(P.scr.children.length){ const o=P.scr.children[0]; P.scr.remove(o); disposeTree(o); }
+  const A=curExp==='A', half=viewHalfCm(), ZW=2*half, ZH=A?0.5:(curExp==='C'?clampN(ZW*0.04,3.5,6):3.5), RH=A?0.32:(curExp==='C'?3:2.4), pad=A?0.12:1.2;
+  const BW=Math.max(ZW+2*pad,A?8:20); let top=BH+ZH/2+pad, bot=BH-ZH/2-pad*0.5-RH-pad; if(A){ top=Math.max(top,BH+3); bot=Math.min(bot,BH-3); }
+  const rulC=BH-ZH/2-pad*0.5-RH/2, s=A?0.05:clampN(ZW/30,0.8,3);
+  P.geo={A,half,ZW,ZH,RH,pad,BW,top,bot,rulC,s};
+  const root=new THREE.Group(); P.scr.add(root);
+  const back=rbox(0.6,top-bot,BW,0.25,new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.85,roughness:.35})); back.position.set(0.4,(top+bot)/2,0); root.add(back);
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(BW-0.2,top-bot-0.2),new THREE.MeshStandardMaterial({color:A?0x111317:0x34373d,roughness:.95})); face.rotation.y=-Math.PI/2; face.position.set(0.09,(top+bot)/2,0); root.add(face);
+  const zone=new THREE.Mesh(new THREE.PlaneGeometry(ZW,ZH),new THREE.MeshBasicMaterial({map:P.patTex})); zone.rotation.y=-Math.PI/2; zone.position.set(0.05,BH,0); root.add(zone); P.zone=zone;
+  P.rul={half,mm:A}; redrawTex(P.rulTex);
+  const rul=new THREE.Mesh(new THREE.PlaneGeometry(ZW,RH),new THREE.MeshBasicMaterial({map:P.rulTex})); rul.rotation.y=-Math.PI/2; rul.position.set(0.05,rulC,0); root.add(rul);
+  const sr=A?0.14:0.2; [[top-0.5,-BW/2+0.5],[top-0.5,BW/2-0.5],[bot+0.5,-BW/2+0.5],[bot+0.5,BW/2-0.5]].forEach(([y,z])=>{ const sc=screwHead(sr); sc.rotation.z=Math.PI/2; sc.position.set(0.06,y,z); root.add(sc); });
+  /* ขาตั้ง 2 ข้าง */
+  const lz=BW/2-Math.min(8,BW*0.25); [-lz,lz].forEach(z=>{ const leg=rbox(14,1.2,3,0.3,anoM()); leg.position.set(0.35,0.6,z); root.add(leg); const hh=bot-1.2+0.2; const up=rbox(1.4,hh,2.2,0.2,anoM()); up.position.set(0.35,1.2+hh/2-0.1,z); root.add(up);
+    [-6,6].forEach(dx=>{ const f=rubberFoot(0.7,0.3); f.position.set(0.35+dx,0.15,z); root.add(f); }); });
+  /* หัววัด: เส้นเล็งสีเขียวบนฉาก + ลูกศรชี้สเกล + ตัวเลื่อนบนขอบบนฉาก (ลากเพื่อเลื่อน) */
+  const pr=new THREE.Group(); root.add(pr); P.probe=pr; const gm=new THREE.MeshBasicMaterial({color:0x34d399,transparent:true,opacity:.9,depthWrite:false});
+  const hl=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(ZW/900,A?0.003:0.035),top-rulC+RH/2-pad*0.4),gm); hl.rotation.y=-Math.PI/2; hl.position.set(0.02,(top-pad*0.4+rulC-RH/2)/2,0); hl.renderOrder=6; pr.add(hl);
+  const tri=new THREE.Shape(); tri.moveTo(0,0); tri.lineTo(-0.45*s,-0.7*s); tri.lineTo(0.45*s,-0.7*s); tri.lineTo(0,0);
+  const tm=new THREE.Mesh(new THREE.ShapeGeometry(tri),new THREE.MeshBasicMaterial({color:0x10b981,side:THREE.DoubleSide})); tm.rotation.y=-Math.PI/2; tm.position.set(0.015,rulC-RH/2+0.02,0); pr.add(tm);
+  const car=rbox(1.4*s,1.1*s,1.6*s,0.3*s,enamel(0x10b981,0.35,0.6)); car.position.set(-0.2*s,top+0.55*s,0); pr.add(car);
+  const pin=new THREE.Mesh(new THREE.BoxGeometry(0.1*s,0.9*s,0.08*s),new THREE.MeshBasicMaterial({color:0x064e3b})); pin.position.set(-0.95*s,top-0.1*s,0); pr.add(pin);
+  /* มิเตอร์วัดแสงบนโต๊ะหน้าฉาก + สาย */
+  const zm=Math.min(BW/2,22)+4, mx=-16;
+  const mb=rbox(6,6.4,11,0.6,enamel(0x2b3442,0.42,0.4)); mb.position.set(mx,3.7,zm); root.add(mb);
+  [[-2,-4.5],[-2,4.5],[2,-4.5],[2,4.5]].forEach(([dx,dz])=>{ const f=rubberFoot(0.5,0.5); f.position.set(mx+dx,0.25,zm+dz); root.add(f); });
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(10,5),new THREE.MeshStandardMaterial({map:P.meterTex,roughness:.55,emissive:0xffffff,emissiveMap:P.meterTex,emissiveIntensity:0.35})); panel.rotation.y=-Math.PI/2; panel.position.set(mx-3.04,3.7,zm); root.add(panel);
+  root.add(glossTube([[mx+3,3,zm-2],[mx+6,0.4,zm-3],[-3,0.4,Math.min(BW/2,lz+3)],[0.6,bot+0.4,Math.min(BW/2-0.6,lz+2)]],0.2,0x111827));
+  const mt=nameTag('มิเตอร์วัดแสง','#bbf7d0'); mt.position.set(mx,9.5,zm); root.add(mt);
+  const st=nameTag(A?'มิเตอร์: ช่องรับแสงกว้าง ±3 mm (ขนาดจริง)':'ฉากรับภาพ','#e2e8f0',A?560:220); st.position.set(0,top+3.2,0); root.add(st);
+}
+/* แผ่นสลิต / เกรตติง (B · สลิตคู่ · เกรตติง) — ช่องเปิดขนาดจริง (เห็นชัดเมื่อซูม) */
+function buildSlide(){
+  while(P.slideG.children.length){ const o=P.slideG.children[0]; P.slideG.remove(o); disposeTree(o); }
+  if(curExp==='A') return;
+  const g=P.slideG, an=anoM();
+  const slide=rbox(0.3,6,8,0.12,an); slide.position.set(0,BH,0); g.add(slide);
+  [-4.15,4.15].forEach(z=>{ const cl=new THREE.Mesh(new THREE.BoxGeometry(0.5,6.4,0.4),new THREE.MeshStandardMaterial({color:0xaeb4bd,metalness:.9,roughness:.3})); cl.position.set(0,BH,z); g.add(cl); });
+  [[BH+2.4,-3.3],[BH+2.4,3.3],[BH-2.4,-3.3],[BH-2.4,3.3]].forEach(([y,z])=>{ const sc=screwHead(0.18); sc.rotation.z=Math.PI/2; sc.position.set(-0.16,y,z); g.add(sc); });
+  const op=new THREE.MeshBasicMaterial({color:0xcfe0ff});
+  const win=new THREE.Mesh(new THREE.PlaneGeometry(curExp==='C'?3:1.0,curExp==='C'?3:1.6),new THREE.MeshBasicMaterial(curExp==='C'?{map:canvasTex(512,512,(q,w,h)=>{ q.fillStyle='#9fb6c9'; q.fillRect(0,0,w,h); q.strokeStyle='rgba(30,41,59,.55)'; q.lineWidth=1; for(let x=0;x<w;x+=3){ q.beginPath(); q.moveTo(x+0.5,0); q.lineTo(x+0.5,h); q.stroke(); } })}:{color:0x0a0b0d}));
+  win.rotation.y=-Math.PI/2; win.position.set(-0.16,BH,0); g.add(win);
+  if(curExp==='B'){ const w=Math.max(slitWidth*0.1,0.012), m=new THREE.Mesh(new THREE.PlaneGeometry(w,1.3),op); m.rotation.y=-Math.PI/2; m.position.set(-0.17,BH,0); g.add(m); }
+  if(curExp==='D'){ const w=Math.max(slitWidthD*0.1,0.006), d=slitSepD*0.1; [-d/2,d/2].forEach(z=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,1.3),op); m.rotation.y=-Math.PI/2; m.position.set(-0.17,BH,z); g.add(m); }); }
 }
 
-/* ===== DRAW EXP A: KNIFE EDGE ===== */
-function drawExpA(W, H, laserX, elemX, screenX, graphX, graphW, margin) {
-  const cy = H / 2;
-  const beamR = H * 0.006; // beam radius on canvas
-
-  // Laser
-  drawLaser(laserX, cy, W);
-
-  // Blade position: bladePos mm from center, blade comes from BOTTOM
-  const scale = H * 0.3;
-  const bladeTipY = cy + bladePos * scale * 0.1;
-
-  // Blade (from bottom up)
-  ctx.fillStyle = '#555';
-  ctx.fillRect(elemX - 4, bladeTipY, 8, H - bladeTipY);
-  ctx.fillStyle = '#888';
-  ctx.fillRect(elemX - 2, bladeTipY - 2, 4, 4);
-
-  // Label
-  ctx.fillStyle = var_accent();
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('ใบมีด', elemX, Math.min(bladeTipY + 16, H - 4));
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText(`${bladePos.toFixed(2)} mm`, elemX, Math.max(bladeTipY - 12, 14));
-
-  // Beam from laser to blade
-  // Beam from laser to blade
-  const blocked = bladePos > 0;
-  if (!blocked || bladeTipY > cy + beamR) {
-    ctx.strokeStyle = 'rgba(255,50,30,0.8)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(laserX + 30, cy); ctx.lineTo(elemX - 6, cy); ctx.stroke();
-  }
-
-  // Diffracted light from blade tip (bottom)
-  if (blocked) {
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = '#ff3020';
-    ctx.beginPath();
-    ctx.moveTo(elemX + 4, bladeTipY);
-    ctx.lineTo(screenX, margin);
-    ctx.lineTo(screenX, H - margin);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  } else {
-    ctx.strokeStyle = 'rgba(255,50,30,0.6)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(elemX + 4, cy); ctx.lineTo(screenX, cy); ctx.stroke();
-  }
-
-  // Wavefronts animation (from blade tip)
-  if (isPlaying) {
-    const nWaves = 8;
-    for (let i = 0; i < nWaves; i++) {
-      const phase = (t * 2 + i / nWaves) % 1;
-      const wx = elemX + 4 + (screenX - elemX - 4) * phase;
-      ctx.strokeStyle = `rgba(255,80,40,${0.3 * (1 - phase)})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(elemX + 4, bladeTipY, wx - elemX - 4, -Math.PI / 2, Math.PI / 2);
-      ctx.stroke();
-    }
-  }
-
-  // Screen with pattern (realistic like Exp B)
-  const screenSW = 22;
-  const patternH = H - 2 * margin;
-  const halfRange = 3; // mm
-
-  ctx.fillStyle = '#0a0a12';
-  ctx.fillRect(screenX - screenSW / 2, margin, screenSW, patternH);
-
-  // Pattern changes with blade position — always recompute
-  cacheA = computeKnifeEdgePattern(Math.round(patternH), halfRange, screenDistA, bladePos);
-
-  // Draw pattern strip with glow (like Exp B)
-  const rowH = Math.ceil(patternH / cacheA.length) + 1;
-  for (let i = 0; i < cacheA.length; i++) {
-    const py = margin + (i / (cacheA.length - 1)) * patternH;
-    const I = Math.min(1, Math.max(0, cacheA[i].I));
-    const r = Math.round(255 * I), g = Math.round(40 * I), b = Math.round(20 * I);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
-    ctx.fillRect(screenX - screenSW / 2, py, screenSW, rowH);
-    if (I > 0.08) {
-      const glW = screenSW * 0.4 + I * screenSW * 1.2;
-      const gg = ctx.createRadialGradient(screenX, py, 0, screenX, py, glW);
-      gg.addColorStop(0, `rgba(255,60,30,${I * 0.3})`);
-      gg.addColorStop(1, 'rgba(255,0,0,0)');
-      ctx.fillStyle = gg;
-      ctx.fillRect(screenX - glW, py - 1, glW * 2, 3);
-    }
-  }
-  ctx.strokeStyle = '#2a3a55'; ctx.lineWidth = 1;
-  ctx.strokeRect(screenX - screenSW / 2, margin, screenSW, patternH);
-
-  // Intensity profile graph
-  drawIntensityGraph(graphX, margin, graphW, patternH, cacheA, 'y (mm)', 'I/I₀');
-
-  // Probe marker
-  drawProbe(screenX, margin, patternH);
-
-  // Labels
-  drawDistanceLabel(elemX, screenX, H - margin + 20, `L = ${screenDistA.toFixed(2)} m`);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('Laser He-Ne', laserX + 15, cy - 20);
-  ctx.fillText('Screen', screenX, margin - 6);
+function init3D(){
+  const cv=gid('simCanvas'); if(typeof THREE==='undefined'){ gid('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(100,BH,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ renderer=null; gid('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้ — ใช้โหมด <b>⚡ อัตโนมัติ</b> หรือกรอกค่าในตารางเอง'; gid('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.05,6000);
+  buildBench();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ (P.texs||[]).forEach(redrawTex); }).catch(()=>{});
+  setupPointer(cv); resize3D(); update3D(); setView('screen');
+  if(window.ResizeObserver) new ResizeObserver(()=>resizeCanvas()).observe(gid('view3d'));
+  (function rl(){ requestAnimationFrame(rl); if(!gid('tab-sim').classList.contains('active')) return; update3D(); renderer.render(scene,camera); })();
 }
 
-/* ===== DRAW EXP B: SINGLE SLIT ===== */
-function drawExpB(W, H, laserX, elemX, screenX_unused, graphX_unused, graphW_unused, margin) {
-  const cy = H / 2;
-  const beamColor = wavelengthToRGB(randomLambdaB);
-  const beamCSS = `rgb(${beamColor.r},${beamColor.g},${beamColor.b})`;
-  const beamCSS_a = (a) => `rgba(${beamColor.r},${beamColor.g},${beamColor.b},${a})`;
-
-  // === Dynamic screen position based on L ===
-  // L range: 0.3–2.5 m → screen moves from ~35% to ~65% of canvas width
-  const Lmin = 0.3, Lmax = 2.5;
-  const screenFracMin = 0.36, screenFracMax = 0.64;
-  const screenFrac = screenFracMin + (screenDistB - Lmin) / (Lmax - Lmin) * (screenFracMax - screenFracMin);
-  const screenX = W * screenFrac;
-  const graphX = screenX + W * 0.06;
-  const graphW = W * 0.95 - graphX;
-
-  // Laser — draw with correct color
-  drawLaserColor(laserX, cy, W, beamColor);
-
-  // Slit: two blades with gap — visual size proportional to slit width
-  const slitHalfPx = Math.max(2, H * 0.002 * slitWidth * 10);
-  ctx.fillStyle = '#555';
-  ctx.fillRect(elemX - 4, 0, 8, cy - slitHalfPx);
-  ctx.fillRect(elemX - 4, cy + slitHalfPx, 8, H - cy - slitHalfPx);
-  ctx.fillStyle = '#888';
-  ctx.fillRect(elemX - 2, cy - slitHalfPx - 2, 4, 4);
-  ctx.fillRect(elemX - 2, cy + slitHalfPx - 2, 4, 4);
-
-  ctx.fillStyle = var_accent();
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('ช่องเดี่ยว', elemX, cy - slitHalfPx - 14);
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText(`a = ${(slitWidth * 1000).toFixed(0)} μm`, elemX, cy + slitHalfPx + 18);
-
-  // Beam (colored by wavelength)
-  ctx.strokeStyle = beamCSS_a(0.85);
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(laserX + 30, cy); ctx.lineTo(elemX - 6, cy); ctx.stroke();
-
-  // === Diffraction fan angle based on physics ===
-  // 1st minimum angle: sin(θ₁) = λ/a
-  const a_m = slitWidth * 1e-3;
-  const lamB = lambdaBm();
-  const sinTh1 = Math.min(1, lamB / a_m);
-  const th1 = Math.asin(sinTh1);
-  // Fan spans ~3× the 1st minimum angle (to show side lobes), capped
-  const fanAngle = Math.min(th1 * 3, Math.PI * 0.45);
-  const fanTopY = cy - (screenX - elemX) * Math.tan(fanAngle);
-  const fanBotY = cy + (screenX - elemX) * Math.tan(fanAngle);
-
-  // Draw the diffraction fan with clipping
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, margin, W, H - 2 * margin);
-  ctx.clip();
-
-  ctx.globalAlpha = 0.1;
-  ctx.fillStyle = beamCSS;
-  ctx.beginPath();
-  ctx.moveTo(elemX + 4, cy - slitHalfPx);
-  ctx.lineTo(screenX, Math.max(margin - 20, fanTopY));
-  ctx.lineTo(screenX, Math.min(H - margin + 20, fanBotY));
-  ctx.lineTo(elemX + 4, cy + slitHalfPx);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // Wavefronts
-  if (isPlaying) {
-    const nWaves = 6;
-    for (let i = 0; i < nWaves; i++) {
-      const phase = (t * 1.5 + i / nWaves) % 1;
-      const r = (screenX - elemX - 4) * phase;
-      ctx.strokeStyle = beamCSS_a(0.25 * (1 - phase));
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(elemX + 4, cy, r, -fanAngle * 0.8, fanAngle * 0.8);
-      ctx.stroke();
-    }
-  }
-
-  // === Screen with physically-scaled diffraction pattern ===
-  const screenW = 22;
-  const patternH = H - 2 * margin;
-
-  // Fixed physical view range on screen (what part of the screen we "see")
-  // Use a range that shows enough detail: ±15 cm view window
-  const viewHalf_m = 0.15; // ±15 cm visible on screen
-  const firstMin_m = lamB * screenDistB / a_m;
-
-  // Compute pattern: sample intensity at each pixel row's physical position
-  const nRows = Math.round(patternH);
-  const r = beamColor.r, g = beamColor.g, b = beamColor.b;
-
-  // Screen background (dark)
-  ctx.fillStyle = '#0a0a12';
-  ctx.fillRect(screenX - screenW / 2, margin, screenW, patternH);
-
-  // Cache intensity for probe reading
-  if (!cacheB) {
-    cacheB = [];
-    for (let i = 0; i < nRows; i++) {
-      const frac = i / (nRows - 1); // 0=top, 1=bottom
-      const y_m = viewHalf_m - 2 * viewHalf_m * frac; // top=+, center=0, bottom=-
-      const I = singleSlitIntensity(y_m, a_m, screenDistB, lamB);
-      cacheB.push({ y: y_m * 100, I }); // y in cm (+ above center)
-    }
-  }
-
-  // Draw pattern rows
-  const rowH = Math.ceil(patternH / nRows) + 1;
-  for (let i = 0; i < cacheB.length; i++) {
-    const py = margin + (i / (cacheB.length - 1)) * patternH;
-    const I = Math.min(1, Math.max(0, cacheB[i].I));
-    // Core strip color
-    ctx.fillStyle = `rgba(${Math.round(r * I)},${Math.round(g * I)},${Math.round(b * I)},1)`;
-    ctx.fillRect(screenX - screenW / 2, py, screenW, rowH);
-    // Glow for bright areas
-    if (I > 0.08) {
-      const glowW = screenW * 0.4 + I * screenW * 1.5;
-      const grad = ctx.createRadialGradient(screenX, py, 0, screenX, py, glowW);
-      grad.addColorStop(0, `rgba(${r},${g},${b},${I * 0.3})`);
-      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(screenX - glowW, py - 1, glowW * 2, 3);
-    }
-  }
-  // Screen border
-  ctx.strokeStyle = '#2a3a55';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(screenX - screenW / 2, margin, screenW, patternH);
-
-  // Graph
-  drawIntensityGraph(graphX, margin, graphW, patternH, cacheB, 'y (cm)', 'I/I₀');
-
-  // Probe
-  drawProbe(screenX, margin, patternH);
-
-  // Labels
-  drawDistanceLabel(elemX, screenX, H - margin + 20, `L = ${screenDistB.toFixed(2)} m`);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('Laser', laserX + 15, cy - 20);
-  ctx.fillText('Screen', screenX, margin - 6);
+/* ── อัปเดตฉากจาก state เดิมของแลปทุกเฟรม (สร้าง texture ใหม่เฉพาะเมื่อ cache/ค่าเปลี่ยน) ── */
+function update3D(){ if(!scene) return;
+  const ex=curExp, cache=ensurePattern(), half=viewHalfCm(), Lcm=screenL_m()*100; P.Lcm=Lcm;
+  const gk=ex+'|'+half.toFixed(4); if(gk!==P.geoKey){ P.geoKey=gk; buildScreen(); P.texCache=null; }
+  const ck=ex+'|'+gratingLightSource+'|'+randomLambdaB+'|'+randomLambdaD+'|'+randomLambdaC;
+  if(cache!==P.texCache||ck!==P.colKey){ P.texCache=cache; P.colKey=ck; paintPattern(cache); }
+  const sk=ex+'|'+slitWidth+'|'+slitSepD+'|'+slitWidthD+'|'+gratingGrooves; if(sk!==P.slideKey){ P.slideKey=sk; buildSlide(); }
+  P.scr.position.x=Lcm;
+  /* แหล่งกำเนิด + สีลำแสง */
+  const lamp=ex==='C'&&gratingLightSource!=='laser'; P.laserG.visible=!lamp; P.lampG.visible=lamp;
+  const bc=ex==='A'?{r:255,g:48,b:32}:ex==='B'?wavelengthToRGB(randomLambdaB):ex==='D'?wavelengthToRGB(randomLambdaD):(lamp?(gratingLightSource==='sodium'?{r:255,g:200,b:0}:gratingLightSource==='helium'?{r:255,g:200,b:100}:{r:255,g:255,b:240}):wavelengthToRGB(randomLambdaC));
+  [P.beam,P.beam2,P.fan,P.rays].forEach(o=>o.material.color.setRGB(bc.r/255,bc.g/255,bc.b/255)); P.waves.forEach(w=>w.material.color.setRGB(bc.r/255,bc.g/255,bc.b/255));
+  if(lamp){ P.lampGlow.material.color.setRGB(bc.r/255,bc.g/255,bc.b/255); const t=gratingLightSource==='white'?'หลอดไฟแสงขาว':gratingLightSource==='helium'?'หลอดฮีเลียม (He)':'หลอดโซเดียม (Na)'; if(t!==P.lampTxt){ P.lampTxt=t; redrawTex(P.lampTag.userData.tex); } }
+  if(ex!==P.plateKey){ P.plateKey=ex; redrawTex(P.laserTex); }
+  /* อุปกรณ์ที่ x = 0 */
+  const A=ex==='A', ze=-bladePos/10; P.bladeG.visible=A; P.slideG.visible=!A;
+  if(A){ P.blade.position.set(0,BH,ze); P.bladeHole.position.set(0.02,BH+0.6,ze-4); P.bladeKnob.rotation.y=bladePos*Math.PI*2; }
+  const et=A?'':ex==='B'?'สลิตเดี่ยว a = '+(slitWidth*1000).toFixed(0)+' μm':ex==='D'?'สลิตคู่ d = '+(slitSepD*1000).toFixed(0)+' μm · a = '+(slitWidthD*1000).toFixed(0)+' μm':'เกรตติง '+gratingGrooves+' เส้น/cm';
+  if(et!==P.elemTxt){ P.elemTxt=et; redrawTex(P.elemTag.userData.tex); } P.elemTag.visible=!A;
+  const bt='ใบมีด: ขอบห่างแนวลำแสง '+bladePos.toFixed(2)+' mm'; if(A&&bt!==P.bladeTxt){ P.bladeTxt=bt; redrawTex(P.bladeTag.userData.tex); }
+  /* ลำแสงหลังอุปกรณ์ · พัดแสง · เส้นลำดับของเกรตติง */
+  P.beam2.scale.y=Math.max(0.1,Lcm-0.2); P.beam2.position.set(Lcm/2,BH,0);
+  let fan=0; const zf=f=>Math.min(half,Lcm*Math.tan(f));
+  if(ex==='B'){ fan=Math.min(Math.asin(Math.min(1,lambdaBm()/(slitWidth*1e-3)))*3,Math.PI*0.45); }
+  else if(ex==='D'){ fan=Math.min(Math.asin(Math.min(1,lambdaDm()/(slitWidthD*1e-3)))*3,Math.PI*0.4); }
+  else if(A) fan=Math.atan(half/Math.max(1,Lcm));
+  const fa=P.fan.geometry.attributes.position.array, z0=A?ze:0, w0=ex==='D'?slitSepD*0.05:0.02, zz=fan>0?zf(fan):0;
+  [0.05,BH,z0-w0, Lcm-0.1,BH,-zz, Lcm-0.1,BH,zz, 0.05,BH,z0-w0, Lcm-0.1,BH,zz, 0.05,BH,z0+w0].forEach((v,i)=>fa[i]=v); P.fan.geometry.attributes.position.needsUpdate=true; P.fan.visible=fan>0;
+  const rk=ex==='C'?[gratingGrooves,gratingLightSource,randomLambdaC,Lcm.toFixed(2)].join('|'):'-';
+  if(rk!==P.rayKey){ P.rayKey=rk; const pts=[];
+    if(ex==='C'){ const d_m=getGratingD(), sp=getActiveSpectrum(), lamR=(whiteLightC&&sp)?sp[Math.floor(sp.length/2)].nm*1e-9:lambdaCm(), nMax=Math.floor(d_m/((sp?Math.min(...sp.map(s=>s.nm)):(whiteLightC?415:randomLambdaC))*1e-9));
+      for(let m=-nMax;m<=nMax;m++){ const y=m*lamR*screenDistC/d_m*100; if(Math.abs(y)>half) continue; pts.push(new THREE.Vector3(0.05,BH,0),new THREE.Vector3(Lcm-0.1,BH,y)); } }
+    P.rays.geometry.dispose(); P.rays.geometry=new THREE.BufferGeometry().setFromPoints(pts); }
+  P.rays.visible=ex==='C';
+  /* หน้าคลื่น (เฉพาะตอนเล่น) */
+  const wa=A?Math.PI/2:ex==='C'?Math.PI*0.45:Math.max(0.05,fan*0.8);
+  P.waves.forEach((w,i)=>{ w.visible=isPlaying; if(!isPlaying) return; const ph=((t*(A?2:ex==='C'?1.2:1.5))+i/6)%1, r=Math.max(0.1,(Lcm-0.5)*ph);
+    w.scale.set(r,r,1); w.position.set(0.05,BH+0.01,z0); w.material.opacity=0.3*(1-ph);
+    if(w.userData.wa!==wa){ w.userData.wa=wa; w.geometry.dispose(); w.geometry=new THREE.RingGeometry(0.985,1,72,1,-wa,2*wa); } });
+  /* หัววัด + มิเตอร์ */
+  const off=probeOff(); P.probe.visible=!off; if(!off) P.probe.position.z=probeZ();
+  const mk=P.reading?[P.reading.y.toFixed(2),P.reading.I.toFixed(2),P.reading.unit,P.reading.iu].join('|'):'-'; if(mk!==P.meterKey){ P.meterKey=mk; redrawTex(P.meterTex); }
+  const lt='L = '+(Lcm/100).toFixed(2)+' m'; if(lt!==P.Ltxt){ P.Ltxt=lt; redrawTex(P.Ltag.userData.tex); } P.Ltag.position.set(Lcm/2,BH+7,0);
+  /* มุมมองที่ตามฉาก/หัววัด (ไม่ขยับระหว่างลาก) */
+  if(ex!==P.viewExp){ P.viewExp=ex; if(curView!=='free') setView(curView); }
+  else if((curView==='screen'||curView==='read')&&!HD.on) applyView(curView);
+  camCompute();
 }
 
-/* ===== DRAW EXP C: GRATING (angle-based: beams fixed, screen moves, y changes) ===== */
-function drawExpC(W, H, laserX, elemX, screenX_unused, graphX_unused, graphW_unused, margin) {
-  const cy = H / 2;
-  const d_m = getGratingD();
-
-  // n_max based on shortest λ in active spectrum
-  const activeSpec = getActiveSpectrum();
-  const minLam = activeSpec ? Math.min(...activeSpec.map(s=>s.nm)) * 1e-9 : (whiteLightC ? 415e-9 : lambdaCm());
-  const maxLam = activeSpec ? Math.max(...activeSpec.map(s=>s.nm)) * 1e-9 : (whiteLightC ? 700e-9 : lambdaCm());
-  const nMax = Math.floor(d_m / minLam);
-
-  // Screen moves with L
-  const Lmin = 0.3, Lmax = 2.5;
-  const screenFrac = 0.36 + (screenDistC - Lmin) / (Lmax - Lmin) * 0.28;
-  const screenX = W * screenFrac;
-  const screenW = 22;
-  const patternH = H - 2 * margin;
-
-  // FIXED view range
-  const lamRef = whiteLightC ? maxLam : lambdaCm();
-  const y1_at_1m = lamRef * 1.0 / d_m;
-  const viewHalf_m = Math.max(0.1, y1_at_1m * Math.min(nMax, 6) * 1.2);
-  const pxPerM = (patternH / 2) / viewHalf_m;
-
-  // Helper: physical y (meters) → pixel
-  function yToPy(y_m) { return cy - y_m * pxPerM; }
-
-  // Colors
-  const lamC = whiteLightC ? 550e-9 : lambdaCm();
-  const beamColor = whiteLightC ? {r:255,g:255,b:240} : wavelengthToRGB(randomLambdaC);
-  const beamCSS_a = (a) => `rgba(${beamColor.r},${beamColor.g},${beamColor.b},${a})`;
-
-  // Source
-  if (whiteLightC) {
-    const lw=50, lh=20;
-    const gr=ctx.createLinearGradient(laserX,cy-lh/2,laserX,cy+lh/2);
-    gr.addColorStop(0,'#444'); gr.addColorStop(0.5,'#666'); gr.addColorStop(1,'#444');
-    ctx.fillStyle=gr; roundRect(ctx,laserX-5,cy-lh/2,lw,lh,4); ctx.fill();
-    ctx.strokeStyle='#777'; ctx.lineWidth=1; roundRect(ctx,laserX-5,cy-lh/2,lw,lh,4); ctx.stroke();
-    // Source glow color based on type
-    const srcGlow = gratingLightSource==='sodium' ? {r:255,g:200,b:0} :
-                    gratingLightSource==='helium' ? {r:255,g:200,b:100} : {r:255,g:255,b:240};
-    ctx.fillStyle=`rgb(${srcGlow.r},${srcGlow.g},${srcGlow.b})`; ctx.beginPath(); ctx.arc(laserX+lw-5,cy,3,0,Math.PI*2); ctx.fill();
-    const gl=ctx.createRadialGradient(laserX+lw-5,cy,0,laserX+lw-5,cy,12);
-    gl.addColorStop(0,`rgba(${srcGlow.r},${srcGlow.g},${srcGlow.b},0.5)`); gl.addColorStop(1,`rgba(${srcGlow.r},${srcGlow.g},${srcGlow.b},0)`);
-    ctx.fillStyle=gl; ctx.fillRect(laserX+lw-17,cy-12,24,24);
-    ctx.strokeStyle=`rgba(${srcGlow.r},${srcGlow.g},${srcGlow.b},0.6)`; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(laserX+30,cy); ctx.lineTo(elemX-4,cy); ctx.stroke();
-  } else {
-    drawLaserColor(laserX, cy, W, beamColor);
-    ctx.strokeStyle=beamCSS_a(0.85); ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(laserX+30,cy); ctx.lineTo(elemX-4,cy); ctx.stroke();
-  }
-
-  // Grating element
-  ctx.fillStyle='#444'; ctx.fillRect(elemX-3,margin-10,6,patternH+20);
-  ctx.strokeStyle='#777'; ctx.lineWidth=1;
-  for(let i=0;i<=15;i++){const gy=margin+patternH*i/15; ctx.beginPath(); ctx.moveTo(elemX-4,gy); ctx.lineTo(elemX+4,gy); ctx.stroke();}
-  ctx.fillStyle=var_accent(); ctx.font='11px IBM Plex Sans Thai'; ctx.textAlign='center';
-  ctx.fillText('เกรตติง',elemX,margin-18);
-  ctx.fillStyle='#94a3b8'; ctx.fillText(`${gratingGrooves} gr/cm`,elemX,H-margin+28);
-
-  // Screen background
-  ctx.fillStyle='#0a0a12'; ctx.fillRect(screenX-screenW/2,margin,screenW,patternH);
-
-  const specColors = getActiveSpectrum();
-
-  if (whiteLightC && specColors) {
-    // === MULTI-λ MODE: same grating formula for all emission lines simultaneously ===
-    const nRows = Math.round(patternH);
-    const N = 30; // effective slits for peak sharpness
-
-    // For each pixel row, sum intensity from all 7 colors
-    for (let i = 0; i < nRows; i++) {
-      const y_m = viewHalf_m - 2 * viewHalf_m * i / (nRows - 1);
-      let rSum = 0, gSum = 0, bSum = 0;
-      specColors.forEach(sc => {
-        const spacing = sc.nm * 1e-9 * screenDistC / d_m; // y spacing for this λ
-        if (spacing < 1e-10) return;
-        const phase = Math.PI * y_m / spacing;
-        let I;
-        if (Math.abs(Math.sin(phase)) < 1e-8) I = 1;
-        else { const s = Math.sin(N * phase) / (N * Math.sin(phase)); I = s * s; }
-        I = Math.min(1, I);
-        rSum += sc.r * I;
-        gSum += sc.g * I;
-        bSum += sc.b * I;
-      });
-      // Boost colors: clamp each channel individually (don't normalize down)
-      const rf = Math.round(Math.min(255, rSum * 1.8));
-      const gf = Math.round(Math.min(255, gSum * 1.8));
-      const bf = Math.round(Math.min(255, bSum * 1.8));
-      const brightness = Math.max(rf, gf, bf) / 255;
-
-      const py = margin + (i / (nRows - 1)) * patternH;
-      ctx.fillStyle = `rgb(${rf},${gf},${bf})`;
-      ctx.fillRect(screenX - screenW / 2, py, screenW, Math.ceil(patternH / nRows) + 1);
-      // Strong glow for bright areas
-      if (brightness > 0.05) {
-        const glW = screenW * 0.5 + brightness * screenW * 1.5;
-        const gg = ctx.createRadialGradient(screenX, py, 0, screenX, py, glW);
-        gg.addColorStop(0, `rgba(${rf},${gf},${bf},${brightness * 0.5})`);
-        gg.addColorStop(1, `rgba(${rf},${gf},${bf},0)`);
-        ctx.fillStyle = gg;
-        ctx.fillRect(screenX - glW, py - 1, glW * 2, 3);
-      }
-    }
-
-    // Build cache for probe (sum of all λ intensities)
-    if (!cacheC) {
-      cacheC = [];
-      for (let i = 0; i < nRows; i++) {
-        const y_m = viewHalf_m - 2 * viewHalf_m * i / (nRows - 1);
-        let totalI = 0;
-        specColors.forEach(sc => {
-          const spacing = sc.nm * 1e-9 * screenDistC / d_m;
-          if (spacing < 1e-10) return;
-          const phase = Math.PI * y_m / spacing;
-          let I2;
-          if (Math.abs(Math.sin(phase)) < 1e-8) I2 = 1;
-          else { const s2 = Math.sin(N * phase) / (N * Math.sin(phase)); I2 = s2 * s2; }
-          totalI += Math.min(1, I2);
-        });
-        cacheC.push({ y: y_m * 100, I: totalI / specColors.length });
-      }
-    }
-
-    // Order labels
-    const midLam = specColors.length > 0 ? specColors[Math.floor(specColors.length/2)].nm * 1e-9 : 550e-9;
-    for (let m = -nMax; m <= nMax; m++) {
-      const y_m = m * midLam * screenDistC / d_m;
-      if (Math.abs(y_m) > viewHalf_m) continue;
-      const py = cy - y_m * pxPerM;
-      if (py < margin || py > margin + patternH) continue;
-      ctx.fillStyle = '#e2e8f0'; ctx.font = '10px Share Tech Mono'; ctx.textAlign = 'left';
-      ctx.fillText(`m=${m > 0 ? '+' : ''}${m}`, screenX + screenW / 2 + 4, py + 4);
-      ctx.strokeStyle = 'rgba(255,255,240,0.1)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(elemX + 4, cy); ctx.lineTo(screenX, py); ctx.stroke();
-    }
-  } else {
-    // === LASER MODE: y = m·λ·L/d, bands move with L (same as double slit) ===
-    const laserLam=lambdaCm();
-    const rc=beamColor.r, gc2=beamColor.g, bc=beamColor.b;
-    // Build cache for probe
-    if(!cacheC){
-      cacheC=[];
-      const nRows=Math.round(patternH);
-      for(let i=0;i<nRows;i++){
-        const y_m=viewHalf_m-2*viewHalf_m*i/(nRows-1);
-        // Grating intensity: sharp peaks at y=m·λ·L/d
-        const spacing=laserLam*screenDistC/d_m;
-        let I=0;
-        if(spacing>1e-8){
-          const phase=Math.PI*y_m/spacing;
-          const N=30;
-          if(Math.abs(Math.sin(phase))<1e-8) I=1;
-          else { const s=Math.sin(N*phase)/(N*Math.sin(phase)); I=s*s; }
-        }
-        cacheC.push({y:y_m*100,I:Math.min(1,I)});
-      }
-    }
-    // Draw pattern strip on screen (like double slit)
-    const rowH2 = Math.ceil(patternH / cacheC.length) + 1;
-    for(let i=0;i<cacheC.length;i++){
-      const py=margin+(i/(cacheC.length-1))*patternH;
-      const I=Math.min(1,Math.max(0,cacheC[i].I));
-      ctx.fillStyle=`rgba(${Math.round(rc*I)},${Math.round(gc2*I)},${Math.round(bc*I)},1)`;
-      ctx.fillRect(screenX-screenW/2,py,screenW,rowH2);
-      if(I>0.08){
-        const glW=screenW*0.4+I*screenW*1.2;
-        const gg2=ctx.createRadialGradient(screenX,py,0,screenX,py,glW);
-        gg2.addColorStop(0,`rgba(${rc},${gc2},${bc},${I*0.3})`);
-        gg2.addColorStop(1,`rgba(${rc},${gc2},${bc},0)`);
-        ctx.fillStyle=gg2; ctx.fillRect(screenX-glW,py-1,glW*2,3);
-      }
-    }
-    // Beam lines to orders
-    for(let m=-nMax;m<=nMax;m++){
-      const y_m=m*laserLam*screenDistC/d_m;
-      if(Math.abs(y_m)>viewHalf_m) continue;
-      const py=cy-y_m*pxPerM;
-      if(py<margin||py>margin+patternH) continue;
-      ctx.strokeStyle=beamCSS_a(m===0?0.4:0.15); ctx.lineWidth=m===0?2:1;
-      ctx.beginPath(); ctx.moveTo(elemX+4,cy); ctx.lineTo(screenX,py); ctx.stroke();
-    }
-  }
-
-  // Screen border
-  ctx.strokeStyle='#2a3a55'; ctx.lineWidth=1; ctx.strokeRect(screenX-screenW/2,margin,screenW,patternH);
-
-  // Intensity graph (same as B/D) — for laser mode only
-  if(!whiteLightC && cacheC){
-    const graphX2=screenX+W*0.06;
-    const graphW2=W*0.95-graphX2;
-    if(graphW2>40) drawIntensityGraph(graphX2,margin,graphW2,patternH,cacheC,'y (cm)','I/I₀');
-  }
-
-  // Probe (same as B/D)
-  if(gratingLightSource !== 'white') drawProbe(screenX,margin,patternH);
-
-  // Wavefronts
-  if(isPlaying){
-    for(let i=0;i<5;i++){
-      const phase=(t*1.2+i/5)%1,r2=(screenX-elemX-4)*phase;
-      ctx.strokeStyle=whiteLightC?`rgba(255,255,240,${0.1*(1-phase)})`:beamCSS_a(0.15*(1-phase));
-      ctx.lineWidth=1; ctx.beginPath(); ctx.arc(elemX+4,cy,r2,-Math.PI*0.45,Math.PI*0.45); ctx.stroke();
-    }
-  }
-
-  // Labels
-  drawDistanceLabel(elemX,screenX,H-margin+20,`L = ${screenDistC.toFixed(2)} m`);
-  ctx.fillStyle='#94a3b8'; ctx.font='10px IBM Plex Sans Thai'; ctx.textAlign='center';
-  const srcLabel = gratingLightSource==='laser'?'Laser':gratingLightSource==='white'?'White Light':gratingLightSource==='helium'?'He lamp':'Na lamp';
-  ctx.fillText(srcLabel,laserX+15,cy-20);
-  ctx.fillText('Screen',screenX,margin-6);
-}
-
-/* ===== DRAW EXP D: DOUBLE SLIT ===== */
-function drawExpD(W, H, laserX, elemX, screenX_unused, graphX_unused, graphW_unused, margin) {
-  const cy = H / 2;
-  const beamColor = wavelengthToRGB(randomLambdaD);
-  const beamCSS_a = (a) => `rgba(${beamColor.r},${beamColor.g},${beamColor.b},${a})`;
-
-  // Dynamic screen position based on L
-  const Lmin = 0.3, Lmax = 2.5;
-  const screenFrac = 0.36 + (screenDistD - Lmin) / (Lmax - Lmin) * 0.28;
-  const screenX = W * screenFrac;
-  const graphX = screenX + W * 0.06;
-  const graphW = W * 0.95 - graphX;
-
-  // Laser
-  drawLaserColor(laserX, cy, W, beamColor);
-
-  // Double slit: two narrow openings separated by d
-  const d_m = slitSepD * 1e-3, a_m = slitWidthD * 1e-3;
-  const gapPx = Math.max(6, H * 0.0015 * slitSepD * 10);
-  const slitPx = Math.max(2, H * 0.001 * slitWidthD * 10);
-  const slit1Y = cy - gapPx / 2;
-  const slit2Y = cy + gapPx / 2;
-
-  ctx.fillStyle = '#555';
-  ctx.fillRect(elemX - 4, 0, 8, slit1Y - slitPx);
-  ctx.fillRect(elemX - 4, slit1Y + slitPx, 8, slit2Y - slitPx - slit1Y - slitPx);
-  ctx.fillRect(elemX - 4, slit2Y + slitPx, 8, H - slit2Y - slitPx);
-  // Slit edges
-  ctx.fillStyle = '#888';
-  ctx.fillRect(elemX - 2, slit1Y - slitPx - 1, 4, 2);
-  ctx.fillRect(elemX - 2, slit1Y + slitPx - 1, 4, 2);
-  ctx.fillRect(elemX - 2, slit2Y - slitPx - 1, 4, 2);
-  ctx.fillRect(elemX - 2, slit2Y + slitPx - 1, 4, 2);
-
-  // Labels
-  ctx.fillStyle = var_accent();
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('สลิตคู่', elemX, slit1Y - slitPx - 14);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px Share Tech Mono';
-  ctx.fillText(`d=${(slitSepD*1000).toFixed(0)}μm`, elemX, slit2Y + slitPx + 16);
-  ctx.fillText(`a=${(slitWidthD*1000).toFixed(0)}μm`, elemX, slit2Y + slitPx + 28);
-
-  // Beam to slit
-  ctx.strokeStyle = beamCSS_a(0.85);
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(laserX + 30, cy); ctx.lineTo(elemX - 6, cy); ctx.stroke();
-
-  // Diffracted light from both slits
-  const lamD = lambdaDm();
-  const sinTh1 = Math.min(1, lamD / a_m);
-  const fanAngle = Math.min(Math.asin(sinTh1) * 3, Math.PI * 0.4);
-
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, margin, W, H - 2 * margin); ctx.clip();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = `rgb(${beamColor.r},${beamColor.g},${beamColor.b})`;
-  // Fan from slit 1
-  ctx.beginPath();
-  ctx.moveTo(elemX + 4, slit1Y);
-  ctx.lineTo(screenX, cy - (screenX - elemX) * Math.tan(fanAngle));
-  ctx.lineTo(screenX, cy + (screenX - elemX) * Math.tan(fanAngle));
-  ctx.closePath(); ctx.fill();
-  // Fan from slit 2
-  ctx.beginPath();
-  ctx.moveTo(elemX + 4, slit2Y);
-  ctx.lineTo(screenX, cy - (screenX - elemX) * Math.tan(fanAngle));
-  ctx.lineTo(screenX, cy + (screenX - elemX) * Math.tan(fanAngle));
-  ctx.closePath(); ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.restore();
-
-  // Wavefronts
-  if (isPlaying) {
-    [slit1Y, slit2Y].forEach(sy => {
-      for (let i = 0; i < 5; i++) {
-        const phase = (t * 1.5 + i / 5) % 1;
-        const r = (screenX - elemX - 4) * phase;
-        ctx.strokeStyle = beamCSS_a(0.2 * (1 - phase));
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(elemX + 4, sy, r, -fanAngle * 0.7, fanAngle * 0.7);
-        ctx.stroke();
-      }
-    });
-  }
-
-  // Screen with pattern
-  const screenW = 22;
-  const patternH = H - 2 * margin;
-  const viewHalf_m = 0.15;
-  const nRows = Math.round(patternH);
-  const rc = beamColor.r, gc = beamColor.g, bc = beamColor.b;
-
-  ctx.fillStyle = '#0a0a12';
-  ctx.fillRect(screenX - screenW / 2, margin, screenW, patternH);
-
-  if (!cacheD) {
-    cacheD = [];
-    for (let i = 0; i < nRows; i++) {
-      const y_m = viewHalf_m - 2 * viewHalf_m * i / (nRows - 1); // top=+, bottom=-
-      const I = doubleSlitIntensity(y_m, d_m, a_m, screenDistD, lamD);
-      cacheD.push({ y: y_m * 100, I });
-    }
-  }
-
-  const rowH = Math.ceil(patternH / nRows) + 1;
-  for (let i = 0; i < cacheD.length; i++) {
-    const py = margin + (i / (cacheD.length - 1)) * patternH;
-    const I = Math.min(1, Math.max(0, cacheD[i].I));
-    ctx.fillStyle = `rgba(${Math.round(rc*I)},${Math.round(gc*I)},${Math.round(bc*I)},1)`;
-    ctx.fillRect(screenX - screenW / 2, py, screenW, rowH);
-    if (I > 0.08) {
-      const glowW = screenW * 0.4 + I * screenW * 1.2;
-      const grad = ctx.createRadialGradient(screenX, py, 0, screenX, py, glowW);
-      grad.addColorStop(0, `rgba(${rc},${gc},${bc},${I * 0.3})`);
-      grad.addColorStop(1, `rgba(${rc},${gc},${bc},0)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(screenX - glowW, py - 1, glowW * 2, 3);
-    }
-  }
-  ctx.strokeStyle = '#2a3a55'; ctx.lineWidth = 1;
-  ctx.strokeRect(screenX - screenW / 2, margin, screenW, patternH);
-
-  // Graph
-  drawIntensityGraph(graphX, margin, graphW, patternH, cacheD, 'y (cm)', 'I/I₀');
-
-  // Probe
-  drawProbe(screenX, margin, patternH);
-
-  // Labels
-  drawDistanceLabel(elemX, screenX, H - margin + 20, `L = ${screenDistD.toFixed(2)} m`);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px IBM Plex Sans Thai';
-  ctx.textAlign = 'center';
-  ctx.fillText('Laser', laserX + 15, cy - 20);
-  ctx.fillText('Screen', screenX, margin - 6);
-}
-
-/* ===== DRAWING HELPERS ===== */
-function var_accent() { return '#fb923c'; }
-
-function drawLaser(x, cy, W) {
-  // Laser body
-  const lw = 50, lh = 20;
-  const grad = ctx.createLinearGradient(x, cy - lh / 2, x, cy + lh / 2);
-  grad.addColorStop(0, '#333');
-  grad.addColorStop(0.5, '#555');
-  grad.addColorStop(1, '#333');
-  ctx.fillStyle = grad;
-  roundRect(ctx, x - 5, cy - lh / 2, lw, lh, 4);
-  ctx.fill();
-  ctx.strokeStyle = '#666';
-  ctx.lineWidth = 1;
-  roundRect(ctx, x - 5, cy - lh / 2, lw, lh, 4);
-  ctx.stroke();
-
-  // Aperture
-  ctx.fillStyle = '#ff3020';
-  ctx.beginPath();
-  ctx.arc(x + lw - 5, cy, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Glow
-  const glow = ctx.createRadialGradient(x + lw - 5, cy, 0, x + lw - 5, cy, 15);
-  glow.addColorStop(0, 'rgba(255,48,32,0.4)');
-  glow.addColorStop(1, 'rgba(255,48,32,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(x + lw - 20, cy - 15, 30, 30);
-}
-
-function drawLaserColor(x, cy, W, color) {
-  const lw = 50, lh = 20;
-  const grad = ctx.createLinearGradient(x, cy - lh / 2, x, cy + lh / 2);
-  grad.addColorStop(0, '#333'); grad.addColorStop(0.5, '#555'); grad.addColorStop(1, '#333');
-  ctx.fillStyle = grad;
-  roundRect(ctx, x - 5, cy - lh / 2, lw, lh, 4); ctx.fill();
-  ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
-  roundRect(ctx, x - 5, cy - lh / 2, lw, lh, 4); ctx.stroke();
-  ctx.fillStyle = `rgb(${color.r},${color.g},${color.b})`;
-  ctx.beginPath(); ctx.arc(x + lw - 5, cy, 3, 0, Math.PI * 2); ctx.fill();
-  const glow = ctx.createRadialGradient(x + lw - 5, cy, 0, x + lw - 5, cy, 15);
-  glow.addColorStop(0, `rgba(${color.r},${color.g},${color.b},0.5)`);
-  glow.addColorStop(1, `rgba(${color.r},${color.g},${color.b},0)`);
-  ctx.fillStyle = glow;
-  ctx.fillRect(x + lw - 20, cy - 15, 30, 30);
-}
-
-function drawPatternStripColor(x, top, h, pattern, color) {
-  if (!pattern || !pattern.length) return;
-  const stripW = 6;
-  for (let i = 0; i < pattern.length; i++) {
-    const py = top + (i / (pattern.length - 1)) * h;
-    const I = Math.min(1, Math.max(0, pattern[i].I));
-    const r = Math.round(color.r * I);
-    const g = Math.round(color.g * I);
-    const b = Math.round(color.b * I);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
-    ctx.fillRect(x - stripW / 2, py, stripW, Math.ceil(h / pattern.length) + 1);
-  }
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function drawScreen(x, top, bottom, exp) {
-  ctx.fillStyle = '#1a2235';
-  ctx.fillRect(x - 2, top, 4, bottom - top);
-  ctx.strokeStyle = '#2a3a55';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x - 2, top, 4, bottom - top);
-}
-
-function drawPatternStrip(x, top, h, pattern) {
-  if (!pattern || !pattern.length) return;
-  const stripW = 6;
-  for (let i = 0; i < pattern.length; i++) {
-    const py = top + (i / (pattern.length - 1)) * h;
-    const I = Math.min(1, Math.max(0, pattern[i].I));
-    const r = Math.round(255 * I);
-    const g = Math.round(40 * I);
-    const b = Math.round(20 * I);
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
-    ctx.fillRect(x - stripW / 2, py, stripW, Math.ceil(h / pattern.length) + 1);
-  }
-}
-
-function drawIntensityGraph(gx, gy, gw, gh, pattern, xlabel, ylabel) {
-  if (!pattern || !pattern.length) return;
-
-  // Background
-  ctx.fillStyle = 'rgba(17,24,39,0.85)';
-  ctx.fillRect(gx, gy, gw, gh);
-  ctx.strokeStyle = '#1e3a5f';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(gx, gy, gw, gh);
-
-  // Find max I
-  let maxI = 0;
-  pattern.forEach(p => { if (p.I > maxI) maxI = p.I; });
-  if (maxI < 0.01) maxI = 1;
-
-  const pad = 8;
-  const plotX = gx + pad;
-  const plotW = gw - 2 * pad;
-  const plotY = gy + pad;
-  const plotH = gh - 2 * pad;
-
-  // Grid
-  ctx.strokeStyle = 'rgba(30,58,95,0.5)';
-  ctx.lineWidth = 0.5;
-  for (let i = 0; i <= 4; i++) {
-    const xx = plotX + plotW * i / 4;
-    ctx.beginPath(); ctx.moveTo(xx, plotY); ctx.lineTo(xx, plotY + plotH); ctx.stroke();
-  }
-
-  // Curve
-  ctx.strokeStyle = '#fb923c';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  for (let i = 0; i < pattern.length; i++) {
-    const px = plotX + (pattern[i].I / maxI) * plotW;
-    const py = plotY + (i / (pattern.length - 1)) * plotH;
-    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-
-  // Axis labels
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '9px Share Tech Mono';
-  ctx.textAlign = 'center';
-  ctx.fillText(ylabel || 'I', plotX + plotW / 2, gy + gh - 1);
-  ctx.fillText('0', plotX, gy + gh - 1);
-  ctx.fillText(maxI.toFixed(1), plotX + plotW, gy + gh - 1);
-
-  // Y-axis labels (positions)
-  if (pattern.length > 0) {
-    ctx.textAlign = 'right';
-    ctx.fillText(pattern[0].y.toFixed(1), gx - 2, plotY + 4);
-    ctx.fillText(pattern[pattern.length - 1].y.toFixed(1), gx - 2, plotY + plotH + 4);
-    ctx.save();
-    ctx.translate(gx - 8, plotY + plotH / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillText(xlabel || 'y', 0, 0);
-    ctx.restore();
-  }
-}
-
-function drawProbe(screenX, top, h) {
-  const py = top + probeY * h;
-  // Horizontal line
-  ctx.strokeStyle = '#34d399';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 2]);
-  ctx.beginPath(); ctx.moveTo(screenX - 20, py); ctx.lineTo(screenX + 20, py); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Triangle marker
-  ctx.fillStyle = '#34d399';
-  ctx.beginPath();
-  ctx.moveTo(screenX - 14, py);
-  ctx.lineTo(screenX - 20, py - 4);
-  ctx.lineTo(screenX - 20, py + 4);
-  ctx.closePath();
-  ctx.fill();
-
-  // Read intensity at probe
-  let pattern = null;
-  if (curExp === 'A') pattern = cacheA;
-  else if (curExp === 'B') pattern = cacheB;
-  else if (curExp === 'D') pattern = cacheD;
-  else if (curExp === 'C') pattern = cacheC;
-  if (pattern && pattern.length > 0) {
-    const idx = Math.round(probeY * (pattern.length - 1));
-    const pt = pattern[Math.max(0, Math.min(idx, pattern.length - 1))];
-    const info = document.getElementById('probeInfo');
-    info.style.display = '';
-    info.textContent = `📍 Position: ${pt.y.toFixed(2)} ${curExp === 'A' ? 'mm' : 'cm'} | Intensity: ${(pt.I * (curExp === 'B' ? 16 : 1)).toFixed(2)} ${curExp === 'B' ? 'a.u.' : 'I/I₀'}`;
-
-    // Auto-fill y value into manual input when dragging probe
-    const absY = Math.abs(pt.y).toFixed(2);
-    if (curExp === 'B') { const el = document.getElementById('mi-yB'); if (el) el.value = absY; }
-    else if (curExp === 'D') { const el = document.getElementById('mi-yD'); if (el) el.value = absY; }
-    else if (curExp === 'C' && gratingLightSource !== 'white') { const el = document.getElementById('mi-yC'); if (el) el.value = absY; }
-  }
-}
-
-function drawRuler(screenX, top, h, rangeCm) {
-  const rulerX = screenX + 24;
-  const nTicks = Math.min(20, Math.ceil(rangeCm));
-  const halfRange = rangeCm / 2;
-  const cy = top + h / 2;
-  const pxPerCm = h / rangeCm;
-
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(rulerX, top); ctx.lineTo(rulerX, top + h); ctx.stroke();
-
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '8px Share Tech Mono';
-  ctx.textAlign = 'left';
-
-  for (let cm = -Math.floor(halfRange); cm <= Math.floor(halfRange); cm += Math.max(1, Math.floor(halfRange / 10))) {
-    const py = cy - cm * pxPerCm;
-    if (py < top || py > top + h) continue;
-    const tickW = cm % 5 === 0 ? 6 : 3;
-    ctx.beginPath(); ctx.moveTo(rulerX, py); ctx.lineTo(rulerX + tickW, py); ctx.stroke();
-    if (cm % 5 === 0) ctx.fillText(`${cm}`, rulerX + 8, py + 3);
-  }
-  ctx.fillText('cm', rulerX + 2, top - 4);
-}
-
-function drawDistanceLabel(x1, x2, y, label) {
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x1, y - 3); ctx.lineTo(x1, y + 3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x2, y - 3); ctx.lineTo(x2, y + 3); ctx.stroke();
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px Share Tech Mono';
-  ctx.textAlign = 'center';
-  ctx.fillText(label, (x1 + x2) / 2, y - 5);
-}
-
-/* ===== MOUSE INTERACTION ===== */
-canvas.addEventListener('mousedown', (e) => {
-  if (curExp === 'C' && gratingLightSource === 'white') return;
-  const rect = canvas.getBoundingClientRect();
-  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-  const H = canvas.height;
-  const margin = H * 0.08;
-  const patternH = H - 2 * margin;
-  probeY = Math.max(0, Math.min(1, (my - margin) / patternH));
-  probeDragging = true;
-  draw();
-});
-
-canvas.addEventListener('mousemove', (e) => {
-  if (!probeDragging) return;
-  const rect = canvas.getBoundingClientRect();
-  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-  const H = canvas.height;
-  const margin = H * 0.08;
-  const patternH = H - 2 * margin;
-  probeY = Math.max(0, Math.min(1, (my - margin) / patternH));
-  if (!isPlaying) draw();
-});
-
-canvas.addEventListener('mouseup', () => { probeDragging = false; });
-canvas.addEventListener('mouseleave', () => { probeDragging = false; });
-
-// Touch support
-canvas.addEventListener('touchstart', (e) => {
-  if (curExp === 'C' && gratingLightSource === 'white') return;
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const my = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
-  const H = canvas.height;
-  const margin = H * 0.08;
-  const patternH = H - 2 * margin;
-  probeY = Math.max(0, Math.min(1, (my - margin) / patternH));
-  probeDragging = true;
-  draw();
-}, { passive: false });
-
-canvas.addEventListener('touchmove', (e) => {
-  if (!probeDragging) return;
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const my = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
-  const H = canvas.height;
-  const margin = H * 0.08;
-  const patternH = H - 2 * margin;
-  probeY = Math.max(0, Math.min(1, (my - margin) / patternH));
-  if (!isPlaying) draw();
-}, { passive: false });
-
-canvas.addEventListener('touchend', () => { probeDragging = false; });
+/* ── กล้อง / มุมมอง ── */
+function aspect3d(){ const el=gid('view3d'); return Math.max(0.4,(el&&el.clientWidth?el.clientWidth:800)/((el&&el.clientHeight)?el.clientHeight:420)); }
+const narrow=()=>aspect3d()<1.25;
+function fitDist(w,h){ return Math.max(h, w/aspect3d())/(2*Math.tan(36*Math.PI/360))*1.08; }
+function camCompute(){ const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg);
+  const nr=clampN(orbit.dist*0.01,0.01,4); if(Math.abs(camera.near-nr)>nr*0.25){ camera.near=nr; camera.updateProjectionMatrix(); } }   /* near ตามระยะกล้อง → ฉาก/ลวดลายที่ซ้อนกันบาง ๆ ไม่กะพริบ */
+const AZ_FRONT=-Math.PI/2+0.0001;   /* มองจากฝั่งเลเซอร์ไปทางฉาก (+z อยู่ขวา) */
+const VIEWS={
+  screen:()=>{ const G=P.geo||{BW:34,top:BH+4,bot:BH-6}; return {t:[P.Lcm,(G.top+G.bot)/2,0], d:fitDist(G.BW*1.06,(G.top-G.bot)*1.5), az:AZ_FRONT, el:0.04}; },
+  read:()=>{ const G=P.geo||{A:false,ZW:30,ZH:3.5,RH:2.4,pad:1.2,rulC:BH-4}, w=G.A?0.24:(curExp==='C'?clampN(G.ZW/10,6,16):6), y0=G.rulC-G.RH/2, y1=BH+G.ZH/2;
+    return {t:[P.Lcm,(y0+y1)/2,probeOff()?0:probeZ()], d:fitDist(w,(y1-y0)*1.25), az:AZ_FRONT, el:0.03}; },
+  elem:()=>({t:[0,BH,curExp==='A'?-1:0], d:curExp==='A'?9:11, az:-1.2, el:0.2}),
+  iso:()=>({t:[(LASER_X-34+P.Lcm)/2,BH-3,0], d:fitDist(P.Lcm-LASER_X+56,48), az:-0.95, el:0.32})
+};
+function applyView(vw){ const V=VIEWS[vw]; if(!V||!orbit.target) return; const o=V(), tt=o.t;
+  const up=narrow()&&(vw==='iso')?0.05*2*o.d*Math.tan(18*Math.PI/180):0;   /* จอแคบ: ปุ่มมุมมองอยู่ขอบบน */
+  orbit.target.set(tt[0],tt[1]+up,tt[2]); orbit.dist=o.d; orbit.az=o.az; orbit.el=o.el; }
+function resize3D(){ if(!renderer) return; const w=gid('view3d').clientWidth||800, h=gid('view3d').clientHeight||420; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ curView=VIEWS[vw]?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  applyView(curView); }
+
+/* ═══ แตะ/ลากหัววัดบนฉาก ═══
+   เมาส์: กดที่ฉาก = ย้ายหัววัดมาที่นั่นแล้วลากต่อได้ (เหมือน 2D) · กดนอกฉาก = หมุนภาพ
+   นิ้ว: แตะฉาก (ไม่ลาก) = ย้ายหัววัด · แตะค้างที่หัววัดแล้วลาก = เลื่อนละเอียด ¼ ของระยะนิ้ว (HD_FINE) · ลากที่อื่น = หมุนภาพ */
+const HD={on:false,z0:0,p0:0,f:1}, HD_FINE=0.25;
+let lastTouch=false, _pv=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  camera.updateMatrixWorld(); NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function scrHit(cx,cy){ const rc=setRay(cx,cy); if(!rc) return null; const o=RAY.ray.origin, d=RAY.ray.direction, X=P.Lcm+0.05;
+  if(o.x>=X||d.x<=1e-6) return null; const s=(X-o.x)/d.x; return {z:o.z+s*d.z, y:o.y+s*d.y, rc}; }
+function scr(x,y,z,rc){ if(!_pv) _pv=new THREE.Vector3(); _pv.set(x,y,z).project(camera); return [rc.left+(_pv.x*0.5+0.5)*rc.width, rc.top+(-_pv.y*0.5+0.5)*rc.height]; }
+function segDist(px,py,a,b){ const vx=b[0]-a[0], vy=b[1]-a[1], l2=vx*vx+vy*vy; let u=l2>0?((px-a[0])*vx+(py-a[1])*vy)/l2:0; u=clampN(u,0,1); return Math.hypot(px-a[0]-u*vx, py-a[1]-u*vy); }
+function pickAt(cx,cy){ if(!scene||!P.geo||probeOff()) return null; const h=scrHit(cx,cy); if(!h) return null; const G=P.geo, zp=probeZ();
+  const dd=segDist(cx,cy,scr(P.Lcm,G.rulC-G.RH/2,zp,h.rc),scr(P.Lcm,G.top+1.1*G.s,zp,h.rc));
+  if(dd<=(lastTouch?30:14)) return {k:0,z:h.z,y:h.y};
+  if(Math.abs(h.z)<=G.BW/2&&h.y>=G.bot&&h.y<=G.top+1.1*G.s) return {k:-1,z:h.z,y:h.y};
+  return null; }
+function hdStart(p,f){ HD.on=true; HD.z0=p.z; HD.p0=probeZ(); HD.f=f; probeDragging=true; }
+function hdMove(cx,cy){ if(!HD.on) return; const h=scrHit(cx,cy); if(!h) return; setProbeZ(HD.p0+(h.z-HD.z0)*HD.f); updateProbe(); drawProfile(); }
+function hdEnd(){ if(!HD.on) return; HD.on=false; probeDragging=false; draw(); }
+function placeAt(cx,cy){ const p=pickAt(cx,cy); if(!p) return; setProbeZ(p.z); draw(); }
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=gid('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML=panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=renderer?renderer.domElement:null; if(c) c.style.cursor=panMode?'move':''; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,sx:0,sy:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  const begin=(x,y,canPick,isPan)=>{ T.lx=T.sx=x; T.ly=T.sy=y;
+    if(canPick&&!isPan){ const p=pickAt(x,y);
+      if(p&&!lastTouch){ if(p.k<0) setProbeZ(p.z); hdStart(p,1); hdMove(x,y); T.mode='hand'; return; }
+      if(p&&p.k===0){ hdStart(p,HD_FINE); T.mode='hand'; return; } if(p){ T.mode='pend'; return; } }
+    T.mode=isPan?'pan':'rot'; };
+  const drag=(x,y,slop)=>{ if(T.mode==='hand'){ hdMove(x,y); return; }
+    if(T.mode==='pend'){ if(Math.hypot(x-T.sx,y-T.sy)<slop) return; T.mode='rot'; }
+    const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else if(T.mode==='rot') camRotate(dx,dy); };
+  const finish=()=>{ if(T.mode==='hand') hdEnd(); else if(T.mode==='pend') placeAt(T.sx,T.sy); T.mode=null; };
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); lastTouch=false; begin(e.clientX,e.clientY,e.button===0,e.button===1||e.button===2||e.shiftKey||panMode); cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; lastTouch=false; const p=panMode?null:pickAt(e.clientX,e.clientY); cv.style.cursor=p?(p.k===0?'ew-resize':'crosshair'):(panMode?'move':'grab'); });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ finish(); cv.style.cursor='grab'; return; } drag(e.clientX,e.clientY,5); });
+  window.addEventListener('mouseup',()=>{ if(T.mode&&T.mode!=='pinch') finish(); cv.style.cursor='grab'; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); lastTouch=true;
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t0=e.touches[0]; begin(t0.clientX,t0.clientY,true,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1&&T.mode&&T.mode!=='pinch'){ const t0=e.touches[0]; drag(t0.clientX,t0.clientY,9); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand'||T.mode==='pend') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='pinch') T.mode=null; else finish(); } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function freeView(){ if(curView!=='free'){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ freeView(); orbit.az-=dx*0.006; orbit.el=Math.max(-0.1,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ freeView(); orbit.dist=Math.max(0.25,Math.min(900,orbit.dist*f)); }
+function camPan(dx,dy){ freeView(); if(!orbit.target||!camera) return;
+  const k=orbit.dist*2*Math.tan(camera.fov*Math.PI/360)/((gid('view3d').clientHeight)||300), ca=Math.cos(orbit.az), sa=Math.sin(orbit.az), ce=Math.cos(orbit.el), se=Math.sin(orbit.el);
+  orbit.target.x+=(-dx*ca+dy*(-se*sa))*k; orbit.target.y+=dy*ce*k; orbit.target.z+=(dx*sa+dy*(-se*ca))*k; }
+/* ═══ END 3D VIEW ═══ */
+
+/* ── อ่านค่าที่หัววัด (เดิมอยู่ใน drawProbe ของภาพ 2D) — เติม y ลงช่องกรอกอัตโนมัติเหมือนเดิม ── */
+function updateProbe(){ const info=document.getElementById('probeInfo');
+  if(probeOff()){ if(info) info.style.display='none'; P.reading=null; return; }
+  const pattern=curPattern();
+  if(pattern&&pattern.length>0){ const idx=Math.round(probeY*(pattern.length-1)), pt=pattern[Math.max(0,Math.min(idx,pattern.length-1))];
+    const unit=curExp==='A'?'mm':'cm', Iv=pt.I*(curExp==='B'?16:1), iu=curExp==='B'?'a.u.':'I/I₀';
+    P.reading={y:pt.y,I:Iv,unit,iu};
+    if(info){ info.style.display=''; info.textContent=`📍 Position: ${pt.y.toFixed(2)} ${unit} | Intensity: ${Iv.toFixed(2)} ${iu}`; }
+    const absY=Math.abs(pt.y).toFixed(2);
+    if(curExp==='B'){ const el=document.getElementById('mi-yB'); if(el) el.value=absY; }
+    else if(curExp==='D'){ const el=document.getElementById('mi-yD'); if(el) el.value=absY; }
+    else if(curExp==='C'&&gratingLightSource!=='white'){ const el=document.getElementById('mi-yC'); if(el) el.value=absY; } } }
+/* ── กราฟความเข้มแสงบนฉาก (2D) — แกนนอน = ตำแหน่งบนฉาก (ซ้าย→ขวา ตรงกับภาพ 3D ที่มองจากฝั่งเลเซอร์) ── */
+function drawProfile(){ const c=document.getElementById('profCanvas'); if(!c) return; const W=c.clientWidth||600, H=c.clientHeight||150;
+  if(c.width!==W) c.width=W; if(c.height!==H) c.height=H; const g=c.getContext('2d');
+  g.fillStyle='#0b1220'; g.fillRect(0,0,W,H);
+  const pat=curPattern(), unit=curExp==='A'?'mm':'cm';
+  g.font='11px "IBM Plex Sans Thai",sans-serif'; g.fillStyle='#94a3b8'; g.textAlign='left'; g.textBaseline='alphabetic';
+  if(!pat||!pat.length||(curExp==='C'&&whiteLightC)){ g.textAlign='center'; g.fillText(curExp==='C'&&whiteLightC?'🌈 แหล่งกำเนิดหลายความยาวคลื่น — ดูสีของแต่ละลำดับบนฉาก (ไม่มีกราฟความเข้ม)':'—',W/2,H/2); return; }
+  const L=44, R=14, T=18, B=24, pw=W-L-R, ph=H-T-B, n=pat.length; let maxI=0; pat.forEach(p=>{ if(p.I>maxI) maxI=p.I; }); if(maxI<0.01) maxI=1;
+  g.fillText('ความเข้มแสงบนฉาก (I/I₀) ตามตำแหน่ง y ('+unit+')',L,12);
+  g.strokeStyle='rgba(30,58,95,.7)'; g.lineWidth=1; for(let i=0;i<=8;i++){ const x=L+pw*i/8; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); }
+  g.beginPath(); g.moveTo(L,T+ph); g.lineTo(L+pw,T+ph); g.stroke();
+  g.strokeStyle='#fb923c'; g.lineWidth=1.5; g.beginPath();
+  for(let x=0;x<=pw;x++){ const k=Math.round((1-x/pw)*(n-1)), y=T+ph-(pat[k].I/maxI)*ph; if(x===0) g.moveTo(L+x,y); else g.lineTo(L+x,y); } g.stroke();
+  g.fillStyle='#94a3b8'; g.font='10px "Share Tech Mono",monospace'; g.textAlign='center';
+  for(let i=0;i<=4;i++){ const k=Math.round((1-i/4)*(n-1)); g.fillText(pat[k].y.toFixed(curExp==='A'?1:1),L+pw*i/4,H-8); }
+  g.textAlign='right'; g.fillText(maxI.toFixed(1),L-4,T+8); g.fillText('0',L-4,T+ph);
+  if(!probeOff()){ const k=Math.round(probeY*(n-1)), x=L+(1-k/(n-1))*pw; g.strokeStyle='#34d399'; g.setLineDash([4,3]); g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.setLineDash([]); } }
+
+/* ===== DRAW (เดิมวาดภาพ 2D) — ตอนนี้: เตรียมลวดลาย · อ่านหัววัด · อัปเดตค่าที่แสดง · ภาพ 3D อัปเดตในลูปเรนเดอร์ ===== */
+function draw(){ ensurePattern(); updateProbe(); updateReadout(); drawProfile(); }
+function resizeCanvas(){ if(renderer){ resize3D(); if(VIEWS[curView]) applyView(curView); } drawProfile(); }
 
 /* ===== BUILD UI ===== */
 function buildControls() {
@@ -2252,11 +1747,11 @@ function updateHint() {
   const box = document.getElementById('hintBox');
   if (curMode === 'manual') {
     if (curExp === 'A') {
-      box.innerHTML = `💡 เลื่อน slider "ตำแหน่งใบมีด" แล้วสังเกต pattern — <strong>ลากเม้าส์บนจอ</strong>เพื่ออ่านค่า intensity → กรอก position + I/I₀ → กด บันทึก (ระบบจะสลับ สว่าง↔มืด อัตโนมัติ) → เสร็จแล้วกด <strong>📈 ประมวลผล</strong> เพื่อเทียบกับทฤษฎี`;
+      box.innerHTML = `💡 เลื่อน slider "ตำแหน่งใบมีด" แล้วสังเกต pattern — <strong>ลากหัววัด (เส้นเขียว) บนฉากในภาพ 3D</strong> (กด 🔍 ซูมอ่านค่า) เพื่ออ่านค่า intensity ที่มิเตอร์ → กรอก position + I/I₀ → กด บันทึก (ระบบจะสลับ สว่าง↔มืด อัตโนมัติ) → เสร็จแล้วกด <strong>📈 ประมวลผล</strong> เพื่อเทียบกับทฤษฎี`;
     } else if (curExp === 'B') {
-      box.innerHTML = `💡 ระบบสุ่ม λ ให้ (สีลำแสงเป็นคำใบ้) — <strong>ลากเม้าส์บนจอ</strong>หาตำแหน่ง<strong>แถบมืดลำดับที่ 1</strong> (จุดที่ intensity ≈ 0 แรกจากแนวกลาง) → อ่านค่า y₁ (cm) → กด บันทึก → ระบบคำนวณ λ = y₁·a/L เทียบกับค่าจริง`;
+      box.innerHTML = `💡 ระบบสุ่ม λ ให้ (สีลำแสงเป็นคำใบ้) — <strong>ลากหัววัด (เส้นเขียว) บนฉากในภาพ 3D</strong> หาตำแหน่ง<strong>แถบมืดลำดับที่ 1</strong> (จุดที่ intensity ≈ 0 แรกจากแนวกลาง) → อ่านค่า y₁ (cm) → กด บันทึก → ระบบคำนวณ λ = y₁·a/L เทียบกับค่าจริง`;
     } else if (curExp === 'D') {
-      box.innerHTML = `💡 สลิตคู่ — ระบบสุ่ม λ ให้ → <strong>ลากเม้าส์บนจอ</strong>หาตำแหน่ง<strong>แถบสว่างลำดับที่ n</strong> จากแนวกลาง → ใส่ n และ y (cm) → กด บันทึก → ระบบคำนวณ λ = y·d/(n·L) เทียบกับค่าจริง`;
+      box.innerHTML = `💡 สลิตคู่ — ระบบสุ่ม λ ให้ → <strong>ลากหัววัด (เส้นเขียว) บนฉากในภาพ 3D</strong> หาตำแหน่ง<strong>แถบสว่างลำดับที่ n</strong> จากแนวกลาง → ใส่ n และ y (cm) → กด บันทึก → ระบบคำนวณ λ = y·d/(n·L) เทียบกับค่าจริง`;
     } else {
       if (whiteLightC) {
         const srcH = gratingLightSource==='white'?'แสงขาว — สังเกตสเปกตรัมสีรุ้ง':gratingLightSource==='helium'?'He — สังเกต emission lines ของฮีเลียม':'Na — สังเกต sodium doublet (D₁, D₂ ≈ 589 nm)';
@@ -2917,6 +2412,7 @@ function drawTheory4() {
 
 /* ===== INIT ===== */
 window.addEventListener('DOMContentLoaded', () => {
+  init3D();
   resizeCanvas();
   buildControls();
   buildManualRow();
@@ -2934,7 +2430,7 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
-<script>window.KP_MPANEL={move:['#tab-sim > .sub-tabs','#ctrlPanel','#manualSection','#autoSection','#tab-sim > .cbar ~ .cbar'], res:['#manualSection','#autoSection'], view:'#simCanvas', hint:'#hintBox', bp:900};</script>
+<script>window.KP_MPANEL={move:['#tab-sim > .sub-tabs','#ctrlPanel','#manualSection','#autoSection','#tab-sim > .cbar ~ .cbar'], res:['#manualSection','#autoSection'], view:'#view3d', hint:'#hintBox', bp:900};</script>
 <script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
@@ -2943,7 +2439,7 @@ window.addEventListener('DOMContentLoaded', () => {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../kp-auth.js?v=20261021-16"></script>
+<script src="../kp-auth.js?v=20261021-17"></script>
 
 <!-- KP Page Access Guard -->
 <script>
@@ -2968,8 +2464,8 @@ window.KP_TUTOR = {
   title: 'หา λ จากช่องเดี่ยว',
   onStart: () => { setMode('manual'); switchExp('B', document.querySelectorAll('.sub-tab')[1]); resetSim(); },
   steps: [
-    { el: '#simCanvas', dim: false,
-      text: '<b>ลากเมาส์บนจอ</b> หา<b>แถบมืดลำดับที่ 1</b> ถัดจากแถบสว่างกลาง<br><small>จุดที่ Intensity ≈ 0 ครั้งแรก · ระบบกรอก y₁ ให้</small>',
+    { el: '#view3d', dim: false,
+      text: '<b>ลากหัววัด (เส้นเขียว) บนฉาก</b> ไปที่<b>แถบมืดลำดับที่ 1</b> ถัดจากแถบสว่างกลาง<br><small>จุดที่ Intensity ≈ 0 ครั้งแรก · กด 🔍 ซูมอ่านค่า ช่วยเล็ง · ระบบกรอก y₁ ให้</small>',
       done: function(){ const y1 = randomLambdaB * 1e-9 * screenDistB / (slitWidth * 1e-3) * 100, inp = document.getElementById('mi-yB'), v = inp ? parseFloat(inp.value) : NaN;
         const ok = !probeDragging && v > 0 && Math.abs(v - y1) <= Math.max(0.05 * y1, 0.03);
         if (!ok) { this.t0 = 0; return false; } this.t0 = this.t0 || Date.now(); return Date.now() - this.t0 > 600; } },
@@ -2981,6 +2477,6 @@ window.KP_TUTOR = {
 </script>
 
 <!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->
-<script src="../_shared/kp-labmode.js?v=20261021-16"></script>
+<script src="../_shared/kp-labmode.js?v=20261021-17"></script>
 </body>
 </html>
