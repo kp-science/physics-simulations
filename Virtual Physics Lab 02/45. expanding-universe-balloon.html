@@ -12,7 +12,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>Lab 45 — แบบจำลองการขยายตัวของเอกภพ | KP Science</title>
+<title>Lab 45 — แบบจำลองการขยายตัวของเอกภพ (3D) | KP Science</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -51,12 +51,31 @@ nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0
 
 /* Sim Layout */
 .sim-wrap{display:grid;grid-template-columns:1fr 360px;gap:14px;padding:14px;max-width:1400px;margin:0 auto}
-@media(max-width:1100px){.sim-wrap{grid-template-columns:1fr}}
-.canvas-box{position:relative;background:radial-gradient(circle at 50% 50%, #0a1530 0%, #050810 60%, #020308 100%);border:1px solid var(--border);border-radius:14px;overflow:hidden;min-height:520px}
-canvas#sim{display:block;width:100%;height:100%}
-.canvas-overlay{position:absolute;inset:0;pointer-events:none}
-.hint{position:absolute;top:12px;left:12px;background:rgba(20,15,8,.85);border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:8px;font-size:.78rem;pointer-events:auto;max-width:280px;line-height:1.4}
+@media(max-width:1100px){.sim-wrap{grid-template-columns:1fr}.canvas-box{height:clamp(400px,74vw,640px)}.view3d .viewhint{display:none}}
+/* มือถือ: ภาพ 3D สูงกว่าความกว้างจอ · ปุ่มมุมมองแถวเดียวเลื่อนซ้าย-ขวาได้ · ป้ายบอกวิธีเล็กลง */
+@media(max-width:600px){
+  .sim-wrap{padding:8px;gap:10px}
+  .canvas-box{height:min(116vw,620px);border-radius:10px}
+  .hint{top:6px;left:6px;max-width:62%;font-size:.66rem;padding:4px 8px}
+  .mode-pill{top:6px;right:6px;font-size:.62rem;padding:3px 8px;max-width:34%;white-space:normal;text-align:center}
+  .view3d .viewbtns{bottom:6px;left:6px;right:6px;max-width:none;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .view3d .viewbtns::-webkit-scrollbar{display:none}
+  .view3d .viewbtns button{flex:none;padding:4px 8px;font-size:.68rem}
+}
+.canvas-box{position:relative;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:14px;overflow:hidden;height:clamp(460px,66vh,700px)}
+/* 3D view (three.js) */
+canvas#sim{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.canvas-overlay{position:absolute;inset:0;pointer-events:none;z-index:4}
+.hint{position:absolute;top:12px;left:12px;background:rgba(20,15,8,.85);border:1px solid var(--accent);color:var(--accent);padding:6px 12px;border-radius:8px;font-size:.78rem;pointer-events:none;max-width:280px;line-height:1.4}
 .mode-pill{position:absolute;top:12px;right:12px;background:rgba(15,22,35,.9);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:.78rem;color:var(--accent);font-weight:700}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px);z-index:6}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{border-color:var(--accent4);color:var(--accent4);font-weight:700}
+.view3d .viewhint{position:absolute;right:10px;bottom:46px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:44%;animation:vhFade .6s ease 12s forwards;z-index:5}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem;z-index:3}
 
 /* Right control panel */
 .control-panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 200px);overflow-y:auto}
@@ -202,7 +221,7 @@ footer .brand{color:var(--accent);font-weight:700}
 <header>
   <div class="icon">🎈</div>
   <div>
-    <h1>Lab 45 — แบบจำลองการขยายตัวของเอกภพ</h1>
+    <h1>Lab 45 — แบบจำลองการขยายตัวของเอกภพ (3D)</h1>
     <p>Hubble's Law · Balloon Universe Model · กิจกรรม 1.2</p>
   </div>
   <div class="badge">KP Science · VPL02</div>
@@ -220,11 +239,19 @@ footer .brand{color:var(--accent);font-weight:700}
 <div id="tab-sim" class="tab-section active">
 
   <div class="sim-wrap">
-    <!-- Canvas -->
-    <div class="canvas-box">
+    <!-- 3D view (three.js) -->
+    <div class="canvas-box view3d" id="view3d">
       <canvas id="sim"></canvas>
+      <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ยังเป่าลูกโป่ง บันทึกตาราง (ปุ่ม 📐 อ่านค่าจากภาพ) และดูกราฟได้ตามปกติ</div>
+      <div class="viewbtns" id="viewBtns">
+        <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+        <button data-vw="iso" class="on" onclick="setView('iso')">มุมเฉียง</button>
+        <button data-vw="front" onclick="setView('front')" title="มองลูกโป่งตรงหน้า ตามขนาดลูกโป่ง">👁 ตรงหน้า</button>
+        <button data-vw="read" onclick="setView('read')" title="ซูมปลายสายวัดที่กาแล็กซีที่วัด (ลากหมุนแบบละเอียด)">🔍 อ่านสายวัด</button>
+      </div>
+      <div class="viewhint">🖐 <b>แตะสติกเกอร์</b>บนลูกโป่ง: อ้างอิง (แดง) → กาแล็กซี<br>🖱 ลาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
       <div class="canvas-overlay">
-        <div id="hint" class="hint">🛠️ คลิก <b>กาแล็กซีอ้างอิง</b> (จุดสีแดง) แล้วคลิกกาแล็กซีอีกจุดเพื่อวัดระยะ</div>
+        <div id="hint" class="hint">🛠️ แตะ/คลิก <b>กาแล็กซีอ้างอิง</b> (สติกเกอร์แดง) แล้วแตะกาแล็กซีอีกดวง — สายวัดจะพาดตามผิวลูกโป่ง</div>
         <div id="modePill" class="mode-pill">โหมด: บันทึกค่าเอง (Manual)</div>
       </div>
     </div>
@@ -308,7 +335,7 @@ footer .brand{color:var(--accent);font-weight:700}
       <tbody id="tableBody"></tbody>
     </table>
     <div class="action-row">
-      <button class="btn btn-ghost" onclick="autoFillFromCanvas()" id="btn-autofill">📐 อ่านค่าจาก Canvas (ช่วยเช็ค)</button>
+      <button class="btn btn-ghost" onclick="autoFillFromCanvas()" id="btn-autofill">📐 อ่านค่าจากภาพ (ช่วยเช็ค)</button>
       <button class="btn btn-success" onclick="computeAll()">🧮 คำนวณ Δd, v</button>
       <button class="btn btn-ghost" onclick="clearTable()">🗑️ ล้างค่า</button>
       <button class="btn btn-ghost" onclick="exportCSV()">📥 Export CSV</button>
@@ -583,6 +610,10 @@ footer .brand{color:var(--accent);font-weight:700}
   <div style="margin-top:4px">แบบจำลองการขยายตัวของเอกภพ · Balloon Universe Model · Hubble's Law</div>
 </footer>
 
+<!-- three.js (3D) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script src="../_shared/kp-real3d.js?v=20261021-16"></script>
 <script>
 /* =========================================================
    STATE
@@ -646,289 +677,276 @@ function distCm(g1, g2, scaleFactor) {
 }
 
 /* =========================================================
-   CANVAS — Balloon Drawing
+   3D VIEW — ลูกโป่งจริงบนขาตั้ง + เครื่องสูบลม (three.js r128 · หน่วย cm)
+   ภาพ 3D เป็นแค่ "มุมมอง" ของสถานะเดิม (state.galaxies, aCurrent, blowStage, measureLine ...)
+   · ลูกโป่งทรงกลม รัศมี R = 5·a cm (เส้นผ่านศก. 10·a cm ตรงกับ readout)
+   · สติกเกอร์วางบนผิวด้วยภาพฉายระยะเท่า (azimuthal equidistant) รอบกาแล็กซีอ้างอิง:
+     กาแล็กซีที่พิกัดเดิม (x, y) อยู่ห่างจุดอ้างอิงตามผิวโค้ง = a·√(x²+y²) = distCm(ref, g, a) พอดี
+     → สายวัดที่พาดตามวงกลมใหญ่จากอ้างอิงถึงกาแล็กซีอ่านได้เท่ากับค่าที่โปรแกรมคำนวณ
+   · สติกเกอร์เป็นกระดาษ 1 × 1 cm ไม่ยืดตามยาง (เหมือนกาแล็กซีจริงที่ไม่ขยายตัว)
 ========================================================= */
 const canvas = document.getElementById('sim');
-const ctx = canvas.getContext('2d');
+let renderer = null, scene = null, camera = null, P = { st: [] }, TEXS = [], curView = 'iso';
+const R1 = 5;            /* รัศมีลูกโป่งตอน a = 1 (เส้นผ่านศก. 10 cm) */
+const A_MIN = 0.35;      /* ลูกโป่งแฟบ (ก่อนเป่า) */
+const NZ = 15, NECK = 2.8, NECK_R = 1.1;   /* ปากหัวเติมลม · ความยาวคอ · รัศมีคอตรงรอยต่อกับตัวลูกโป่ง */
+const TAPE_S0 = -0.7, TAPE_S1 = 20, TAPE_W = 0.8;
+const S3 = { n: -1, tapeKey: '', fitA: -1, pumpPh: 0, lastT: 0 };
+const orbit = { target: null, dist: 120, az: 0.5, el: 0.3 };
+/* ทิศของกาแล็กซีอ้างอิงบนลูกโป่ง (เฉียงขึ้น 30° หันเข้าหาผู้ดู) + แกนสัมผัส: +x ภาพเดิม = ขวา · +y ภาพเดิม = ลง */
+const N0 = [0, 0.5, Math.sqrt(3) / 2], E1 = [1, 0, 0], E2 = [0, -Math.sqrt(3) / 2, 0.5];
+function aVis() { return state.blowStage === 0 ? A_MIN : Math.max(A_MIN, state.aCurrent); }
+function Rnow() { return R1 * aVis(); }
+function Rfit() { return R1 * Math.max(aVis(), state.blowStage < 2 ? state.aTarget : 0); }
+function centerY(R) { return NZ + NECK + Math.sqrt(Math.max(0, R * R - NECK_R * NECK_R)); }
+/* ทิศ (เวกเตอร์หน่วยจากจุดศูนย์กลาง) ของกาแล็กซี g บนผิวลูกโป่ง */
+function galDir(g) { const r = Math.hypot(g.x, g.y); if (r < 1e-9) return N0.slice();
+  const th = r / R1, c = Math.cos(th), s = Math.sin(th), ux = g.x / r, uy = g.y / r;
+  return [0, 1, 2].map(k => c * N0[k] + s * (ux * E1[k] + uy * E2[k])); }
 
-let canvasW = 800, canvasH = 520;
-// view: 1 cm = pxPerCm pixels
-let pxPerCm = 28;
+function fitDist(wCm, hCm) { const el = canvas.parentElement, asp = Math.max(0.4, (el.clientWidth || 800) / (el.clientHeight || 520)), t = Math.tan(36 * Math.PI / 360);
+  return Math.max(6, Math.min(600, Math.max(hCm / (2 * t), wCm / (2 * t * asp)) * 1.08)); }
+function selGal() { const m = state.measureLine; return m ? m.i2 : (state.selectedRef !== null ? state.selectedRef : 0); }
+/* มุมกล้องที่มองตั้งฉากกับผิวลูกโป่งตรงทิศ d */
+const azOf = d => Math.atan2(d[0], d[2]), elOf = d => Math.asin(Math.max(-1, Math.min(1, d[1])));
+function readPoint() { const g = state.galaxies[selGal()]; if (!g) return [0, centerY(Rnow()), 0];
+  const d = galDir(g), R = Rnow(); return [d[0] * R, centerY(R) + d[1] * R, d[2] * R]; }
+const VIEWS = {
+  iso  : { t: () => [-7, (NZ + 2 * Rfit() + 4) * 0.5 + 2, 2], d: () => fitDist(2 * Rfit() + 48, NZ + 2 * Rfit() + 14), az: 0.5, el: 0.26 },
+  front: { follow: () => [0, centerY(Rnow()), 0], d: () => fitDist(2.5 * Rfit() + 4, 2.5 * Rfit() + 4), az: () => azOf(N0), el: () => elOf(N0) },
+  read : { follow: readPoint, d: () => fitDist(9, 7), az: () => { const g = state.galaxies[selGal()]; return azOf(g ? galDir(g) : N0); },
+           el: () => { const g = state.galaxies[selGal()]; return elOf(g ? galDir(g) : N0); }, fine: true } };
+const vnum = q => (typeof q === 'function') ? q() : q;
 
-function resizeCanvas() {
-  const box = canvas.parentElement;
-  canvasW = box.clientWidth;
-  canvasH = box.clientHeight;
-  canvas.width = canvasW * window.devicePixelRatio;
-  canvas.height = canvasH * window.devicePixelRatio;
-  canvas.style.width = canvasW + 'px';
-  canvas.style.height = canvasH + 'px';
-  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+function texApply(t) { let an = 8; try { if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) an = Math.max(8, renderer.capabilities.getMaxAnisotropy()); } catch (e) {}
+  t.anisotropy = an; if (renderer && 'outputEncoding' in renderer && 'encoding' in t) t.encoding = renderer.outputEncoding;
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t; }
+function canvasTex(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); const t = texApply(new THREE.CanvasTexture(c)); TEXS.push({ t, fn }); return t; }
+function redrawTexs() { TEXS.forEach(o => { const c = o.t.image; o.fn(c.getContext('2d'), c.width, c.height); o.t.needsUpdate = true; }); }
 
-  // auto-fit: ensure all galaxies at a=aTarget fit comfortably
-  // max distance from origin at a=aTarget = 5.5 * aTarget = ~11 cm
-  // canvas radius (smaller side / 2) should accommodate ~13 cm with margin
-  const maxR = 5.5 * state.aTarget * 1.15;
-  const minSide = Math.min(canvasW, canvasH);
-  pxPerCm = (minSide * 0.42) / maxR;
-  pxPerCm = Math.max(12, Math.min(40, pxPerCm));
+/* ── ตัวช่วยปั้นอุปกรณ์: กล่องขอบมน · วัสดุเคลือบเงา · โครเมียม · ยาง ── */
+function rbox(w, h, d, r, m) { const b = Math.min(r * 0.6, w * 0.3, h * 0.3, d * 0.3), sw = w - 2 * b, sh = d - 2 * b, cr = Math.max(0.02, Math.min(r - b, sw / 2 - 0.01, sh / 2 - 0.01)), s = new THREE.Shape();
+  s.moveTo(-sw / 2 + cr, -sh / 2); s.lineTo(sw / 2 - cr, -sh / 2); s.quadraticCurveTo(sw / 2, -sh / 2, sw / 2, -sh / 2 + cr); s.lineTo(sw / 2, sh / 2 - cr); s.quadraticCurveTo(sw / 2, sh / 2, sw / 2 - cr, sh / 2);
+  s.lineTo(-sw / 2 + cr, sh / 2); s.quadraticCurveTo(-sw / 2, sh / 2, -sw / 2, sh / 2 - cr); s.lineTo(-sw / 2, -sh / 2 + cr); s.quadraticCurveTo(-sw / 2, -sh / 2, -sw / 2 + cr, -sh / 2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.01, h - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 8 }); g.rotateX(-Math.PI / 2); g.center(); return new THREE.Mesh(g, m); }
+const enamel = (c, r, cc) => new THREE.MeshPhysicalMaterial({ color: c, roughness: r == null ? 0.42 : r, clearcoat: cc == null ? 0.35 : cc, clearcoatRoughness: 0.45 });
+const chromeM = () => new THREE.MeshStandardMaterial({ color: 0xd8dde4, metalness: .95, roughness: .22 });
+const rubberM = () => new THREE.MeshStandardMaterial({ color: 0x111214, roughness: .85 });
+function xCyl(r, len, m, seg) { const g = new THREE.CylinderGeometry(r, r, len, seg || 18); g.rotateZ(Math.PI / 2); return new THREE.Mesh(g, m); }
 
-  draw();
-}
+/* ── ป้ายข้อความ (Sprite) พื้นทึบ อ่านง่ายทุกมุมกล้อง ── */
+function makeLabel(text, col, wcm, bg) { const st = { text, col };
+  const tex = canvasTex(512, 128, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = bg || 'rgba(12,18,32,.9)'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = st.col; g.globalAlpha = .55; g.lineWidth = 5; g.strokeRect(3, 3, w - 6, h - 6); g.globalAlpha = 1;
+    g.fillStyle = st.col; g.font = 'bold 58px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(st.text, w / 2, h / 2 + 4); });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  const wc = wcm || 10; sp.scale.set(wc, wc / 4, 1);
+  sp.userData.setText = (t, c) => { if (t === st.text && (!c || c === st.col)) return; st.text = t; if (c) st.col = c; const cv = tex.image; const o = TEXS.find(q => q.t === tex); if (o) o.fn(cv.getContext('2d'), cv.width, cv.height); tex.needsUpdate = true; };
+  return sp; }
 
-function cmToPx(cm) { return cm * pxPerCm; }
-
-// world -> canvas
-function w2cX(x) { return canvasW/2 + cmToPx(x); }
-function w2cY(y) { return canvasH/2 + cmToPx(y); }
-// canvas -> world
-function c2wX(px) { return (px - canvasW/2) / pxPerCm; }
-function c2wY(py) { return (py - canvasH/2) / pxPerCm; }
-
-function draw() {
-  ctx.clearRect(0, 0, canvasW, canvasH);
-
-  // background gradient already set in CSS
-  // draw stars (subtle)
-  drawStars();
-
-  // draw balloon shape (ellipse)
-  drawBalloon();
-
-  // draw grid scale ruler (corner)
-  drawScaleRuler();
-
-  // draw galaxies
-  drawGalaxies();
-
-  // draw measurement line
-  if (state.measureLine) {
-    drawMeasureLine();
-  }
-}
-
-function drawStars() {
-  ctx.save();
-  // pseudo-random stars (seeded by position)
-  for (let i = 0; i < 60; i++) {
-    const seed = i * 9301 + 49297;
-    const sx = ((seed * 7) % 1000) / 1000 * canvasW;
-    const sy = ((seed * 13) % 1000) / 1000 * canvasH;
-    const sz = ((seed % 7) + 1) * 0.3;
-    ctx.fillStyle = `rgba(255,255,255,${0.2 + (seed % 5) * 0.1})`;
-    ctx.beginPath();
-    ctx.arc(sx, sy, sz, 0, 2*Math.PI);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawBalloon() {
-  // balloon stretches with aCurrent
-  // base diameter 10 cm at a=1, scales to a*10 cm
-  const a = state.blowStage === 0 ? 0 : state.aCurrent;
-  if (a < 0.05) return;
-  const baseDiaCm = 10;
-  // balloon visual radius — half of what the data implies
-  // we'll show balloon as ellipse with semi-axis ~ 7 cm * a (a bit larger than max galaxy distance to enclose them)
-  const rx = cmToPx(7 * a / 1.0);
-  const ry = cmToPx(6.2 * a / 1.0);
-  const cx = canvasW/2;
-  const cy = canvasH/2;
-
-  // balloon body — translucent gradient
-  ctx.save();
-  const grad = ctx.createRadialGradient(cx - rx*0.3, cy - ry*0.4, 0, cx, cy, rx);
-  grad.addColorStop(0, 'rgba(251,146,60,0.30)');
-  grad.addColorStop(0.7, 'rgba(244,114,182,0.18)');
-  grad.addColorStop(1, 'rgba(167,139,250,0.08)');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, 0, 2*Math.PI);
-  ctx.fill();
-
-  // balloon outline
-  ctx.strokeStyle = 'rgba(251,146,60,0.65)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, 0, 2*Math.PI);
-  ctx.stroke();
-
-  // tie at bottom
-  ctx.fillStyle = 'rgba(251,146,60,0.6)';
-  ctx.beginPath();
-  ctx.moveTo(cx-6, cy+ry);
-  ctx.lineTo(cx+6, cy+ry);
-  ctx.lineTo(cx+3, cy+ry+12);
-  ctx.lineTo(cx-3, cy+ry+12);
-  ctx.closePath();
-  ctx.fill();
-
-  // grid pattern on balloon (longitude/latitude lines for visual)
-  ctx.strokeStyle = 'rgba(251,146,60,0.18)';
-  ctx.lineWidth = 1;
-  for (let lat = -3; lat <= 3; lat++) {
-    const yfrac = lat / 4;
-    const y = cy + yfrac * ry;
-    const widthFactor = Math.sqrt(Math.max(0, 1 - yfrac*yfrac));
-    ctx.beginPath();
-    ctx.ellipse(cx, y, rx * widthFactor, ry * 0.04, 0, 0, 2*Math.PI);
-    ctx.stroke();
-  }
-  for (let lon = 0; lon < 6; lon++) {
-    ctx.beginPath();
-    const angle = (lon / 6) * Math.PI;
-    ctx.ellipse(cx, cy, rx * Math.abs(Math.cos(angle)) + 0.5, ry, 0, 0, 2*Math.PI);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-function drawScaleRuler() {
-  // small ruler in bottom-left corner: 5 cm marks
-  ctx.save();
-  const margin = 14;
-  const y = canvasH - margin - 4;
-  const length5cm = cmToPx(5);
-  // ruler line
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(margin, y);
-  ctx.lineTo(margin + length5cm, y);
-  ctx.stroke();
-  // ticks
-  for (let i = 0; i <= 5; i++) {
-    const tx = margin + cmToPx(i);
-    ctx.beginPath();
-    ctx.moveTo(tx, y);
-    ctx.lineTo(tx, y - (i % 5 === 0 ? 8 : 4));
-    ctx.stroke();
-  }
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = '10px "Share Tech Mono", monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('0', margin - 2, y + 14);
-  ctx.fillText('5 cm', margin + length5cm - 14, y + 14);
-  ctx.restore();
-}
-
-function drawGalaxies() {
-  const a = state.blowStage === 0 ? 1.0 : state.aCurrent;
-
-  state.galaxies.forEach((g, idx) => {
-    const px = w2cX(g.x * a);
-    const py = w2cY(g.y * a);
-
-    // shadow
-    ctx.save();
-    ctx.shadowColor = g.isRef ? 'rgba(248,113,113,0.8)' : 'rgba(56,189,248,0.6)';
-    ctx.shadowBlur = 8;
-
-    // sticker rectangle (1 cm x 1 cm)
-    const stickerSize = cmToPx(1.0);
-    const halfS = stickerSize / 2;
-
-    // sticker background
-    ctx.fillStyle = g.isRef ? '#dc2626' : '#0ea5e9';
-    ctx.fillRect(px - halfS, py - halfS, stickerSize, stickerSize);
-
-    // sticker border
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = g.isRef ? '#fee2e2' : '#e0f2fe';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(px - halfS, py - halfS, stickerSize, stickerSize);
-
-    // label inside
-    ctx.fillStyle = '#fff';
-    ctx.font = `700 ${Math.max(10, halfS*0.9)}px IBM Plex Sans Thai, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(g.label.length > 3 ? 'อ้าง' : g.label, px, py);
-
-    // selection ring
-    if (state.selectedRef === idx || state.selectedGal === idx) {
-      ctx.strokeStyle = '#fde047';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([4, 3]);
-      ctx.strokeRect(px - halfS - 4, py - halfS - 4, stickerSize + 8, stickerSize + 8);
-      ctx.setLineDash([]);
-    }
-
-    ctx.restore();
-
-    // distance label below for non-ref (auto mode shows distance directly)
-    if (!g.isRef && state.blowStage > 0) {
-      const ref = state.galaxies[0];
-      const d = distCm(ref, g, a);
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(px - 22, py + halfS + 4, 44, 14);
-      ctx.fillStyle = '#34d399';
-      ctx.font = '10px "Share Tech Mono", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(d.toFixed(1) + ' cm', px, py + halfS + 11);
-      ctx.restore();
-    }
+/* ── สติกเกอร์กาแล็กซี 1 × 1 cm (แดง = อ้างอิง · ฟ้า = ก ข ค …) + กรอบประเหลืองเมื่อถูกเลือก + ป้ายระยะเล็ก ๆ ── */
+function stickerTex(g) { return canvasTex(128, 128, (c, w, h) => { c.clearRect(0, 0, w, h);
+  c.fillStyle = g.isRef ? '#dc2626' : '#0ea5e9'; c.fillRect(0, 0, w, h);
+  c.strokeStyle = g.isRef ? '#fee2e2' : '#e0f2fe'; c.lineWidth = 9; c.strokeRect(5, 5, w - 10, h - 10);
+  c.fillStyle = '#fff'; c.font = (g.isRef ? 'bold 31px' : 'bold 74px') + ' "IBM Plex Sans Thai",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(g.isRef ? 'อ้างอิง' : g.label, w / 2, h / 2 + 4); }); }
+let ringTex = null;
+function buildStickers() {
+  P.st.forEach(o => { P.balloonG.remove(o.m); if (o.tag) scene.remove(o.tag); });
+  P.st = [];
+  if (!ringTex) ringTex = canvasTex(128, 128, (c, w, h) => { c.clearRect(0, 0, w, h); c.strokeStyle = '#fde047'; c.lineWidth = 9; c.setLineDash([16, 11]); c.strokeRect(6, 6, w - 12, h - 12); });
+  state.galaxies.forEach((g, i) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ map: stickerTex(g), roughness: .45, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.userData.gi = i; m.castShadow = false;
+    const ring = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false }));
+    ring.position.z = 0.02; ring.visible = false; m.add(ring);
+    P.balloonG.add(m);
+    let tag = null;
+    if (!g.isRef) { tag = makeLabel('', '#34d399', 2.6, 'rgba(0,0,0,.72)'); tag.userData.kpLabel = false; tag.visible = false; scene.add(tag); }
+    P.st.push({ m, ring, tag, dir: galDir(g) });
   });
+  S3.n = state.galaxies.length; S3.gref = state.galaxies; S3.tapeKey = '';
 }
 
-function drawMeasureLine() {
-  const m = state.measureLine;
-  ctx.save();
-  ctx.strokeStyle = '#fde047';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  ctx.moveTo(m.x1, m.y1);
-  ctx.lineTo(m.x2, m.y2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // distance text in middle
-  const mx = (m.x1 + m.x2) / 2;
-  const my = (m.y1 + m.y2) / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  const txt = m.dist.toFixed(2) + ' cm';
-  ctx.font = '700 13px "Share Tech Mono", monospace';
-  const w = ctx.measureText(txt).width + 12;
-  ctx.fillRect(mx - w/2, my - 12, w, 22);
-  ctx.strokeStyle = '#fde047';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(mx - w/2, my - 12, w, 22);
-  ctx.fillStyle = '#fde047';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(txt, mx, my - 1);
-  ctx.restore();
+/* ── สายวัดผ้า (หน่วย cm · ขีดทุก 1 mm) ── */
+function drawTapeTex(g, w, h) {
+  const ppc = w / (TAPE_S1 - TAPE_S0), X = s => (s - TAPE_S0) * ppc;
+  g.fillStyle = '#9ca3af'; g.fillRect(0, 0, X(0), h);                         /* ปลายโลหะ */
+  g.fillStyle = '#fde047'; g.fillRect(X(0), 0, w - X(0), h);
+  g.fillStyle = 'rgba(120,90,10,.10)'; for (let i = 0; i < 18; i++) g.fillRect(X(0), (i * 23) % h, w, 1);
+  for (let q = 0; q <= (TAPE_S1 - 0.05) * 10; q++) { const x = X(q / 10), cm = q % 10 === 0, half = q % 5 === 0;
+    const L = cm ? h * 0.36 : half ? h * 0.25 : h * 0.15, tw = cm ? 4 : half ? 3 : 2;
+    g.fillStyle = q === 0 ? '#b91c1c' : '#111'; g.fillRect(x - tw / 2, 0, tw, L); g.fillRect(x - tw / 2, h - L, tw, L); }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 50px "Share Tech Mono",monospace';
+  for (let c = 0; c < TAPE_S1; c++) { g.fillStyle = c % 5 === 0 ? '#b91c1c' : '#111'; g.fillText(String(c), X(c) + (c === 0 ? 14 : 0), h / 2 + 2); }
+  g.fillStyle = '#7c2d12'; g.font = 'bold 26px "Share Tech Mono",monospace'; for (let c = 0; c < TAPE_S1 - 1; c += 5) g.fillText('cm', X(c + 2.5), h / 2 + 2);
 }
+/* สายวัดพาดตามวงกลมใหญ่จากกาแล็กซีอ้างอิง (ขีด 0) ผ่านกาแล็กซีที่วัด เลยไปอีก 1.6 cm */
+function buildTape(m, R) {
+  const n0 = P.st[m.i1].dir, gd = P.st[m.i2].dir, dot = Math.max(-1, Math.min(1, n0[0] * gd[0] + n0[1] * gd[1] + n0[2] * gd[2]));
+  let t = [gd[0] - dot * n0[0], gd[1] - dot * n0[1], gd[2] - dot * n0[2]]; const tl = Math.hypot(t[0], t[1], t[2]);
+  t = tl < 1e-6 ? E1.slice() : t.map(v => v / tl);
+  const B = [n0[1] * t[2] - n0[2] * t[1], n0[2] * t[0] - n0[0] * t[2], n0[0] * t[1] - n0[1] * t[0]];
+  const th = Math.acos(dot), d = R * th, s1 = Math.min(TAPE_S1, d + 1.6), NS = 120, Rr = R + 0.09;
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= NS; i++) { const s = TAPE_S0 + (s1 - TAPE_S0) * i / NS, an = s / R, c = Math.cos(an), sn = Math.sin(an);
+    const p = [0, 1, 2].map(k => Rr * (c * n0[k] + sn * t[k])), u = (s - TAPE_S0) / (TAPE_S1 - TAPE_S0);
+    for (const sd of [-1, 1]) { pos.push(p[0] + sd * B[0] * TAPE_W / 2, p[1] + sd * B[1] * TAPE_W / 2, p[2] + sd * B[2] * TAPE_W / 2); uv.push(u, sd < 0 ? 0 : 1); }
+    if (i < NS) { const a = 2 * i; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  if (P.tape.geometry) P.tape.geometry.dispose(); P.tape.geometry = geo;
+  /* หมุดปักที่จุดกลางสติกเกอร์ทั้งสอง + ป้ายระยะกลางสายวัด */
+  const putPin = (pin, dir) => { pin.position.set(dir[0] * (R + 0.1), dir[1] * (R + 0.1), dir[2] * (R + 0.1)); pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dir[0], dir[1], dir[2])); };
+  putPin(P.pin0, n0); putPin(P.pin1, gd);
+  const hm = th / 2, lr = R + 1.6 + 0.5 * Math.max(0, R / R1 - 1);
+  P.mLabel.position.set(lr * (Math.cos(hm) * n0[0] + Math.sin(hm) * t[0]), lr * (Math.cos(hm) * n0[1] + Math.sin(hm) * t[1]), lr * (Math.cos(hm) * n0[2] + Math.sin(hm) * t[2]));
+}
+function mkPin(col) { const g = new THREE.Group();
+  const nd = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 8), chromeM()); nd.position.y = 0.25; g.add(nd);
+  const hd = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), enamel(col, 0.25, 0.8)); hd.position.y = 0.62; g.add(hd); return g; }
+
+/* ── ไม้บรรทัดเหล็ก 30 cm บนโต๊ะ (เทียบขนาด) ── */
+function drawRulerTex(g, w, h) { const ppc = w / 31, X = q => (q + 0.5) * ppc;
+  g.fillStyle = '#d6dbe1'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(255,255,255,.25)'; for (let i = 0; i < 30; i++) g.fillRect(0, (i * 17) % h, w, 1);
+  for (let q = 0; q <= 300; q++) { const x = X(q / 10), cm = q % 10 === 0, half = q % 5 === 0; g.fillStyle = '#111';
+    g.fillRect(x - (cm ? 2 : 1.2), 0, cm ? 4 : 2.4, cm ? h * 0.42 : half ? h * 0.3 : h * 0.18); }
+  g.font = 'bold 40px "Share Tech Mono",monospace'; g.textAlign = 'center'; g.fillStyle = '#111';
+  for (let c = 0; c <= 30; c++) g.fillText(String(c), X(c), h * 0.8);
+  g.font = 'bold 26px "Share Tech Mono",monospace'; g.fillStyle = '#334155'; g.fillText('cm', X(1.5), h * 0.62); }
+
+function init3D() {
+  const nt = document.getElementById('nothree');
+  if (typeof THREE === 'undefined') { if (nt) nt.style.display = 'flex'; return; }
+  orbit.target = new THREE.Vector3(-7, 20, 2);
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch (e) { renderer = null; if (nt) { nt.innerHTML = '⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้<br>ยังเป่าลูกโป่ง บันทึกตาราง (ปุ่ม 📐 อ่านค่าจากภาพ) และดูกราฟได้ตามปกติ'; nt.style.display = 'flex'; } return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(36, 1, 0.3, 3000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a2235, 0.9)); const d1 = new THREE.DirectionalLight(0xffffff, 0.65); d1.position.set(60, 160, 110); scene.add(d1);
+  /* โต๊ะทดลอง (kp-real3d ปูลายไม้ให้) */
+  const table = new THREE.Mesh(new THREE.BoxGeometry(150, 2, 90), new THREE.MeshStandardMaterial({ color: 0x6b5844, roughness: .9 }));
+  table.position.set(-6, -1, 0); scene.add(table);
+  /* ขาตั้งลูกโป่ง: ฐานเหล็กกลม · แกนโครเมียม · วาล์วทองเหลือง · หัวเติมลมชี้ขึ้น */
+  const iron = enamel(0x2b3442, 0.4, 0.45), brass = new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: .85, roughness: .3 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 8.2, 1.6, 48), iron); base.position.y = 0.8; scene.add(base);
+  const bRing = new THREE.Mesh(new THREE.TorusGeometry(8.0, 0.25, 8, 48), rubberM()); bRing.rotation.x = Math.PI / 2; bRing.position.y = 0.2; scene.add(bRing);
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, NZ - 3.2, 18), chromeM()); rod.position.y = 1.6 + (NZ - 3.2) / 2; scene.add(rod);
+  const valve = rbox(3.2, 2.6, 3.2, 0.6, brass); valve.position.y = NZ - 1.5; scene.add(valve);
+  const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.8, 20), enamel(0xdc2626, 0.35, 0.6)); knob.rotation.x = Math.PI / 2; knob.position.set(0, NZ - 1.5, 2.0); scene.add(knob);
+  const inlet = xCyl(0.45, 2.2, brass); inlet.position.set(-2.4, NZ - 1.8, 0); scene.add(inlet);
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 1.6, 18), chromeM()); nozzle.position.y = NZ + 0.5; scene.add(nozzle);
+  /* ลูกโป่งยาง: ตัวทรงกลม (ยางใสอมส้ม เงาเคลือบ) + คอ + ขอบม้วน */
+  P.balloonM = new THREE.MeshPhysicalMaterial({ color: 0xff6a2b, roughness: .28, metalness: 0, clearcoat: .9, clearcoatRoughness: .18, transparent: true, opacity: .85, side: THREE.FrontSide });
+  P.balloonG = new THREE.Group(); scene.add(P.balloonG);
+  P.balloon = new THREE.Mesh(new THREE.SphereGeometry(1, 72, 48), P.balloonM); P.balloonG.add(P.balloon);
+  const neckPts = [[0.62, 0], [0.6, 0.6], [0.55, 1.3], [0.72, 2.0], [1.0, 2.5], [NECK_R + 0.12, NECK]].map(p => new THREE.Vector2(p[0], p[1]));
+  P.neck = new THREE.Mesh(new THREE.LatheGeometry(neckPts, 32), new THREE.MeshPhysicalMaterial({ color: 0xf2611f, roughness: .3, clearcoat: .8, clearcoatRoughness: .2, transparent: true, opacity: .93, side: THREE.DoubleSide })); P.neck.position.y = NZ; scene.add(P.neck);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.2, 10, 28), new THREE.MeshPhysicalMaterial({ color: 0xe8541c, roughness: .35, clearcoat: .7 })); lip.rotation.x = Math.PI / 2; lip.position.y = NZ + 0.1; scene.add(lip);
+  /* สายวัด + หมุด + ป้ายระยะ */
+  P.tape = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ map: canvasTex(4096, 160, drawTapeTex), roughness: .7, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4 }));
+  P.tape.visible = false; P.balloonG.add(P.tape);
+  P.pin0 = mkPin(0xdc2626); P.pin1 = mkPin(0xfacc15); P.pin0.visible = P.pin1.visible = false; P.balloonG.add(P.pin0, P.pin1);
+  P.mLabel = makeLabel('', '#fde047', 5.2); P.mLabel.visible = false; P.balloonG.add(P.mLabel);
+  /* เครื่องสูบลมมือ (กระบอกใส · ก้านสูบ · มือจับยาง) + สายลมไปหัวเติม */
+  P.pump = new THREE.Group(); P.pump.position.set(-26, 0, 3); scene.add(P.pump);
+  const foot = rbox(12, 1.2, 7, 0.6, enamel(0x1d4ed8, 0.4, 0.5)); foot.position.y = 0.6; P.pump.add(foot);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 22, 36, 1, true), new THREE.MeshPhysicalMaterial({ color: 0x93c5fd, roughness: .15, clearcoat: 1, transparent: true, opacity: .45, side: THREE.DoubleSide }));
+  barrel.position.y = 1.2 + 11; P.pump.add(barrel);
+  [1.2 + 0.8, 1.2 + 22 - 0.6].forEach(y => { const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 2.7, 1.4, 36), enamel(0x1d4ed8, 0.35, 0.6)); cap.position.y = y; P.pump.add(cap); });
+  P.pumpRod = new THREE.Group(); P.pump.add(P.pumpRod);
+  const prod = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 22, 14), chromeM()); prod.position.y = -11; P.pumpRod.add(prod);
+  const piston = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 1.0, 32), rubberM()); piston.position.y = -21.5; P.pumpRod.add(piston);
+  const hbar = xCyl(0.5, 14, chromeM()); P.pumpRod.add(hbar);
+  [-1, 1].forEach(s => { const gr = xCyl(0.95, 4.8, rubberM()); gr.position.x = s * 4.6; P.pumpRod.add(gr); });
+  const outlet = xCyl(0.45, 2.2, chromeM()); outlet.position.set(3.4, 2.4, 0); P.pump.add(outlet);
+  const hose = new THREE.CatmullRomCurve3([[-21.6, 2.4, 3], [-18, 1.0, 4], [-11, 0.6, 5], [-6, 0.8, 3.5], [-4.6, 3.5, 1], [-4.0, NZ - 6, 0.4], [-4.2, NZ - 2.6, 0], [-3.4, NZ - 1.8, 0]].map(p => new THREE.Vector3(p[0], p[1], p[2])));
+  scene.add(new THREE.Mesh(new THREE.TubeGeometry(hose, 90, 0.42, 12, false), new THREE.MeshPhysicalMaterial({ color: 0x14532d, roughness: .3, clearcoat: .8, clearcoatRoughness: .2 })));
+  /* ไม้บรรทัด 30 cm วางหน้าขาตั้ง */
+  const rM = new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: .8, roughness: .3 });
+  const rTop = new THREE.MeshStandardMaterial({ map: canvasTex(2048, 200, drawRulerTex), metalness: .35, roughness: .4 });
+  const ruler = new THREE.Mesh(new THREE.BoxGeometry(31, 0.12, 3), [rM, rM, rTop, rM, rM, rM]); ruler.position.set(-4, 0.06, 17); ruler.rotation.y = 0.06; scene.add(ruler);
+  /* ป้ายชื่อ */
+  P.pumpLb = makeLabel('เครื่องสูบลม', '#93c5fd', 12); P.pumpLb.position.set(-26, 39, 3); scene.add(P.pumpLb);
+  P.balLb = makeLabel('ลูกโป่ง = เอกภพ', '#fdba74', 13); scene.add(P.balLb);
+  buildStickers();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { redrawTexs(); }).catch(() => {});
+  setupPointer(canvas); resize3D();
+  setView('iso'); update3D();
+  (function rl() { requestAnimationFrame(rl);
+    const ts = document.getElementById('tab-sim'); if (ts && !ts.classList.contains('active')) return;
+    update3D(); renderer.render(scene, camera); })();
+}
+
+function update3D() { if (!scene) return;
+  if (S3.gref !== state.galaxies || S3.n !== state.galaxies.length) buildStickers();
+  const a = aVis(), R = R1 * a, cy = centerY(R), sc = Math.max(1, R / R1);
+  P.balloonG.position.set(0, cy, 0); P.balloon.scale.setScalar(R);
+  P.balloonM.opacity = Math.max(0.6, 0.93 - 0.12 * (a - A_MIN));     /* ยางยิ่งยืด ยิ่งบาง ยิ่งใส */
+  /* สติกเกอร์ติดผิวลูกโป่ง (กระดาษ ไม่ยืด: ด้านละ 1 cm หลังพอง · ตอนแฟบย่อให้ไม่ทับกัน) */
+  const ss = Math.min(1, a), up = new THREE.Vector3(), zA = new THREE.Vector3(), xA = new THREE.Vector3(), M = new THREE.Matrix4();
+  P.st.forEach((o, i) => { const d = o.dir, g = state.galaxies[i];
+    zA.set(d[0], d[1], d[2]); up.set(0, 1, 0).addScaledVector(zA, -d[1]); if (up.lengthSq() < 1e-6) up.set(0, 0, -1); up.normalize(); xA.crossVectors(up, zA);
+    M.makeBasis(xA, up, zA); o.m.quaternion.setFromRotationMatrix(M);
+    o.m.position.set(d[0] * (R + 0.04), d[1] * (R + 0.04), d[2] * (R + 0.04)); o.m.scale.set(ss, ss, 1);
+    o.ring.visible = state.selectedRef === i || state.selectedGal === i;
+    if (o.tag) { o.tag.visible = state.blowStage > 0 && !!g;
+      if (o.tag.visible) { o.tag.userData.setText(distCm(state.galaxies[0], g, state.aCurrent).toFixed(1) + ' cm');
+        const k = R + 0.25; o.tag.position.set(d[0] * k - up.x * (0.55 + 0.75 * sc), cy + d[1] * k - up.y * (0.55 + 0.75 * sc), d[2] * k - up.z * (0.55 + 0.75 * sc));
+        o.tag.scale.set(2.6 * sc, 0.65 * sc, 1); } } });
+  /* สายวัด (ซ่อนระหว่างเป่า — เหมือนภาพเดิมที่ล้างเส้นวัดหลังเป่า) */
+  const m = state.measureLine, showT = !!m && !state.animating && !!P.st[m.i1] && !!P.st[m.i2];
+  P.tape.visible = P.pin0.visible = P.pin1.visible = P.mLabel.visible = showT;
+  if (showT) { const key = m.i1 + '|' + m.i2 + '|' + R.toFixed(4); if (key !== S3.tapeKey) { S3.tapeKey = key; buildTape(m, R); }
+    P.mLabel.userData.setText(m.dist.toFixed(2) + ' cm'); P.mLabel.scale.set(5.2 * sc, 1.3 * sc, 1); } else S3.tapeKey = '';
+  P.balLb.position.set(0, cy + R + 3 + 1.5 * sc, 0); P.balLb.scale.set(13 * sc, 3.25 * sc, 1);
+  /* ก้านสูบขยับขึ้น-ลงระหว่างเป่า */
+  const now = performance.now(), dt = Math.min(0.1, Math.max(0, (now - (S3.lastT || now)) / 1000)); S3.lastT = now;
+  if (state.animating) S3.pumpPh += dt * 7; else S3.pumpPh += (Math.round(S3.pumpPh / (2 * Math.PI)) * 2 * Math.PI - S3.pumpPh) * Math.min(1, dt * 6);
+  P.pumpRod.position.y = 1.2 + 22 + 6 + 5 * Math.cos(S3.pumpPh);
+  /* กล้อง */
+  const V = VIEWS[curView]; if (V && V.follow) { const tt = vnum(V.follow); orbit.target.x += (tt[0] - orbit.target.x) * 0.25; orbit.target.y += (tt[1] - orbit.target.y) * 0.25; orbit.target.z += (tt[2] - orbit.target.z) * 0.25; }
+  const tg = orbit.target; camera.up.set(0, 1, 0);
+  camera.position.set(tg.x + orbit.dist * Math.sin(orbit.az) * Math.cos(orbit.el), tg.y + orbit.dist * Math.sin(orbit.el), tg.z + orbit.dist * Math.cos(orbit.az) * Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D() { if (!renderer) return; const el = canvas.parentElement; const w = el.clientWidth || 800, h = el.clientHeight || 520; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function setView(vw) { const V = VIEWS[vw]; curView = V ? vw : 'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.toggle('on', b.dataset.vw === curView));
+  if (!V || !orbit.target) return; S3.fitA = state.aTarget;
+  const tt = V.t ? vnum(V.t) : vnum(V.follow); orbit.target.set(tt[0], tt[1], tt[2]); orbit.dist = vnum(V.d); orbit.az = vnum(V.az); orbit.el = vnum(V.el); }
+
+/* resizeCanvas() เดิม: ปรับขนาดภาพ · เมื่อเปลี่ยนอัตราขยาย a ให้มุมกล้องกว้างพอสำหรับลูกโป่งใบใหญ่สุด */
+function resizeCanvas() { resize3D(); if (VIEWS[curView] && S3.fitA !== state.aTarget) setView(curView); }
+/* draw() เดิมถูกเรียกจากหลายที่ — ภาพ 3D วาดใหม่ทุกเฟรมจากสถานะอยู่แล้ว */
+function draw() {}
 
 /* =========================================================
-   CLICK HANDLING — measurement
+   TAP / CLICK HANDLING — measurement (แตะสติกเกอร์บนลูกโป่งด้วย raycast)
 ========================================================= */
-canvas.addEventListener('click', (e) => {
+let RAY = null, NDC = null;
+function pickGalaxy(cx, cy) {
+  if (!renderer || !camera || !P.st.length) return -1;
+  if (!RAY) { RAY = new THREE.Raycaster(); NDC = new THREE.Vector2(); }
+  const rc = canvas.getBoundingClientRect(); if (!rc.width || !rc.height) return -1;
+  NDC.x = ((cx - rc.left) / rc.width) * 2 - 1; NDC.y = -((cy - rc.top) / rc.height) * 2 + 1; RAY.setFromCamera(NDC, camera);
+  /* 1) ยิงรังสีตรง ๆ — ถ้าโดนผิวลูกโป่งก่อน แปลว่าสติกเกอร์อยู่ด้านหลัง */
+  const hit = RAY.intersectObjects([P.balloon].concat(P.st.map(o => o.m)), false);
+  if (hit.length && hit[0].object !== P.balloon) return hit[0].object.userData.gi;
+  /* 2) เผื่อระยะบนจอ (นิ้วใหญ่กว่าสติกเกอร์): สติกเกอร์ด้านหน้าที่ใกล้จุดแตะในรัศมี ≥ 28 px */
+  const Rp = Math.max(28, Math.min(rc.width, rc.height) * 0.06), V = new THREE.Vector3(), cam = camera.position;
+  let best = -1, bd = Rp + 1;
+  P.st.forEach((o, i) => { o.m.getWorldPosition(V);
+    const fx = cam.x - V.x, fy = cam.y - V.y, fz = cam.z - V.z; if (o.dir[0] * fx + o.dir[1] * fy + o.dir[2] * fz <= 0) return;
+    V.project(camera); const sx = rc.left + (V.x * 0.5 + 0.5) * rc.width, sy = rc.top + (-V.y * 0.5 + 0.5) * rc.height, dd = Math.hypot(cx - sx, cy - sy);
+    if (dd < bd) { bd = dd; best = i; } });
+  return best;
+}
+function tapAt(px, py) {
   if (state.mode !== 'manual') return;
   if (state.blowStage === 0) {
     flash('กดปุ่ม "🎈 เป่าครั้งที่ 1" ก่อนเริ่มวัด', 'warn');
     return;
   }
-  const rect = canvas.getBoundingClientRect();
-  const cx = e.clientX - rect.left;
-  const cy = e.clientY - rect.top;
   const a = state.aCurrent;
-
-  // find clicked galaxy (within sticker box)
-  let clicked = -1;
-  state.galaxies.forEach((g, idx) => {
-    const px = w2cX(g.x * a);
-    const py = w2cY(g.y * a);
-    const halfS = cmToPx(1.0) / 2 + 4;
-    if (Math.abs(cx - px) <= halfS && Math.abs(cy - py) <= halfS) {
-      clicked = idx;
-    }
-  });
+  const clicked = pickGalaxy(px, py);
 
   if (clicked < 0) {
     // click on empty space — clear selection
@@ -961,19 +979,58 @@ canvas.addEventListener('click', (e) => {
       state.selectedGal = clicked;
       const ref = state.galaxies[state.selectedRef];
       const dist = distCm(ref, g, a);
-      state.measureLine = {
-        x1: w2cX(ref.x * a),
-        y1: w2cY(ref.y * a),
-        x2: w2cX(g.x * a),
-        y2: w2cY(g.y * a),
-        dist: dist
-      };
-      flash(`📐 ระยะจาก <b>กาแล็กซีอ้างอิง → ${g.label}</b> = <b>${dist.toFixed(2)} ซม.</b><br>กรอกค่านี้ใน${state.blowStage===1?' d₁':' d₂'} ของแถว ${g.label}`, 'ok');
+      state.measureLine = { i1: state.selectedRef, i2: clicked, dist: dist };   /* สายวัดพาดผิวลูกโป่งจากอ้างอิง → กาแล็กซีนี้ */
+      flash(`📐 ระยะจาก <b>กาแล็กซีอ้างอิง → ${g.label}</b> = <b>${dist.toFixed(2)} ซม.</b><br>กรอกค่านี้ใน${state.blowStage===1?' d₁':' d₂'} ของแถว ${g.label} <small>· กด 🔍 อ่านสายวัด เพื่อซูม</small>`, 'ok');
     }
   }
+  if (curView === 'read') setView('read');
   updateReadouts();
   draw();
-});
+}
+
+/* ── ✋ โหมดเลื่อนภาพ + หมุน/ซูม/เลื่อนกล้อง · แตะ (ไม่ลาก) = เลือกกาแล็กซี ── */
+let panMode = false;
+function setPanMode(on) { panMode = !!on; const b = document.getElementById('panBtn');
+  if (b) { b.classList.toggle('active', panMode); b.innerHTML = panMode ? '✋ เลื่อนภาพ · เปิดอยู่' : '✋ เลื่อนภาพ'; }
+  canvas.style.cursor = panMode ? 'move' : ''; }
+const TAP_PX = 7;
+function setupPointer(cv) { const T = { mode: null, lx: 0, ly: 0, d0: 0, cx: 0, cy: 0, sx: 0, sy: 0, moved: 0, multi: false };
+  const mid = e => ({ x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2, d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => { e.preventDefault();
+    T.mode = (e.button === 1 || e.button === 2 || e.shiftKey || panMode) ? 'pan' : 'rot'; T.lx = T.sx = e.clientX; T.ly = T.sy = e.clientY; T.moved = 0; T.btn = e.button; cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('mousemove', e => { if (T.mode) return; cv.style.cursor = panMode ? 'move' : (pickGalaxy(e.clientX, e.clientY) >= 0 && state.blowStage > 0 ? 'pointer' : 'grab'); });
+  window.addEventListener('mousemove', e => { if (!T.mode || T.mode === 'pinch') return;
+    if (e.buttons === 0) { T.mode = null; cv.style.cursor = ''; return; }
+    const dx = e.clientX - T.lx, dy = e.clientY - T.ly; T.lx = e.clientX; T.ly = e.clientY; T.moved = Math.max(T.moved, Math.hypot(e.clientX - T.sx, e.clientY - T.sy));
+    if (T.moved < TAP_PX) return;
+    if (T.mode === 'pan') camPan(dx, dy); else camRotate(dx, dy); });
+  window.addEventListener('mouseup', e => { const was = T.mode; if (T.mode !== 'pinch') T.mode = null; cv.style.cursor = panMode ? 'move' : '';
+    if (was && was !== 'pinch' && T.moved < TAP_PX && T.btn === 0 && e.target === cv) tapAt(e.clientX, e.clientY); });
+  window.addEventListener('blur', () => { T.mode = null; });
+  cv.addEventListener('touchstart', e => { e.preventDefault();
+    if (e.touches.length >= 2) { const m = mid(e); T.mode = 'pinch'; T.multi = true; T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if (e.touches.length === 1) { const t0 = e.touches[0]; T.mode = panMode ? 'pan' : 'rot'; T.multi = false; T.lx = T.sx = t0.clientX; T.ly = T.sy = t0.clientY; T.moved = 0; } }, { passive: false });
+  cv.addEventListener('touchmove', e => { e.preventDefault();
+    if (T.mode === 'pinch' && e.touches.length >= 2) { const m = mid(e); if (T.d0 > 10 && m.d > 10) camZoom(T.d0 / m.d); camPan(m.x - T.cx, m.y - T.cy); T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if ((T.mode === 'rot' || T.mode === 'pan') && e.touches.length === 1) { const t0 = e.touches[0], dx = t0.clientX - T.lx, dy = t0.clientY - T.ly;
+      T.moved = Math.max(T.moved, Math.hypot(t0.clientX - T.sx, t0.clientY - T.sy)); T.lx = t0.clientX; T.ly = t0.clientY;
+      if (T.moved >= TAP_PX) (T.mode === 'pan' ? camPan : camRotate)(dx, dy); } }, { passive: false });
+  const tend = e => {
+    if (e.touches.length === 0 && !T.multi && (T.mode === 'rot' || T.mode === 'pan') && T.moved < TAP_PX && e.changedTouches && e.changedTouches[0]) tapAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    if (e.touches.length === 1) { T.mode = panMode ? 'pan' : 'rot'; T.lx = T.sx = e.touches[0].clientX; T.ly = T.sy = e.touches[0].clientY; T.moved = TAP_PX; }
+    else if (e.touches.length === 0) { T.mode = null; T.multi = false; } };
+  cv.addEventListener('touchend', tend); cv.addEventListener('touchcancel', () => { T.mode = null; T.multi = false; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); camZoom(1 + e.deltaY * 0.0012); }, { passive: false }); }
+/* มุมมองซูมอ่านสายวัด: ลากหมุนแบบละเอียด (HD_FINE) ให้เล็งขีดบนสายวัดได้แม่น */
+const HD_FINE = 0.3;
+function camRotate(dx, dy) { const f = (VIEWS[curView] && VIEWS[curView].fine) || orbit.dist < 25 ? HD_FINE : 1;
+  orbit.az -= dx * 0.006 * f; orbit.el = Math.max(-0.3, Math.min(1.5, orbit.el + dy * 0.006 * f)); }
+function camZoom(f) { orbit.dist = Math.max(4, Math.min(600, orbit.dist * f)); }
+function camPan(dx, dy) { if (VIEWS[curView] && VIEWS[curView].follow) { curView = 'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.remove('on')); }
+  const o = orbit; if (!o.target || !camera) return;
+  const k = o.dist * 2 * Math.tan(camera.fov * Math.PI / 360) / (canvas.parentElement.clientHeight || 300), ca = Math.cos(o.az), sa = Math.sin(o.az), ce = Math.cos(o.el), se = Math.sin(o.el);
+  o.target.x += (-dx * ca + dy * (-se * sa)) * k; o.target.y += dy * ce * k; o.target.z += (dx * sa + dy * (-se * ca)) * k; }
 
 /* =========================================================
    MODE / FLASH
@@ -1192,7 +1249,7 @@ function autoFillFromCanvas() {
     const inp = document.getElementById('inp-d' + stage + '-' + g.label);
     if (inp) inp.value = d.toFixed(2);
   });
-  flash('📐 อ่านค่าจาก Canvas → กรอกใน d' + stage + ' แล้ว (ใช้เพื่อตรวจสอบ)', 'ok');
+  flash('📐 อ่านค่าจากภาพ → กรอกใน d' + stage + ' แล้ว (ใช้เพื่อตรวจสอบ)', 'ok');
 }
 
 function computeAll() {
@@ -1648,6 +1705,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // init
   generateGalaxies(state.nGal);
   rebuildTable();
+  init3D();
   resizeCanvas();
   resizeGraph();
   updateReadouts();
