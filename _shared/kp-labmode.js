@@ -59,7 +59,8 @@
     '#kplm-tip.shake .warn{display:block}' +
     '#kplm-tip .skip{display:none;margin-top:8px;background:none;border:none;padding:0;color:#a16207;font:600 .78rem/1.3 inherit;text-decoration:underline;cursor:pointer}' +
     '#kplm-tip.stuck .skip{display:block}' +
-    '@media(max-width:640px){#kplm-tip{left:10px!important;right:10px;bottom:10px;top:auto!important;max-width:none}}';
+    '@media(max-width:640px){#kplm-tip{left:10px!important;right:10px;bottom:10px;top:auto!important;max-width:none}' +
+    '#kplm-tip.attop{top:10px!important;bottom:auto}}';
   function addCSS(){ if (document.getElementById('kplm-css')) return; var s = document.createElement('style'); s.id = 'kplm-css'; s.textContent = CSS; document.head.appendChild(s); }
 
   /* ═════════ 1) ล็อกโหมดอัตโนมัติ ═════════ */
@@ -203,7 +204,7 @@
     if (s.start) try { s.start(); } catch (e) {}
     T.clicked = false;
     var el = $el(s.el);
-    if (el && el.scrollIntoView) {
+    if (reveal(el)) {} else if (el && el.scrollIntoView) {
       var r = el.getBoundingClientRect();
       if (r.top < 70 || r.bottom > innerHeight - 20) {
         var tall = r.height > innerHeight * 0.55;
@@ -223,6 +224,17 @@
     T.t0 = Date.now();
     place(true);
   }
+  /* จอมือถือ: เป้าหมายอยู่ในแผ่น ⚙️ ตั้งค่า ที่เลื่อนขึ้นจากขอบล่าง (kp-mobile-panel.js) → เปิดแผ่นแล้วเลื่อนไปหาเป้าหมาย */
+  function reveal(el){
+    var sh = document.getElementById('kpSheet');
+    if (!el || !sh || !sh.contains(el)) return false;
+    if (!sh.classList.contains('open')) {
+      var b = document.querySelector('#kpMBar [data-t="set"]');
+      if (b) { T.opening = true; b.click(); T.opening = false; }
+    }
+    setTimeout(function(){ try { el.scrollIntoView({ block: 'center' }); } catch (e) {} }, 320);
+    return true;
+  }
   function check(){
     var s = step(); if (!s || !s.el || T.adv) return;
     /* ค้างขั้นเดิมนาน → แสดงปุ่มข้าม (กันผู้เรียนติด เช่น อ่านค่าผิดเกินเกณฑ์) */
@@ -234,12 +246,12 @@
   }
   /* อนุญาตให้คลิกเฉพาะเป้าหมาย / กล่องข้อความ / แถบบนสุด */
   function guard(e){
-    var s = step(); if (!s) return;
+    var s = step(); if (!s || T.opening) return;
     if (T.tip.contains(e.target)) return;
     var el = $el(s.el);
     if (el && el.contains(e.target)) { if (e.type === 'click' && T.clicked === false) T.clicked = true; return; }
     if (s.free) return;
-    if (e.target.closest && e.target.closest('.kp-topbar,#kp-auth-modal')) return;
+    if (e.target.closest && e.target.closest('.kp-topbar,#kp-auth-modal,#kpMBar .tabs,.kp-vbtns')) return;
     /* ภาพ 3D หมุน/ซูม/เลื่อนได้เสมอ แม้อยู่ในโหมดสอน */
     if (window.KPReal3D && KPReal3D.renderers.some(function(r){ return r.domElement === e.target; })) return;
     e.preventDefault(); e.stopImmediatePropagation();
@@ -267,6 +279,8 @@
       y = r.bottom + 14 + h < innerHeight ? r.bottom + 14 : Math.max(10, r.top - h - 14);
     }
     tp.style.left = x + 'px'; tp.style.top = y + 'px';
+    /* จอมือถือ กล่องข้อความติดล่างจอ → ถ้าเป้าหมายอยู่ช่วงล่าง (เช่นแผงควบคุมล่าง) ย้ายกล่องขึ้นบนจอ */
+    tp.classList.toggle('attop', innerWidth <= 640 && r.bottom > innerHeight - h - 24);
   }
 
   function init(){ addCSS(); paintLocks(); tutorButton(); }
