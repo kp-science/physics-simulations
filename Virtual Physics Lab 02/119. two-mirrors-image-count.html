@@ -480,7 +480,7 @@ function updateHud(){ const shown=isShown(), N=formulaN(th);
   $('hud').innerHTML=h; }
 function hintState(){
   if(!A) return ['info',''];
-  if(!isShown()) return ['info', guess===null ? `① ดูกระจกที่ θ = ${th}° แล้ว<b>ทาย</b>ว่าตาจะเห็นภาพเทียนกี่ภาพ (ปุ่ม − / +) ② กด <b>🔓 เฉลย</b>` : `ทายไว้ ${guess} ภาพ — กด <b>🔓 เฉลย</b> เพื่อดูภาพจาง ๆ ของเทียนทั้งหมด`];
+  if(!isShown()) return ['info', guess===null ? `① <b>นับเปลวเทียนในกระจก</b> ที่ θ = ${th}° (กด 👁 มองจากตา จะเห็นแบบที่ตาเห็นจริง) แล้ว<b>ทาย</b>จำนวนภาพ (ปุ่ม − / +) ② กด <b>🔓 เฉลย</b>` : `ทายไว้ ${guess} ภาพ — กด <b>🔓 เฉลย</b> เพื่อดูเลขกำกับภาพแต่ละภาพ`];
   if(!ray.k) return ['ok',`✓ ตาเห็น ${A.seen} ภาพ · กด <b>ภาพที่ 1</b> <b>ภาพที่ 2</b> ดูทางเดินแสง · หรือเปลี่ยนมุม (ปุ่มลัด 120 90 72 60 45 30) แล้วทายใหม่ · กด <b>📌 บันทึกผล</b> ลงตาราง`];
   if(ray.none||!SEL||!SEL.path) return ['warn',$('rayInfo').textContent];
   return ['ok',`🔦 เส้นทึบ = ทางเดินแสงจริง · เส้นประ = แนวต่อย้อนไปที่ภาพ · ลองกด <b>ภาพที่ ${Math.min(3,ray.k+1)}</b> หรือกดปุ่มเดิมซ้ำเพื่อสลับกระจก · ลากตาแล้วดูทางเดินแสงเปลี่ยน`];
@@ -639,11 +639,14 @@ function syncGhosts(){
   let n=0;
   if(A) A.all.forEach(o=>{
     const isSel=selImg&&(o===selImg||(selImg.path&&o.chain===selImg.chain&&o.k<selImg.k)||(selImg.main===o)||(o.main===selImg));
-    let vis = shown || isSel;
+    const seenU=o.dup?o.main.seen:o.seen;
+    /* ก่อนเฉลย: เห็นเปลวเทียนในกระจกเท่าที่ตาเห็นจริง (ไม่มีเลข/สี) ให้นักเรียนนับเองแล้วทาย · เฉลย: เลขกำกับทีละลำดับ + ภาพที่ตานี้มองไม่เห็น (สีเทา) */
+    const badgeOn = shown && !(revealT&&now-revealT<(o.k-1)*380);
+    let vis = badgeOn || isSel || (!o.dup && seenU);
     if(eyeV){ vis = vis && !!o.path; } else if(o.dup) vis=false;
-    if(shown&&!isSel&&revealT&&now-revealT<(o.k-1)*380) vis=false;   /* เฉลยทีละลำดับการสะท้อน */
     if(!vis) return;
-    const g=getGhost(n++), w=W(Pt(objR,o.ang)), seenU=o.dup?o.main.seen:o.seen;
+    const g=getGhost(n++), w=W(Pt(objR,o.ang));
+    g.userData.badge.visible=!!(badgeOn||isSel);
     g.position.set(w.x,0,w.z); g.visible=true;
     const col= !seenU&&!eyeV ? '#64748b' : (o.twin||o.dup)&&!eyeV ? '#a855f7' : o.chain===0?'#0ea5e9':'#f97316', key=o.k+col;
     if(g.userData.bk!==key){ g.userData.bk=key; const b=g.userData.badge.material; if(b.map) b.map.dispose(); b.map=badgeTex(o.k,col); b.needsUpdate=true; }
