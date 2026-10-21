@@ -29,7 +29,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KP Science simulation — การเคลื่อนที่แนวตรงด้วยความเร็วคงที่</title>
+<title>KP Science simulation — การเคลื่อนที่แนวตรงด้วยความเร็วคงที่ (3D)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -72,8 +72,17 @@ nav button.active { background:var(--accent); border-color:var(--accent); color:
 .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
 .card h3 { font-size:0.92rem; color:var(--accent); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
 
-.canvas-wrap { position:relative; width:100%; aspect-ratio: 16/6; min-height:240px; background:#06101e; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.canvas-wrap canvas { display:block; width:100%; height:100%; }
+.canvas-wrap { position:relative; width:100%; height:460px; background:linear-gradient(180deg,#141c2c,#0a0f1c); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.canvas-wrap canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px);z-index:6}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{border-color:var(--accent4);color:var(--accent4);font-weight:700}
+.view3d .viewhint{position:absolute;left:10px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:52%;animation:vhFade .6s ease 10s forwards;z-index:5}
+@keyframes vhFade{to{opacity:0}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+@media(max-width:900px){.view3d .viewbtns{top:8px;bottom:auto}.view3d .viewhint{display:none}.view3d .stopwatch-overlay{top:auto;bottom:10px;right:10px}}
 
 .controls-row { display:grid; grid-template-columns: 1.1fr 1fr; gap:14px; }
 @media (max-width: 900px) { .controls-row { grid-template-columns: 1fr; } }
@@ -154,8 +163,8 @@ footer b { color:var(--accent); }
 /* Mobile responsive additions */
 .slider-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; margin-top:6px; }
 @media (max-width:600px) { .slider-grid { grid-template-columns:1fr; } }
-@media (max-width:600px) { .canvas-wrap { aspect-ratio:unset; height:56vw; min-height:220px; max-height:360px; } }
-@media (max-width:600px) { .stopwatch-overlay { font-size:1.3rem; padding:6px 14px; } }
+@media (max-width:600px) { .canvas-wrap { height:112vw; min-height:340px; max-height:540px; } }
+@media (max-width:600px) { .stopwatch-overlay { font-size:1.15rem; padding:4px 10px; letter-spacing:1px; } .stopwatch-overlay .sw-label { font-size:.6rem; } }
 @media (max-width:600px) { .cbar { gap:6px; } .btn { padding:6px 10px; font-size:0.78rem; } }
 
 /* === Download button === */
@@ -224,7 +233,7 @@ footer b { color:var(--accent); }
 <header>
   <div class="icon">🚜</div>
   <div>
-    <h1>การเคลื่อนที่แนวตรงด้วยความเร็วคงที่</h1>
+    <h1>การเคลื่อนที่แนวตรงด้วยความเร็วคงที่ (3D)</h1>
     <p>Straight-Line Motion at Constant Speed — Experiment 8</p>
   </div>
   <div class="badge">KP Science simulation</div>
@@ -242,9 +251,19 @@ footer b { color:var(--accent); }
 
     <!-- CANVAS -->
     <div class="card">
-      <h3>🛣️ โต๊ะทดลอง — รถบูลโดเซอร์เคลื่อนที่บนไม้บรรทัด</h3>
-      <div class="canvas-wrap">
-        <canvas id="simCanvas"></canvas>
+      <h3>🛣️ พื้นทดลอง — รถบูลโดเซอร์เคลื่อนที่ข้างเทปวัดระยะ (3D)</h3>
+      <div class="canvas-wrap view3d" id="view3d">
+        <canvas id="glCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">มุมเฉียง</button>
+          <button data-vw="front" onclick="setView('front')">👁 ตรงหน้า</button>
+          <button data-vw="dz" onclick="setView('dz')">🔍 ตามรถ</button>
+          <button data-vw="tape" onclick="setView('tape')">🔍 อ่านเทป</button>
+          <button data-vw="tm" onclick="setView('tm')">🔍 นาฬิกา</button>
+        </div>
+        <div class="viewhint">📏 อ่านตำแหน่ง x ที่<b>เข็มแดง</b>ข้างรถบนเทปวัด · กด <b>🔍 อ่านเทป</b> เพื่อซูม<br>🖱 ลาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ยังใช้ stopwatch ปุ่มบันทึก ตาราง และกราฟได้ตามปกติ</div>
         <div class="stopwatch-overlay" id="stopwatch">
           <span class="sw-label">⏱ STOPWATCH</span>
           00.0 s
@@ -431,6 +450,9 @@ footer b { color:var(--accent); }
   <b>KP Science simulation</b> · การเคลื่อนที่แนวตรงด้วยความเร็วคงที่ · อ้างอิง: หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน 2551 (ปรับปรุง 2560) · ฟิสิกส์ ม.ปลาย — Kinematics
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../../_shared/three.min.js"><\/script>'); }</script>
+<script src="../../_shared/kp-real3d.js?v=20261021-8"></script>
 <script>
 /* ============================================================
    STRAIGHT-LINE MOTION AT CONSTANT SPEED — KP Science simulation
@@ -751,148 +773,284 @@ function updateSummary() {
   }
 }
 
-// ---------- DRAW: SIM CANVAS ----------
-function draw() {
-  const canvas = document.getElementById('simCanvas');
-  if (!canvas.getContext) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0,0,W,H);
+// ---------- DRAW: SIM VIEW (3D · three.js r128 · หน่วย cm) ----------
+/* ภาพ 3D เป็นแค่ "มุมมอง" ของสถานะเดิม (t, currentX, currentLoad, records ของ trial)
+   แกน x = ตำแหน่งของรถจากเส้น START (cm) = ค่าบนเทปวัด · พื้นห้อง y = 0 · เทปวางบนพื้นหน้าทางวิ่ง (z = TAPE_Z) */
+let renderer=null, scene=null, camera=null, P={}, TEXS=[], curView='iso';
+const TAPE_X0=-6, TAPE_X1=556, TAPE_Z=15, TAPE_W=6.4, TAPE_SEG=5;   /* เทปวัด 0–550 cm แบ่งเป็น 5 ท่อน (ภาพคมตอนซูม) */
+const X_DRAW_MAX=550;
+const TM_POS=[-48,0,-30];                                          /* นาฬิกาจับเวลาบนพื้นหลังเส้น START */
+const orbit={target:null,dist:600,az:0.35,el:0.42};
+function fitDist(wCm,hCm){ const el=document.getElementById('view3d'), asp=Math.max(0.4,(el.clientWidth||800)/(el.clientHeight||420)), t=Math.tan(36*Math.PI/360);
+  return Math.max(14,Math.min(1400, Math.max(hCm/(2*t), wCm/(2*t*asp))*1.06)); }
+function dzX(){ return Math.max(-2,Math.min(currentX||0,X_DRAW_MAX)); }
+const VIEWS={
+  iso  :{t:[262,4,0], d:()=>fitDist(600,120), az:0.32, el:0.42},
+  front:{t:[262,10,4], d:()=>fitDist(600,60), az:0.0001, el:0.10},
+  dz   :{follow:()=>[dzX()-6,7,4], d:()=>Math.max(80,fitDist(70,34)), az:0.55, el:0.30},
+  tape :{follow:()=>[dzX(),0,TAPE_Z-1], d:()=>Math.max(30,fitDist(30,16)), az:0.0001, el:1.05},
+  tm   :{t:[TM_POS[0],TM_POS[1]+9,TM_POS[2]+4], d:()=>fitDist(44,22), az:0.0001, el:0.10}};
+const vnum=q=>(typeof q==='function')?q():q;
 
-  // Sky / table background
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'#0a1628');
-  grad.addColorStop(1,'#0e1f33');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,W,H);
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); TEXS.push({t,fn}); return t; }
+function redrawTexs(){ TEXS.forEach(o=>{ const c=o.t.image; o.fn(c.getContext('2d'),c.width,c.height); o.t.needsUpdate=true; }); }
 
-  // Table top
-  const tableY = H * 0.72;
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(0, tableY, W, H - tableY);
-  ctx.fillStyle = '#3e2723';
-  ctx.fillRect(0, tableY, W, 6);
+/* ── ตัวช่วยปั้นอุปกรณ์: กล่องขอบมน · วัสดุเคลือบเงา · โครเมียม · ปุ่มหมุนมีร่อง · ขายาง ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=()=>new THREE.MeshStandardMaterial({color:0xd8dde4,metalness:.95,roughness:.22});
+const rubberM=()=>new THREE.MeshStandardMaterial({color:0x111214,roughness:.85});
+function ribKnob(r,h){ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.CylinderGeometry(r*0.95,r,h,28),enamel(0x15171c,0.35,0.5)));
+  for(let i=0;i<16;i++){ const a=i/16*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.13,h*0.9,r*0.24),new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5})); rib.position.set(Math.cos(a)*r*0.98,0,Math.sin(a)*r*0.98); rib.rotation.y=-a; g.add(rib); }
+  const sc=new THREE.Mesh(new THREE.CylinderGeometry(r*0.24,r*0.24,h*1.5,10),chromeM()); sc.position.y=h*0.9; g.add(sc); return g; }
+function feet(parent,w,d,y){ [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>{ const f=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.3,1,16),rubberM()); f.position.set(a*(w/2-2.5),y,b*(d/2-2)); parent.add(f); }); }
 
-  // Tape measure (ruler) just above the table top
-  const rulerY = tableY - 18;
-  const rulerH = 22;
-  const margin = 30;
-  const rulerX0 = margin;
-  const rulerX1 = W - margin;
-  ctx.fillStyle = '#fef3c7';
-  ctx.fillRect(rulerX0, rulerY, rulerX1-rulerX0, rulerH);
-  ctx.strokeStyle = '#92400e';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(rulerX0, rulerY, rulerX1-rulerX0, rulerH);
+/* ── ป้ายข้อความ (Sprite) พื้นทึบ อ่านง่ายทุกมุมกล้อง · ป้ายที่เปลี่ยนข้อความได้ใช้ setText ── */
+function makeLabel(text,col,wcm,bg){ const st={text,col};
+  const tex=canvasTex(512,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle=bg||'rgba(12,18,32,.9)'; g.fillRect(0,0,w,h);
+    g.strokeStyle=st.col; g.globalAlpha=.55; g.lineWidth=5; g.strokeRect(3,3,w-6,h-6); g.globalAlpha=1;
+    g.fillStyle=st.col; g.font='bold 62px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(st.text,w/2,h/2+4); });
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+  const wc=wcm||10; sp.scale.set(wc,wc/4,1);
+  sp.userData.setText=(t,c)=>{ if(t===st.text&&(!c||c===st.col)) return; st.text=t; if(c) st.col=c; const cv=tex.image; const o=TEXS.find(q=>q.t===tex); if(o) o.fn(cv.getContext('2d'),cv.width,cv.height); tex.needsUpdate=true; };
+  return sp; }
 
-  // Tick marks every 10 cm, label every 50 cm
-  ctx.fillStyle = '#451a03';
-  ctx.font = '10px "Share Tech Mono", monospace';
-  ctx.textAlign = 'center';
-  for (let cm = 0; cm <= TRACK_MAX_CM; cm += 10) {
-    const x = rulerX0 + (cm/TRACK_MAX_CM) * (rulerX1-rulerX0);
-    const tickH = (cm % 50 === 0) ? 10 : 5;
-    ctx.fillRect(x, rulerY, 1, tickH);
-    if (cm % 50 === 0) {
-      ctx.fillText(cm, x, rulerY + 20);
-    }
-  }
+/* ── เทปวัดระยะบนพื้น (ท่อนที่ k): ค่า q cm อยู่ที่ x = q · ขอบบนของภาพ = ขอบชิดทางวิ่งของรถ ── */
+function tapeSeg(k){ const L=(TAPE_X1-TAPE_X0)/TAPE_SEG, a=TAPE_X0+k*L; return {a, b:a+L, L}; }
+function drawTapeSeg(k){ return (g,w,h)=>{
+  const S=tapeSeg(k), ppc=w/S.L, cx=q=>(q-S.a)*ppc;
+  g.fillStyle='#f5d33f'; g.fillRect(0,0,w,h);
+  g.fillStyle='rgba(120,90,10,.10)'; for(let i=0;i<26;i++){ g.fillRect(0,(i*37%h),w,1+(i%3)); }
+  g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(0,0,w,3); g.fillRect(0,h-3,w,3);
+  const c0=Math.max(0,Math.ceil(S.a*2)/2), c1=Math.min(550,S.b);
+  for(let q=c0; q<=c1+1e-6; q+=0.5){ const qi=Math.round(q*2)/2, x=cx(qi), half=Math.abs(qi%1)>0.25;
+    const m50=!half&&qi%50===0, m10=!half&&qi%10===0, m5=!half&&qi%5===0;
+    const L= m50?h*0.50 : m10?h*0.40 : m5?h*0.30 : half?h*0.12 : h*0.20, tw= m10?5:(m5?3.4:(half?1.4:2.4));
+    g.fillStyle= m50?'#b91c1c':'#141414'; g.fillRect(x-tw/2,0,tw,L); }
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  for(let q=Math.ceil(Math.max(0,S.a)/10)*10; q<=c1; q+=10){ const big=q%50===0;
+    g.fillStyle= big?'#b91c1c':'#111'; g.font=(big?'bold 96px':'bold 80px')+' "Share Tech Mono",monospace'; g.fillText(String(q),cx(q),h*0.86); }
+  g.fillStyle='#7c2d12'; g.font='bold 34px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left';
+  for(let q=Math.ceil(Math.max(0,S.a)/100)*100+3; q<c1-10; q+=100) g.fillText('cm',cx(q),h*0.96);
+  if(S.a<0) { g.fillStyle='#14532d'; g.fillRect(0,0,cx(0)-3,h); }
+}; }
 
-  // Starting line marker
-  ctx.fillStyle = '#dc2626';
-  ctx.fillRect(rulerX0 - 1, rulerY - 30, 2, 30);
-  ctx.font = 'bold 11px IBM Plex Sans Thai';
-  ctx.fillStyle = '#dc2626';
-  ctx.textAlign = 'left';
-  ctx.fillText('START', rulerX0 + 4, rulerY - 22);
+/* ── หน้าปัดนาฬิกาจับเวลา: แสดงเวลาเดียวกับ stopwatch มุมภาพ ── */
+function drawTimerFace(g,w,h){
+  g.fillStyle='#10161f'; g.fillRect(0,0,w,h);
+  g.strokeStyle='#34d399'; g.lineWidth=6; g.strokeRect(6,6,w-12,h-12);
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  g.fillStyle='#a7f3d0'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillText('KP STOPWATCH · นาฬิกาจับเวลา (s)',30,60);
+  g.fillStyle='#06140e'; g.fillRect(30,84,w-60,h-118); g.strokeStyle='#065f46'; g.lineWidth=4; g.strokeRect(30,84,w-60,h-118);
+  g.textAlign='right'; g.font='bold 170px "Share Tech Mono",monospace';
+  g.fillStyle='rgba(52,211,153,.10)'; g.fillText('88.8',w-120,h-62);
+  g.fillStyle='#34d399'; g.fillText(t.toFixed(1).padStart(4,'0'),w-120,h-62);
+  g.fillStyle='#a3a3a3'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.fillText('s',w-60,h-66);
+  const txt= isPlaying?'กำลังจับเวลา':(t>=30?'ครบ 30 s':'หยุด');
+  g.textAlign='left'; g.beginPath(); g.arc(62,116,12,0,Math.PI*2); g.fillStyle= isPlaying?'#22c55e':'#3f3f46'; g.fill();
+  g.fillStyle= isPlaying?'#86efac':'#94a3b8'; g.font='bold 30px "IBM Plex Sans Thai",sans-serif'; g.fillText(txt,84,127);
+}
+let _tmKey='';
+function updTimerTex(){ if(!P.timerTex) return; const k=t.toFixed(1)+(isPlaying?1:0); if(k===_tmKey) return; _tmKey=k; const c=P.timerTex.image; drawTimerFace(c.getContext('2d'),c.width,c.height); P.timerTex.needsUpdate=true; }
 
-  // Bulldozer position
-  const xPx = rulerX0 + (Math.min(currentX, TRACK_MAX_CM)/TRACK_MAX_CM) * (rulerX1-rulerX0);
-  const bdY = rulerY - 10;
-  drawBulldozer(ctx, xPx, bdY, currentLoad);
-
-  // Current position label above bulldozer
-  ctx.fillStyle = '#fef9c3';
-  ctx.font = 'bold 13px "Share Tech Mono"';
-  ctx.textAlign = 'center';
-  ctx.fillText('x = ' + currentX.toFixed(0) + ' cm', xPx, bdY - 38);
-
-  // Sample time markers (vertical dashed lines on ruler)
-  const tr = activeTrial();
-  if (tr) {
-    ctx.strokeStyle = 'rgba(56,189,248,0.35)';
-    ctx.setLineDash([3,3]);
-    ctx.lineWidth = 1;
-    tr.records.forEach(r => {
-      if (r.xUser !== null) {
-        const px = rulerX0 + (Math.min(r.xUser, TRACK_MAX_CM)/TRACK_MAX_CM) * (rulerX1-rulerX0);
-        ctx.beginPath();
-        ctx.moveTo(px, rulerY - 38);
-        ctx.lineTo(px, rulerY + rulerH);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = tr.color;
-        ctx.beginPath();
-        ctx.arc(px, rulerY + rulerH + 6, 3, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = tr.color;
-        ctx.font = '9px "Share Tech Mono"';
-        ctx.fillText('t='+r.t, px, rulerY + rulerH + 18);
-        ctx.setLineDash([3,3]);
-      }
-    });
-    ctx.setLineDash([]);
-  }
+/* ── รถบูลโดเซอร์ของเล่น (จุดอ้างอิงของกลุ่ม = เข็มแดง = ตำแหน่ง x) ── */
+function makeDozer(){
+  const G=new THREE.Group();
+  const yel=new THREE.MeshPhysicalMaterial({color:0xf5b70a,metalness:.15,roughness:.34,clearcoat:.8,clearcoatRoughness:.22});
+  const yel2=new THREE.MeshPhysicalMaterial({color:0xe39e05,metalness:.15,roughness:.38,clearcoat:.7,clearcoatRoughness:.25});
+  const dark=enamel(0x22262e,0.45,0.4), steel=new THREE.MeshStandardMaterial({color:0x6b7280,metalness:.8,roughness:.35});
+  /* ตีนตะขาบยาง: ผิวมีบั้ง (เลื่อนลายตามระยะที่วิ่ง) + ล้อเฟือง/ล้อกดโครเมียม */
+  P.treadTex=canvasTex(512,64,(g,w,h)=>{ g.fillStyle='#1a1b1e'; g.fillRect(0,0,w,h); for(let i=0;i<32;i++){ g.fillStyle='#2f3238'; g.fillRect(i*16,0,9,h); g.fillStyle='#0b0c0e'; g.fillRect(i*16+9,0,2,h); } });
+  P.treadTex.wrapS=THREE.RepeatWrapping; P.treadTex.repeat.set(2,1);
+  const trM=new THREE.MeshStandardMaterial({color:0xffffff,map:P.treadTex,roughness:.85});
+  P.sprockets=[];
+  [-1,1].forEach(sd=>{ const z=sd*6.2;
+    const belt=rbox(25,5.2,3.6,2.4,trM); belt.position.set(-1,2.6,z); G.add(belt);
+    [-10.5,8.5].forEach(x=>{ const sp=new THREE.Group(); sp.position.set(x,2.6,z+sd*1.85);
+      sp.add(new THREE.Mesh(new THREE.CylinderGeometry(2.0,2.0,0.3,22).rotateX(Math.PI/2),chromeM()));
+      for(let k=0;k<6;k++){ const a=k/6*Math.PI*2, b=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.35,8).rotateX(Math.PI/2),dark); b.position.set(Math.cos(a)*1.2,Math.sin(a)*1.2,sd*0.05); sp.add(b); }
+      G.add(sp); P.sprockets.push(sp); });
+    [-4.5,-0.5,3.5].forEach(x=>{ const rw=new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.15,0.3,18).rotateX(Math.PI/2),steel); rw.position.set(x,1.7,z+sd*1.85); G.add(rw); });
+    const guard=rbox(24,0.7,3.9,0.3,yel2); guard.position.set(-1,5.5,z); G.add(guard);
+  });
+  /* ตัวถัง + ฝากระโปรงเครื่อง + ห้องคนขับ */
+  const body=rbox(20,5.5,9.4,1.4,yel); body.position.set(-1,8.0,0); G.add(body);
+  const hood=rbox(9.5,3.2,8.0,1.2,yel); hood.position.set(4.2,12.2,0); G.add(hood);
+  const grill=rbox(0.5,2.6,6.4,0.2,dark); grill.position.set(9.0,12.0,0); G.add(grill);
+  const stack=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,4.5,14),chromeM()); stack.position.set(6.5,15.6,-2.4); G.add(stack);
+  const cab=rbox(8.2,7.2,8.6,1.1,yel2); cab.position.set(-5.2,14.2,0); G.add(cab);
+  const glass=new THREE.MeshPhysicalMaterial({color:0x1e3a5f,metalness:.2,roughness:.08,clearcoat:1,clearcoatRoughness:.05});
+  const wF=new THREE.Mesh(new THREE.BoxGeometry(0.2,4.2,6.6),glass); wF.position.set(-1.05,14.9,0); G.add(wF);
+  [-1,1].forEach(sd=>{ const wS=new THREE.Mesh(new THREE.BoxGeometry(5.6,4.0,0.2),glass); wS.position.set(-5.2,14.9,sd*4.35); G.add(wS); });
+  const roof=rbox(9.4,0.9,9.6,0.4,dark); roof.position.set(-5.2,18.3,0); G.add(roof);
+  const lamp=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,0.7,14),new THREE.MeshBasicMaterial({color:0xfb923c})); lamp.position.set(-6.5,19.1,2.6); G.add(lamp);
+  /* ใบมีดดันดินด้านหน้า (โค้ง) + แขนดัน + ลูกสูบไฮดรอลิก */
+  const bladeM=new THREE.MeshPhysicalMaterial({color:0xd99a06,metalness:.25,roughness:.4,clearcoat:.6,side:THREE.DoubleSide});
+  const blade=new THREE.Mesh(new THREE.CylinderGeometry(4.2,4.2,17,24,1,true,-Math.PI*0.42,Math.PI*0.84).rotateX(Math.PI/2).rotateZ(-Math.PI/2),bladeM);
+  blade.position.set(14.5,4.4,0); G.add(blade);
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.6,17),steel); edge.position.set(13.4,0.7,0); G.add(edge);
+  [-1,1].forEach(sd=>{ const arm=rbox(9,1.2,1.2,0.4,dark); arm.position.set(10.8,3.6,sd*8.7); arm.rotation.z=0.12; G.add(arm);
+    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,6,12),chromeM()); cyl.rotation.z=1.05; cyl.position.set(10.0,8.6,sd*3.6); G.add(cyl); });
+  /* ตะขอลากด้านหลัง */
+  const hook=new THREE.Mesh(new THREE.TorusGeometry(0.75,0.2,10,22),chromeM()); hook.rotation.y=Math.PI/2; hook.position.set(-12.6,4.2,0); G.add(hook);
+  /* เข็มชี้เทปสีแดง: แขนยื่นจากข้างรถ (ที่ x = ตำแหน่งรถ) ลงมาชี้ขอบเทป */
+  const red=new THREE.MeshBasicMaterial({color:0xef4444});
+  const pA=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.35,TAPE_Z-TAPE_W/2-7.6+0.4),red); pA.position.set(0,6.0,(8.0+TAPE_Z-TAPE_W/2)/2+0.2); G.add(pA);
+  const pD=new THREE.Mesh(new THREE.BoxGeometry(0.28,6.0-1.3,0.28),red); pD.position.set(0,(6.0+1.3)/2,TAPE_Z-TAPE_W/2+0.4); G.add(pD);
+  const pT=new THREE.Mesh(new THREE.ConeGeometry(0.5,1.0,4),red); pT.rotation.x=Math.PI; pT.position.set(0,0.95,TAPE_Z-TAPE_W/2+0.4); G.add(pT);
+  return G;
 }
 
-function drawBulldozer(ctx, x, y, load) {
-  // Bulldozer body
-  const bodyW = 40, bodyH = 18;
-  ctx.fillStyle = '#fbbf24';
-  ctx.fillRect(x - bodyW/2, y - bodyH, bodyW, bodyH);
-  ctx.strokeStyle = '#78350f';
-  ctx.lineWidth = 1.2;
-  ctx.strokeRect(x - bodyW/2, y - bodyH, bodyW, bodyH);
-  // Cabin
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(x - 4, y - bodyH - 10, 14, 10);
-  ctx.strokeRect(x - 4, y - bodyH - 10, 14, 10);
-  // Window
-  ctx.fillStyle = '#bae6fd';
-  ctx.fillRect(x - 2, y - bodyH - 8, 10, 6);
-  // Blade (front shovel)
-  ctx.fillStyle = '#78350f';
-  ctx.fillRect(x + bodyW/2, y - bodyH - 4, 3, bodyH + 4);
-  // Tracks
-  ctx.fillStyle = '#1f2937';
-  ctx.fillRect(x - bodyW/2 - 2, y - 4, bodyW + 4, 6);
-  // Wheels
-  ctx.fillStyle = '#374151';
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.arc(x + i*12, y, 3.5, 0, Math.PI*2);
-    ctx.fill();
-  }
-  // Load behind bulldozer
-  if (load > 0) {
-    const loadX = x - bodyW/2 - 6 - load*8;
-    // string
-    ctx.strokeStyle = '#9ca3af';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x - bodyW/2, y - bodyH/2);
-    ctx.lineTo(loadX + load*4, y - 4);
-    ctx.stroke();
-    // weights
-    for (let i = 0; i < load; i++) {
-      const wx = loadX + i*8;
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(wx, y - 6, 6, 8);
-      ctx.strokeStyle = '#1f2937';
-      ctx.strokeRect(wx, y - 6, 6, 8);
-    }
-  }
+/* ── เลื่อนลากน้ำหนัก (ก้อนเหล็กถ่วงบนแผ่นไม้) ── */
+function makeSled(){
+  const G=new THREE.Group();
+  const ply=new THREE.MeshPhysicalMaterial({color:0xb98b55,roughness:.6,clearcoat:.35,clearcoatRoughness:.5});
+  const base=rbox(16,1.2,10,0.5,ply); base.position.set(0,0.6,0); G.add(base);
+  const eye=new THREE.Mesh(new THREE.TorusGeometry(0.6,0.16,8,18),chromeM()); eye.rotation.y=Math.PI/2; eye.position.set(8.4,1.4,0); G.add(eye);
+  const iron=new THREE.MeshPhysicalMaterial({color:0x2b2f36,metalness:.7,roughness:.38,clearcoat:.3});
+  P.blocks=[]; [[-3.6,-2.4],[3.6,-2.4],[-3.6,2.4],[3.6,2.4]].forEach(([x,z])=>{ const b=rbox(6.4,3.4,4.4,0.5,iron); b.position.set(x,1.2+1.7,z); b.visible=false; G.add(b);
+    const knob=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,0.6,16),chromeM()); knob.position.set(0,1.9,0); b.add(knob); P.blocks.push(b); });
+  return G;
 }
+
+/* ── หมุดบอกจุดที่บันทึก (สีของ Trial) + ป้าย t ── */
+function markerAt(i){
+  while(P.marks.length<=i){ const g=new THREE.Group();
+    const m=new THREE.MeshBasicMaterial({color:0x38bdf8});
+    const pin=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,6,8),m); pin.position.y=3; g.add(pin);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),m); head.position.y=6.2; g.add(head);
+    const lb=makeLabel('t=5','#38bdf8',8); lb.position.set(0,9.2,0); g.add(lb);
+    g.userData={m,lb}; g.position.set(0,0.3,TAPE_Z+TAPE_W/2+1.6); scene.add(g); P.marks.push(g); }
+  return P.marks[i]; }
+
+function init3D(){
+  const cv=document.getElementById('glCanvas'), nt=document.getElementById('nothree');
+  if(typeof THREE==='undefined'){ if(nt) nt.style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(262,4,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ renderer=null; if(nt){ nt.innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้<br>ยังใช้ stopwatch ปุ่มบันทึก ตาราง และกราฟได้ตามปกติ'; nt.style.display='flex'; } return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.5,4000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.9)); const d1=new THREE.DirectionalLight(0xffffff,0.65); d1.position.set(160,400,260); scene.add(d1);
+  /* พื้นห้องปฏิบัติการ (kp-real3d ปูลายไม้ให้) */
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(760,2,190),new THREE.MeshStandardMaterial({color:0x6b5844,roughness:.9}));
+  floor.position.set(262,-1,-10); scene.add(floor);
+  /* ทางวิ่ง: แผ่นยางรองสีเทาเข้ม (ผิวเรียบ แรงเสียดทานสม่ำเสมอ) */
+  const matM=new THREE.MeshStandardMaterial({color:0x2c3138,roughness:.92});
+  const mat=new THREE.Mesh(new THREE.BoxGeometry(TAPE_X1-TAPE_X0+30,0.3,44),matM); mat.position.set((TAPE_X0+TAPE_X1)/2+8,0.15,0); scene.add(mat);
+  /* เทปวัดระยะ 0–550 cm บนพื้นหน้าทางวิ่ง */
+  const maxTS=(renderer.capabilities&&renderer.capabilities.maxTextureSize)||4096, TW=Math.min(4096,maxTS);
+  const sideM=new THREE.MeshStandardMaterial({color:0xc9a227,roughness:.5,metalness:.3});
+  for(let k=0;k<TAPE_SEG;k++){ const S=tapeSeg(k), TH=Math.max(64,Math.round(TW*TAPE_W/S.L));
+    const tx=canvasTex(TW,TH,drawTapeSeg(k));
+    const top=new THREE.MeshStandardMaterial({map:tx,roughness:.45,metalness:.1,emissive:0xffffff,emissiveMap:tx,emissiveIntensity:0.2});
+    const seg=new THREE.Mesh(new THREE.BoxGeometry(S.L,0.12,TAPE_W),[sideM,sideM,top,sideM,sideM,sideM]); seg.position.set((S.a+S.b)/2,0.36,TAPE_Z); scene.add(seg); }
+  /* ตลับเทปวัด (ปลายเทป) + ตัวหนีบปลายเทปที่เส้น START */
+  const cas=new THREE.Group(); cas.position.set(TAPE_X1+7,0,TAPE_Z); scene.add(cas);
+  const casBody=rbox(12,10,4.6,2.2,enamel(0xf5b70a,0.35,0.7)); casBody.position.set(0,5.2,0); cas.add(casBody);
+  const casRub=rbox(12.4,3.4,5.0,1.2,rubberM()); casRub.position.set(0,1.7,0); cas.add(casRub);
+  const lockB=rbox(3,1,1.6,0.4,enamel(0x111827,0.4,0.5)); lockB.position.set(-1.5,10.5,0); cas.add(lockB);
+  const casFace=new THREE.Mesh(new THREE.PlaneGeometry(9,6),new THREE.MeshBasicMaterial({map:canvasTex(256,170,(g,w,h)=>{ g.fillStyle='#111827'; g.fillRect(0,0,w,h); g.fillStyle='#f5d33f'; g.font='bold 64px "Share Tech Mono",monospace'; g.textAlign='center'; g.fillText('KP',w/2,74); g.font='bold 44px "Share Tech Mono",monospace'; g.fillText('5.5 m',w/2,138); })}));
+  casFace.position.set(0,5.6,2.33); cas.add(casFace);
+  const endHook=rbox(1.0,1.6,TAPE_W+0.6,0.3,chromeM()); endHook.position.set(TAPE_X0-0.4,0.8,TAPE_Z); scene.add(endHook);
+  /* เส้น START (เทปเขียวพาดทางวิ่ง) + ธง */
+  const gM=new THREE.MeshStandardMaterial({color:0x22c55e,roughness:.6,emissive:0x22c55e,emissiveIntensity:.25});
+  const sLine=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.06,22),gM); sLine.position.set(0,0.33,-1); scene.add(sLine);
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,22,10),chromeM()); post.position.set(0,11,-12.5); scene.add(post);
+  const flag=new THREE.Mesh(new THREE.BoxGeometry(0.2,4,7),gM); flag.position.set(0,20,-16.2); scene.add(flag);
+  const pbase=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1,20),rubberM()); pbase.position.set(0,0.5,-12.5); scene.add(pbase);
+  const stLb=makeLabel('START  x = 0','#34d399',16); stLb.position.set(0,28,-12.5); scene.add(stLb);
+  const tpLb=makeLabel('เทปวัดระยะ (cm)','#fde68a',20); tpLb.position.set(60,5,TAPE_Z+11); scene.add(tpLb);
+  /* รถบูลโดเซอร์ + เชือก + เลื่อนลากน้ำหนัก */
+  P.dz=makeDozer(); scene.add(P.dz);
+  P.sled=makeSled(); scene.add(P.sled);
+  P.rope=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,1,8),new THREE.MeshStandardMaterial({color:0xe5e7eb,roughness:.7})); P.rope.rotation.z=Math.PI/2; scene.add(P.rope);
+  P.xLb=makeLabel('x = 0 cm','#fef08a',18); scene.add(P.xLb);
+  P.loadLb=makeLabel('น้ำหนักลาก 1 ก้อน','#cbd5e1',17); scene.add(P.loadLb);
+  P.marks=[];
+  /* นาฬิกาจับเวลาตั้งบนพื้นหลังเส้น START */
+  P.timerTex=canvasTex(1024,340,drawTimerFace);
+  P.tm=new THREE.Group(); P.tm.position.set(TM_POS[0],TM_POS[1],TM_POS[2]); scene.add(P.tm);
+  const tbody=rbox(40,16,7,1.4,enamel(0x1b2130,0.45,0.35)); tbody.position.set(0,9,0); P.tm.add(tbody); feet(P.tm,40,7,0.5);
+  const tface=new THREE.Mesh(new THREE.PlaneGeometry(37,12.3),new THREE.MeshBasicMaterial({map:P.timerTex})); tface.position.set(0,9,3.56); P.tm.add(tface);
+  const tb1=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,1.2,24),enamel(0x16a34a,0.35,0.5)); tb1.position.set(13,17.6,0); P.tm.add(tb1);
+  const tk=ribKnob(1.3,1.2); tk.position.set(-14,17.6,0); P.tm.add(tk);
+  const tmLb=makeLabel('นาฬิกาจับเวลา','#6ee7b7',13); tmLb.position.set(0,22.5,0); P.tm.add(tmLb);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); _tmKey=''; }).catch(()=>{});
+  setupPointer(cv); resize3D();
+  setView(((document.getElementById('view3d').clientWidth||800)<600)?'dz':'iso'); update3D();
+  (function rl(){ requestAnimationFrame(rl);
+    const ts=document.getElementById('tab-sim'); if(ts&&!ts.classList.contains('active')) return;
+    update3D(); renderer.render(scene,camera); })();
+}
+function update3D(){ if(!scene) return;
+  const x=dzX();
+  P.dz.position.set(x,0.3,0);
+  P.sprockets.forEach(s=>{ s.rotation.z=-x/2.0; });
+  P.treadTex.offset.x=(x/25*2)%1;
+  P.xLb.position.set(x,27,0); P.xLb.userData.setText('x = '+(currentX||0).toFixed(0)+' cm');
+  /* เลื่อนลาก: ตามหลังรถด้วยเชือกตึงยาว 10 cm · เห็นเมื่อมีน้ำหนักลาก */
+  const nl=currentLoad|0, on=nl>0, sx=x-12.6-10-8.4;
+  P.sled.visible=on; P.rope.visible=on; P.loadLb.visible=on;
+  if(on){ P.sled.position.set(sx,0.3,0); P.blocks.forEach((b,i)=>{ b.visible=i<nl; });
+    const a=sx+8.4+0.6, b=x-12.6-0.75, ya=1.7, yb=4.2; P.rope.scale.y=Math.max(0.1,Math.hypot(b-a,yb-ya)); P.rope.position.set((a+b)/2,(ya+yb)/2,0); P.rope.rotation.z=Math.atan2(yb-ya,b-a)-Math.PI/2;
+    P.loadLb.position.set(sx,12,0); P.loadLb.userData.setText('น้ำหนักลาก '+nl+' ก้อน'); }
+  /* หมุดจุดที่บันทึกแล้วของ Trial ที่เลือก */
+  const tr=activeTrial(); let n=0;
+  if(tr) tr.records.forEach(r=>{ if(r.xUser===null) return; const g=markerAt(n++), xm=Math.min(r.xUser,X_DRAW_MAX);
+    g.visible=true; g.position.x=xm; g.userData.m.color.set(tr.color); g.userData.lb.userData.setText('t='+r.t+' s',tr.color); });
+  if(P.marks) for(let i=n;i<P.marks.length;i++) P.marks[i].visible=false;
+  updTimerTex();
+  /* กล้อง */
+  const V=VIEWS[curView]; if(V&&V.follow){ const tt=vnum(V.follow); orbit.target.x+=(tt[0]-orbit.target.x)*0.25; orbit.target.y+=(tt[1]-orbit.target.y)*0.25; orbit.target.z=tt[2]; }
+  const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D(){ if(!renderer) return; const el=document.getElementById('view3d'); const w=el.clientWidth||800,h=el.clientHeight||420; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView= V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return;
+  const tt= V.t? V.t : vnum(V.follow); orbit.target.set(tt[0],tt[1],tt[2]); orbit.dist=vnum(V.d); orbit.az=vnum(V.az); orbit.el=vnum(V.el); }
+
+/* draw() เดิมถูกเรียกจากหลายที่ → ตอนนี้แค่สั่งอัปเดตภาพ 3D จากสถานะเดิม (currentX, t, records) */
+function draw(){ if(scene) update3D(); }
+
+/* ── ✋ โหมดเลื่อนภาพ + หมุน/ซูม/เลื่อนกล้อง ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=document.getElementById('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML= panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  if(renderer) renderer.domElement.style.cursor= panMode?'move':''; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault();
+    T.mode=(e.button===1||e.button===2||e.shiftKey||panMode)?'pan':'rot'; T.lx=e.clientX; T.ly=e.clientY; cv.style.cursor='grabbing'; });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ T.mode=null; cv.style.cursor=''; return; }
+    const dx=e.clientX-T.lx, dy=e.clientY-T.ly; T.lx=e.clientX; T.ly=e.clientY;
+    if(T.mode==='pan') camPan(dx,dy); else camRotate(dx,dy); });
+  window.addEventListener('mouseup',()=>{ if(T.mode!=='pinch') T.mode=null; cv.style.cursor=''; });
+  window.addEventListener('blur',()=>{ T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault();
+    if(e.touches.length>=2){ const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t0=e.touches[0]; T.mode=panMode?'pan':'rot'; T.lx=t0.clientX; T.ly=t0.clientY; } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if((T.mode==='rot'||T.mode==='pan')&&e.touches.length===1){ const t0=e.touches[0], dx=t0.clientX-T.lx, dy=t0.clientY-T.ly; (T.mode==='pan'?camPan:camRotate)(dx,dy); T.lx=t0.clientX; T.ly=t0.clientY; } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; } else if(e.touches.length===0) T.mode=null; };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',()=>{ T.mode=null; });
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function camRotate(dx,dy){ orbit.az-=dx*0.006; orbit.el=Math.max(-0.2,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ orbit.dist=Math.max(10,Math.min(1400,orbit.dist*f)); }
+function camPan(dx,dy){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); }
+  const o=orbit; if(!o.target||!camera) return;
+  const k=o.dist*2*Math.tan(camera.fov*Math.PI/360)/((document.getElementById('view3d').clientHeight)||300), ca=Math.cos(o.az), sa=Math.sin(o.az), ce=Math.cos(o.el), se=Math.sin(o.el);
+  o.target.x+=(-dx*ca+dy*(-se*sa))*k; o.target.y+=dy*ce*k; o.target.z+=(dx*sa+dy*(-se*ca))*k; }
 
 // ---------- DRAW: GRAPH ----------
 function drawGraph() {
@@ -1155,10 +1313,7 @@ function drawMiniCar(ctx, x, y, color) {
 
 // ---------- RESIZE ----------
 function resizeCanvas() {
-  const canvas = document.getElementById('simCanvas');
-  const c = canvas.parentElement;
-  canvas.width = c.clientWidth || 800;
-  canvas.height = c.clientHeight || 280;
+  resize3D();
   const g = document.getElementById('graphCanvas');
   const gc = g.parentElement;
   g.width = gc.clientWidth || 400;
@@ -1167,7 +1322,7 @@ function resizeCanvas() {
   drawGraph();
 }
 window.addEventListener('resize', resizeCanvas);
-new ResizeObserver(() => resizeCanvas()).observe(document.getElementById('simCanvas').parentElement);
+new ResizeObserver(() => resizeCanvas()).observe(document.getElementById('view3d'));
 
 // ---------- INIT ----------
 window.addEventListener('DOMContentLoaded', () => {
@@ -1214,6 +1369,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setMode(mode); // refresh tip text
   });
 
+  init3D();
   resizeCanvas();
   newTrial();
   setMode('manual');
