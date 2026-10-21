@@ -411,18 +411,49 @@ let renderer,scene,camera,P={};
 const orbit={target:null,dist:170,az:0.5,el:0.7};
 const VIEWS={iso:{t:[0,0,0],d:175,az:0.5,el:0.75}, top:{t:[0,0,0],d:165,az:0.0001,el:1.54}};
 function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.anisotropy=8; return t; }
+/* ── ตัวช่วยปั้นอุปกรณ์แบบ Lab 108: กล่องขอบมน · วัสดุเคลือบเงา · โครเมียม ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=()=>new THREE.MeshStandardMaterial({color:0xd8dde4,metalness:.95,roughness:.22});
+const alumM=()=>new THREE.MeshStandardMaterial({color:0xb7bec8,metalness:.8,roughness:.38});
 function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; } orbit.target=new THREE.Vector3();
   try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.5,2000);
   scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.85)); const d1=new THREE.DirectionalLight(0xffffff,0.6); d1.position.set(40,120,60); scene.add(d1);
   const grid=canvasTex(1024,1024,(g,w,h)=>{ g.fillStyle='#0b1a2c'; g.fillRect(0,0,w,h); for(let q=0;q<=120;q+=5){ const x=q/120*w; g.strokeStyle= q%10===0?'rgba(148,163,184,.45)':'rgba(148,163,184,.18)'; g.lineWidth= q%10===0?2:1; g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.moveTo(0,x); g.lineTo(w,x); g.stroke(); } for(let i=0;i<400;i++){ g.fillStyle='rgba(56,189,248,.12)'; g.beginPath(); g.arc(Math.random()*w,Math.random()*h,1.5,0,Math.PI*2); g.fill(); } });
-  const table=new THREE.Mesh(new THREE.BoxGeometry(2*HALF,3,2*HALF),[0,0,new THREE.MeshStandardMaterial({map:grid,roughness:.3,metalness:.1}),0,0,0].map(m=>m||new THREE.MeshStandardMaterial({color:0x334155}))); table.position.y=-1.5; scene.add(table);
-  [[0,HALF+1,2*HALF+4,2],[0,-HALF-1,2*HALF+4,2],[HALF+1,0,2,2*HALF],[-HALF-1,0,2,2*HALF]].forEach(([x,z,sx,sz])=>{ const rail=new THREE.Mesh(new THREE.BoxGeometry(sx,3,sz),new THREE.MeshStandardMaterial({color:0x475569})); rail.position.set(x,1.5,z); scene.add(rail); });
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(3,3,4,24),new THREE.MeshStandardMaterial({color:0x7c3aed,metalness:.5})); hub.position.y=2; scene.add(hub);
-  P.arm=new THREE.Group(); P.arm.position.y=3.2; scene.add(P.arm); const rod=new THREE.Mesh(new THREE.BoxGeometry(1,0.6,1),new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:.7})); P.rod=rod; P.arm.add(rod);
-  P.puck=new THREE.Mesh(new THREE.CylinderGeometry(3,3,2,32),new THREE.MeshStandardMaterial({color:0xef4444,roughness:.5})); P.puck.position.y=1; scene.add(P.puck); const cap=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,16),new THREE.MeshStandardMaterial({color:0x111827})); cap.position.y=1.4; P.puck.add(cap);
+  const table=new THREE.Mesh(new THREE.BoxGeometry(2*HALF,3,2*HALF),[0,0,new THREE.MeshPhysicalMaterial({map:grid,roughness:.3,metalness:.1,clearcoat:.5,clearcoatRoughness:.2}),0,0,0].map(m=>m||alumM())); table.position.y=-1.5; scene.add(table);
+  /* โต๊ะลม: กรอบอะลูมิเนียมใต้แผ่น + ขาปรับระดับ (สกรูโครเมียม + ฐานยาง) + ท่อลมเข้า */
+  const skirt=rbox(2*HALF+2,2.4,2*HALF+2,1.0,enamel(0x2c313c,0.45,0.3)); skirt.position.y=-4.2; scene.add(skirt);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const x=sx*(HALF-5), z=sz*(HALF-5);
+    const sc=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,3,16),chromeM()); sc.position.set(x,-6.6,z); scene.add(sc);
+    const kn=new THREE.Mesh(new THREE.CylinderGeometry(2,2,0.9,24),enamel(0x15171c,0.4,0.5)); kn.position.set(x,-6.2,z); scene.add(kn);
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.5,0.8,24),new THREE.MeshStandardMaterial({color:0x111214,roughness:.9})); pad.position.set(x,-8.4,z); scene.add(pad); });
+  const hose=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[HALF-10,-5.4,HALF+1],[HALF-10,-6.5,HALF+8],[HALF-2,-8,HALF+16],[HALF+8,-8.4,HALF+20]].map(v=>new THREE.Vector3(...v))),40,1.0,12,false),new THREE.MeshPhysicalMaterial({color:0x1f2937,roughness:.4,clearcoat:.5})); scene.add(hose);
+  [[0,HALF+1,2*HALF+4,2],[0,-HALF-1,2*HALF+4,2],[HALF+1,0,2,2*HALF],[-HALF-1,0,2,2*HALF]].forEach(([x,z,sx,sz])=>{ const rail=rbox(sx,3,sz,0.8,alumM()); rail.position.set(x,1.5,z); scene.add(rail);
+    /* กันชนยางด้านใน */ const bump=new THREE.Mesh(new THREE.BoxGeometry(sx>sz?sx-6:0.5,0.8,sx>sz?0.5:sz-2),new THREE.MeshStandardMaterial({color:0x111214,roughness:.85})); bump.position.set(x-Math.sign(x)*1.2,1.2,z-Math.sign(z)*1.2); scene.add(bump); });
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const cc=rbox(3,3.4,3,0.8,enamel(0x15171c,0.4,0.5)); cc.position.set(sx*(HALF+1),1.7,sz*(HALF+1)); scene.add(cc); });
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(3,3,4,40),new THREE.MeshPhysicalMaterial({color:0x7c3aed,metalness:.45,roughness:.3,clearcoat:.6})); hub.position.y=2; scene.add(hub);
+  /* แกนหมุนโครเมียม + ปลอกมีร่อง */ const pin=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,1.6,24),chromeM()); pin.position.y=4.6; scene.add(pin);
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(0.2,3.4,0.35),new THREE.MeshStandardMaterial({color:0x5b21b6,roughness:.5})); rib.position.set(Math.cos(a)*3,2,Math.sin(a)*3); rib.rotation.y=-a; scene.add(rib); }
+  P.arm=new THREE.Group(); P.arm.position.y=3.2; scene.add(P.arm); const rod=new THREE.Mesh(new THREE.BoxGeometry(1,0.6,1),chromeM()); P.rod=rod; P.arm.add(rod);
+  /* พัคลอยบนลม: ตัวเรือนขอบมนเคลือบเงา + ขอบยางล่าง + หมุดโครเมียมบน */
+  P.puck=new THREE.Mesh(new THREE.LatheGeometry([[0,-1],[2.7,-1],[2.95,-0.85],[3,-0.5],[3,0.45],[2.85,0.85],[2.5,1],[0,1]].map(([x,y])=>new THREE.Vector2(x,y)),48),new THREE.MeshPhysicalMaterial({color:0xef4444,roughness:.35,clearcoat:.7,clearcoatRoughness:.25})); P.puck.position.y=1; scene.add(P.puck);
+  const skirtP=new THREE.Mesh(new THREE.TorusGeometry(2.85,0.22,8,48),new THREE.MeshStandardMaterial({color:0x111214,roughness:.85})); skirtP.rotation.x=Math.PI/2; skirtP.position.y=-0.9; P.puck.add(skirtP);
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,24),new THREE.MeshPhysicalMaterial({color:0x111827,roughness:.4,clearcoat:.6})); cap.position.y=1.4; P.puck.add(cap);
+  const pinP=new THREE.Mesh(new THREE.SphereGeometry(0.45,16,10),chromeM()); pinP.position.y=1.95; P.puck.add(pinP);
   P.ghosts=Array.from({length:NFLASH},()=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(3,3,0.3,24),new THREE.MeshBasicMaterial({color:0xfacc15,transparent:true,opacity:.35,depthWrite:false})); m.position.y=0.2; m.visible=false; scene.add(m); return m; });
-  const cam=new THREE.Mesh(new THREE.BoxGeometry(8,5,6),new THREE.MeshStandardMaterial({color:0x111827})); cam.position.set(0,95,0); scene.add(cam); const lens=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,2,16),new THREE.MeshStandardMaterial({color:0x334155})); lens.position.set(0,91.5,0); scene.add(lens);
+  /* กล้องถ่ายภาพแฟลช: ตัวกล้องขอบมน + เลนส์มีวงยางร่อง + หลอดแฟลช + ก้านยึดเพดาน */
+  const cam=rbox(8,5,6,1.0,enamel(0x16181d,0.5,0.4)); cam.position.set(0,95,0); scene.add(cam);
+  const lens=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.8,2,32),new THREE.MeshPhysicalMaterial({color:0x1f2937,roughness:.4,clearcoat:.5})); lens.position.set(0,91.5,0); scene.add(lens);
+  for(let i=0;i<20;i++){ const a=i/20*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(0.18,1.0,0.3),new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.6})); rib.position.set(Math.cos(a)*1.78,91.7,Math.sin(a)*1.78); rib.rotation.y=-a; scene.add(rib); }
+  const glass=new THREE.Mesh(new THREE.CircleGeometry(1.2,32),new THREE.MeshPhysicalMaterial({color:0x0b1b33,metalness:.2,roughness:.05,clearcoat:1})); glass.rotation.x=Math.PI/2; glass.position.set(0,90.48,0); scene.add(glass);
+  const lring=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.12,8,40),chromeM()); lring.rotation.x=Math.PI/2; lring.position.set(0,90.5,0); scene.add(lring);
+  const flashU=rbox(4,1.6,2.4,0.4,enamel(0x16181d,0.5,0.4)); flashU.position.set(5.6,94,0); scene.add(flashU);
+  const flashW=new THREE.Mesh(new THREE.PlaneGeometry(3.4,2),new THREE.MeshBasicMaterial({color:0xe5ecf5})); flashW.rotation.x=Math.PI/2; flashW.position.set(5.6,93.18,0); scene.add(flashW);
+  const mount=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,16,16),chromeM()); mount.position.set(0,105.5,0); scene.add(mount);
   P.flash=new THREE.PointLight(0xffffff,0,300); P.flash.position.set(0,90,0); scene.add(P.flash);
   setupPointer(cv); resize3D(); setView('iso');
   let last=performance.now(); (function loop(now){ requestAnimationFrame(loop); const dt0=Math.min(0.05,(now-last)/1000), dt=simDt(dt0); last=now; if(!$('tab-sim').classList.contains('active')) return; tick(dt); update3D(); renderer.render(scene,camera); fr=(fr+1)%2; if(fr===0){ drawDiag(); updateHint(); } })(last); }

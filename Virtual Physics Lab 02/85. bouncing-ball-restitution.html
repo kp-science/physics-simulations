@@ -684,6 +684,35 @@ function drawTimer(g,w,h){
     g.textAlign='right'; g.font='bold 96px "Share Tech Mono",monospace'; g.fillStyle= v==='–––'?'#8a5a1c':'#ff9d2f'; g.fillText(v,x0+pw-16,y0+ph-22); g.textAlign='left'; }
 }
 function updTimer(){ if(!P.tmTex) return; const c=P.tmTex.image; drawTimer(c.getContext('2d'),c.width,c.height); P.tmTex.needsUpdate=true; }
+/* ── ตัวช่วยปั้นอุปกรณ์แบบแลปจริง: กล่องขอบมน · วัสดุเคลือบเงา · ปุ่มมีร่อง · ขาปรับระดับ · ตัวจับยึด (แบบแลป 108/58) ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+let RM=null;   /* วัสดุที่ใช้ร่วมกัน (สร้างครั้งแรกที่เรียก — หลังโหลด three.js แล้ว) */
+function rsMats(){ if(RM) return RM; RM={ chrome:new THREE.MeshStandardMaterial({color:0xdfe3ea,metalness:.95,roughness:.22}),
+  alu:new THREE.MeshStandardMaterial({color:0xb9c0ca,metalness:.88,roughness:.32}),
+  anod:new THREE.MeshPhysicalMaterial({color:0x2a2d33,metalness:.75,roughness:.35,clearcoat:.3,clearcoatRoughness:.4}),
+  knob:enamel(0x15171c,0.35,0.5), rib:new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5}), black:enamel(0x17191e,0.4,0.4),
+  rubber:new THREE.MeshStandardMaterial({color:0x111214,roughness:.9}), housing:enamel(0x262b34,0.4,0.45) }; return RM; }
+/* ปุ่มหมุนมีร่อง + ฝาโลหะ (แกนตามแนว y) */
+function ribKnob(r,h,n){ const R=rsMats(), k=new THREE.Group(); n=n||20; k.add(new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,h,32),R.knob));
+  for(let i=0;i<n;i++){ const a=i/n*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.08,h*0.86,r*0.14),R.rib); rib.position.set(Math.cos(a)*r*1.02,0,Math.sin(a)*r*1.02); rib.rotation.y=-a; k.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.6,r*0.6,0.05,32),R.chrome); cap.position.y=h/2+0.01; k.add(cap); return k; }
+/* แท่งโครเมียมจากจุด a ไปจุด b */
+function chromeRod(a,b,r,mat){ const A=new THREE.Vector3(...a), B=new THREE.Vector3(...b), d=B.clone().sub(A);
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),20),mat||rsMats().chrome); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); return m; }
+/* ขาปรับระดับ: แป้นยาง + สกรูโครเมียม + ปุ่มมีร่อง · y0 = พื้น · h = ความสูงรวม */
+function levelFoot(h,r){ const R=rsMats(), g=new THREE.Group(); r=r||1.2;
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.15,h*0.25,24),R.rubber); pad.position.y=h*0.125; g.add(pad);
+  const sc=new THREE.Mesh(new THREE.CylinderGeometry(r*0.28,r*0.28,h*0.75,12),R.chrome); sc.position.y=h*0.25+h*0.375; g.add(sc);
+  const kn=ribKnob(r*0.8,h*0.3,16); kn.position.y=h*0.45; g.add(kn); return g; }
+/* ตัวจับยึด (boss clamp) อะลูมิเนียมอโนไดซ์ + สกรูมีร่อง หันออกทาง +z ของกลุ่ม */
+function bossClamp(s){ const R=rsMats(), g=new THREE.Group(); g.add(rbox(s,s,s,s*0.2,R.anod));
+  const sc=new THREE.Mesh(new THREE.CylinderGeometry(s*0.12,s*0.12,s*0.5,12),R.chrome); sc.rotation.x=Math.PI/2; sc.position.z=s*0.7; g.add(sc);
+  const kn=ribKnob(s*0.32,s*0.3,14); kn.rotation.x=Math.PI/2; kn.position.z=s*0.95; g.add(kn); return g; }
+function stex(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   orbit.target=new THREE.Vector3(8,75,0);
@@ -708,15 +737,18 @@ function init3D(){
     g.fillStyle='rgba(250,204,21,.9)'; g.font='bold 40px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('แผ่นกระแทก · จุดตก',cx,h-40); });
   const plate=new THREE.Mesh(new THREE.BoxGeometry(40,PLATE,30),[0,1,2,3,4,5].map(i=>i===2?new THREE.MeshStandardMaterial({map:grTex,roughness:.35,metalness:.1}):new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.5})));
   plate.position.set(0,PLATE/2,0); scene.add(plate);
-  const feet=[[-18,-13],[18,-13],[-18,13],[18,13]]; feet.forEach(([x,z])=>{ const ft=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.4,0.6,12),new THREE.MeshStandardMaterial({color:0x111827})); ft.position.set(x,0.3,z); scene.add(ft); });
+  const feet=[[-18,-13],[18,-13],[-18,13],[18,13]]; feet.forEach(([x,z])=>{ const ft=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.4,0.6,20),rsMats().rubber); ft.position.set(x,0.3,z); scene.add(ft); });
   /* ขาตั้ง + ที่จับแม่เหล็ก */
-  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,165,12),met); rod.position.set(14,82.5+PLATE,-11); scene.add(rod);
-  const rodFoot=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.4,1.2,20),met); rodFoot.position.set(14,PLATE+0.6,-11); scene.add(rodFoot);
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,165,24),rsMats().chrome);   /* แท่งโครเมียมของขาตั้ง */ rod.position.set(14,82.5+PLATE,-11); scene.add(rod);
+  const rodFoot=rbox(10,1.6,8,0.7,enamel(0x2b313c,0.45,0.3)); rodFoot.position.set(14,PLATE+0.8,-11); scene.add(rodFoot);   /* ฐานหนักเคลือบเงา + ปลอกเกลียว */
+  { const col=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,1.0,24),rsMats().chrome); col.position.set(14,PLATE+2.1,-11); scene.add(col); }
   P.clamp=new THREE.Group(); scene.add(P.clamp);
-  const boss=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),new THREE.MeshStandardMaterial({color:0x1f2937})); boss.position.set(14,0,-11); P.clamp.add(boss);
-  const arm=new THREE.Mesh(new THREE.BoxGeometry(14,1.1,1.1),met); arm.position.set(7,0,-11); P.clamp.add(arm);
-  const arm2=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.1,11),met); arm2.position.set(0,0,-5.5); P.clamp.add(arm2);
-  const mag=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,2.4,20),new THREE.MeshStandardMaterial({color:0xb91c1c,metalness:.4})); mag.position.set(0,-1.2,0); P.clamp.add(mag);
+  const boss=bossClamp(3); boss.position.set(14,0,-11); P.clamp.add(boss);
+  const arm=chromeRod([14,0,-11],[0,0,-11],0.55); P.clamp.add(arm);
+  const arm2=chromeRod([0,0,-11],[0,0,0],0.55); P.clamp.add(arm2);
+  { const el=new THREE.Mesh(new THREE.SphereGeometry(0.75,16,12),rsMats().chrome); el.position.set(0,0,-11); P.clamp.add(el); }
+  const mag=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,2.4,32),enamel(0xb91c1c,0.35,0.6)); mag.position.set(0,-1.2,0); P.clamp.add(mag);
+  { const band=new THREE.Mesh(new THREE.CylinderGeometry(1.46,1.46,0.4,32),rsMats().chrome); band.position.set(0,-0.4,0); P.clamp.add(band); }
   P.pointer=new THREE.Mesh(new THREE.BoxGeometry(1,0.12,0.12),new THREE.MeshBasicMaterial({color:0xef4444})); P.clamp.add(P.pointer);
   P.pointerBar=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),new THREE.MeshBasicMaterial({color:0xef4444})); P.clamp.add(P.pointerBar);
   /* ลูกบอล */
@@ -729,9 +761,11 @@ function init3D(){
     return {gm,ln,lab}; });
   /* เครื่องจับเวลาเสียง */
   P.tmTex=canvasTex(1536,560,drawTimer);
-  const tb=new THREE.Mesh(new THREE.BoxGeometry(22,9,6),new THREE.MeshStandardMaterial({color:0x111827})); tb.position.set(TM_POS[0],TM_POS[1]-4.5+4.5,TM_POS[2]-3); scene.add(tb);
+  const tb=rbox(22,9,6,1.0,enamel(0x2b313c,0.42,0.3));   /* กล่องเครื่องจับเวลาขอบมน + แท่นวาง */ tb.position.set(TM_POS[0],TM_POS[1]-4.5+4.5,TM_POS[2]-3); scene.add(tb);
+  { const pd=rbox(18,TM_POS[1]-4.5,5,0.6,rsMats().anod); pd.position.set(TM_POS[0],(TM_POS[1]-4.5)/2,TM_POS[2]-3); scene.add(pd); }
   const tf=new THREE.Mesh(new THREE.PlaneGeometry(21,7.6),new THREE.MeshBasicMaterial({map:P.tmTex})); tf.position.set(TM_POS[0],TM_POS[1],TM_POS[2]+0.02); scene.add(tf);
-  const mic=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.6,4,14),new THREE.MeshStandardMaterial({color:0x334155})); mic.position.set(TM_POS[0]-8,TM_POS[1]+6,TM_POS[2]-2); scene.add(mic);
+  const mic=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.6,4,24),enamel(0x17191e,0.4,0.45)); mic.position.set(TM_POS[0]-8,TM_POS[1]+6,TM_POS[2]-2); scene.add(mic);
+  { const gr=new THREE.Mesh(new THREE.SphereGeometry(1.05,20,14),new THREE.MeshStandardMaterial({color:0x8a9099,metalness:.85,roughness:.45})); gr.position.set(TM_POS[0]-8,TM_POS[1]+8.6,TM_POS[2]-2); scene.add(gr); }
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); updTimer(); }).catch(()=>{});
   setupPointer(cv); resize3D(); setView('iso'); update3D();
   let last=performance.now();

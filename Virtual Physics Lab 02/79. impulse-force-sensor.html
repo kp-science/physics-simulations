@@ -847,14 +847,17 @@ function updLogTex(force){ if(!P.lgTex) return; if(force) lgDirty=true; if(!lgDi
 function makeGate(idx){
   const col= idx===0?0x22d3ee:0xfb923c;
   const G0=new THREE.Group();
-  const met=new THREE.MeshStandardMaterial({color:0x475569,metalness:.5,roughness:.5});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.5,5),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.7}));
+  /* โฟโตเกตตัว U คว่ำ: แขนขอบมนเคลือบเงา + ตัวยึดรางมีปุ่มขัน + LED/ตัวรับแสงในเบ้า */
+  const met=enamel(0x1d2a3d,0.4,0.4);
+  const body=rbox(3.2,4.5,5,0.6,enamel(0x2c3442,0.4,0.35));
   body.position.set(0,TRK_TOP-4,-6.5); G0.add(body);
-  const armL=new THREE.Mesh(new THREE.BoxGeometry(2.4,20,2.4),met); armL.position.set(0,TRK_TOP+5.5,-7.6); G0.add(armL);
-  const armR=new THREE.Mesh(new THREE.BoxGeometry(2.4,20,2.4),met); armR.position.set(0,TRK_TOP+5.5,7.6); G0.add(armR);
-  const top=new THREE.Mesh(new THREE.BoxGeometry(2.0,1.6,17.6),met); top.position.set(0,TRK_TOP+16.2,0); G0.add(top);
+  const gk=ribKnob(1.1,1.0); gk.rotation.x=-Math.PI/2; gk.position.set(0,TRK_TOP-4.6,-9.5); G0.add(gk);
+  const armL=rbox(2.4,20,2.4,0.5,met); armL.position.set(0,TRK_TOP+5.5,-7.6); G0.add(armL);
+  const armR=rbox(2.4,20,2.4,0.5,met); armR.position.set(0,TRK_TOP+5.5,7.6); G0.add(armR);
+  const top=rbox(2.0,1.6,17.6,0.45,met); top.position.set(0,TRK_TOP+16.2,0); G0.add(top);
+  [-1,1].forEach(sz=>{ const bz=new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.0,0.5,20),chromeM(0xaeb5bf)); bz.rotation.x=Math.PI/2; bz.position.set(0,TRK_TOP+8.6,sz*6.55); G0.add(bz); });
   const led=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),new THREE.MeshBasicMaterial({color:col})); led.position.set(0,TRK_TOP+8.6,-6.3); G0.add(led);
-  const det=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),new THREE.MeshBasicMaterial({color:0x991b1b})); det.position.set(0,TRK_TOP+8.6,6.3); G0.add(det);
+  const det=new THREE.Mesh(new THREE.SphereGeometry(0.75,14,10),new THREE.MeshPhysicalMaterial({color:0x991b1b,roughness:.1,clearcoat:1,emissive:0x5f0f0f})); det.position.set(0,TRK_TOP+8.6,6.3); G0.add(det);
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,12.6,8),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.55}));
   beam.rotation.x=Math.PI/2; beam.position.set(0,TRK_TOP+8.6,0); G0.add(beam);
   G0.userData.beam=beam;
@@ -870,21 +873,25 @@ function makeGate(idx){
 
 function makeSpring(){
   class Helix extends THREE.Curve{ getPoint(t){ const a=t*Math.PI*2*9; return new THREE.Vector3(t, 1.3*Math.sin(a), 1.3*Math.cos(a)); } }
-  const m=new THREE.Mesh(new THREE.TubeGeometry(new Helix(),260,0.16,6,false),new THREE.MeshStandardMaterial({color:0xd1d5db,metalness:.85,roughness:.3}));
+  const m=new THREE.Mesh(new THREE.TubeGeometry(new Helix(),260,0.16,8,false),new THREE.MeshStandardMaterial({color:0xd1d5db,metalness:.92,roughness:.24}));
   return m;
 }
 
 function makeCart(){
   const G0=new THREE.Group();
-  const bodyMat=new THREE.MeshStandardMaterial({color:0x2563eb, metalness:.35, roughness:.4});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(CART_L,3.6,8),bodyMat); body.position.set(0,TRK_TOP+2.4,0); G0.add(body);
-  const lid=new THREE.Mesh(new THREE.BoxGeometry(CART_L+0.4,0.5,8.4),new THREE.MeshStandardMaterial({color:0x60a5fa, metalness:.5, roughness:.3}));
+  /* รถทดลอง: ตัวถังพลาสติกขอบมนเคลือบเงา + ล้อยางดุมโครเมียม + ธงบังแสง */
+  const bodyMat=new THREE.MeshPhysicalMaterial({color:0x2563eb, roughness:.38, clearcoat:.6, clearcoatRoughness:.3});
+  const body=rbox(CART_L,3.6,8,0.9,bodyMat); body.position.set(0,TRK_TOP+2.4,0); G0.add(body);
+  const lid=rbox(CART_L+0.4,0.5,8.4,0.25,anoM(0xb8c4d0));
   lid.position.set(0,TRK_TOP+4.3,0); G0.add(lid);
+  [-1,1].forEach(sx=>[-1,1].forEach(sz=>{ const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.7,24),rubberM()); wh.rotation.x=Math.PI/2; wh.position.set(sx*(CART_L/2-2.2),TRK_TOP+0.9,sz*3.0); G0.add(wh);
+    const hb=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.74,16),chromeM()); hb.rotation.x=Math.PI/2; hb.position.copy(wh.position); G0.add(hb); }));
   const card=new THREE.Mesh(new THREE.BoxGeometry(1,6,0.4),new THREE.MeshStandardMaterial({color:0x0b0f18,roughness:.95}));
   card.position.set(0,TRK_TOP+7.55,0); G0.add(card);
-  const steel=new THREE.MeshStandardMaterial({color:0x9ca3af,metalness:.85,roughness:.28});
-  const blocks=[-2.6,2.6].map(z=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(6,1.7,3.2),steel); b.position.set(0,TRK_TOP+5.4,z); G0.add(b); return b; });
-  const cover=new THREE.Mesh(new THREE.BoxGeometry(CART_L-1,3.4,8.2),new THREE.MeshStandardMaterial({color:0x7c3aed,metalness:.3,roughness:.5}));
+  { const fh=rbox(1.6,0.9,1.4,0.3,enamel(0x1d2a3d,0.4,0.4)); fh.position.set(0,TRK_TOP+4.95,0); G0.add(fh); }
+  const steel=new THREE.MeshStandardMaterial({color:0x9ca3af,metalness:.9,roughness:.24});
+  const blocks=[-2.6,2.6].map(z=>{ const b=rbox(6,1.7,3.2,0.35,steel); b.position.set(0,TRK_TOP+5.4,z); G0.add(b); return b; });
+  const cover=rbox(CART_L-1,3.4,8.2,0.8,enamel(0x7c3aed,0.38,0.5));
   cover.position.set(0,TRK_TOP+6.25,0); cover.visible=false; G0.add(cover);
   /* กันชน 3 แบบ (ความยาวเดิม L เปลี่ยนตามการยุบ) */
   const hard=makeSpring(); hard.material=new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.9,roughness:.25}); hard.scale.set(2.5,0.9,0.9);
@@ -902,6 +909,35 @@ function makeCart(){
   G0.userData={card,blocks,cover,bodyMat,hard,soft,capH,clay};
   return [G0,{redraw:()=>{ const c=tex.image; drawLab(c.getContext('2d'),c.width,c.height); tex.needsUpdate=true; }}];
 }
+/* ── ตัวช่วยปั้นอุปกรณ์แบบแลปจริง (ต้นแบบ Lab 108): กล่องขอบมน · วัสดุเคลือบเงา · โครเมียม · ปุ่มมีร่อง · ยางรอง · ขาตั้ง ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=c=>new THREE.MeshStandardMaterial({color:c==null?0xd8dde4:c,metalness:.95,roughness:.22});
+const anoM=c=>new THREE.MeshPhysicalMaterial({color:c==null?0xc3cad3:c,metalness:.78,roughness:.32,clearcoat:.25,clearcoatRoughness:.4});
+const rubberM=()=>new THREE.MeshStandardMaterial({color:0x141518,roughness:.92});
+/* ปุ่มหมุนมีร่อง + ฝาโลหะ (แกนหมุน = แกน y ของกลุ่ม) */
+function ribKnob(r,h,col){ const g=new THREE.Group(), rm=new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5});
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r*0.94,r,h,32),enamel(col==null?0x15171c:col,0.35,0.5)));
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.07,h*0.88,r*0.13),rm); rib.position.set(Math.cos(a)*r*0.97,0,Math.sin(a)*r*0.97); rib.rotation.y=-a; g.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.62,r*0.62,h*0.08,32),chromeM(0xb8bec8)); cap.position.y=h/2+h*0.03; g.add(cap); return g; }
+/* ยางรองกลม */
+function rubberFoot(r,h){ return new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r,h,18),rubberM()); }
+/* ขาตั้ง (retort stand): ฐานหนักขอบมน + ยางรอง + แกนโครเมียม — คืนกลุ่ม (ฐานอยู่ที่ y = 0) */
+function retortStand(bw,bd,bh,H,rr,col){ const g=new THREE.Group();
+  const base=rbox(bw,bh,bd,Math.min(bw,bd)*0.12,enamel(col==null?0x2f3b4c:col,0.4,0.35)); base.position.y=bh/2+bh*0.12; g.add(base);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const f=rubberFoot(bh*0.4,bh*0.24); f.position.set(sx*bw*0.38,bh*0.12,sz*bd*0.38); g.add(f); });
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(rr,rr,H,20),chromeM()); rod.position.y=H/2+bh; g.add(rod);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(rr*1.05,16,10),chromeM()); cap.position.y=H+bh; g.add(cap); return g; }
+/* ข้อต่อจับ (boss clamp) ขอบมน + ปุ่มขันมีร่อง — แกน rod ตามแกน y */
+function bossClamp(s,col){ const g=new THREE.Group(); g.add(rbox(s,s,s,s*0.2,enamel(col==null?0x3a4250:col,0.38,0.4)));
+  const k=ribKnob(s*0.32,s*0.4); k.rotation.z=Math.PI/2; k.position.x=-s*0.7; g.add(k);
+  const scr=new THREE.Mesh(new THREE.CylinderGeometry(s*0.08,s*0.08,s*0.3,10),chromeM()); scr.rotation.z=Math.PI/2; scr.position.x=-s*0.52; g.add(scr); return g; }
+/* สายไฟ/สายสัญญาณเคลือบเงา */
+function glossTube(pts,r,col){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(48,V.length*16),r,10,false),new THREE.MeshPhysicalMaterial({color:col,roughness:.35,clearcoat:.6,clearcoatRoughness:.3})); }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   orbit.target=new THREE.Vector3(58,110,-10);
@@ -913,30 +949,35 @@ function init3D(){
   const benchTex=canvasTex(1024,512,(g,w,h)=>{ g.fillStyle='#5b4332'; g.fillRect(0,0,w,h); for(let i=0;i<70;i++){ g.strokeStyle=`rgba(${34+Math.random()*30|0},${22+Math.random()*16|0},11,.35)`; g.lineWidth=1+Math.random()*2; g.beginPath(); const yy=Math.random()*h; g.moveTo(0,yy); g.bezierCurveTo(w*.3,yy+Math.random()*20-10,w*.7,yy+Math.random()*20-10,w,yy+Math.random()*16-8); g.stroke(); } });
   const bench=new THREE.Mesh(new THREE.BoxGeometry(150,5,64),[0,1,2,3,4,5].map(i=>i===2?new THREE.MeshStandardMaterial({map:benchTex,roughness:.85}):new THREE.MeshStandardMaterial({color:0x3b2a1e,roughness:.9})));
   bench.position.set(58,TRK_TOP-TRK_H-2.5-1.5,-14); scene.add(bench);
-  [[-2,0],[108,0]].forEach(([x,z])=>{ const f=new THREE.Mesh(new THREE.BoxGeometry(4,1.5,12),met); f.position.set(x,TRK_TOP-TRK_H-0.75,z); scene.add(f); });
+  /* ขารางปรับระดับ: คานอะลูมิเนียมขอบมน + สกรูปรับระดับมีร่อง + ยางรอง */
+  [[-2,0],[108,0]].forEach(([x,z])=>{ const f=rbox(4,1.5,12,0.4,anoM(0x9aa5b2)); f.position.set(x,TRK_TOP-TRK_H-0.75,z); scene.add(f);
+    [-1,1].forEach(sz=>{ const k=ribKnob(0.8,0.55); k.position.set(x,TRK_TOP-TRK_H+0.28,z+sz*4.8); scene.add(k); }); });
   const maxTS=(renderer.capabilities&&renderer.capabilities.maxTextureSize)||4096;
   const TW=Math.min(8192,maxTS), TH=Math.max(256,Math.round(TW/16));
   const trkTex=canvasTex(TW,TH,drawTrackScale);
-  const alu=new THREE.MeshStandardMaterial({color:0xb8c4d0,metalness:.55,roughness:.4});
+  const alu=anoM(0xbcc6d1);
   const face=new THREE.MeshStandardMaterial({map:trkTex,roughness:.85,metalness:0,emissive:0xffffff,emissiveMap:trkTex,emissiveIntensity:0.3});
   const trk=new THREE.Mesh(new THREE.BoxGeometry(TRK_LEN,TRK_H,7),[alu,alu,alu,alu,face,alu]);
   trk.position.set(TRK_CX,TRK_TOP-TRK_H/2,0); scene.add(trk);
-  const crest=new THREE.Mesh(new THREE.BoxGeometry(TRK_LEN,0.7,4.6),new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.7,roughness:.3}));
+  const crest=rbox(TRK_LEN,0.7,4.6,0.3,anoM(0xd5dbe2));
   crest.position.set(TRK_CX,TRK_TOP+0.35,0); scene.add(crest);
   /* เซนเซอร์แรงที่ปลายราง */
-  const sBody=new THREE.Mesh(new THREE.BoxGeometry(5,6,6),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.6}));
+  const sBody=rbox(5,6,6,0.8,enamel(0x2a3140,0.42,0.35));
   sBody.position.set(X_WALL+4.2,TRK_TOP+2.6,0); scene.add(sBody);
-  const sRod=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,1.6,12),met); sRod.rotation.z=Math.PI/2; sRod.position.set(X_WALL+0.9,TRK_TOP+2.4,0); scene.add(sRod);
+  const sRod=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,1.6,16),chromeM()); sRod.rotation.z=Math.PI/2; sRod.position.set(X_WALL+0.9,TRK_TOP+2.4,0); scene.add(sRod);
   const sPlate=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,0.3,24),new THREE.MeshStandardMaterial({color:0xe2e8f0,metalness:.8,roughness:.25})); sPlate.rotation.z=Math.PI/2; sPlate.position.set(X_WALL+0.15,TRK_TOP+2.4,0); scene.add(sPlate);
-  const sStand=new THREE.Mesh(new THREE.BoxGeometry(6,10,10),met); sStand.position.set(X_WALL+4.2,TRK_TOP-5,0); scene.add(sStand);
+  const sStand=rbox(6,10,10,0.8,anoM(0x9aa5b2)); sStand.position.set(X_WALL+4.2,TRK_TOP-5,0); scene.add(sStand);
+  { const sk=ribKnob(1.0,0.9); sk.rotation.z=-Math.PI/2; sk.position.set(X_WALL+7.65,TRK_TOP-5,0); scene.add(sk); }
   const sLab=canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#0f172a'; g.fillRect(0,0,w,h); g.fillStyle='#f87171'; g.font='bold 44px "IBM Plex Sans Thai",sans-serif'; g.textAlign='center'; g.fillText('เซนเซอร์',w/2,54); g.fillStyle='#e2e8f0'; g.fillText('แรง',w/2,108); });
   const sLP=new THREE.Mesh(new THREE.PlaneGeometry(4.2,2.1),new THREE.MeshBasicMaterial({map:sLab})); sLP.position.set(X_WALL+4.2,TRK_TOP+3.2,3.02); scene.add(sLP);
   /* สายสัญญาณไปเครื่องบันทึก */
-  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(X_WALL+6.7,TRK_TOP+3,-1),new THREE.Vector3(X_WALL+10,TRK_TOP-2,-12),new THREE.Vector3(96,TRK_TOP-8,-30),new THREE.Vector3(80,LG_POS[1]-LG_H/2-2,LG_POS[2]-1)]),40,0.3,6,false),new THREE.MeshStandardMaterial({color:0x111827}));
+  const cab=glossTube([[X_WALL+6.7,TRK_TOP+3,-1],[X_WALL+10,TRK_TOP-2,-12],[96,TRK_TOP-8,-30],[80,LG_POS[1]-LG_H/2-2,LG_POS[2]-1]],0.3,0x15171c);
   scene.add(cab);
   /* เครื่องยิงสปริงปลายซ้าย */
-  const lb=new THREE.Mesh(new THREE.BoxGeometry(6,7,10),new THREE.MeshStandardMaterial({color:0x334155,metalness:.4,roughness:.5}));
+  /* เครื่องยิงสปริง: กล่องขอบมนเคลือบเงา + ปุ่มปรับมีร่องด้านท้าย */
+  const lb=rbox(6,7,10,0.9,enamel(0x39404d,0.42,0.3));
   lb.position.set(-3,TRK_TOP+3.5,0); scene.add(lb);
+  { const lk=ribKnob(1.5,1.2); lk.rotation.z=Math.PI/2; lk.position.set(-6.6,TRK_TOP+4.2,0); scene.add(lk); }
   P.spring=makeSpring(); P.spring.position.set(0,TRK_TOP+2.4,0); scene.add(P.spring);
   P.plunger=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.2,0.8,24),new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:.8,roughness:.25}));
   P.plunger.rotation.z=Math.PI/2; scene.add(P.plunger);
@@ -944,11 +985,11 @@ function init3D(){
   P.gates=[makeGate(0)]; scene.add(P.gates[0]);
   /* จอเครื่องบันทึกข้อมูล */
   P.lgTex=canvasTex(1536,1008,drawLogger);
-  const tb=new THREE.Mesh(new THREE.BoxGeometry(LG_W+2,LG_H+2,4),new THREE.MeshStandardMaterial({color:0x111827,roughness:.7}));
+  const tb=rbox(LG_W+2,LG_H+2,4,1.0,enamel(0x1f2430,0.42,0.35));
   tb.position.set(LG_POS[0],LG_POS[1],LG_POS[2]-2.2); scene.add(tb);
   const tf=new THREE.Mesh(new THREE.PlaneGeometry(LG_W,LG_H),new THREE.MeshBasicMaterial({map:P.lgTex}));
   tf.position.set(LG_POS[0],LG_POS[1],LG_POS[2]); scene.add(tf);
-  [LG_POS[0]-24,LG_POS[0]+24].forEach(x=>{ const tl=new THREE.Mesh(new THREE.BoxGeometry(3,LG_POS[1]-LG_H/2-(TRK_TOP-7),3),met); tl.position.set(x,(LG_POS[1]-LG_H/2+TRK_TOP-7)/2,LG_POS[2]-2.2); scene.add(tl); });
+  [LG_POS[0]-24,LG_POS[0]+24].forEach(x=>{ const tl=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,LG_POS[1]-LG_H/2-(TRK_TOP-7),20),chromeM()); tl.position.set(x,(LG_POS[1]-LG_H/2+TRK_TOP-7)/2,LG_POS[2]-2.2); scene.add(tl); });
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ redrawTexs(); updLogTex(true); }).catch(()=>{});
   setupPointer(cv); resize3D(); setView('iso'); update3D();
   let last=performance.now();

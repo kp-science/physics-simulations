@@ -462,11 +462,19 @@ const VIEWS={iso:{t:[0,4,0],d:70,az:0.6,el:0.55}, top:{t:[0,2,0],d:62,az:0.0001,
 function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.anisotropy=8; return t; }
 function makeLabel(text,col,sc){ const t=canvasTex(512,96,(g)=>{ g.font='bold 50px IBM Plex Sans Thai, sans-serif'; g.textAlign='center'; g.fillStyle=col; g.fillText(text,256,64); }); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false})); sp.scale.set(10*(sc||1),1.9*(sc||1),1); return sp; }
 const PY=6;   /* ผิวแผ่นสูง 6 cm ใน 3D (หน่วย cm) */
+/* ── ตัวช่วยปั้นอุปกรณ์แบบ Lab 108: กล่องขอบมน · วัสดุเคลือบเงา · โครเมียม ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=()=>new THREE.MeshStandardMaterial({color:0xd8dde4,metalness:.95,roughness:.22});
 function syncMeshes(){ if(!P.objGroup) return; while(P.objGroup.children.length) P.objGroup.remove(P.objGroup.children[0]);
-  objs.forEach(o=>{ let m; const mat=new THREE.MeshStandardMaterial({color:TYPES[o.t].col,metalness:o.t===0?.85:.1,roughness:o.t===0?.3:.7});
-    if(o.t===0) m=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.25,28),mat), m.userData.h=0.25;
-    else if(o.t===1) m=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.9,1.4),mat), m.userData.h=0.9;
-    else if(o.t===2) m=new THREE.Mesh(new THREE.BoxGeometry(2,1.2,2),mat), m.userData.h=1.2;
+  objs.forEach(o=>{ let m; const mat= o.t===0 ? new THREE.MeshPhysicalMaterial({color:TYPES[o.t].col,metalness:.9,roughness:.28,clearcoat:.3})
+      : o.t===2 ? new THREE.MeshPhysicalMaterial({color:TYPES[o.t].col,roughness:.6,clearcoat:.25,clearcoatRoughness:.5}) : enamel(TYPES[o.t].col,o.t===1?0.75:0.4,o.t===1?0.1:0.45);
+    if(o.t===0) m=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.25,40),mat), m.userData.h=0.25;
+    else if(o.t===1) m=rbox(2.4,0.9,1.4,0.4,mat), m.userData.h=0.9;
+    else if(o.t===2) m=rbox(2,1.2,2,0.18,mat), m.userData.h=1.2;
     else m=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,1,6),mat), m.userData.h=1;
     m.userData.id=o.id; P.objGroup.add(m); }); }
 function init3D(){
@@ -474,17 +482,31 @@ function init3D(){
   try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,800);
   scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.85)); const d1=new THREE.DirectionalLight(0xffffff,0.65); d1.position.set(20,60,30); scene.add(d1);
-  const base=new THREE.Mesh(new THREE.BoxGeometry(40,4,34),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.6})); base.position.set(0,2,0); scene.add(base);
+  /* ฐานเครื่องหมุน: กล่องขอบมนเคลือบเงา + ขายาง + แผงหน้าพิมพ์ลาย (แบบกล่องเครื่องมือ Lab 108) */
+  const base=rbox(40,3.9,34,1.6,enamel(0x39404d,0.42,0.3)); base.position.set(0,2.35,0); scene.add(base);
+  [[-17,-14],[17,-14],[-17,14],[17,14]].forEach(([fx,fz])=>{ const f=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.25,0.4,18),new THREE.MeshStandardMaterial({color:0x111214,roughness:.9})); f.position.set(fx,0.2,fz); scene.add(f); });
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(37,3.1),new THREE.MeshStandardMaterial({roughness:.55,map:canvasTex(1480,124,(g,w,h)=>{ g.fillStyle='#2b313c'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(255,255,255,.16)'; g.lineWidth=3; g.strokeRect(6,6,w-12,h-12);
+    g.fillStyle='#0d1015'; for(let i=0;i<14;i++) g.fillRect(40+i*22,28,9,h-56);
+    g.fillStyle='#cfd8ea'; g.font='700 34px sans-serif'; g.textAlign='left'; g.fillText('KP TURNTABLE',400,58); g.fillStyle='#9fb0c8'; g.font='600 22px sans-serif'; g.fillText('ROTATIONAL SPEED · 0–200 rpm',400,94);
+    g.fillStyle='#22c55e'; g.beginPath(); g.arc(860,62,9,0,Math.PI*2); g.fill(); g.fillStyle='#9fb0c8'; g.font='600 18px sans-serif'; g.fillText('POWER',880,68); })}));
+  panel.position.set(0,2.35,17.02); scene.add(panel);
+  /* กรอบจอมาตรวัดรอบ */
+  const bez=rbox(9.8,0.35,3.7,0.4,enamel(0x15171c,0.4,0.5)); bez.rotation.x=Math.PI/2; bez.position.set(10,2.2,17.1); scene.add(bez);
   const table=new THREE.Mesh(new THREE.BoxGeometry(80,1,60),new THREE.MeshStandardMaterial({color:0x3b2f25,roughness:.9})); table.position.y=-0.5-3.5+0.5; scene.add(table); table.position.y=-0.5;
-  base.position.y=2;
+  /* ดุมลูกปืนโครเมียมใต้แผ่นหมุน */
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.6,0.4,40),chromeM()); hub.position.y=4.45; scene.add(hub);
   P.platter=new THREE.Group(); P.platter.position.y=PY-1; scene.add(P.platter);
   const felt=canvasTex(1024,1024,(g,w,h)=>{ g.fillStyle='#166534'; g.fillRect(0,0,w,h); for(let i=0;i<4000;i++){ g.fillStyle=`rgba(${Math.random()<.5?20:60},${90+Math.random()*60|0},${40+Math.random()*30|0},.25)`; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
     const c=w/2, sc=(w/2)/15; g.fillStyle='#fef3c7'; g.fillRect(c,c-18,15*sc,36); g.fillStyle='#111'; g.font='bold 22px sans-serif'; g.textAlign='center'; for(let q=0;q<=150;q++){ const x=c+q/10*sc; const L= q%10===0?26:q%5===0?18:10; g.fillRect(x-1,c-18,2,L); if(q%10===0&&q>0) g.fillText(String(q/10),x,c+16); } });
-  const top=new THREE.Mesh(new THREE.CylinderGeometry(15,15,1,72),[new THREE.MeshStandardMaterial({color:0x334155,metalness:.6}),new THREE.MeshStandardMaterial({map:felt,roughness:1}),new THREE.MeshStandardMaterial({color:0x334155})]); top.rotation.y=Math.PI/2; P.platter.add(top);
-  const spindle=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,1.6,12),new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:.8})); spindle.position.y=0.8; P.platter.add(spindle);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(15,15,1,72),[new THREE.MeshStandardMaterial({color:0xb4bcc6,metalness:.85,roughness:.32}),new THREE.MeshStandardMaterial({map:felt,roughness:1}),new THREE.MeshStandardMaterial({color:0x8a939e,metalness:.8,roughness:.4})]); top.rotation.y=Math.PI/2; P.platter.add(top);
+  /* ขอบแผ่นหมุนอะลูมิเนียมขัดเงา (ขอบมน) */
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(15,0.32,12,96),chromeM()); lip.rotation.x=Math.PI/2; lip.position.y=0.42; P.platter.add(lip);
+  const spindle=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,1.6,20),chromeM()); spindle.position.y=0.8; P.platter.add(spindle);
+  const scap=new THREE.Mesh(new THREE.SphereGeometry(0.42,20,12),chromeM()); scap.position.y=1.6; P.platter.add(scap);
+  const nut=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.3,6),chromeM()); nut.position.y=0.62; P.platter.add(nut);
   P.tachoC=document.createElement('canvas'); P.tachoC.width=256; P.tachoC.height=96; P.tachoT=new THREE.CanvasTexture(P.tachoC);
-  const tacho=new THREE.Mesh(new THREE.PlaneGeometry(9,3.4),new THREE.MeshBasicMaterial({map:P.tachoT})); tacho.position.set(10,2.2,17.02); scene.add(tacho);
-  const lt=makeLabel('มาตรวัดรอบ (rpm)','#67e8f9',0.8); lt.position.set(10,5.2,17.2); scene.add(lt);
+  const tacho=new THREE.Mesh(new THREE.PlaneGeometry(9,3.4),new THREE.MeshBasicMaterial({map:P.tachoT})); tacho.position.set(10,2.2,17.3); scene.add(tacho);
+  const lt=makeLabel('มาตรวัดรอบ (rpm)','#67e8f9',0.8); lt.position.set(10,5.4,17.5); scene.add(lt);
   const lr=makeLabel('ไม้บรรทัดบนแผ่น (cm)','#fde68a',0.9); lr.position.set(0,12,-12); scene.add(lr);
   P.objGroup=new THREE.Group(); scene.add(P.objGroup); syncMeshes();
   setupPointer(cv); resize3D(); setView('iso');
