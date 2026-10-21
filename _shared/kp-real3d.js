@@ -385,26 +385,44 @@
     camera.updateMatrixWorld(); var P5 = camera.projectionMatrix.elements[5], ortho = !!camera.isOrthographicCamera;
     var c2 = ov && ov.getContext('2d'), dpr = ov ? ov.width / W : 1;
     if (c2) { c2.setTransform(dpr, 0, 0, dpr, 0, 0); c2.lineWidth = 1.4; c2.lineCap = 'round'; }
+    var stackY = 10, LCAP = 26;   /* ป้ายสูงไม่เกิน ~26 px บนจอ */
     st.labels.forEach(function(o){
       if (!o.visible || !vis(o) || o.material.opacity < 0.05) return;
       o.getWorldPosition(_w); _v.copy(_w).applyMatrix4(camera.matrixWorldInverse);
       if (!ortho && _v.z > -1e-6) return;
       o.getWorldScale(_s);
       var ndcH = o.material.sizeAttenuation === false || ortho ? _s.y * P5 : _s.y * P5 / -_v.z;
-      var hp = ndcH * H / 2; if (!(hp > 5 && hp < 140)) return;
+      var hp = ndcH * H / 2; if (!(hp > 5 && hp < 400)) return;
+      var rec = { o: o, cx: o.center.x, cy: o.center.y, sx: o.scale.x, sy: o.scale.y, pos: null };
+      /* 1) ป้ายใหญ่เกิน → ย่อ */
+      if (hp > LCAP) { var k = LCAP / hp; o.scale.x *= k; o.scale.y *= k; hp = LCAP; }
+      var wp = hp * o.scale.x / o.scale.y;
+      var bk = o.userData.__kpBk;
+      _v.copy(_w).project(camera);
+      if (wp > W * 0.3 && wp > 160) {
+        /* 2) ป้ายคำแนะนำยาว ๆ → เรียงไว้ขอบบนของภาพ (ไม่ทับอุปกรณ์) */
+        rec.pos = o.position.clone();
+        var ny = 1 - 2 * stackY / H;
+        _w.set(0, ny, _v.z).unproject(camera);
+        if (o.parent) o.parent.worldToLocal(_w);
+        o.position.copy(_w); o.center.set(0.5, 1);
+        stackY += hp + 6;
+        if (bk) syncBacking(bk);
+        done.push(rec); return;
+      }
+      /* 3) ป้ายทั่วไป → ยกขึ้นเหนือจุดที่ชี้ + เส้นนำ */
       var lift = hp * 0.75 + 16, cy0 = o.center.y;
       o.center.y = cy0 - lift / hp;
-      var bk = o.userData.__kpBk; if (bk) syncBacking(bk);
-      done.push([o, cy0]);
+      if (bk) syncBacking(bk);
+      done.push(rec);
       if (c2) {
-        _v.copy(_w).project(camera);
         var ax = (_v.x + 1) / 2 * W, ay = (1 - _v.y) / 2 * H, by = ay + cy0 * hp - lift + 1;   /* ขอบล่างของป้ายหลังยก */
         c2.strokeStyle = 'rgba(15,23,42,.55)'; c2.beginPath(); c2.moveTo(ax, ay); c2.lineTo(ax, by); c2.stroke();
         c2.fillStyle = 'rgba(255,255,255,.9)'; c2.beginPath(); c2.arc(ax, ay, 2.2, 0, 6.3); c2.fill();
         c2.strokeStyle = 'rgba(15,23,42,.7)'; c2.stroke();
       }
     });
-    return function(){ done.forEach(function(d){ d[0].center.y = d[1]; var bk = d[0].userData.__kpBk; if (bk) syncBacking(bk); }); };
+    return function(){ done.forEach(function(d){ var o = d.o; o.center.set(d.cx, d.cy); o.scale.x = d.sx; o.scale.y = d.sy; if (d.pos) o.position.copy(d.pos); var bk = o.userData.__kpBk; if (bk) syncBacking(bk); }); };
   }
   /* แคนวาส 2D โปร่งใสวางทับภาพ 3D สำหรับเส้นนำ (ไม่รับการแตะ) */
   function overlay(r){
