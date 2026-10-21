@@ -336,5 +336,14 @@
     scene.traverse(function(o){ if (o.isSprite && o.userData.__kpBk) st.pills.push(o.userData.__kpBk); });
   }
 
-  window.KPReal3D = { config: CFG, renderers: renderers, scenes: scenes };
+  /* สีพื้นหลังสำหรับ shader ที่ trace แสงเอง (แลป 48 49 51 52): [มองลง (โต๊ะ), มองขึ้น (ผนัง)] เป็น GLSL vec3
+     คืน null ถ้าไม่มีห้อง → แลปใช้สีเดิมของตัวเอง */
+  function shaderBg(){
+    if (!CFG.room) return null;
+    var h = 'smoothstep(-0.06,0.06,d.y)';   /* ขอบฟ้าคม: มองตรง = ผนัง · มองต่ำ = โต๊ะ */
+    if (CFG.room === 'dark') return ['vec3(0.04,0.045,0.055)', 'vec3(0.07,0.08,0.10)', h];
+    if (CFG.room === 'studio') return ['vec3(0.21,0.22,0.24)', 'vec3(0.23,0.24,0.26)', h];
+    return ['vec3(0.62,0.53,0.44)', 'vec3(0.78,0.80,0.83)', h];
+  }
+  window.KPReal3D = { config: CFG, renderers: renderers, scenes: scenes, shaderBg: shaderBg };
 })();
