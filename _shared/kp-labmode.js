@@ -213,6 +213,8 @@
     if (el && el.contains(e.target)) { if (e.type === 'click' && T.clicked === false) T.clicked = true; return; }
     if (s.free) return;
     if (e.target.closest && e.target.closest('.kp-topbar,#kp-auth-modal')) return;
+    /* ภาพ 3D หมุน/ซูม/เลื่อนได้เสมอ แม้อยู่ในโหมดสอน */
+    if (window.KPReal3D && KPReal3D.renderers.some(function(r){ return r.domElement === e.target; })) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.type === 'pointerdown') { T.tip.classList.remove('shake'); void T.tip.offsetWidth; T.tip.classList.add('shake'); }
   }

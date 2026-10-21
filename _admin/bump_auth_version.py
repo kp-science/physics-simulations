@@ -17,7 +17,7 @@ import io, os, re, sys, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VER_FILE = os.path.join(ROOT, '_admin', 'asset_version.txt')
-TARGETS = ['kp-auth.js']
+TARGETS = ['kp-auth.js', 'kp-labmode.js', 'kp-real3d.js']
 SKIP_DIRS = {'.git', 'node_modules', '_preview', '.claude'}
 
 
