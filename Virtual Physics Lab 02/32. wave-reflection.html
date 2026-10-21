@@ -11,7 +11,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wave Reflection — KP Science simulation</title>
+<title>Wave Reflection (3D) — KP Science simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#06090f;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#818cf8;--accent2:#38bdf8;--accent3:#34d399;--accent4:#fb923c;--accent5:#f472b6;--text:#e2e8f0;--muted:#94a3b8}
@@ -36,7 +36,19 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
 .sim-main{padding:12px;display:flex;flex-direction:column;gap:8px}
 .canvas-wrap{position:relative;flex:1;min-height:420px;background:#080e1a;border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:crosshair}
 .canvas-wrap canvas{width:100%;height:100%;display:block}
-.canvas-overlay{position:absolute;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.view3d{position:relative;width:100%;height:clamp(380px,62vh,660px);background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px);z-index:3}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent2);color:var(--accent2)}
+.view3d .viewbtns button.on{background:var(--accent2);border-color:var(--accent2);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{background:#a78bfa;border-color:#a78bfa;color:#0a0e1a;font-weight:700}
+.view3d .viewhint{position:absolute;left:10px;top:36px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+@media(max-width:900px){.view3d .viewbtns{top:8px;bottom:auto}.view3d .viewhint{display:none}.view3d .canvas-overlay{top:auto;bottom:8px}}
+@media(max-width:600px){.view3d{height:min(max(104vw,58vh),680px)}}
+.canvas-overlay{position:absolute;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none;z-index:2}
 .canvas-overlay .tag{pointer-events:auto;background:rgba(17,24,39,.85);border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:.72rem}
 .canvas-overlay .tag.active{color:var(--accent);border-color:var(--accent)}
 .sim-panel{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 140px)}
@@ -168,7 +180,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
 <header>
   <div class="icon">🪞</div>
   <div>
-    <h1>Wave Reflection</h1>
+    <h1>Wave Reflection (3D)</h1>
     <p>Experiment 32 — การสะท้อนของคลื่น</p>
   </div>
   <span class="badge">KP Science simulation</span>
@@ -184,8 +196,18 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
 <div id="tab-sim" class="tab-section active">
 <div class="sim-layout">
 <div class="sim-main">
-  <div class="canvas-wrap" id="canvas-wrap">
+  <!-- 3D view (three.js) -->
+  <div class="view3d" id="view3d">
     <canvas id="simCanvas"></canvas>
+    <div class="viewbtns" id="viewBtns">
+      <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+      <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+      <button data-vw="front" onclick="setView('front')">👁 ตรงหน้า</button>
+      <button data-vw="top" onclick="setView('top')">🌊 มองผิวน้ำ</button>
+      <button data-vw="read" onclick="setView('read')">🔍 ซูมอ่านภาพบนกระดาษ</button>
+    </div>
+    <div class="viewhint">🖐 ลาก<b>แผ่นกั้นตรง</b> = หมุนมุม α · ลาก<b>แถบโค้ง</b> = เลื่อนตำแหน่ง<br>📐 ไม้โปรแทรกเตอร์บนกระดาษ: ลากกลาง = เลื่อน · ลากขอบ = หมุน<br>🖱 ลาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน · 📱 2 นิ้ว = ซูม/เลื่อน</div>
+    <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ใช้โหมด <b>Auto</b> แล้วกดบันทึก หรือกรอกค่าในตารางเอง</div>
     <div class="canvas-overlay">
       <span class="tag active" id="tag-wave">คลื่นหน้าตรง</span>
       <span class="tag" id="tag-refl">ผิวสะท้อนหน้าตรง</span>
@@ -248,7 +270,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
       <span id="rec-label-a">Auto</span>
     </div>
     <button class="btn btn-sm" id="btn-protractor" style="margin-top:8px;background:transparent;border:1px solid var(--accent4);color:var(--accent4);width:100%" onclick="toggleProtractorTool()">📐 เครื่องวัดมุม</button>
-    <p id="protractor-hint" style="font-size:.72rem;color:var(--muted);margin-top:4px;display:none">ลากเครื่องวัดมุมไปวางตรงจุดตกกระทบเพื่อวัดมุม</p>
+    <p id="protractor-hint" style="font-size:.72rem;color:var(--muted);margin-top:4px;display:none">ไม้โปรแทรกเตอร์ใสวางบนกระดาษใต้ถาด — ลากกลางไปวางตรงจุดตกกระทบ ลากขอบเพื่อหมุนให้เส้น 0°–180° ตรงกับ Normal</p>
   </div>
 
   <!-- Circular reflector controls -->
@@ -261,7 +283,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div style="margin-top:8px;display:flex;gap:6px">
       <button class="btn btn-sm" style="background:var(--accent3);color:#0a0e1a;flex:1" onclick="resetReflPos()">↺ Reset Position</button>
     </div>
-    <p style="font-size:.75rem;color:var(--muted);margin-top:6px">ลากเมาส์บนผิวสะท้อนเพื่อเลื่อนตำแหน่ง</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:6px">ลากแถบโค้งในถาด (ภาพ 3D) เพื่อเลื่อนตำแหน่ง</p>
   </div>
 
   <!-- Parabolic reflector controls -->
@@ -274,7 +296,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div style="margin-top:8px;display:flex;gap:6px">
       <button class="btn btn-sm" style="background:var(--accent5);color:#0a0e1a;flex:1" onclick="resetReflPos()">↺ Reset Position</button>
     </div>
-    <p style="font-size:.75rem;color:var(--muted);margin-top:6px">ลากเมาส์บนผิวสะท้อนเพื่อเลื่อนตำแหน่ง</p>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:6px">ลากแถบโค้งในถาด (ภาพ 3D) เพื่อเลื่อนตำแหน่ง</p>
   </div>
 
   <!-- Wave params -->
@@ -320,7 +342,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
   <!-- Hint -->
   <div class="hint-box" id="hint-box">
     <div class="hint-title">💡 คำแนะนำ</div>
-    <span id="hint-text">ปรับมุมผิวสะท้อน α แล้วสังเกตมุมตกกระทบ (θi) และมุมสะท้อน (θr) บน canvas จากนั้นกดบันทึกค่า</span>
+    <span id="hint-text">ปรับมุมผิวสะท้อน α แล้วสังเกตมุมตกกระทบ (θi) และมุมสะท้อน (θr) จากภาพคลื่นบนกระดาษใต้ถาด จากนั้นกดบันทึกค่า</span>
   </div>
 </div>
 </div>
@@ -354,7 +376,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div class="step-num">3</div>
     <div class="step-body">
       <h4>วัดมุมด้วยเครื่องวัดมุม (โหมด Manual)</h4>
-      <p>ตรวจสอบว่าอยู่ในโหมด <strong>Manual</strong> กดปุ่ม <strong>📐 เครื่องวัดมุม</strong> จะปรากฏวงกลมวัดมุม 360° บน canvas</p>
+      <p>ตรวจสอบว่าอยู่ในโหมด <strong>Manual</strong> กดปุ่ม <strong>📐 เครื่องวัดมุม</strong> จะมีไม้โปรแทรกเตอร์ใส 360° วางบนกระดาษใต้ถาด (กด 🔍 ซูมอ่านภาพบนกระดาษ เพื่อมองใกล้ ๆ)</p>
       <ul style="font-size:.85rem;margin-top:6px">
         <li><strong>ลากตรงกลาง</strong> = เลื่อนตำแหน่ง — วางให้จุดศูนย์กลางตรงกับจุดที่คลื่นกระทบผิวสะท้อน</li>
         <li><strong>ลากที่ขอบ</strong> = หมุน — หมุนให้เส้น 0°-180° ตรงกับเส้น Normal</li>
@@ -376,7 +398,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <h4>วิธีการบันทึกผล</h4>
     <ul>
       <li><strong>โหมด Manual:</strong> ใช้เครื่องวัดมุม 360° ลากไปวางที่จุดตกกระทบ หมุนให้ตรง Normal แล้ววัดมุมจากสเกล พิมพ์ค่าลงในตาราง ช่องทั้ง 3 (α, θ<sub>i</sub>, θ<sub>r</sub>) กรอกตัวเลขได้</li>
-      <li><strong>โหมด Auto:</strong> สลับ toggle เป็น Auto ระบบจะแสดง θ<sub>i</sub>, θ<sub>r</sub> arcs บน canvas และเติมค่าให้อัตโนมัติเมื่อกดบันทึก</li>
+      <li><strong>โหมด Auto:</strong> สลับ toggle เป็น Auto ระบบจะพิมพ์ส่วนโค้ง θ<sub>i</sub>, θ<sub>r</sub> บนกระดาษใต้ถาด และเติมค่าให้อัตโนมัติเมื่อกดบันทึก</li>
       <li>กดปุ่ม <strong>📥 CSV</strong> เพื่อดาวน์โหลดข้อมูลเป็นไฟล์</li>
     </ul>
   </div>
@@ -396,7 +418,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div class="step-num">6</div>
     <div class="step-body">
       <h4>คลื่นวงกลม + ผิวเว้าวงกลม</h4>
-      <p>สลับเป็นคลื่น <strong>วงกลม</strong> (แหล่งกำเนิดอยู่กลาง canvas) สังเกตรูปแบบคลื่นสะท้อน</p>
+      <p>สลับเป็นคลื่น <strong>วงกลม</strong> (ตัวจุ่มจุดเลื่อนไปกลางถาด) สังเกตรูปแบบคลื่นสะท้อน</p>
       <div class="expected">คลื่นวงกลมสะท้อนจากผิวเว้า → รวมตัวที่จุดภาพ (image point) ตามสมการกระจก 1/v + 1/u = 2/R แล้วกระจายออก</div>
     </div>
   </div>
@@ -414,7 +436,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div class="step-num">8</div>
     <div class="step-body">
       <h4>ลากเลื่อนตำแหน่ง</h4>
-      <p>ใช้เมาส์ลากผิวสะท้อนไปยังตำแหน่งต่างๆ ใน canvas เพื่อสังเกตรูปแบบที่เปลี่ยนไป กดปุ่ม <strong>↺ Reset Position</strong> เพื่อเซตกลับตำแหน่งเดิม</p>
+      <p>ลากแถบโค้งในถาด (ภาพ 3D) ไปยังตำแหน่งต่างๆ เพื่อสังเกตรูปแบบที่เปลี่ยนไป กดปุ่ม <strong>↺ Reset Position</strong> เพื่อเซตกลับตำแหน่งเดิม</p>
     </div>
   </div>
 
@@ -433,7 +455,7 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
     <div class="step-num">10</div>
     <div class="step-body">
       <h4>คลื่นวงกลม + พาราโบลาเว้า</h4>
-      <p>สลับเป็นคลื่น <strong>วงกลม</strong> (แหล่งกำเนิดอยู่กลาง canvas) สังเกตว่าคลื่นสะท้อนรวมตัวที่จุดภาพแล้วกระจายออก</p>
+      <p>สลับเป็นคลื่น <strong>วงกลม</strong> (ตัวจุ่มจุดเลื่อนไปกลางถาด) สังเกตว่าคลื่นสะท้อนรวมตัวที่จุดภาพแล้วกระจายออก</p>
     </div>
   </div>
 
@@ -545,6 +567,9 @@ footer{background:var(--panel);border-top:1px solid var(--border);padding:12px 2
   KP Science simulation &copy; 2026 — Wave Reflection (Experiment 32)
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script src="../_shared/kp-real3d.js?v=20261021-17"></script>
 <script>
 'use strict';
 
@@ -557,11 +582,14 @@ const CIRC_R_CM = 10;   // radius of curvature for circular reflector
 const PARA_F_CM = 5;    // focal length for parabolic reflector
 const SRC_X_CM = 5;     // source x position in cm
 const DEF_REFL_X = 32;  // default reflector x in cm
-const REFL_LEN_CM = 18; // flat reflector length in cm
+const REFL_LEN_CM = 18; // flat reflector length in cm (ภาพ 3D: แผ่นกั้นยาวพาดเต็มถาด ให้ตรงกับเขตเงาหลังแผ่นกั้นของแบบจำลอง)
 const ARC_HALF = Math.PI * 0.45; // ~81° half-angle for wider curved reflector arc
 
+/* ภาพ 3D: ถาด 40 × 30 cm · เส้นช่วย (Normal / มุม) วาดด้วยโค้ด 2D เดิมบน "พิกัด px เสมือน" 20 px/cm แล้วพิมพ์ลงกระดาษใต้ถาด */
+const pxPerCm = 20, tankH = 30, W = TANK_W * pxPerCm, H = tankH * pxPerCm;
+let ctx = null;   // context ของภาพเส้นช่วยบนกระดาษ (ตั้งค่าตอนวาดเท่านั้น)
+
 /* ===== STATE ===== */
-let canvas, ctx, W, H, pxPerCm, tankH;
 let waveType = 'plane';
 let reflType = 'flat';
 let curveShape = 'concave';
@@ -573,42 +601,18 @@ let isPlaying = false;
 let t = 0, lastTs = null, animId = null;
 let recMode = 'manual';
 
-// positions in cm
-let srcXcm = SRC_X_CM, srcYcm;
-let reflXcm = DEF_REFL_X, reflYcm;
+// positions in cm (u = ซ้าย→ขวา, w = หลัง→หน้า ของถาด = x, y ของภาพ 2D เดิม)
+let srcXcm = SRC_X_CM, srcYcm = tankH / 2;
+let reflXcm = DEF_REFL_X, reflYcm = tankH / 2;
 
-// drag state
-let isDragging = false, dragOffX = 0, dragOffY = 0;
-
-// protractor tool state (Manual mode)
+// protractor tool state (Manual mode) — ไม้โปรแทรกเตอร์ใสวางบนกระดาษใต้ถาด (cm)
 let protToolVisible = false;
-let protToolX = 0, protToolY = 0; // px position
-let protToolAngle = 0; // rotation in radians
-let protToolDragging = false;
-let protToolRotating = false;
+let protToolX = 0, protToolY = 0; // cm บนกระดาษ
+let protToolAngle = 0; // rotation in radians (ตามเข็มนาฬิกาเมื่อมองจากบน เหมือน 2D)
+const TOOL_R = 5.4;    // รัศมีไม้โปรแทรกเตอร์ (cm) = 0.18 × ด้านสั้นของถาด เหมือน 2D
 
 // data table
 let measurements = [];
-
-/* ===== INIT ===== */
-function initCanvas() {
-  canvas = document.getElementById('simCanvas');
-  ctx = canvas.getContext('2d');
-  resizeCanvas();
-}
-
-function resizeCanvas() {
-  const wrap = document.getElementById('canvas-wrap');
-  W = wrap.clientWidth || 800;
-  H = wrap.clientHeight || 450;
-  canvas.width = W;
-  canvas.height = H;
-  pxPerCm = W / TANK_W;
-  tankH = H / pxPerCm;
-  srcYcm = tankH / 2;
-  if (!reflYcm) reflYcm = tankH / 2;
-  if (!isPlaying) draw();
-}
 
 /* ===== PHYSICS ===== */
 function lambda() { return V_WAVE / freq; }
@@ -655,418 +659,109 @@ function imagePointCurved() {
   return { type: 'point', x: imgX, y: imgY, v: v };
 }
 
-/* ===== DRAWING ===== */
 function cm2px(cm) { return cm * pxPerCm; }
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
-  drawIncidentWaves();
-  drawReflectedWaves();
-  drawShadowZone();
-  drawReflector();
-  if (reflType === 'flat') drawProtractor();
-  drawProtractorTool();
-  if ((reflType === 'parabolic') && curveShape === 'concave') drawFocalPoint();
-  if ((reflType === 'circular') && curveShape === 'concave') drawFocalPoint();
-  drawSource();
-  drawScaleBar();
-}
-
-function drawBackground() {
-  const grd = ctx.createLinearGradient(0, 0, 0, H);
-  grd.addColorStop(0, '#0a1628');
-  grd.addColorStop(1, '#06090f');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, W, H);
-}
-
-/* --- Incident Waves --- */
-function drawIncidentWaves() {
-  if (waveType === 'circular') {
-    drawCircularWaves(cm2px(srcXcm), cm2px(srcYcm), cm2px(lambda()), amplitude, false);
-  } else {
-    drawPlaneWavesLR(cm2px(lambda()), amplitude);
-  }
-}
-
-function drawCircularWaves(sx, sy, lam_px, amp, isReflected) {
-  const omega = 2 * Math.PI * freq;
-  const maxR = Math.sqrt(W * W + H * H);
-  for (let r = 3; r < maxR; r += 2) {
-    const phase = (2 * Math.PI * r / lam_px) - omega * t;
-    const wave = Math.cos(phase);
-    const decay = Math.min(1, 1 / Math.sqrt(r / lam_px + 0.5));
-    const intensity = Math.abs(wave) * decay * amp;
-    if (intensity < 0.015) continue;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r, 0, 2 * Math.PI);
-    if (wave > 0) {
-      ctx.strokeStyle = isReflected
-        ? `rgba(251,146,60,${Math.min(0.9, intensity * 0.9)})`
-        : `rgba(56,189,248,${intensity * 0.7})`;
-    } else {
-      ctx.strokeStyle = isReflected
-        ? `rgba(30,58,95,${intensity * 0.5})`
-        : `rgba(30,58,95,${intensity * 0.4})`;
-    }
-    ctx.lineWidth = isReflected ? 1.5 : 1.2;
-    ctx.stroke();
-  }
-}
-
-function drawPlaneWavesLR(lam_px, amp) {
-  const omega = 2 * Math.PI * freq;
-  for (let x = 0; x < W; x += 2) {
-    const phase = (2 * Math.PI * x / lam_px) - omega * t;
-    const wave = Math.cos(phase);
-    const intensity = Math.abs(wave) * amp;
-    if (intensity < 0.015) continue;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.strokeStyle = wave > 0
-      ? `rgba(56,189,248,${intensity * 0.7})`
-      : `rgba(30,58,95,${intensity * 0.4})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-}
-
-/* --- Reflected Waves --- */
-function drawReflectedWaves() {
-  if (reflType === 'flat') {
-    drawReflectedFlat();
-  } else {
-    drawReflectedCurved();
-  }
-}
-
-function drawReflectedFlat() {
-  if (waveType === 'circular') {
-    const ms = mirrorSource();
-    drawCircularWaves(cm2px(ms.x), cm2px(ms.y), cm2px(lambda()), amplitude * 0.85, true);
-  } else {
-    drawReflectedPlaneWaves();
-  }
-}
-
-function drawReflectedPlaneWaves() {
-  const rd = reflectedPlaneDir();
-  const lam_px = cm2px(lambda());
-  const omega = 2 * Math.PI * freq;
-  const perpX = -rd.y, perpY = rd.x;
-  const refPx = cm2px(reflXcm), refPy = cm2px(reflYcm);
-  const phaseAtRefl = (2 * Math.PI * refPx / lam_px) - omega * t;
-  const maxD = Math.sqrt(W * W + H * H);
-
-  for (let d = 0; d < maxD; d += 2) {
-    const cx = refPx + d * rd.x;
-    const cy = refPy + d * rd.y;
-    const phase = phaseAtRefl + (2 * Math.PI * d / lam_px);
-    const wave = Math.cos(phase);
-    const decay = Math.min(1, 1 / (1 + d * 0.0005));
-    const intensity = Math.abs(wave) * amplitude * 0.85 * decay;
-    if (intensity < 0.015) continue;
-
-    ctx.beginPath();
-    ctx.moveTo(cx - 2000 * perpX, cy - 2000 * perpY);
-    ctx.lineTo(cx + 2000 * perpX, cy + 2000 * perpY);
-    ctx.strokeStyle = wave > 0
-      ? `rgba(251,146,60,${intensity * 0.7})`
-      : `rgba(30,58,95,${intensity * 0.35})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-}
-
-function drawReflectedCurved() {
-  if (waveType === 'circular') {
-    const img = imagePointCurved();
-    if (img.type === 'plane') {
-      drawReflectedPlaneFromCurved(img.dirX, img.dirY);
-    } else {
-      // Both concave (real image) and convex (virtual image behind reflector)
-      // use converge-diverge; shadow zone masks the behind-reflector region
-      drawReflectedConvergeDiverge(img.x, img.y);
-    }
-  } else {
-    // Plane waves hitting curved reflector
-    let focalX, focalY;
-    if (reflType === 'circular') {
-      focalX = curveShape === 'concave' ? reflXcm - CIRC_R_CM / 2 : reflXcm + CIRC_R_CM / 2;
-      focalY = reflYcm;
-    } else {
-      focalX = curveShape === 'concave' ? reflXcm - PARA_F_CM : reflXcm + PARA_F_CM;
-      focalY = reflYcm;
-    }
-    drawReflectedConvergeDiverge(focalX, focalY);
-  }
-}
-
-function drawReflectedConvergeDiverge(fxCm, fyCm) {
-  const fx = cm2px(fxCm), fy = cm2px(fyCm);
-  const rx = cm2px(reflXcm), ry = cm2px(reflYcm);
-  const lam_px = cm2px(lambda());
-  const omega = 2 * Math.PI * freq;
-  const dF = Math.sqrt((rx - fx) ** 2 + (ry - fy) ** 2);
-  const maxR = Math.sqrt(W * W + H * H);
-
-  // Phase at focus/image — handles both plane and circular incident waves
-  let phaseF;
-  if (waveType === 'plane') {
-    phaseF = (2 * Math.PI * rx / lam_px) - omega * t + (2 * Math.PI * dF / lam_px);
-  } else {
-    const sx = cm2px(srcXcm), sy = cm2px(srcYcm);
-    const u = Math.sqrt((rx - sx) ** 2 + (ry - sy) ** 2);
-    phaseF = (2 * Math.PI * u / lam_px) - omega * t + (2 * Math.PI * dF / lam_px);
-  }
-
-  // CONVERGING: r < dF, crests move inward toward focus
-  for (let r = 3; r < dF + lam_px * 2; r += 2) {
-    const phase = phaseF - (2 * Math.PI * r / lam_px);
-    const wave = Math.cos(phase);
-    const decay = Math.min(1, 1 / Math.sqrt(r / lam_px + 0.5));
-    const intensity = Math.abs(wave) * decay * amplitude * 0.8;
-    if (intensity < 0.015) continue;
-    ctx.beginPath();
-    ctx.arc(fx, fy, r, 0, 2 * Math.PI);
-    ctx.strokeStyle = wave > 0
-      ? `rgba(251,146,60,${intensity * 0.7})`
-      : `rgba(30,58,95,${intensity * 0.4})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-
-  // DIVERGING: crests move outward from focus
-  for (let r = 3; r < maxR; r += 2) {
-    const phase = phaseF + (2 * Math.PI * r / lam_px);
-    const wave = Math.cos(phase);
-    const decay = Math.min(1, 1 / Math.sqrt(r / lam_px + 0.5));
-    const intensity = Math.abs(wave) * decay * amplitude * 0.8;
-    if (intensity < 0.015) continue;
-    ctx.beginPath();
-    ctx.arc(fx, fy, r, 0, 2 * Math.PI);
-    ctx.strokeStyle = wave > 0
-      ? `rgba(251,146,60,${intensity * 0.7})`
-      : `rgba(30,58,95,${intensity * 0.4})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-}
-
-function drawReflectedPlaneFromCurved(dirX, dirY) {
-  const lam_px = cm2px(lambda());
-  const omega = 2 * Math.PI * freq;
-  const perpX = -dirY, perpY = dirX;
-  const refPx = cm2px(reflXcm), refPy = cm2px(reflYcm);
-  const phaseAtRefl = (2 * Math.PI * Math.sqrt(
-    (cm2px(srcXcm) - refPx) ** 2 + (cm2px(srcYcm) - refPy) ** 2
-  ) / lam_px) - omega * t;
-
-  for (let d = 0; d < W; d += 2) {
-    const cx = refPx + d * dirX;
-    const cy = refPy + d * dirY;
-    const phase = phaseAtRefl + (2 * Math.PI * d / lam_px);
-    const wave = Math.cos(phase);
-    const intensity = Math.abs(wave) * amplitude * 0.7;
-    if (intensity < 0.015) continue;
-    ctx.beginPath();
-    ctx.moveTo(cx - 2000 * perpX, cy - 2000 * perpY);
-    ctx.lineTo(cx + 2000 * perpX, cy + 2000 * perpY);
-    ctx.strokeStyle = wave > 0
-      ? `rgba(52,211,153,${intensity * 0.55})`
-      : `rgba(30,58,95,${intensity * 0.3})`;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-}
-
-/* --- Shadow Zone --- */
-function drawShadowZone() {
-  ctx.save();
-  ctx.beginPath();
+/* ===== รูปร่างผิวสะท้อน (พิกัดถาด cm) — เขตเงาเดียวกับ drawShadowZone() ของ 2D ===== */
+function inShadow(u, w) {
+  const rx = reflXcm, ry = reflYcm;
   if (reflType === 'flat') {
     const a = flatAngle * Math.PI / 180;
-    const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-    const sa = Math.sin(a), ca = Math.cos(a);
-    const ext = Math.max(W, H) * 2;
-    const p1x = rpx + ext * sa, p1y = rpy + ext * ca;
-    const p2x = rpx - ext * sa, p2y = rpy - ext * ca;
-    ctx.moveTo(p1x, p1y);
-    ctx.lineTo(p2x, p2y);
-    ctx.lineTo(W, 0);
-    ctx.lineTo(W, H);
-    ctx.closePath();
-  } else if (reflType === 'circular') {
-    // Shadow follows the circular arc — always covers the RIGHT side (behind reflector)
-    const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-    const R_px = cm2px(CIRC_R_CM);
-    if (curveShape === 'concave') {
-      // Concave ")" — center to the left, arc on the right side of center
-      const cx = rpx - R_px;
-      // Trace arc from top to bottom (clockwise)
-      ctx.arc(cx, rpy, R_px, -ARC_HALF, ARC_HALF, false);
-      // Close around right edge
-      ctx.lineTo(W, rpy + Math.sin(ARC_HALF) * R_px);
-      ctx.lineTo(W, rpy - Math.sin(ARC_HALF) * R_px);
-      ctx.closePath();
-    } else {
-      // Convex "(" — center to the right, arc on the left side of center
-      const cx = rpx + R_px;
-      // Trace arc: clockwise from bottom-left (99°) through left (180°) to top-left (261°)
-      ctx.arc(cx, rpy, R_px, Math.PI - ARC_HALF, Math.PI + ARC_HALF, false);
-      // Arc ends at TOP → go to right edge TOP first, then BOTTOM, then close back to start (BOTTOM)
-      ctx.lineTo(W, rpy - Math.sin(ARC_HALF) * R_px);
-      ctx.lineTo(W, rpy + Math.sin(ARC_HALF) * R_px);
-      ctx.closePath();
-    }
-  } else {
-    // Parabolic: trace the parabola curve then close around right edge
-    const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-    const f_px = cm2px(PARA_F_CM);
-    const halfH = H * 0.55; // extend to near canvas edges
-    const steps = 60;
-    // Trace parabola from top to bottom
-    for (let i = 0; i <= steps; i++) {
-      const yOff = -halfH + (2 * halfH * i / steps);
-      const xOff = curveShape === 'concave'
-        ? -(yOff * yOff) / (4 * f_px)
-        : (yOff * yOff) / (4 * f_px);
-      if (i === 0) ctx.moveTo(rpx + xOff, rpy + yOff);
-      else ctx.lineTo(rpx + xOff, rpy + yOff);
-    }
-    // Close around right edge of canvas (shadow is always BEHIND the reflector = right side)
-    ctx.lineTo(W, rpy + halfH);
-    ctx.lineTo(W, rpy - halfH);
-    ctx.closePath();
+    return (u - rx) * (-Math.cos(a)) + (w - ry) * Math.sin(a) < 0;   // ฝั่งตรงข้ามกับแหล่งกำเนิดของเส้นแผ่นกั้น
   }
-  ctx.fillStyle = 'rgba(6,9,15,0.88)';
-  ctx.fill();
-  ctx.restore();
-}
-
-/* --- Reflector Drawing --- */
-function drawReflector() {
-  ctx.save();
-  if (reflType === 'flat') {
-    drawFlatReflector();
-  } else if (reflType === 'circular') {
-    drawCircularReflector();
-  } else {
-    drawParabolicReflector();
-  }
-  ctx.restore();
-}
-
-function drawFlatReflector() {
-  const a = flatAngle * Math.PI / 180;
-  const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-  const halfLen = cm2px(REFL_LEN_CM / 2);
-  const sa = Math.sin(a), ca = Math.cos(a);
-  const x1 = rpx + halfLen * sa, y1 = rpy + halfLen * ca;
-  const x2 = rpx - halfLen * sa, y2 = rpy - halfLen * ca;
-
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.strokeStyle = '#fb923c';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // Hash marks on the "back" side
-  const numHash = 12;
-  for (let i = 0; i <= numHash; i++) {
-    const frac = i / numHash;
-    const hx = x2 + (x1 - x2) * frac;
-    const hy = y2 + (y1 - y2) * frac;
-    ctx.beginPath();
-    ctx.moveTo(hx, hy);
-    ctx.lineTo(hx + ca * 8, hy - sa * 8);
-    ctx.strokeStyle = 'rgba(251,146,60,0.4)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-function drawCircularReflector() {
-  const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-  const R_px = cm2px(CIRC_R_CM);
-
-  ctx.beginPath();
-  if (curveShape === 'concave') {
-    // Center of circle to the LEFT of vertex (source side)
-    const cx = rpx - R_px;
-    ctx.arc(cx, rpy, R_px, -ARC_HALF, ARC_HALF);
-  } else {
-    // Center of circle to the RIGHT (behind mirror)
-    const cx = rpx + R_px;
-    ctx.arc(cx, rpy, R_px, Math.PI - ARC_HALF, Math.PI + ARC_HALF);
-  }
-  ctx.strokeStyle = '#34d399';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-}
-
-function drawParabolicReflector() {
-  const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-  const f_px = cm2px(PARA_F_CM);
-  const halfH = H * 0.55; // extend to near canvas edges (matches shadow)
-
-  ctx.beginPath();
-  const steps = 60;
-  for (let i = 0; i <= steps; i++) {
-    const yOff = -halfH + (2 * halfH * i / steps);
-    let xOff;
-    if (curveShape === 'concave') {
-      // Opens to the left (toward source): x = -(y²)/(4f)
-      xOff = -(yOff * yOff) / (4 * f_px);
-    } else {
-      // Opens to the right: x = (y²)/(4f)
-      xOff = (yOff * yOff) / (4 * f_px);
-    }
-    if (i === 0) ctx.moveTo(rpx + xOff, rpy + yOff);
-    else ctx.lineTo(rpx + xOff, rpy + yOff);
-  }
-  ctx.strokeStyle = '#f472b6';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-}
-
-function drawFocalPoint() {
-  let fx, fy;
+  const dy = w - ry;
   if (reflType === 'circular') {
-    if (curveShape === 'concave') {
-      fx = cm2px(reflXcm - CIRC_R_CM / 2);
-      fy = cm2px(reflYcm);
-    } else return;
-  } else {
-    if (curveShape === 'concave') {
-      fx = cm2px(reflXcm - PARA_F_CM);
-      fy = cm2px(reflYcm);
-    } else return;
+    const R = CIRC_R_CM; if (Math.abs(dy) > R * Math.sin(ARC_HALF)) return false;
+    const s = Math.sqrt(R * R - dy * dy);
+    return curveShape === 'concave' ? u > rx - R + s : u > rx + R - s;
   }
-  ctx.beginPath();
-  ctx.arc(fx, fy, 5, 0, 2 * Math.PI);
-  ctx.fillStyle = reflType === 'circular' ? '#34d399' : '#f472b6';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(fx, fy, 9, 0, 2 * Math.PI);
-  ctx.strokeStyle = reflType === 'circular' ? 'rgba(52,211,153,0.4)' : 'rgba(244,114,182,0.4)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Label
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.fillStyle = reflType === 'circular' ? '#34d399' : '#f472b6';
-  ctx.textAlign = 'center';
-  ctx.fillText('F', fx, fy - 14);
+  const halfH = 0.55 * tankH; if (Math.abs(dy) > halfH) return false;
+  const xo = dy * dy / (4 * PARA_F_CM);
+  return u > rx + (curveShape === 'concave' ? -xo : xo);
+}
+/* ระยะจากจุดถึงผิวสะท้อน (cm) — ใช้ทำเงาแผ่นกั้นบนกระดาษ และหยิบผิวสะท้อนในภาพ 3D */
+function reflDist(u, w) {
+  const rx = reflXcm, ry = reflYcm;
+  if (reflType === 'flat') { const a = flatAngle * Math.PI / 180; return Math.abs((u - rx) * (-Math.cos(a)) + (w - ry) * Math.sin(a)); }
+  if (reflType === 'circular') {
+    const R = CIRC_R_CM, cc = curveShape === 'concave', cx = cc ? rx - R : rx + R;
+    let ang = Math.atan2(w - ry, u - cx); if (!cc) { ang = Math.PI - Math.abs(ang); }
+    if (Math.abs(ang) <= ARC_HALF) return Math.abs(Math.hypot(u - cx, w - ry) - R);
+    const e1 = cc ? [cx + R * Math.cos(ARC_HALF), ry + R * Math.sin(ARC_HALF)] : [cx - R * Math.cos(ARC_HALF), ry + R * Math.sin(ARC_HALF)];
+    return Math.min(Math.hypot(u - e1[0], w - e1[1]), Math.hypot(u - e1[0], w - (2 * ry - e1[1])));
+  }
+  const dy = w - ry, halfH = 0.55 * tankH; if (Math.abs(dy) > halfH) return 1e9;
+  const xo = dy * dy / (4 * PARA_F_CM) * (curveShape === 'concave' ? -1 : 1), sl = dy / (2 * PARA_F_CM);
+  return Math.abs(u - (rx + xo)) / Math.sqrt(1 + sl * sl);
 }
 
-/* --- Protractor (Flat Reflector) --- */
+/* ===== Lab 32 — สนามคลื่น (สูตรเดียวกับเส้นหน้าคลื่นของภาพ 2D เดิม) =====
+   ตกกระทบ: หน้าตรง cos(2πu/λ − ωt) · วงกลม cos(2πr/λ − ωt)·min(1, 1/√(r/λ+0.5))
+   สะท้อน (×0.85 แบบ 2D): แผ่นกั้นตรง+หน้าตรง → เฟสที่จุดตกกระทบ + 2πd/λ ตามทิศ (−cos2α, sin2α) · แผ่นกั้นตรง+วงกลม → แหล่งกำเนิดเสมือน (ภาพสะท้อนของ S)
+   ผิวโค้ง (×0.8): รวมเข้า cos(φF − kr) ก่อนถึงจุดโฟกัส/จุดภาพจริง แล้วกระจายออก cos(φF + kr) · จุดภาพเสมือน (นูน) กระจายออกอย่างเดียว
+   S อยู่ที่จุดโฟกัส → สะท้อนเป็นหน้าตรง (×0.7) · หลังผิวสะท้อน (เขตเงา) น้ำนิ่ง = 0
+   ผลรวม × 0.62 ให้อยู่ใน [−1, 1] · ภาพบนกระดาษ (สิ่งที่นักเรียนวัด) กับผิวน้ำมาจากฟังก์ชันนี้ชุดเดียวกัน */
+let fieldTime = 0;
+function fieldCfg() {
+  const lam = lambda(), k = 2 * Math.PI / lam, wt = 2 * Math.PI * freq * fieldTime;
+  const c = { lam, k, wt, circ: waveType === 'circular', sx: srcXcm, sy: srcYcm, rx: reflXcm, ry: reflYcm, mode: '' };
+  if (reflType === 'flat') {
+    if (c.circ) { const ms = mirrorSource(); c.mode = 'fcirc'; c.mx = ms.x; c.my = ms.y; }
+    else { const rd = reflectedPlaneDir(); c.mode = 'fplane'; c.dx = rd.x; c.dy = rd.y; c.ph0 = k * reflXcm - wt; }
+  } else {
+    let fx, fy, real, phV;
+    const uS = Math.hypot(reflXcm - srcXcm, reflYcm - srcYcm);
+    phV = (c.circ ? k * uS : k * reflXcm) - wt;           /* เฟสของคลื่นตกกระทบที่ยอดผิวสะท้อน */
+    if (c.circ) {
+      const img = imagePointCurved();
+      if (img.type === 'plane') { c.mode = 'cplane'; c.dx = img.dirX; c.dy = img.dirY; c.ph0 = phV; return c; }
+      fx = img.x; fy = img.y; real = img.v > 0;
+    } else {
+      const ff = reflType === 'circular' ? CIRC_R_CM / 2 : PARA_F_CM;
+      fx = curveShape === 'concave' ? reflXcm - ff : reflXcm + ff; fy = reflYcm; real = curveShape === 'concave';
+    }
+    const dF = Math.hypot(reflXcm - fx, reflYcm - fy) || 1e-6;
+    c.mode = 'cfoc'; c.fx = fx; c.fy = fy; c.real = real;
+    c.phF = real ? phV + k * dF : phV - k * dF;           /* จุดภาพจริง: ผ่าน F แล้วกระจาย · จุดภาพเสมือน: เหมือนกระจายจาก F หลังผิว */
+    c.ex = (fx - reflXcm) / dF; c.ey = (fy - reflYcm) / dF;
+  }
+  return c;
+}
+function labField(U, Wc, R, out, n) {
+  const c = fieldCfg(), k = c.k, lam = c.lam, wt = c.wt, amp = amplitude, SC = 0.62;
+  const water = RT.wat && U === RT.wat.U, rw = water ? (P.reflW && P.reflW.length === n ? P.reflW : (P.reflW = new Float32Array(n))) : null;
+  for (let i = 0; i < n; i++) {
+    const u = U[i], w = Wc[i];
+    if (inShadow(u, w)) { out[i] = 0; if (rw) rw[i] = 0; continue; }
+    let inc;
+    if (c.circ) { const r = Math.max(0.15, Math.hypot(u - c.sx, w - c.sy)); inc = Math.cos(k * r - wt) * Math.min(1, 1 / Math.sqrt(r / lam + 0.5)); }
+    else inc = Math.cos(k * u - wt);
+    let ref = 0;
+    if (c.mode === 'fplane') { const d = (u - c.rx) * c.dx + (w - c.ry) * c.dy; ref = 0.85 * Math.cos(c.ph0 + k * d) / (1 + 0.01 * Math.max(0, d)); }
+    else if (c.mode === 'fcirc') { const r = Math.max(0.15, Math.hypot(u - c.mx, w - c.my)); ref = 0.85 * Math.cos(k * r - wt) * Math.min(1, 1 / Math.sqrt(r / lam + 0.5)); }
+    else if (c.mode === 'cplane') { const d = (u - c.rx) * c.dx + (w - c.ry) * c.dy; ref = 0.7 * Math.cos(c.ph0 + k * d); }
+    else if (c.mode === 'cfoc') {
+      const r = Math.hypot(u - c.fx, w - c.fy), dec = Math.min(1, 1 / Math.sqrt(r / lam + 0.5));
+      if (c.real) { const s = (u - c.fx) * c.ex + (w - c.fy) * c.ey, wc = clampN(0.5 - s / lam, 0, 1);   /* s < 0 = ระหว่างผิวสะท้อนกับ F → ยังรวมเข้า */
+        ref = 0.8 * dec * (wc * Math.cos(c.phF - k * r) + (1 - wc) * Math.cos(c.phF + k * r)); }
+      else ref = 0.8 * dec * Math.cos(c.phF + k * r);
+    }
+    let v = (inc + ref) * amp * SC; out[i] = v < -1 ? -1 : (v > 1 ? 1 : v);
+    if (rw) rw[i] = ref * amp;
+  }
+}
+/* เงาบนกระดาษ: แผ่นกั้น/ผิวโค้ง (แถบมืด) · คานทำคลื่น · ลูกปัดจุ่ม */
+function labShade(U, Wc, R, m, n) {
+  for (let i = 0; i < n; i++) { const u = U[i], w = Wc[i];
+    if (reflDist(u, w) < 0.3) m[i] *= 0.35;
+    if (waveType === 'plane') { if (u < RT.PLANE_U0 && w > 1 && w < RT.D - 1) m[i] *= 0.3; }
+    else if (Math.hypot(u - srcXcm, w - srcYcm) < 0.5) m[i] *= 0.3; } }
+/* น้ำในถาด: สันคลื่นสะท้อนอมส้มเล็กน้อย (สีเดียวกับคลื่นสะท้อนในคำอธิบาย) — กระดาษยังเป็นภาพขาว-ดำจริง */
+function tintWater() { const G3 = RT.wat, rw = P.reflW; if (!rw || rw.length !== G3.n) return;
+  const ca = G3.mesh.geometry.attributes.color.array;
+  for (let k = 0; k < G3.n; k++) { const r = rw[k]; if (r > 0) { ca[k * 3] += 0.42 * r; ca[k * 3 + 1] -= 0.05 * r; ca[k * 3 + 2] -= 0.5 * r; } }
+  G3.mesh.geometry.attributes.color.needsUpdate = true; }
+
+/* --- เส้นช่วยวัดมุม (Flat Reflector) — โค้ดวาดเดิมของ 2D พิมพ์ลงกระดาษใต้ถาด (หมึกเข้มบนกระดาษขาว) --- */
 function drawProtractor() {
   const a = flatAngle * Math.PI / 180;
   const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
@@ -1083,14 +778,14 @@ function drawProtractor() {
   ctx.setLineDash([6, 4]);
   ctx.moveTo(rpx - nx * protR * 1.3, rpy - ny * protR * 1.3);
   ctx.lineTo(rpx + nx * protR * 1.3, rpy + ny * protR * 1.3);
-  ctx.strokeStyle = 'rgba(226,232,240,0.5)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(30,41,59,0.75)';
+  ctx.lineWidth = 2;
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.font = '12px IBM Plex Sans Thai';
-  ctx.fillStyle = 'rgba(226,232,240,0.7)';
+  ctx.font = 'bold 15px IBM Plex Sans Thai';
+  ctx.fillStyle = 'rgba(30,41,59,0.9)';
   ctx.textAlign = 'center';
-  ctx.fillText('Normal', rpx + nx * (protR * 1.3 + 16), rpy + ny * (protR * 1.3 + 16));
+  ctx.fillText('Normal', rpx + nx * (protR * 1.3 + 18), rpy + ny * (protR * 1.3 + 18));
 
   // 2. Incident wave direction arrow — BEHIND the reflector (continuing through)
   const behindLen = protR * 1.4;
@@ -1098,39 +793,36 @@ function drawProtractor() {
   ctx.setLineDash([8, 5]);
   ctx.moveTo(rpx + 4, rpy);
   ctx.lineTo(rpx + behindLen, rpy);
-  ctx.strokeStyle = 'rgba(248,113,113,0.7)';
+  ctx.strokeStyle = 'rgba(220,38,38,0.8)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
   ctx.setLineDash([]);
-  drawArrowHead(ctx, rpx + behindLen * 0.5, rpy, rpx + behindLen, rpy, '#f87171');
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.fillStyle = 'rgba(248,113,113,0.7)';
+  drawArrowHead(ctx, rpx + behindLen * 0.5, rpy, rpx + behindLen, rpy, '#dc2626');
+  ctx.font = 'bold 14px IBM Plex Sans Thai';
+  ctx.fillStyle = 'rgba(185,28,28,0.9)';
   ctx.textAlign = 'center';
   ctx.fillText('ทิศคลื่นตกกระทบ', rpx + behindLen * 0.6, rpy - 10);
 
   if (flatAngle < 1) return;
 
   // 3. α arc — angle between Normal (behind) and incident direction (behind)
-  // Normal behind = (bnx, bny), angle = atan2(bny, bnx) = -(π - α) = α - π
   const normalBehindAngle = Math.atan2(bny, bnx);
-  // Incident direction behind = (1, 0), angle = 0
-  // α arc from normalBehindAngle to 0
   ctx.beginPath();
   ctx.moveTo(rpx, rpy);
   ctx.arc(rpx, rpy, protR * 0.3, normalBehindAngle, 0, normalBehindAngle > 0 ? false : true);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(251,146,60,0.15)';
+  ctx.fillStyle = 'rgba(234,88,12,0.15)';
   ctx.fill();
   ctx.beginPath();
   ctx.arc(rpx, rpy, protR * 0.3, normalBehindAngle, 0, normalBehindAngle > 0 ? false : true);
-  ctx.strokeStyle = 'rgba(251,146,60,0.7)';
+  ctx.strokeStyle = 'rgba(234,88,12,0.85)';
   ctx.lineWidth = 2;
   ctx.stroke();
   const midAlpha = normalBehindAngle / 2;
-  ctx.font = '600 13px IBM Plex Sans Thai';
-  ctx.fillStyle = '#fb923c';
+  ctx.font = 'bold 16px IBM Plex Sans Thai';
+  ctx.fillStyle = '#c2410c';
   ctx.textAlign = 'center';
-  ctx.fillText(`α=${flatAngle}°`, rpx + Math.cos(midAlpha) * (protR * 0.3 + 20), rpy + Math.sin(midAlpha) * (protR * 0.3 + 20));
+  ctx.fillText(`α=${flatAngle}°`, rpx + Math.cos(midAlpha) * (protR * 0.3 + 22), rpy + Math.sin(midAlpha) * (protR * 0.3 + 22));
 
   // === Auto mode: show θi/θr arcs, labels, reflected ray ===
   if (recMode === 'auto') {
@@ -1142,131 +834,75 @@ function drawProtractor() {
     ctx.setLineDash([5, 3]);
     ctx.moveTo(rpx, rpy);
     ctx.lineTo(rpx + rdx * protR * 1.3, rpy + rdy * protR * 1.3);
-    ctx.strokeStyle = 'rgba(52,211,153,0.7)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(5,150,105,0.85)';
+    ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.setLineDash([]);
-    drawArrowHead(ctx, rpx, rpy, rpx + rdx * protR * 1.1, rpy + rdy * protR * 1.1, '#34d399');
+    drawArrowHead(ctx, rpx, rpy, rpx + rdx * protR * 1.1, rpy + rdy * protR * 1.1, '#059669');
 
     // θi filled sector (from normalAngle to π)
     ctx.beginPath();
     ctx.moveTo(rpx, rpy);
     ctx.arc(rpx, rpy, protR * 0.45, normalAngle, Math.PI, false);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(251,146,60,0.18)';
+    ctx.fillStyle = 'rgba(234,88,12,0.16)';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(rpx, rpy, protR * 0.45, normalAngle, Math.PI, false);
-    ctx.strokeStyle = 'rgba(251,146,60,0.8)';
+    ctx.strokeStyle = 'rgba(234,88,12,0.9)';
     ctx.lineWidth = 2.5;
     ctx.stroke();
     const midI = (normalAngle + Math.PI) / 2;
-    ctx.font = '600 13px IBM Plex Sans Thai';
-    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 16px IBM Plex Sans Thai';
+    ctx.fillStyle = '#c2410c';
     ctx.textAlign = 'center';
-    ctx.fillText(`θi=${flatAngle}°`, rpx + Math.cos(midI) * (protR * 0.45 + 22), rpy + Math.sin(midI) * (protR * 0.45 + 22));
+    ctx.fillText(`θi=${flatAngle}°`, rpx + Math.cos(midI) * (protR * 0.45 + 24), rpy + Math.sin(midI) * (protR * 0.45 + 24));
 
     // θr filled sector (from reflAngle to normalAngle)
     ctx.beginPath();
     ctx.moveTo(rpx, rpy);
     ctx.arc(rpx, rpy, protR * 0.35, reflAngle, normalAngle, false);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(52,211,153,0.18)';
+    ctx.fillStyle = 'rgba(5,150,105,0.16)';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(rpx, rpy, protR * 0.35, reflAngle, normalAngle, false);
-    ctx.strokeStyle = 'rgba(52,211,153,0.8)';
+    ctx.strokeStyle = 'rgba(5,150,105,0.9)';
     ctx.lineWidth = 2.5;
     ctx.stroke();
     const midR = (reflAngle + normalAngle) / 2;
-    ctx.font = '600 13px IBM Plex Sans Thai';
-    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 16px IBM Plex Sans Thai';
+    ctx.fillStyle = '#047857';
     ctx.textAlign = 'center';
-    ctx.fillText(`θr=${flatAngle}°`, rpx + Math.cos(midR) * (protR * 0.35 + 22), rpy + Math.sin(midR) * (protR * 0.35 + 22));
+    ctx.fillText(`θr=${flatAngle}°`, rpx + Math.cos(midR) * (protR * 0.35 + 24), rpy + Math.sin(midR) * (protR * 0.35 + 24));
   }
 }
 
-/* --- Draggable + Rotatable Protractor Tool (Manual mode) --- */
-function drawProtractorTool() {
-  if (!protToolVisible || recMode !== 'manual' || reflType !== 'flat') return;
-  const cx = protToolX, cy = protToolY;
-  const R = Math.min(W, H) * 0.18;
-  const rot = protToolAngle || 0;
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(rot);
-
-  // Full circle background
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, 2 * Math.PI);
-  ctx.fillStyle = 'rgba(17,24,39,0.55)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(251,146,60,0.7)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Baseline (0° - 180° line)
-  ctx.beginPath();
-  ctx.moveTo(-R, 0);
-  ctx.lineTo(R, 0);
-  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Vertical line (90° - 270°)
-  ctx.beginPath();
-  ctx.moveTo(0, -R);
-  ctx.lineTo(0, R);
-  ctx.strokeStyle = 'rgba(226,232,240,0.2)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(0, 0, 3, 0, 2 * Math.PI);
-  ctx.fillStyle = '#fb923c';
-  ctx.fill();
-
-  // 360° degree markings
-  for (let deg = 0; deg < 360; deg += 5) {
-    const angle = deg * Math.PI / 180;
-    const isMajor = deg % 30 === 0;
-    const isMid = deg % 10 === 0;
-    const inner = isMajor ? R * 0.80 : isMid ? R * 0.86 : R * 0.90;
-    const outer = R * 0.96;
-
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
-    ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
-    ctx.strokeStyle = isMajor ? 'rgba(251,146,60,0.8)' : 'rgba(226,232,240,0.25)';
-    ctx.lineWidth = isMajor ? 1.5 : 0.7;
-    ctx.stroke();
-
-    if (isMajor) {
-      ctx.font = '9px Share Tech Mono';
-      ctx.fillStyle = 'rgba(251,146,60,0.85)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(deg + '°', Math.cos(angle) * (R * 0.72), Math.sin(angle) * (R * 0.72));
-    }
+/* --- ลายพิมพ์ไม้โปรแทรกเตอร์ใส 360° (ตามแบบ drawProtractorTool ของ 2D · ขีด 1° · ตัวเลขทุก 10°) --- */
+function drawProtTex(g, w, h) {
+  const R = w / 2 - 6;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); g.translate(w / 2, h / 2);
+  g.beginPath(); g.arc(0, 0, R, 0, 2 * Math.PI); g.fillStyle = 'rgba(254,215,170,0.28)'; g.fill();
+  g.strokeStyle = 'rgba(194,65,12,0.9)'; g.lineWidth = 5; g.stroke();
+  g.beginPath(); g.arc(0, 0, R * 0.34, 0, 2 * Math.PI); g.strokeStyle = 'rgba(194,65,12,0.35)'; g.lineWidth = 2; g.stroke();
+  // Baseline (0° - 180° line) + 90° - 270°
+  g.beginPath(); g.moveTo(-R, 0); g.lineTo(R, 0); g.strokeStyle = 'rgba(194,65,12,0.85)'; g.lineWidth = 3; g.stroke();
+  g.beginPath(); g.moveTo(0, -R); g.lineTo(0, R); g.strokeStyle = 'rgba(30,41,59,0.35)'; g.lineWidth = 2; g.stroke();
+  g.beginPath(); g.arc(0, 0, 7, 0, 2 * Math.PI); g.fillStyle = '#c2410c'; g.fill();
+  for (let deg = 0; deg < 360; deg++) {
+    const an = deg * Math.PI / 180, ten = deg % 10 === 0, five = deg % 5 === 0;
+    const inner = ten ? R * 0.84 : five ? R * 0.89 : R * 0.93, outer = R * 0.99;
+    g.beginPath(); g.moveTo(Math.cos(an) * inner, Math.sin(an) * inner); g.lineTo(Math.cos(an) * outer, Math.sin(an) * outer);
+    g.strokeStyle = ten ? 'rgba(124,45,18,0.95)' : 'rgba(30,41,59,0.6)'; g.lineWidth = ten ? 3 : five ? 2 : 1.2; g.stroke();
+    if (ten) { g.save(); g.translate(Math.cos(an) * R * 0.76, Math.sin(an) * R * 0.76); g.rotate(an + Math.PI / 2);
+      g.font = (deg % 30 === 0 ? 'bold 30px' : 'bold 22px') + ' "Share Tech Mono",monospace'; g.fillStyle = deg % 30 === 0 ? '#9a3412' : '#1f2937';
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(deg), 0, 0); g.restore(); }
   }
-
-  // Rotation handle indicator (small triangle at top)
-  ctx.beginPath();
-  ctx.moveTo(0, -R + 2);
-  ctx.lineTo(-5, -R + 10);
-  ctx.lineTo(5, -R + 10);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(251,146,60,0.6)';
-  ctx.fill();
-
-  // Label
-  ctx.font = '9px IBM Plex Sans Thai';
-  ctx.fillStyle = 'rgba(251,146,60,0.4)';
-  ctx.textAlign = 'center';
-  ctx.fillText('กลาง=ลาก | ขอบ=หมุน', 0, 14);
-
-  ctx.restore();
+  // Rotation handle indicator (triangle at top) + label
+  g.beginPath(); g.moveTo(0, -R + 4); g.lineTo(-14, -R + 30); g.lineTo(14, -R + 30); g.closePath(); g.fillStyle = 'rgba(194,65,12,0.85)'; g.fill();
+  g.font = 'bold 22px "IBM Plex Sans Thai",sans-serif'; g.fillStyle = 'rgba(124,45,18,0.85)'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('กลาง = ลาก | ขอบ = หมุน', 0, 40);
+  g.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function toggleProtractorTool() {
@@ -1274,13 +910,14 @@ function toggleProtractorTool() {
   const btn = document.getElementById('btn-protractor');
   const hint = document.getElementById('protractor-hint');
   if (protToolVisible) {
-    protToolX = cm2px(reflXcm);
-    protToolY = cm2px(reflYcm);
+    protToolX = reflXcm;
+    protToolY = reflYcm;
     protToolAngle = 0;
     btn.style.background = 'var(--accent4)';
     btn.style.color = '#0a0e1a';
     btn.style.borderColor = 'var(--accent4)';
     hint.style.display = '';
+    if (typeof setView === 'function' && renderer) setView('read');
   } else {
     btn.style.background = 'transparent';
     btn.style.color = 'var(--accent4)';
@@ -1289,46 +926,494 @@ function toggleProtractorTool() {
   }
   if (!isPlaying) draw();
 }
+const protShown = () => protToolVisible && recMode === 'manual' && reflType === 'flat';
 
-/* --- Source indicator --- */
-function drawSource() {
-  const sx = cm2px(srcXcm), sy = cm2px(srcYcm);
-  ctx.beginPath();
-  ctx.arc(sx, sy, 6, 0, 2 * Math.PI);
-  ctx.fillStyle = waveType === 'circular' ? '#38bdf8' : '#818cf8';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(sx, sy, 10, 0, 2 * Math.PI);
-  ctx.strokeStyle = waveType === 'circular' ? 'rgba(56,189,248,0.4)' : 'rgba(129,140,248,0.4)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+/* ===== 3D VIEW (three.js) ===== */
+const gid=id=>document.getElementById(id);
+const clampN=(v,a,b)=>v<a?a:(v>b?b:v);
+const vnum=q=>typeof q==='function'?q():q;
+let renderer=null, scene=null, camera=null, P={}, RAY=null, NDC=null, MAXTS=4096, curView='iso';
+const orbit={target:null, dist:140, az:0.5, el:0.32};
 
-  // Label
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.fillStyle = waveType === 'circular' ? '#38bdf8' : '#818cf8';
-  ctx.textAlign = 'center';
-  ctx.fillText('S', sx, sy - 16);
+/* ═══ RIPPLE TANK 3D (shared template) ═══════════════════════════════════════════
+   ใช้ซ้ำใน Lab 32 (สะท้อน — ไฟล์นี้) · 33 (หักเห) · 34 (เลี้ยวเบน/แทรกสอด) · 41 (แทรกสอด 2 แหล่ง):
+   คัดลอกตั้งแต่บรรทัดนี้จนถึง "═══ END RIPPLE TANK 3D ═══" แล้วเขียนส่วนเฉพาะแลป (ฟังก์ชันสนาม · update3D · VIEWS อ่านค่า)
+
+   หน่วยโลก 3D = cm · ผิวโต๊ะ y = 0 · ถาดน้ำ RT.W × RT.D = 40 × 30 cm · ผิวบนก้นกระจก y = RT.Y
+   พิกัดถาด (u, w) cm: u = 0..40 ซ้าย→ขวา (x = u − 20) · w = 0..30 หลัง→หน้า (z = w − 15)
+     → ตรงกับพิกัด (x, y) ของภาพ 2D เดิม (ซ้าย→ขวา, บน→ล่าง)
+   กระดาษขาวบนโต๊ะใต้ถาด = จอรับภาพ: แถบสว่าง (สันคลื่น) / มืด (ท้องคลื่น) ขนาดเท่าจริง (หลอดไฟไกล ≈ แสงขนาน)
+     ภาพบนกระดาษกับผิวน้ำคำนวณจาก "สนามคลื่น" ชุดเดียวกัน → สิ่งที่นักเรียนวัดบนกระดาษ = คลื่นในถาด
+
+   แลปต้องมี:
+     fieldFn(U, Wc, R, out, n)  เติม out[i] ∈ [−1, 1] = ระดับผิวน้ำ ณ จุด (U[i], Wc[i]) · R[i] = ระยะถึงแหล่งกำเนิดหลัก (RT.SRC_U, RT.SRC_W)
+     shadeFn(U, Wc, R, mask, n) (ไม่บังคับ) ตัวคูณความสว่างคงที่บนกระดาษ เช่น เงาตัวจุ่ม/ขอบแผ่นกระจก — เรียกเมื่อโหมดเปลี่ยน
+     ตัวแปร markers = [{x:u, y:w}, …] (cm ของถาด) + ฟังก์ชัน updateMeasureDisplay() และ draw()
+   เรียก:
+     rtBuild(opt)                     สร้างถาด ขา กระดาษ หลอดไฟ ตัวสั่น แหล่งจ่ายไฟ (opt.freq / opt.amp = ฟังก์ชันคืนค่า Hz / %)
+     rtSetDepth(mm)                   ระดับน้ำ (ความลึกจริง 1:1)
+     rtVibrator(shape, disp, spin)    shape 'circular' (ตัวจุ่มจุด) | 'plane' (คานตรง) · disp = cm ขึ้นลง · spin = มุมมอเตอร์
+     rtShade(shadeFn) · rtUpdateField(fieldFn, flash)  วาดผิวน้ำ + ภาพบนกระดาษใหม่
+     rtPanel() · rtMarkersUpdate() · rtCamera()        ทุกเฟรม
+     rtPaperHit(cx, cy) → {u, w}       จุดที่นิ้วชี้บนกระดาษ (ใช้วางหมุดวัด)
+   ประสิทธิภาพ: ผิวน้ำ 160×120 ช่อง (มือถือ 96×72) · ภาพบนกระดาษ 8 px/cm (มือถือ 6) · normal คำนวณจากผลต่างของความสูง (ไม่เรียก computeVertexNormals) */
+const RT={ W:40, D:30, Y:28, FR:1.2, PAPER_Y:0.06, HV:0.16, SRC_U:2, SRC_W:15, PLANE_U0:1, LAMP_Y:62,
+  LOW: (Math.min(window.innerWidth||1200, window.innerHeight||800) < 700) || !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches) };
+RT.SX=RT.LOW?96:160; RT.SZ=Math.round(RT.SX*0.75); RT.PPC=RT.LOW?6:8;
+RT.waterY=RT.Y+1.0; RT.dirty=true;
+const RT_FONT='"IBM Plex Sans Thai",sans-serif';
+
+/* ── texture / วัสดุ (แบบ Lab 37/72/77) ── */
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); t.userData={c,fn}; (P.texs||(P.texs=[])).push(t); return t; }
+function redrawTex(t){ if(!t||!t.userData||!t.userData.c) return; const c=t.userData.c; t.userData.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=c=>new THREE.MeshStandardMaterial({color:c==null?0xd8dde4:c,metalness:.95,roughness:.22});
+const anoM=c=>new THREE.MeshPhysicalMaterial({color:c==null?0xc3cad3:c,metalness:.78,roughness:.32,clearcoat:.25,clearcoatRoughness:.4});
+const rubberM=()=>new THREE.MeshStandardMaterial({color:0x141518,roughness:.92});
+const glassM=o=>new THREE.MeshPhysicalMaterial(Object.assign({color:0xe0f2fe,transparent:true,opacity:0.2,roughness:0.03,clearcoat:1,clearcoatRoughness:0.05,side:THREE.DoubleSide,depthWrite:false},o||{}));
+function ribKnob(r,h,col){ const g=new THREE.Group(), rm=new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5});
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r*0.94,r,h,32),enamel(col==null?0x15171c:col,0.35,0.5)));
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.07,h*0.88,r*0.13),rm); rib.position.set(Math.cos(a)*r*0.97,0,Math.sin(a)*r*0.97); rib.rotation.y=-a; g.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.62,r*0.62,h*0.08,32),chromeM(0xb8bec8)); cap.position.y=h/2+h*0.03; g.add(cap); return g; }
+function rubberFoot(r,h){ return new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r,h,18),rubberM()); }
+function glossTube(pts,r,col){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(48,V.length*16),r,10,false),new THREE.MeshPhysicalMaterial({color:col,roughness:.35,clearcoat:.6,clearcoatRoughness:.3})); }
+/* ป้ายข้อความ Sprite (ขนาดคงที่บนจอ) — kp-real3d ยกป้ายข้อความยาวขึ้นพร้อมเส้นชี้ให้เอง */
+function labelSprite(fn,w,h,sc){ const t=canvasTex(w,h,fn);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,sizeAttenuation:false,depthWrite:false}));
+  s.scale.set(sc*w/h,sc,1); s.userData.tex=t; s.renderOrder=5; return s; }
+function tagFn(txt,bg,fg,font){ return (g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle=bg; g.beginPath(); if(g.roundRect) g.roundRect(4,4,w-8,h-8,h*0.22); else g.rect(4,4,w-8,h-8); g.fill();
+  g.fillStyle=fg; g.font=font||('bold '+Math.round(h*0.5)+'px '+RT_FONT); g.textAlign='center'; g.textBaseline='middle'; g.fillText(typeof txt==='function'?txt():txt,w/2,h/2+2); }; }
+const nameTag=(txt,col)=>labelSprite(tagFn(txt,'rgba(15,23,42,.9)',col||'#e2e8f0'),Math.max(220,txt.length*20),72,0.03);
+const uX=u=>u-RT.W/2, wZ=w=>w-RT.D/2;
+
+/* ── กระดาษขาว: ขอบมีไม้บรรทัดพิมพ์ (cm · ขีดเล็ก 1 mm) ตามแนว u (ขอบหน้า) และ w (ขอบซ้าย) ── */
+const PAPER_M=6;
+function drawPaper(g,w,h){ const ppc=w/(RT.W+2*PAPER_M), ox=PAPER_M*ppc, oy=PAPER_M*ppc;
+  g.fillStyle='#f3f4f1'; g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(0,0,0,.18)'; g.lineWidth=2; g.strokeRect(ox,oy,RT.W*ppc,RT.D*ppc);
+  g.fillStyle='#0b1220';
+  /* ขอบหน้า: 0–40 cm ตามแนวซ้าย→ขวา */
+  const by=oy+RT.D*ppc;
+  for(let mm=0;mm<=RT.W*10;mm++){ const x=ox+mm/10*ppc, cm=mm%10===0, five=mm%5===0, L=cm?ppc*1.1:five?ppc*0.75:ppc*0.45, tw=cm?2.4:1.4; g.fillRect(x-tw/2,by,tw,L); }
+  g.textAlign='center'; g.textBaseline='top';
+  for(let c=0;c<=RT.W;c++){ g.font='bold '+Math.round(ppc*(c%5===0?0.95:0.62))+'px "Share Tech Mono",monospace'; g.fillStyle=c%10===0?'#b91c1c':'#1f2937'; g.fillText(String(c),ox+c*ppc,by+ppc*1.25); }
+  /* ขอบซ้าย: 0–30 cm ตามแนวหลัง→หน้า */
+  for(let mm=0;mm<=RT.D*10;mm++){ const y=oy+mm/10*ppc, cm=mm%10===0, five=mm%5===0, L=cm?ppc*1.1:five?ppc*0.75:ppc*0.45, tw=cm?2.4:1.4; g.fillStyle='#0b1220'; g.fillRect(ox-L,y-tw/2,L,tw); }
+  g.textAlign='right'; g.textBaseline='middle';
+  for(let c=0;c<=RT.D;c+=5){ g.font='bold '+Math.round(ppc*0.9)+'px "Share Tech Mono",monospace'; g.fillStyle=c%10===0?'#b91c1c':'#1f2937'; g.fillText(String(c),ox-ppc*1.3,oy+c*ppc); }
+  g.textAlign='left'; g.textBaseline='alphabetic'; g.fillStyle='#475569'; g.font='bold '+Math.round(ppc*0.85)+'px '+RT_FONT;
+  g.fillText('จอรับภาพ (กระดาษขาว) · ภาพเท่าจริง · cm ขีดเล็ก 1 mm',ox,by+ppc*4.4); }
+
+/* ── แผงหน้าแหล่งจ่ายไฟตัวสั่น (พิมพ์ลาย + จอแสดงความถี่) ── */
+const PSU_W=15, PSU_H=7.5;
+function drawPsuPanel(g,w,h){ const f=P.optFreq?P.optFreq():0, a=P.optAmp?P.optAmp():0;
+  g.fillStyle='#d9dde3'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(0,0,0,.25)'; g.lineWidth=4; g.strokeRect(6,6,w-12,h-12);
+  g.fillStyle='#1e293b'; g.font='bold 30px "Share Tech Mono",monospace'; g.textAlign='left'; g.textBaseline='alphabetic'; g.fillText('KP-RT  RIPPLE VIBRATOR',26,48);
+  g.fillStyle='#0b1a12'; g.fillRect(26,70,300,128); g.strokeStyle='#475569'; g.lineWidth=5; g.strokeRect(26,70,300,128);
+  g.fillStyle='#4ade80'; g.font='bold 92px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(f.toFixed(1),250,170);
+  g.font='bold 40px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText('Hz',258,170);
+  g.fillStyle='#86efac'; g.font='bold 20px "Share Tech Mono",monospace'; g.fillText('FREQ',38,96);
+  /* แถบแอมพลิจูด */
+  g.fillStyle='#1e293b'; g.font='bold 20px '+RT_FONT; g.fillText('AMPL '+Math.round(a)+' %',26,236);
+  g.fillStyle='#94a3b8'; g.fillRect(26,248,300,16); g.fillStyle='#f59e0b'; g.fillRect(26,248,300*clampN(a/100,0,1),16);
+  g.textAlign='center'; g.fillStyle='#1e293b'; g.font='bold 22px '+RT_FONT; g.fillText('FREQ',w*0.70,h-30); g.fillText('AMPL',w*0.88,h-30);
+  g.fillStyle='#b91c1c'; g.beginPath(); g.arc(w*0.70,96,9,0,Math.PI*2); g.fill(); g.fillStyle='#334155'; g.font='bold 18px '+RT_FONT; g.fillText('POWER',w*0.70,130); }
+
+function rtBuild(opt){ opt=opt||{}; P.optFreq=opt.freq; P.optAmp=opt.amp;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95));
+  const d1=new THREE.DirectionalLight(0xffffff,0.72); d1.position.set(60,180,160); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.26); d2.position.set(-90,80,-70); scene.add(d2);
+  const alu=anoM(), Y=RT.Y, FR=RT.FR, HW=RT.W/2, HD=RT.D/2;
+
+  /* โต๊ะแลป */
+  const bench=rbox(120,4,74,0.8,new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.8})); bench.position.set(-6,-2,2); scene.add(bench);
+  [[-62,-31],[-62,35],[50,-31],[50,35]].forEach(([x,z])=>{ const leg=rbox(5,70,5,0.8,enamel(0x3a4250,0.45,0.3)); leg.position.set(x,-39,z); scene.add(leg);
+    const ft=rubberFoot(2.8,1); ft.position.set(x,-74.5,z); scene.add(ft); });
+
+  /* กระดาษขาว (จอรับภาพ) + ภาพคลื่นที่ฉายลงมา */
+  { const TW=Math.min(RT.LOW?1536:2048,MAXTS), TH=Math.round(TW*(RT.D+2*PAPER_M)/(RT.W+2*PAPER_M));
+    const pt=canvasTex(TW,TH,drawPaper);
+    const paper=new THREE.Mesh(new THREE.PlaneGeometry(RT.W+2*PAPER_M,RT.D+2*PAPER_M),new THREE.MeshBasicMaterial({map:pt}));
+    paper.rotation.x=-Math.PI/2; paper.position.set(0,RT.PAPER_Y,0); scene.add(paper); }
+  { const pw=RT.W*RT.PPC, ph=RT.D*RT.PPC, c=document.createElement('canvas'); c.width=pw; c.height=ph;
+    const g=c.getContext('2d'), img=g.createImageData(pw,ph), n=pw*ph, U=new Float32Array(n), Wc=new Float32Array(n), R=new Float32Array(n);
+    for(let j=0;j<ph;j++) for(let i=0;i<pw;i++){ const k=j*pw+i, u=(i+0.5)/RT.PPC, w=(j+0.5)/RT.PPC; U[k]=u; Wc[k]=w; R[k]=Math.hypot(u-RT.SRC_U,w-RT.SRC_W); }
+    for(let k=0;k<n;k++) img.data[k*4+3]=255;
+    const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter; tex.generateMipmaps=false;
+    if(renderer&&'outputEncoding' in renderer) tex.encoding=renderer.outputEncoding;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(RT.W,RT.D),new THREE.MeshBasicMaterial({map:tex}));
+    m.rotation.x=-Math.PI/2; m.position.set(0,RT.PAPER_Y+0.03,0); scene.add(m);
+    RT.scr={c,g,img,n,U,Wc,R,v:new Float32Array(n),mask:new Float32Array(n).fill(1),tex,mesh:m}; }
+  { const t=nameTag('กระดาษขาว: ภาพคลื่นบนจอ','#fde68a'); t.position.set(-HW+4,1.5,HD+5); scene.add(t); }
+
+  /* ขาตั้งถาด 4 ขา + สกรูปรับระดับ */
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const x=sx*(HW+FR/2), z=sz*(HD+FR/2);
+    const leg=rbox(1.6,Y-1.6,1.6,0.35,enamel(0x2f3b4c,0.4,0.35)); leg.position.set(x,(Y-1.6)/2+1.1,z); scene.add(leg);
+    const sc=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,1.4,12),chromeM()); sc.position.set(x,0.75,z); scene.add(sc);
+    const kn=ribKnob(0.9,0.5); kn.position.set(x,0.55,z); scene.add(kn);
+    const ft=rubberFoot(0.8,0.3); ft.position.set(x,0.15,z); scene.add(ft); });
+
+  /* ถาด: ก้นกระจก + ขอบอะลูมิเนียม + ยางกันคลื่นสะท้อนบนขอบ */
+  const gb=rbox(RT.W+2*FR,0.5,RT.D+2*FR,0.3,glassM({opacity:0.16})); gb.position.set(0,Y-0.25,0); gb.renderOrder=1; scene.add(gb);
+  [[0,-(HD+FR/2),RT.W+2*FR,FR],[0,HD+FR/2,RT.W+2*FR,FR],[-(HW+FR/2),0,FR,RT.D],[HW+FR/2,0,FR,RT.D]].forEach(([x,z,w,d])=>{
+    const r=rbox(w,3,d,0.3,alu); r.position.set(x,Y+1.0,z); scene.add(r);
+    const f=rbox(w*0.98,0.5,d*0.98,0.2,new THREE.MeshStandardMaterial({color:0x2b2f36,roughness:.95})); f.position.set(x,Y+2.75,z); scene.add(f); });
+  { const t=nameTag('ถาดคลื่น (ก้นกระจก)','#bae6fd'); t.position.set(HW-6,Y+4,HD+1); scene.add(t); }
+
+  /* น้ำ: ก้อนน้ำโปร่งใส + ผิวน้ำที่ขยับตามสนามคลื่น */
+  RT.body=new THREE.Mesh(new THREE.BoxGeometry(RT.W,1,RT.D),new THREE.MeshStandardMaterial({color:0x7dd3fc,transparent:true,opacity:.16,depthWrite:false})); RT.body.renderOrder=2; scene.add(RT.body);
+  { const g=new THREE.PlaneGeometry(RT.W,RT.D,RT.SX,RT.SZ); g.rotateX(-Math.PI/2);
+    const nv=(RT.SX+1)*(RT.SZ+1), U=new Float32Array(nv), Wc=new Float32Array(nv), R=new Float32Array(nv);
+    for(let iy=0;iy<=RT.SZ;iy++) for(let ix=0;ix<=RT.SX;ix++){ const k=iy*(RT.SX+1)+ix, u=ix*RT.W/RT.SX, w=iy*RT.D/RT.SZ; U[k]=u; Wc[k]=w; R[k]=Math.hypot(u-RT.SRC_U,w-RT.SRC_W); }
+    g.attributes.position.setUsage(THREE.DynamicDrawUsage); g.attributes.normal.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(nv*3).fill(0.7),3).setUsage(THREE.DynamicDrawUsage));
+    const m=new THREE.Mesh(g,new THREE.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0.5,roughness:0.06,metalness:0,clearcoat:1,clearcoatRoughness:0.04,side:THREE.DoubleSide,depthWrite:false}));
+    m.renderOrder=4; m.frustumCulled=false; scene.add(m);
+    RT.wat={mesh:m,n:nv,U,Wc,R,v:new Float32Array(nv),h:new Float32Array(nv)}; }
+
+  /* หลอดไฟเหนือถาด: เสาหนีบขอบหลัง + แขน + โคมกรวย */
+  { const rx=0, rz=-(HD+FR+0.8), top=RT.LAMP_Y+3;
+    const cl=rbox(2.4,2.4,2.2,0.3,enamel(0x3a4250,0.38,0.4)); cl.position.set(rx,Y+1.2,rz+0.2); scene.add(cl);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,top-(Y+1),16),chromeM()); rod.position.set(rx,(top+Y+1)/2,rz); scene.add(rod);
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,-rz,14),chromeM()); arm.rotation.x=Math.PI/2; arm.position.set(rx,top,rz/2); scene.add(arm);
+    const bo=rbox(1.6,1.6,1.6,0.3,enamel(0x3a4250,0.38,0.4)); bo.position.set(rx,top,rz); scene.add(bo);
+    const shade=new THREE.Mesh(new THREE.CylinderGeometry(1.0,3.8,4.2,40,1,true),new THREE.MeshPhysicalMaterial({color:0x1f2937,roughness:.4,clearcoat:.5,side:THREE.DoubleSide})); shade.position.set(0,RT.LAMP_Y,0); scene.add(shade);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.0,1.4,24),chromeM(0xa8b0bb)); cap.position.set(0,RT.LAMP_Y+2.6,0); scene.add(cap);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(1.25,24,16),new THREE.MeshBasicMaterial({color:0xfff7d6})); bulb.position.set(0,RT.LAMP_Y-1.0,0); scene.add(bulb);
+    scene.add(glossTube([[0,RT.LAMP_Y+3.2,0],[0,top+0.9,rz*0.4],[rx+0.6,top+0.6,rz-0.2],[rx+0.8,Y+6,rz-0.6],[rx+3,1.2,rz-4],[rx+12,0.35,rz-6]],0.25,0x111827));
+    const t=nameTag('หลอดไฟ','#fef3c7'); t.position.set(5,RT.LAMP_Y+1,0); scene.add(t); }
+
+  /* ตัวสั่น: เสา 2 ต้นหนีบขอบหน้า/หลัง + คานขวาง + ยางแขวนคานตัวทำคลื่น + มอเตอร์ */
+  { const vx=uX(RT.PLANE_U0-0.4), zp=HD+FR+0.6, top=Y+14;
+    [-zp,zp].forEach(z=>{ const cl=rbox(2.0,2.4,2.4,0.3,enamel(0x3a4250,0.38,0.4)); cl.position.set(vx,Y+1.2,z); scene.add(cl);
+      const p=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,top-Y,14),chromeM()); p.position.set(vx,(top+Y)/2+0.4,z); scene.add(p); });
+    const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,2*zp+1,14),chromeM()); cb.rotation.x=Math.PI/2; cb.position.set(vx,top,0); scene.add(cb);
+    RT.vibTop=top; RT.vibX=vx;
+    const vib=new THREE.Group(); scene.add(vib); RT.vib=vib;
+    const bar=rbox(0.8,1.0,RT.D-2,0.25,enamel(0x9a6b3f,0.5,0.4)); vib.add(bar); RT.bar=bar;   /* คานไม้ ยาวเกือบเต็มความกว้างถาด */
+    const mot=new THREE.Mesh(new THREE.CylinderGeometry(0.95,0.95,3.0,24),enamel(0x1d4ed8,0.35,0.6)); mot.rotation.z=Math.PI/2; mot.position.set(0,1.45,0); vib.add(mot);
+    const mcap=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.3,20),chromeM()); mcap.rotation.z=Math.PI/2; mcap.position.set(1.65,1.45,0); vib.add(mcap);
+    const ecc=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,0.25,20,1),chromeM(0x9aa3ad)); ecc.geometry.translate(0,0,0.35); ecc.rotation.z=Math.PI/2; ecc.position.set(1.95,1.45,0);
+    const eg=new THREE.Group(); eg.position.set(1.95,1.45,0); ecc.position.set(0,0,0); eg.add(ecc); vib.add(eg); RT.ecc=eg;
+    /* ตัวจุ่มจุด: แขนยื่นจากคาน → ก้านลง → ลูกปัด ที่ (SRC_U, SRC_W) */
+    const dip=new THREE.Group(); vib.add(dip); RT.dip=dip; const ax=uX(RT.SRC_U)-vx, az=wZ(RT.SRC_W);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(Math.abs(ax)+0.5,0.35,0.5),anoM()); arm.position.set(ax/2,-0.3,az); dip.add(arm);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,2.4,10),chromeM()); rod.position.set(ax,-1.5,az); dip.add(rod);
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(0.45,20,14),new THREE.MeshPhysicalMaterial({color:0xf8fafc,roughness:.3,clearcoat:.8})); ball.position.set(ax,-2.75,az); dip.add(ball);
+    /* ยางแขวน 2 เส้น (ยืดตามคาน) */
+    RT.bands=[-9,9].map(z=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,1,8),new THREE.MeshStandardMaterial({color:0x7c2d12,roughness:.8})); b.position.z=z; scene.add(b); return b; });
+    RT.mwire=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1,8),new THREE.MeshPhysicalMaterial({color:0xb91c1c,roughness:.35,clearcoat:.6})); scene.add(RT.mwire);
+    const t=nameTag('ตัวทำคลื่น + มอเตอร์','#c7d2fe'); t.position.set(vx-2,top+3,-6); scene.add(t); }
+
+  /* แหล่งจ่ายไฟของตัวสั่น (ปรับความถี่/แอมพลิจูด) + สายไปที่คานขวาง */
+  { const px=-36, pz=6, box=rbox(PSU_W+0.6,PSU_H,10,0.6,enamel(0x2b3442,0.42,0.4)); box.position.set(px,PSU_H/2+0.5,pz); scene.add(box);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const f=rubberFoot(0.6,0.5); f.position.set(px+sx*(PSU_W/2-1),0.25,pz+sz*4); scene.add(f); });
+    P.psuTex=canvasTex(1024,512,drawPsuPanel);
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(PSU_W,PSU_H),new THREE.MeshStandardMaterial({map:P.psuTex,roughness:.55,emissive:0xffffff,emissiveMap:P.psuTex,emissiveIntensity:0.22}));
+    face.position.set(px,PSU_H/2+0.5,pz+5.02); scene.add(face);
+    P.kF=ribKnob(1.1,1.0); P.kF.rotation.x=Math.PI/2; P.kF.position.set(px+PSU_W*0.20,PSU_H/2+0.1,pz+5.5); scene.add(P.kF);
+    P.kA=ribKnob(0.9,0.9,0x7c2d12); P.kA.rotation.x=Math.PI/2; P.kA.position.set(px+PSU_W*0.38,PSU_H/2+0.1,pz+5.45); scene.add(P.kA);
+    scene.add(glossTube([[px+PSU_W/2,PSU_H*0.6,pz-2],[px+PSU_W/2+5,1,pz-6],[RT.vibX-8,0.6,-(RT.D/2+4)],[RT.vibX-1,RT.Y+4,-(RT.D/2+RT.FR+0.9)],[RT.vibX,RT.vibTop-0.6,-(RT.D/2+RT.FR+0.6)],[RT.vibX,RT.vibTop+0.2,-4]],0.22,0x111827));
+    const t=nameTag('แหล่งจ่ายไฟตัวสั่น','#e2e8f0'); t.position.set(px,PSU_H+3,pz+3); scene.add(t); }
 }
 
-function drawScaleBar() {
-  const barLen = cm2px(5);
-  const x = W - 20 - barLen, y = H - 18;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + barLen, y);
-  ctx.strokeStyle = 'rgba(226,232,240,0.5)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // End marks
-  ctx.beginPath();
-  ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4);
-  ctx.moveTo(x + barLen, y - 4); ctx.lineTo(x + barLen, y + 4);
-  ctx.stroke();
-  ctx.font = '10px Share Tech Mono';
-  ctx.fillStyle = 'rgba(226,232,240,0.5)';
-  ctx.textAlign = 'center';
-  ctx.fillText('5 cm', x + barLen / 2, y - 7);
+/* ระดับน้ำ (mm จริง → cm) */
+function rtSetDepth(mm){ const d=Math.max(0.05,mm/10); RT.waterY=RT.Y+d;
+  RT.body.scale.y=d; RT.body.position.set(0,RT.Y+d/2,0); RT.wat.mesh.position.y=RT.waterY; }
+/* ตัวทำคลื่น: คานตรงจุ่มน้ำ (หน้าคลื่นตรง) หรือยกคานให้ลูกปัดจุ่มน้ำ (คลื่นวงกลม) */
+function rtVibrator(shape,disp,spin){ const plane=shape==='plane';
+  const y=RT.waterY+(plane?0.4:3.0)+disp; RT.vib.position.set(RT.vibX,y,0); RT.dip.visible=!plane;
+  if(RT.ecc) RT.ecc.rotation.x=spin||0;
+  RT.bands.forEach(b=>{ const y0=y+0.5, L=Math.max(0.1,RT.vibTop-y0); b.scale.y=L; b.position.set(RT.vibX,y0+L/2,b.position.z); });
+  const y1=y+2.4, L=Math.max(0.1,RT.vibTop-y1); RT.mwire.scale.y=L; RT.mwire.position.set(RT.vibX,y1+L/2,-0.6); }
+/* ตัวคูณความสว่างคงที่บนกระดาษ (เงาตัวจุ่ม · ขอบถาด) */
+function rtShade(fn){ const S=RT.scr, m=S.mask; m.fill(1);
+  for(let k=0;k<S.n;k++){ const u=S.U[k], w=S.Wc[k], e=Math.min(u,RT.W-u,w,RT.D-w); if(e<0.35) m[k]=0.55+e; }
+  if(fn) fn(S.U,S.Wc,S.R,m,S.n); }
+/* วาดผิวน้ำ + ภาพบนกระดาษใหม่จากสนามคลื่นของแลป */
+function rtUpdateField(fn,flash){
+  const S=RT.scr, v=S.v, d=S.img.data, m=S.mask, fl=flash||0; fn(S.U,S.Wc,S.R,v,S.n);
+  for(let k=0,o=0;k<S.n;k++,o+=4){ let L=(0.74+0.5*v[k])*m[k]+fl; L=L<0.12?0.12:(L>1.08?1.08:L);
+    const r=L*238, g=L*244, b=L*252; d[o]=r>255?255:r; d[o+1]=g>255?255:g; d[o+2]=b>255?255:b; }
+  S.g.putImageData(S.img,0,0); S.tex.needsUpdate=true;
+  const G=RT.wat, h=G.h, gv=G.v, NX=RT.SX+1, NZ=RT.SZ+1; fn(G.U,G.Wc,G.R,gv,G.n);
+  const geo=G.mesh.geometry, pa=geo.attributes.position.array, na=geo.attributes.normal.array, ca=geo.attributes.color.array;
+  for(let k=0;k<G.n;k++){ h[k]=RT.HV*gv[k]; pa[k*3+1]=h[k]; const c=gv[k]; ca[k*3]=0.52+0.34*c; ca[k*3+1]=0.76+0.22*c; ca[k*3+2]=0.92+0.1*c; }
+  const i2x=0.5*RT.SX/RT.W, i2z=0.5*RT.SZ/RT.D;
+  for(let iz=0;iz<NZ;iz++){ const z0=iz>0?iz-1:iz, z1=iz<NZ-1?iz+1:iz;
+    for(let ix=0;ix<NX;ix++){ const k=iz*NX+ix, x0=ix>0?ix-1:ix, x1=ix<NX-1?ix+1:ix;
+      const gx=(h[iz*NX+x1]-h[iz*NX+x0])*i2x*(2/(x1-x0||1)), gz=(h[z1*NX+ix]-h[z0*NX+ix])*i2z*(2/(z1-z0||1)), il=1/Math.sqrt(gx*gx+1+gz*gz);
+      na[k*3]=-gx*il; na[k*3+1]=il; na[k*3+2]=-gz*il; } }
+  geo.attributes.position.needsUpdate=true; geo.attributes.normal.needsUpdate=true; geo.attributes.color.needsUpdate=true; }
+/* แผงหน้าแหล่งจ่ายไฟ + ปุ่มหมุน */
+function rtPanel(){ const f=P.optFreq?P.optFreq():0, a=P.optAmp?P.optAmp():0, k=f.toFixed(1)+'|'+Math.round(a);
+  if(k!==P.psuKey){ P.psuKey=k; redrawTex(P.psuTex); }
+  P.kF.rotation.y=Math.PI*0.75-1.5*Math.PI*clampN((f-4)/26,0,1); P.kA.rotation.y=Math.PI*0.75-1.5*Math.PI*clampN(a/100,0,1); }
+
+/* ── หมุดวัดบนกระดาษ ① (ส้ม) ② (ชมพู) + เส้นบอกระยะ ── */
+function rtMarkersBuild(){
+  function pin(col,css,num){ const g=new THREE.Group(), m=new THREE.MeshPhysicalMaterial({color:col,roughness:.3,clearcoat:.8});
+    const st=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.3,8),chromeM()); st.position.y=0.65; g.add(st);
+    const hd=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,12),m); hd.position.y=1.35; g.add(hd);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.16,0.3,24),new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=0.02; g.add(ring);
+    const lb=labelSprite(tagFn(num,css,'#0b1220','bold 60px "Share Tech Mono",monospace'),96,96,0.036); lb.position.y=2.1; lb.userData.kpLabel=false; g.add(lb);
+    g.visible=false; scene.add(g); return g; }
+  P.mk=[pin(0xfb923c,'#fdba74','1'),pin(0xf472b6,'#f9a8d4','2')];
+  P.mLine=new THREE.Mesh(new THREE.BoxGeometry(1,0.03,0.07),new THREE.MeshBasicMaterial({color:0x0f766e})); P.mLine.visible=false; scene.add(P.mLine);
+  P.mTxt=''; P.mTag=labelSprite(tagFn(()=>P.mTxt,'rgba(6,24,18,.92)','#34d399','bold 44px "Share Tech Mono",monospace'),360,80,0.038); P.mTag.userData.kpLabel=false; P.mTag.visible=false; scene.add(P.mTag); }
+function rtMarkersUpdate(){ const y=RT.PAPER_Y+0.04;
+  P.mk.forEach((g,i)=>{ const q=markers[i]; g.visible=!!q; if(q) g.position.set(uX(q.x),y,wZ(q.y)); });
+  const two=markers.length>=2; P.mLine.visible=two; P.mTag.visible=two;
+  if(two){ const a=markers[0], b=markers[1], dx=b.x-a.x, dz=b.y-a.y, L=Math.max(0.001,Math.hypot(dx,dz));
+    P.mLine.scale.x=L; P.mLine.position.set(uX((a.x+b.x)/2),y+0.02,wZ((a.y+b.y)/2)); P.mLine.rotation.y=-Math.atan2(dz,dx);
+    P.mTag.position.set(uX((a.x+b.x)/2),y+3.2,wZ((a.y+b.y)/2));
+    const s='ระยะ '+L.toFixed(2)+' cm'; if(s!==P.mTxt){ P.mTxt=s; redrawTex(P.mTag.userData.tex); } } }
+
+/* ── กล้อง / มุมมอง ── */
+function aspect3d(){ const el=gid('view3d'); return Math.max(0.4,(el&&el.clientWidth?el.clientWidth:800)/((el&&el.clientHeight)?el.clientHeight:420)); }
+const narrow=()=>aspect3d()<1.25;
+function fitDist(w,h){ return Math.max(h, w/aspect3d())/(2*Math.tan(36*Math.PI/360))*1.08; }
+function rtCamera(){ const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+/* มุมอ่านภาพบนกระดาษ: มองต่ำจากด้านหน้าลอดใต้ถาด (เส้นสายตาไม่ชนขอบถาด) · ใช้ rtReadFocus() ของแลป → {u, w, width} */
+function rtReadView(){ const f=rtReadFocus(), zt=wZ(f.w), clear=RT.Y-RT.PAPER_Y-2.5, el=Math.min(0.98,Math.atan(clear/Math.max(1,RT.D/2+RT.FR+1-zt)));
+  return {t:[uX(f.u),RT.PAPER_Y,zt], d:fitDist(f.width,f.width*0.55), az:0.0001, el}; }
+const VIEWS={
+  iso  :()=>({t:[narrow()?-1:-5,30,0], d:fitDist(narrow()?58:92,76), az:0.52, el:0.34}),
+  front:()=>({t:[narrow()?-1:-5,30,0], d:fitDist(narrow()?56:90,72), az:0.0001, el:0.1}),
+  top  :()=>({t:[0,RT.waterY,0], d:fitDist(RT.W+6,RT.D+6), az:0.0001, el:1.22}),   /* เอียงเล็กน้อย ไม่ให้โคมไฟบังกลางถาด */
+  read :rtReadView
+};
+function resize3D(){ if(!renderer) return; const w=gid('view3d').clientWidth||800, h=gid('view3d').clientHeight||420; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView=V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return; const o=V(), tt=o.t;
+  /* จอแคบ: ปุ่มมุมมองอยู่ขอบบน → ดันอุปกรณ์ลงเล็กน้อยไม่ให้ปุ่มบัง */
+  const up= narrow()&&vw!=='read'? 0.05*2*o.d*Math.tan(18*Math.PI/180) : 0;
+  orbit.target.set(tt[0],tt[1]+up,tt[2]); orbit.dist=o.d; orbit.az=o.az; orbit.el=o.el; }
+
+/* ═══ แตะ/ลากหมุดวัดบนกระดาษ ═══
+   แตะ (ไม่ลาก) บนกระดาษ = ปักหมุดใหม่ (ครบ 2 หมุดแล้วแตะใหม่ = เริ่มใหม่ เหมือน 2D) · แตะแล้วลาก = หมุนภาพ
+   ลากหมุดเดิม = เลื่อนหมุดแบบละเอียด ¼ ของระยะนิ้ว (HD_FINE) เพื่อเล็งให้ตรงกลางแถบสว่าง */
+const HD={on:false,k:-1,mu:0,mw:0,u0:0,w0:0}, HD_FINE=0.25;
+let lastTouch=false, _pv=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  camera.updateMatrixWorld(); NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function rtPaperHit(cx,cy){ const rc=setRay(cx,cy); if(!rc) return null; const o=RAY.ray.origin, d=RAY.ray.direction;
+  if(Math.abs(d.y)<1e-6) return null; const s=(RT.PAPER_Y-o.y)/d.y; if(!(s>0)) return null; return {u:o.x+s*d.x+RT.W/2, w:o.z+s*d.z+RT.D/2, rc}; }
+function scr(x,y,z,rc){ if(!_pv) _pv=new THREE.Vector3(); _pv.set(x,y,z).project(camera); return [rc.left+(_pv.x*0.5+0.5)*rc.width, rc.top+(-_pv.y*0.5+0.5)*rc.height]; }
+function segDist(px,py,a,b){ const vx=b[0]-a[0], vy=b[1]-a[1], l2=vx*vx+vy*vy; let u=l2>0?((px-a[0])*vx+(py-a[1])*vy)/l2:0; u=clampN(u,0,1); return Math.hypot(px-a[0]-u*vx, py-a[1]-u*vy); }
+/* Lab 32: ไม่มีหมุดวัด — "จับ" ได้ 3 อย่างแทน (labPick ด้านล่างแม่แบบ): ไม้โปรแทรกเตอร์บนกระดาษ (กลาง = เลื่อน · ขอบ = หมุน)
+   ผิวสะท้อนโค้ง (ลาก = เลื่อน) · แผ่นกั้นตรง (ลาก = หมุนมุม α) · pickAt คืน {k:0, mode, u, w} หรือ null (= หมุนภาพ) */
+function pickAt(cx,cy){ if(!scene) return null; return labPick(cx,cy); }
+function placeAt(cx,cy){ /* Lab 32 ไม่มีการปักหมุด */ }
+function hdStart(p){ labHandStart(p); }
+function hdMove(cx,cy){ labHandMove(cx,cy); }
+function hdEnd(){ labHandEnd(); }
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=gid('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML=panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=renderer?renderer.domElement:null; if(c) c.style.cursor=panMode?'move':''; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,sx:0,sy:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  const begin=(x,y,canPick,isPan)=>{ T.lx=T.sx=x; T.ly=T.sy=y;
+    if(canPick&&!isPan){ const p=pickAt(x,y); if(p&&p.k>=0){ hdStart(p); T.mode='hand'; return; } if(p){ T.mode='pend'; return; } }
+    T.mode=isPan?'pan':'rot'; };
+  const drag=(x,y,slop)=>{ if(T.mode==='hand'){ hdMove(x,y); return; }
+    if(T.mode==='pend'){ if(Math.hypot(x-T.sx,y-T.sy)<slop) return; T.mode='rot'; }
+    const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else if(T.mode==='rot') camRotate(dx,dy); };
+  const finish=()=>{ if(T.mode==='hand') hdEnd(); else if(T.mode==='pend') placeAt(T.sx,T.sy); T.mode=null; };
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); lastTouch=false; begin(e.clientX,e.clientY,e.button===0,e.button===1||e.button===2||e.shiftKey||panMode); cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; lastTouch=false; const p=panMode?null:pickAt(e.clientX,e.clientY); cv.style.cursor=p?(p.k>=0?'move':'crosshair'):(panMode?'move':'grab'); });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ finish(); cv.style.cursor='grab'; return; } drag(e.clientX,e.clientY,5); });
+  window.addEventListener('mouseup',()=>{ if(T.mode&&T.mode!=='pinch') finish(); cv.style.cursor='grab'; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); lastTouch=true;
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t0=e.touches[0]; begin(t0.clientX,t0.clientY,true,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1&&T.mode&&T.mode!=='pinch'){ const t0=e.touches[0]; drag(t0.clientX,t0.clientY,9); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand'||T.mode==='pend') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='pinch') T.mode=null; else finish(); } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',e=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function freeView(){ if(curView!=='free'){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ freeView(); orbit.az-=dx*0.006; orbit.el=Math.max(-0.1,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ freeView(); orbit.dist=Math.max(3,Math.min(600,orbit.dist*f)); }
+function camPan(dx,dy){ freeView(); if(!orbit.target||!camera) return;
+  const k=orbit.dist*2*Math.tan(camera.fov*Math.PI/360)/((gid('view3d').clientHeight)||300), ca=Math.cos(orbit.az), sa=Math.sin(orbit.az), ce=Math.cos(orbit.el), se=Math.sin(orbit.el);
+  orbit.target.x+=(-dx*ca+dy*(-se*sa))*k; orbit.target.y+=dy*ce*k; orbit.target.z+=(dx*sa+dy*(-se*ca))*k; }
+/* ═══ END RIPPLE TANK 3D ═══════════════════════════════════════════════════════ */
+
+
+/* ===== Lab 32 — วัตถุเฉพาะแลปในถาด ===== */
+const RH = 2.2, RTHK = 0.5;   /* แผ่นกั้น/แถบโค้ง สูง 2.2 cm (โผล่พ้นน้ำ 1.2 cm) หนา 5 mm ตั้งบนก้นกระจก */
+const REFL_NAMES = { flat: 'แผ่นกั้นตรง (อะลูมิเนียม)', circular: 'แถบพลาสติกโค้งวงกลม R = 10 cm', parabolic: 'แถบพลาสติกโค้งพาราโบลา f = 5 cm' };
+/* เส้นแนวผิวสะท้อน (พิกัดถาด) ตัดให้อยู่ในถาด — แผ่นกั้นตรงยาวพาดเต็มถาดเท่ากับเขตเงาของแบบจำลอง */
+function reflPolyline() {
+  const rx = reflXcm, ry = reflYcm, M = 0.35, pts = [];
+  if (reflType === 'flat') {
+    const a = flatAngle * Math.PI / 180, dx = Math.sin(a), dy = Math.cos(a);
+    let t0 = -1e9, t1 = 1e9;
+    [[dx, rx, M, RT.W - M], [dy, ry, M, RT.D - M]].forEach(([d, p, lo, hi]) => {
+      if (Math.abs(d) < 1e-9) return; let a1 = (lo - p) / d, a2 = (hi - p) / d; if (a1 > a2) [a1, a2] = [a2, a1]; t0 = Math.max(t0, a1); t1 = Math.min(t1, a2); });
+    return t1 > t0 ? [[rx + t0 * dx, ry + t0 * dy], [rx + t1 * dx, ry + t1 * dy]] : [];
+  }
+  if (reflType === 'circular') {
+    const R = CIRC_R_CM, cc = curveShape === 'concave', cx = cc ? rx - R : rx + R;
+    for (let i = 0; i <= 64; i++) { const th = -ARC_HALF + 2 * ARC_HALF * i / 64; pts.push(cc ? [cx + R * Math.cos(th), ry + R * Math.sin(th)] : [cx - R * Math.cos(th), ry + R * Math.sin(th)]); }
+  } else {
+    const halfH = 0.55 * tankH;
+    for (let i = 0; i <= 72; i++) { const dy = -halfH + 2 * halfH * i / 72, xo = dy * dy / (4 * PARA_F_CM); pts.push([rx + (curveShape === 'concave' ? -xo : xo), ry + dy]); }
+  }
+  /* ช่วงต่อเนื่องที่ยาวที่สุดภายในถาด */
+  let best = [], cur = [];
+  pts.forEach(p => { if (p[0] >= M && p[0] <= RT.W - M && p[1] >= M && p[1] <= RT.D - M) cur.push(p); else { if (cur.length > best.length) best = cur; cur = []; } });
+  if (cur.length > best.length) best = cur; return best;
 }
+function buildReflector() {
+  if (P.refl) { scene.remove(P.refl); P.refl.traverse(o => { if (o.geometry) o.geometry.dispose(); }); P.refl = null; }
+  const pts = reflPolyline(); if (pts.length < 2) return;
+  let m;
+  if (reflType === 'flat') {
+    const [p, q] = [pts[0], pts[pts.length - 1]], du = q[0] - p[0], dw = q[1] - p[1], L = Math.hypot(du, dw);
+    m = rbox(L, RH, RTHK, 0.22, P.matFlat); m.position.set(uX((p[0] + q[0]) / 2), RT.Y + RH / 2, wZ((p[1] + q[1]) / 2)); m.rotation.y = Math.atan2(-dw, du);
+  } else {
+    const L = [], Rr = [];
+    pts.forEach((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], tu = b[0] - a[0], tw = b[1] - a[1], l = Math.hypot(tu, tw) || 1, nu = -tw / l * RTHK / 2, nw = tu / l * RTHK / 2;
+      L.push([uX(p[0] + nu), -wZ(p[1] + nw)]); Rr.push([uX(p[0] - nu), -wZ(p[1] - nw)]); });
+    const sh = new THREE.Shape(); sh.moveTo(L[0][0], L[0][1]); L.slice(1).forEach(p => sh.lineTo(p[0], p[1])); Rr.slice().reverse().forEach(p => sh.lineTo(p[0], p[1])); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: RH - 0.12, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 2, curveSegments: 4 }); g.rotateX(-Math.PI / 2);
+    m = new THREE.Mesh(g, reflType === 'circular' ? P.matCirc : P.matPara); m.position.y = RT.Y + 0.06;
+  }
+  m.castShadow = true; m.renderOrder = 3; scene.add(m); P.refl = m;
+  /* ป้ายชื่อเหนือยอดผิวสะท้อน */
+  const top = reflType === 'flat' ? [reflXcm, reflYcm] : pts[Math.floor(pts.length / 2)];
+  P.reflName = REFL_NAMES[reflType] + (reflType === 'flat' ? '' : (curveShape === 'concave' ? ' · เว้า' : ' · นูน'));
+  redrawTex(P.lblRefl.userData.tex); P.lblRefl.position.set(uX(top[0]) + 2, RT.Y + 6.5, wZ(top[1]) - 3);
+}
+/* ตัวจุ่มจุด: ยืดแขนจากคานไปที่ S (S เลื่อนไปกลางถาดเมื่อใช้ผิวโค้ง เหมือน 2D) */
+function placeDipper() { const ch = RT.dip.children, ax = uX(srcXcm) - RT.vibX, az = wZ(srcYcm);
+  if (P.arm0 == null) P.arm0 = ch[0].geometry.parameters.width;
+  ch[0].scale.x = (Math.abs(ax) + 0.5) / P.arm0; ch[0].position.set(ax / 2, -0.3, az); ch[1].position.set(ax, -1.5, az); ch[2].position.set(ax, -2.75, az); }
+/* จุดโฟกัส F (ผิวเว้า) — จุดสีบนกระดาษ + ป้าย เหมือน 2D */
+function focusPoint() { if (reflType === 'flat' || curveShape !== 'concave') return null;
+  return { u: reflXcm - (reflType === 'circular' ? CIRC_R_CM / 2 : PARA_F_CM), w: reflYcm }; }
+/* เส้นช่วยบนกระดาษ (Normal · ทิศคลื่นตกกระทบ · α · โหมด Auto: θi θr) */
+function drawGuides() { const Gd = P.guide, g = Gd.g; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, Gd.c.width, Gd.c.height);
+  if (reflType === 'flat') { g.setTransform(Gd.ppc / pxPerCm, 0, 0, Gd.ppc / pxPerCm, 0, 0); ctx = g; try { drawProtractor(); } finally { ctx = null; g.setTransform(1, 0, 0, 1, 0, 0); } }
+  Gd.tex.needsUpdate = true; }
+
+/* ── หยิบ/ลากในภาพ 3D (เรียกจาก pickAt / hdStart / hdMove / hdEnd ในแม่แบบ) ── */
+const LH = { mode: null, du: 0, dw: 0 };
+const REFL_GRAB_Y = () => RT.Y + 1.1;
+function planeHit(cx, cy, y) { const rc = setRay(cx, cy); if (!rc) return null; const o = RAY.ray.origin, d = RAY.ray.direction;
+  if (Math.abs(d.y) < 1e-6) return null; const s = (y - o.y) / d.y; if (!(s > 0)) return null; return { u: o.x + s * d.x + RT.W / 2, w: o.z + s * d.z + RT.D / 2 }; }
+function labPick(cx, cy) {
+  if (protShown()) { const h = rtPaperHit(cx, cy);
+    if (h) { const d = Math.hypot(h.u - protToolX, h.w - protToolY);
+      if (d < TOOL_R * 0.55) return { k: 0, mode: 'pmove', u: h.u, w: h.w };
+      if (d < TOOL_R * 1.05) return { k: 0, mode: 'prot', u: h.u, w: h.w }; } }
+  if (P.refl) { const wp = planeHit(cx, cy, REFL_GRAB_Y()); if (!wp) return null;
+    let hit = RAY.intersectObject(P.refl, true).length > 0;
+    if (!hit && wp.u > 0 && wp.u < RT.W && wp.w > 0 && wp.w < RT.D && reflDist(wp.u, wp.w) < (lastTouch ? 1.8 : 1.0)) hit = true;
+    if (hit) return { k: 0, mode: reflType === 'flat' ? 'rot' : 'move', u: wp.u, w: wp.w }; }
+  return null; }
+function labHandStart(p) { LH.mode = p.mode;
+  if (p.mode === 'pmove') { LH.du = p.u - protToolX; LH.dw = p.w - protToolY; }
+  else if (p.mode === 'move') { LH.du = p.u - reflXcm; LH.dw = p.w - reflYcm; } }
+function setFlatAngle(a) { a = clampN(Math.round(a), 0, 75); if (a === flatAngle) return; flatAngle = a;
+  const sl = gid('sl-angle'), vi = gid('vi-angle'); if (sl) sl.value = a; if (vi) vi.value = a; updateReadout(); draw(); }
+function labHandMove(cx, cy) {
+  if (LH.mode === 'pmove' || LH.mode === 'prot') { const h = rtPaperHit(cx, cy); if (!h) return;
+    if (LH.mode === 'pmove') { protToolX = clampN(h.u - LH.du, 0, RT.W); protToolY = clampN(h.w - LH.dw, 0, RT.D); }
+    else protToolAngle = Math.atan2(h.w - protToolY, h.u - protToolX);
+    return; }
+  const wp = planeHit(cx, cy, REFL_GRAB_Y()); if (!wp) return;
+  if (LH.mode === 'move') { reflXcm = clampN(wp.u - LH.du, 10, TANK_W - 2); reflYcm = clampN(wp.w - LH.dw, 3, tankH - 3); if (!isPlaying) draw(); else RT.dirty = true; }
+  else if (LH.mode === 'rot') { let du = wp.u - reflXcm, dw = wp.w - reflYcm; if (Math.hypot(du, dw) < 1.2) return; if (dw < 0) { du = -du; dw = -dw; }
+    setFlatAngle(Math.atan2(du, dw) * 180 / Math.PI); } }
+function labHandEnd() { LH.mode = null; draw(); }
+
+/* จุดโฟกัสของมุม 🔍 อ่านภาพ: จุดตกกระทบของแผ่นกั้นตรง หรือช่วงระหว่าง S กับผิวโค้ง */
+function rtReadFocus() {
+  if (reflType === 'flat') { if (protShown()) return { u: (protToolX + reflXcm) / 2, w: (protToolY + reflYcm) / 2, width: 24 }; return { u: clampN(reflXcm - 3, 8, RT.W - 8), w: reflYcm, width: 26 }; }
+  const f = focusPoint(); const u = f ? (f.u + reflXcm) / 2 - 2 : (srcXcm + reflXcm) / 2; return { u: clampN(u, 8, RT.W - 8), w: reflYcm, width: 26 }; }
+
+function init3D() {
+  const cv = gid('simCanvas'); if (typeof THREE === 'undefined') { gid('nothree').style.display = 'flex'; return; }
+  orbit.target = new THREE.Vector3(-5, 22, 0);
+  try { renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); }
+  catch (e) { renderer = null; gid('nothree').innerHTML = '⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้ — ใช้โหมด <b>Auto</b> แล้วกดบันทึก หรือกรอกค่าในตารางเอง'; gid('nothree').style.display = 'flex'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(36, 1, 0.1, 5000);
+  MAXTS = (renderer.capabilities && renderer.capabilities.maxTextureSize) || 4096;
+  RT.SRC_U = srcXcm; RT.SRC_W = srcYcm;
+  rtBuild({ freq: () => freq, amp: () => amplitude * 100 });
+  P.matFlat = anoM(0xc9d0d8); P.matCirc = enamel(0x22a37a, 0.32, 0.6); P.matPara = enamel(0xdb4f97, 0.32, 0.6);
+  P.reflName = ''; P.lblRefl = labelSprite(tagFn(() => P.reflName, 'rgba(15,23,42,.9)', '#fdba74'), 600, 72, 0.03); scene.add(P.lblRefl);
+  /* เส้นช่วยวัดมุมพิมพ์บนกระดาษ */
+  { const ppc = RT.LOW ? 16 : 24, c = document.createElement('canvas'); c.width = RT.W * ppc; c.height = RT.D * ppc;
+    const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    if ('outputEncoding' in renderer) tex.encoding = renderer.outputEncoding;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(RT.W, RT.D), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(0, RT.PAPER_Y + 0.06, 0); m.renderOrder = 1; scene.add(m); P.guide = { c, g: c.getContext('2d'), tex, mesh: m, ppc }; }
+  /* ไม้โปรแทรกเตอร์ใส 360° วางบนกระดาษ */
+  { const g = new THREE.Group(), tex = canvasTex(RT.LOW ? 768 : 1024, RT.LOW ? 768 : 1024, drawProtTex);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(TOOL_R, 96), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    disc.rotation.x = -Math.PI / 2; disc.renderOrder = 2; g.add(disc);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(TOOL_R, 0.07, 8, 96), new THREE.MeshPhysicalMaterial({ color: 0xfdba74, roughness: .2, clearcoat: 1, transparent: true, opacity: .75 }));
+    rim.rotation.x = Math.PI / 2; g.add(rim);
+    g.visible = false; scene.add(g); P.prot = g;
+    const t2 = nameTag('ไม้โปรแทรกเตอร์ใส 360°', '#fdba74'); t2.visible = false; scene.add(t2); P.protTag = t2; }
+  /* จุดโฟกัส F + ป้าย S */
+  P.fRing = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.45, 28), new THREE.MeshBasicMaterial({ color: 0xdb2777, side: THREE.DoubleSide, transparent: true, opacity: .9, depthWrite: false }));
+  P.fRing.rotation.x = -Math.PI / 2; P.fRing.renderOrder = 2; scene.add(P.fRing);
+  P.fTxt = 'F'; P.fTag = labelSprite(tagFn(() => P.fTxt, 'rgba(15,23,42,.9)', '#f9a8d4'), 300, 72, 0.03); scene.add(P.fTag);
+  P.sTag = labelSprite(tagFn('S (จุดกำเนิดคลื่น)', 'rgba(15,23,42,.9)', '#7dd3fc'), 380, 72, 0.03); scene.add(P.sTag);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { (P.texs || []).forEach(redrawTex); P.gKey = null; }).catch(() => {});
+  setupPointer(cv); resize3D(); setView('iso');
+  if (window.ResizeObserver) new ResizeObserver(() => resizeCanvas()).observe(gid('view3d'));
+  (function rl() { requestAnimationFrame(rl); if (!gid('tab-sim').classList.contains('active')) return; update3D(); renderer.render(scene, camera); })();
+}
+
+/* ── อัปเดตฉากจาก state เดิมของแลป (t, freq, amplitude, ชนิดคลื่น/ผิวสะท้อน, ตำแหน่ง, มุม α) ── */
+function update3D() { if (!scene) return;
+  rtSetDepth(DEPTH * 10);
+  const mk = [waveType, reflType, curveShape, flatAngle, reflXcm.toFixed(2), reflYcm.toFixed(2), srcXcm, srcYcm].join('|');
+  if (mk !== P.maskKey) { P.maskKey = mk; rtShade(labShade); buildReflector(); placeDipper(); RT.dirty = true; }
+  const key = [t, freq, amplitude, mk].join('|');
+  if (RT.dirty || key !== P.fKey) { P.fKey = key; RT.dirty = false; fieldTime = t; rtUpdateField(labField, 0); tintWater(); }
+  const ph = 2 * Math.PI * freq * t; rtVibrator(waveType, 0.1 * amplitude * Math.sin(ph), ph);
+  /* เส้นช่วยบนกระดาษ */
+  const gk = [reflType, flatAngle, reflXcm.toFixed(2), reflYcm.toFixed(2), recMode].join('|');
+  if (gk !== P.gKey) { P.gKey = gk; drawGuides(); }
+  P.guide.mesh.visible = reflType === 'flat';
+  /* ไม้โปรแทรกเตอร์ */
+  const ps = protShown(); P.prot.visible = P.protTag.visible = ps;
+  if (ps) { P.prot.position.set(uX(protToolX), RT.PAPER_Y + 0.09, wZ(protToolY)); P.prot.rotation.y = -protToolAngle; P.protTag.position.set(uX(protToolX) - TOOL_R - 3, 2.2, wZ(protToolY) + TOOL_R + 1); }
+  /* F และ S */
+  const f = focusPoint(); P.fRing.visible = P.fTag.visible = !!f;
+  if (f) { P.fRing.position.set(uX(f.u), RT.PAPER_Y + 0.08, wZ(f.w)); P.fTag.position.set(uX(f.u), 2.0, wZ(f.w) + 0.5);
+    const ft = 'F (จุดโฟกัส)'; if (ft !== P.fTxt) { P.fTxt = ft; redrawTex(P.fTag.userData.tex); } }
+  P.sTag.visible = waveType === 'circular'; if (P.sTag.visible) P.sTag.position.set(uX(srcXcm), RT.waterY + 7, wZ(srcYcm) + 2);
+  rtPanel(); rtCamera();
+}
+function draw() { RT.dirty = true; }
+function resizeCanvas() { if (!renderer) return; resize3D(); if (VIEWS[curView]) setView(curView); draw(); }
 
 /* ===== ANIMATION ===== */
 function loop(ts) {
@@ -1468,18 +1553,20 @@ function toggleRecMode() {
   document.getElementById('rec-label-a').classList.toggle('active-label', sw.checked);
   document.getElementById('tag-rec').textContent = recMode === 'manual' ? 'Manual' : 'Auto';
   updateHint();
+  updateReadout();
+  draw();
 }
 
 function updateHint() {
   const el = document.getElementById('hint-text');
   if (reflType === 'flat') {
     if (recMode === 'manual') {
-      el.textContent = 'ปรับมุมผิวสะท้อน α แล้วอ่านค่า θi, θr จาก protractor บน canvas จากนั้นพิมพ์ค่าในตารางแล้วกดบันทึก';
+      el.textContent = 'ปรับมุมผิวสะท้อน α (สไลเดอร์ หรือลากแผ่นกั้นในถาด) แล้ววัด θi, θr ด้วยไม้โปรแทรกเตอร์บนกระดาษใต้ถาด จากนั้นพิมพ์ค่าในตารางแล้วกดบันทึก';
     } else {
       el.textContent = 'โหมด Auto: ปรับมุมผิวสะท้อน α แล้วกดบันทึก ระบบจะคำนวณ θi = θr = α ให้อัตโนมัติ';
     }
   } else if (reflType === 'circular') {
-    el.textContent = 'สังเกตรูปแบบคลื่นสะท้อน ลากเมาส์บนผิวสะท้อนเพื่อเลื่อนตำแหน่ง สลับระหว่างเว้า/นูนเพื่อเปรียบเทียบ';
+    el.textContent = 'สังเกตรูปแบบคลื่นสะท้อน ลากแถบโค้งในถาดเพื่อเลื่อนตำแหน่ง สลับระหว่างเว้า/นูนเพื่อเปรียบเทียบ';
   } else {
     el.textContent = 'สังเกตคลื่นหน้าตรงสะท้อนรวมที่จุดโฟกัส (F) ลองเลือกคลื่นวงกลม+เว้า เพื่อดูกระบวนการย้อนกลับ';
   }
@@ -1647,139 +1734,6 @@ function drawGraph() {
     gctx.lineWidth = 1;
     gctx.stroke();
   });
-}
-
-/* ===== DRAG INTERACTION (curved reflectors) ===== */
-function setupDrag() {
-  canvas.addEventListener('mousedown', onMouseDown);
-  canvas.addEventListener('mousemove', onMouseMove);
-  canvas.addEventListener('mouseup', onMouseUp);
-  canvas.addEventListener('mouseleave', onMouseUp);
-  // Touch
-  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  canvas.addEventListener('touchend', onMouseUp);
-}
-
-function getCanvasPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: (e.clientX - rect.left) * (canvas.width / rect.width),
-    y: (e.clientY - rect.top) * (canvas.height / rect.height)
-  };
-}
-
-function isOnReflector(pos) {
-  if (reflType === 'flat') return false;
-  const rpx = cm2px(reflXcm), rpy = cm2px(reflYcm);
-  const dist = Math.sqrt((pos.x - rpx) ** 2 + (pos.y - rpy) ** 2);
-  const hitR = reflType === 'circular' ? cm2px(CIRC_R_CM) * 0.6 : cm2px(6);
-  return dist < hitR;
-}
-
-function getProtToolHit(pos) {
-  if (!protToolVisible || recMode !== 'manual' || reflType !== 'flat') return 'none';
-  const dist = Math.sqrt((pos.x - protToolX) ** 2 + (pos.y - protToolY) ** 2);
-  const R = Math.min(W, H) * 0.18;
-  if (dist < R * 0.55) return 'move';  // center = drag
-  if (dist < R * 1.05) return 'rotate'; // edge = rotate
-  return 'none';
-}
-
-function onMouseDown(e) {
-  const pos = getCanvasPos(e);
-  // Check protractor tool first
-  const ptHit = getProtToolHit(pos);
-  if (ptHit === 'move') {
-    protToolDragging = true;
-    dragOffX = pos.x - protToolX;
-    dragOffY = pos.y - protToolY;
-    canvas.style.cursor = 'grabbing';
-    return;
-  }
-  if (ptHit === 'rotate') {
-    protToolRotating = true;
-    canvas.style.cursor = 'crosshair';
-    return;
-  }
-  if (reflType === 'flat') return;
-  if (isOnReflector(pos)) {
-    isDragging = true;
-    dragOffX = pos.x - cm2px(reflXcm);
-    dragOffY = pos.y - cm2px(reflYcm);
-    canvas.style.cursor = 'grabbing';
-  }
-}
-
-function onMouseMove(e) {
-  if (protToolDragging) {
-    const pos = getCanvasPos(e);
-    protToolX = Math.max(20, Math.min(W - 20, pos.x - dragOffX));
-    protToolY = Math.max(20, Math.min(H - 20, pos.y - dragOffY));
-    if (!isPlaying) draw();
-    return;
-  }
-  if (protToolRotating) {
-    const pos = getCanvasPos(e);
-    protToolAngle = Math.atan2(pos.y - protToolY, pos.x - protToolX);
-    if (!isPlaying) draw();
-    return;
-  }
-  if (!isDragging) {
-    const pos = getCanvasPos(e);
-    const ptHit = getProtToolHit(pos);
-    if (ptHit === 'move') {
-      canvas.style.cursor = 'grab';
-    } else if (ptHit === 'rotate') {
-      canvas.style.cursor = 'crosshair';
-    } else if (reflType !== 'flat' && isOnReflector(pos)) {
-      canvas.style.cursor = 'grab';
-    } else {
-      canvas.style.cursor = 'crosshair';
-    }
-    return;
-  }
-  const pos = getCanvasPos(e);
-  reflXcm = Math.max(10, Math.min(TANK_W - 2, (pos.x - dragOffX) / pxPerCm));
-  reflYcm = Math.max(3, Math.min(tankH - 3, (pos.y - dragOffY) / pxPerCm));
-  if (!isPlaying) draw();
-}
-
-function onMouseUp() {
-  isDragging = false;
-  protToolDragging = false;
-  protToolRotating = false;
-  canvas.style.cursor = 'crosshair';
-}
-
-function onTouchStart(e) {
-  e.preventDefault();
-  if (reflType === 'flat' || !e.touches.length) return;
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const pos = {
-    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
-    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
-  };
-  if (isOnReflector(pos)) {
-    isDragging = true;
-    dragOffX = pos.x - cm2px(reflXcm);
-    dragOffY = pos.y - cm2px(reflYcm);
-  }
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  if (!isDragging || !e.touches.length) return;
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const pos = {
-    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
-    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
-  };
-  reflXcm = Math.max(10, Math.min(TANK_W - 2, (pos.x - dragOffX) / pxPerCm));
-  reflYcm = Math.max(3, Math.min(tankH - 3, (pos.y - dragOffY) / pxPerCm));
-  if (!isPlaying) draw();
 }
 
 /* ===== THEORY VISUALS ===== */
@@ -2210,10 +2164,9 @@ function drawArrowHead(ctx2, fromX, fromY, toX, toY, color) {
 
 /* ===== SLIDER SYNC ===== */
 window.addEventListener('DOMContentLoaded', () => {
-  initCanvas();
+  init3D();
   buildTable();
   updateHint();
-  setupDrag();
 
   const _v2s = {
     'vi-angle': 'sl-angle',
@@ -2257,7 +2210,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('resize', () => {
-    resizeCanvas();
+    resizeCanvas();   /* ภาพ 3D */
     drawGraph();
   });
 
@@ -2281,7 +2234,7 @@ if (window.self !== window.top) {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../kp-auth.js?v=20261021-16"></script>
+<script src="../kp-auth.js?v=20261021-17"></script>
 
 <!-- KP Page Access Guard -->
 <script>
@@ -2299,5 +2252,8 @@ if (window.self !== window.top) {
 
 <!-- KP Speed (ปุ่มปรับความเร็วการแสดงผล) -->
 <script src="../_shared/kp-speed.js"></script>
+
+<!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->
+<script src="../_shared/kp-labmode.js?v=20261021-17"></script>
 </body>
 </html>

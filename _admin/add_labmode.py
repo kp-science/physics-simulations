@@ -12,7 +12,7 @@ import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP_DIRS = {'.git', '.claude', 'node_modules', 'poe', '_admin', 'Demo'}
-AUTO_RE = re.compile(r'onclick="[^"]*\b\w*Mode\w*\(\s*\'auto\'|data-(?:mode|rec)="auto"|id="mAuto"|id="rec-toggle"')
+AUTO_RE = re.compile(r'onclick="[^"]*\b\w*Mode\w*\(\s*\'auto\'|data-(?:mode|rec)="auto"|id="mAuto"|id="rec-toggle"|id="sw-rec"')
 
 
 def root_rel(path):

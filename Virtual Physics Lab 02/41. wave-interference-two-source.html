@@ -11,7 +11,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 41 — การแทรกสอดของคลื่นผิวน้ำ (Two-Source Interference) | KP Science simulation</title>
+<title>Lab 41 — การแทรกสอดของคลื่นผิวน้ำ (3D) (Two-Source Interference) | KP Science simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -57,12 +57,19 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
 .layout{display:grid;grid-template-columns:1fr 360px;gap:0;}
 @media (max-width: 960px){.layout{grid-template-columns:1fr;}}
 
-.canvas-wrap{position:relative;width:100%;height:clamp(330px,58vh,560px);background:#030612;border-bottom:1px solid var(--border);overflow:hidden;}
-.canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;}
-.canvas-wrap canvas.overlay{pointer-events:none;}
-.canvas-wrap canvas.overlay.active{pointer-events:auto;}
-.probe-info{position:absolute;bottom:8px;left:8px;background:rgba(10,14,26,0.92);padding:6px 12px;border-radius:6px;font-size:0.8rem;color:var(--accent3);font-family:'Share Tech Mono',monospace;pointer-events:none;line-height:1.5;}
-.canvas-tip{position:absolute;top:8px;left:8px;background:rgba(10,14,26,0.9);padding:4px 10px;border-radius:6px;font-size:0.74rem;color:var(--muted);pointer-events:none;}
+.view3d{position:relative;width:100%;height:clamp(380px,62vh,660px);background:linear-gradient(180deg,#141c2c,#0a0f1c);border-bottom:1px solid var(--border);overflow:hidden}
+.view3d canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px);z-index:3}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent2);color:var(--accent2)}
+.view3d .viewbtns button.on{background:var(--accent2);border-color:var(--accent2);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{background:#a78bfa;border-color:#a78bfa;color:#0a0e1a;font-weight:700}
+.view3d .viewhint{position:absolute;left:10px;top:10px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:56%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+.probe-info{position:absolute;right:8px;top:8px;max-width:min(520px,44%);background:rgba(10,14,26,0.92);padding:6px 12px;border-radius:6px;font-size:0.8rem;color:var(--accent3);font-family:'Share Tech Mono',monospace;pointer-events:none;line-height:1.5;z-index:2}
+@media(max-width:900px){.view3d .viewbtns{top:8px;bottom:auto}.view3d .viewhint{display:none}.probe-info{left:8px;right:8px;top:auto;bottom:8px;max-width:none;font-size:.72rem;padding:4px 8px}}
+@media(max-width:600px){.view3d{height:min(max(104vw,58vh),680px)}}
 
 .side-panel{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;}
 @media (max-width: 960px){.side-panel{border-left:0;border-top:1px solid var(--border);}}
@@ -162,10 +169,10 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
 <header>
   <div class="icon">🌊</div>
   <div>
-    <h1>Lab 41 — การแทรกสอดของคลื่นผิวน้ำ</h1>
+    <h1>Lab 41 — การแทรกสอดของคลื่นผิวน้ำ (3D)</h1>
     <p>Two-Source Interference • ริบเบิลแทงค์ / Double-slit vs. Two Point Sources</p>
   </div>
-  <span class="badge">KP Science simulation</span>
+  <span class="badge">KP Science simulation · 3D</span>
 </header>
 
 <nav class="main-nav">
@@ -206,11 +213,19 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
 
   <div class="layout">
     <div>
-      <div class="canvas-wrap" id="cvWrap">
-        <canvas id="waveCanvas"></canvas>
-        <canvas id="overlayCanvas" class="overlay active"></canvas>
-        <div class="canvas-tip">คลิกบน canvas เพื่อวางจุด P · ลากจะย้าย P</div>
-        <div class="probe-info" id="probeInfo">คลิกเพื่อวางจุด P ที่คิดว่าเป็นบัพหรือปฏิบัพ</div>
+      <!-- 3D view (three.js): ถาดคลื่น · ตัวจุ่ม 2 อัน / แผ่นกั้นช่องแคบ · กระดาษขาวใต้ถาด = ภาพคลื่นที่ใช้วัด -->
+      <div class="view3d" id="view3d">
+        <canvas id="simCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">ทั้งชุด</button>
+          <button data-vw="front" onclick="setView('front')">👁 ตรงหน้า</button>
+          <button data-vw="top" onclick="setView('top')">🌊 มองผิวน้ำ</button>
+          <button data-vw="read" onclick="setView('read')">🔍 ซูมอ่านภาพบนกระดาษ</button>
+        </div>
+        <div class="viewhint">🖐 แตะ <b>กระดาษขาวใต้ถาด</b> = วางจุด P · ลากหมุด P เพื่อเลื่อนแบบละเอียด<br>🖱 ลาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = แตะ/หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>จึงวางจุด P ในภาพ 3D ไม่ได้ — ใช้โหมด <b>⚡ บันทึกอัตโนมัติ</b></div>
+        <div class="probe-info" id="probeInfo">แตะกระดาษใต้ถาดเพื่อวางจุด P ที่คิดว่าเป็นบัพหรือปฏิบัพ</div>
       </div>
 
       <!-- sliders bar -->
@@ -246,13 +261,13 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
       </div>
 
       <div class="pnl-sect">
-        <div class="pnl-title">เลือกวัด <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">(คลิกจุด P บน canvas)</span></div>
+        <div class="pnl-title">เลือกวัด <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">(แตะจุด P บนกระดาษใต้ถาด)</span></div>
         <div class="mode-toggle" style="width:fit-content;">
           <button id="lnAntiBtn" class="mode-btn active" onclick="setLineType('antinode')">ปฏิบัพ (A)</button>
           <button id="lnNodeBtn" class="mode-btn alt2" onclick="setLineType('node')">บัพ (N)</button>
         </div>
         <div style="margin-top:8px;font-size:0.8rem;color:var(--muted);line-height:1.6;">
-          <span id="hintTxt">เลือกแล้วคลิกจุดบนแนวที่คิดว่าเป็นแนวนั้น ๆ · โปรแกรมจะแสดงระยะ S₁P, S₂P</span>
+          <span id="hintTxt">เลือกแล้วแตะจุดบนกระดาษใต้ถาด ตรงแนวที่คิดว่าเป็นแนวนั้น ๆ · โปรแกรมจะแสดงระยะ S₁P, S₂P</span>
         </div>
       </div>
 
@@ -351,7 +366,7 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
     <div class="chip">ถาดคลื่น (Ripple tank)</div>
     <div class="chip">ตัวกั้นช่องแคบคู่ d ปรับได้</div>
     <div class="chip">ปุ่มจุดสั่น 2 อัน (ปรับเฟสได้)</div>
-    <div class="chip">ไม้บรรทัด (อ่านจาก canvas ~ 1 ช่อง = 2 cm)</div>
+    <div class="chip">กระดาษขาวใต้ถาด (มีสเกล cm ที่ขอบ)</div>
     <div class="chip">ไม้โปรแทกเตอร์วงกลม</div>
     <div class="chip">เครื่องกำเนิดสัญญาณความถี่ f</div>
 
@@ -362,7 +377,7 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
       <div class="proc-step"><div class="num">1</div><div class="txt">เลือกประเภทแหล่งกำเนิด (ช่องแคบคู่ / จุดสั่น 2 อัน) · ถ้าเป็นจุดสั่น ให้เลือกเฟส (ตรงกัน/ตรงข้าม)</div></div>
       <div class="proc-step"><div class="num">2</div><div class="txt">ตั้งค่า d และ f · กด <span class="chip hi">🎲 สุ่มความเร็ว</span> เพื่อให้โปรแกรมซ่อน v จริง (โหมดทดลองเสมือน) หรือกำหนดค่า v เองเพื่อเช็คผล</div></div>
       <div class="proc-step"><div class="num">3</div><div class="txt">กด <strong>▶ เริ่ม</strong> · สังเกตรูปแบบการแทรกสอด บริเวณสีสว่าง/มืดสลับ</div></div>
-      <div class="proc-step"><div class="num">4</div><div class="txt">เลือกว่าจะวัด <strong>ปฏิบัพ (A)</strong> หรือ <strong>บัพ (N)</strong> · แล้ว<strong>คลิกจุด P</strong>บน canvas ที่คิดว่าอยู่บนแนวนั้น</div></div>
+      <div class="proc-step"><div class="num">4</div><div class="txt">เลือกว่าจะวัด <strong>ปฏิบัพ (A)</strong> หรือ <strong>บัพ (N)</strong> · แล้ว<strong>แตะจุด P</strong>บนกระดาษขาวใต้ถาด (ภาพ 3D) ที่คิดว่าอยู่บนแนวนั้น · ลากหมุด P เพื่อเลื่อนละเอียด</div></div>
       <div class="proc-step"><div class="num">5</div><div class="txt">โปรแกรมจะวาดเส้น S₁P, S₂P และแสดงค่าระยะ · ระบุ <strong>ลำดับ n</strong> ของแนวที่เลือก (0 = กลาง, 1 = ถัดไป…)</div></div>
       <div class="proc-step"><div class="num">6</div><div class="txt">กด <strong>➕ บันทึกจุดนี้</strong> โปรแกรมจะคำนวณ λ จากสูตร แล้วบันทึกลงตาราง</div></div>
       <div class="proc-step"><div class="num">7</div><div class="txt">ทำซ้ำ ≥ 4–6 จุด คนละแนว (ทั้งบัพและปฏิบัพ หลาย ๆ ลำดับ) · โปรแกรมสรุปค่าเฉลี่ย λ และ %error เทียบค่าจริง</div></div>
@@ -376,13 +391,13 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
       <p><strong>หลักการ (ฟาร์ฟิลด์):</strong> ที่ระยะไกลจากแหล่งกำเนิด แนวปฏิบัพลำดับ n ทำมุม θ กับแนวกลางโดย <code>d sinθ = nλ</code> (เฟสตรงกัน) · แนวบัพลำดับ n ทำมุม <code>d sinθ = (n − ½)λ</code></p>
 
       <div class="proc-step"><div class="num">1</div><div class="txt">เปิดไม้โปรแทกเตอร์ (ติ๊ก "แสดงไม้โปรแทกเตอร์") · ศูนย์กลางของโปรแทกเตอร์อยู่ที่ <strong>จุด M</strong> กลางระหว่างแหล่งกำเนิด 2 อัน แนว 0° = แนวกลาง</div></div>
-      <div class="proc-step"><div class="num">2</div><div class="txt">เลือกประเภท (บัพ/ปฏิบัพ) และคลิกจุด P บนแนวที่ต้องการวัด (ควรห่างจาก M ไกล ๆ เพื่อให้ประมาณฟาร์ฟิลด์แม่นขึ้น)</div></div>
+      <div class="proc-step"><div class="num">2</div><div class="txt">เลือกประเภท (บัพ/ปฏิบัพ) และแตะจุด P บนกระดาษใต้ถาด ตรงแนวที่ต้องการวัด (ควรห่างจาก M ไกล ๆ เพื่อให้ประมาณฟาร์ฟิลด์แม่นขึ้น)</div></div>
       <div class="proc-step"><div class="num">3</div><div class="txt">อ่านมุม θ จากไม้โปรแทกเตอร์ (เส้นสีม่วงจาก M ไป P) แล้ว<strong>กรอกลงช่อง "มุม θ อ่านจากไม้โปรแทกเตอร์"</strong></div></div>
       <div class="proc-step"><div class="num">4</div><div class="txt">ระบุ n · กด <strong>➕ บันทึกจุดนี้</strong> โปรแกรมคำนวณ λ จากสูตรที่เหมาะสมและเทียบกับค่าจริง</div></div>
       <div class="proc-step"><div class="num">5</div><div class="txt">ทำซ้ำหลายมุม · สังเกตว่ายิ่ง n มากมุมก็ยิ่งกว้าง · สรุป λ เฉลี่ย</div></div>
 
       <div class="hint"><strong>📏 วิธีอ่านมุม:</strong> วางสายตาให้ตรงกับเส้นสีม่วง (M→P) แล้วอ่านตัวเลขบนไม้โปรแทกเตอร์ที่เส้นตัด · ค่าตัวเลขใต้ตำแหน่ง "มุม θ (โปรแกรมวัด)" คือเฉลยสำหรับตรวจงาน</div>
-      <div class="hint"><strong>⚠️ ข้อควรระวัง:</strong> สูตร d sinθ = nλ เป็นการประมาณฟาร์ฟิลด์ (r ≫ d) · ถ้าคลิกจุด P ใกล้แหล่งกำเนิดมากจะมี %error สูงกว่าการทดลอง 1</div>
+      <div class="hint"><strong>⚠️ ข้อควรระวัง:</strong> สูตร d sinθ = nλ เป็นการประมาณฟาร์ฟิลด์ (r ≫ d) · ถ้าวางจุด P ใกล้แหล่งกำเนิดมากจะมี %error สูงกว่าการทดลอง 1</div>
     </div>
 
     <h2>🧪 การทดลองที่ 3 — ช่องแคบเดียว (Single-slit diffraction)</h2>
@@ -400,7 +415,7 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
       <div class="proc-step"><div class="num" style="background:var(--accent3);">1</div><div class="txt">เลือกประเภทแหล่งกำเนิด "ช่องแคบเดียว" · slider "กว้างช่อง a" จะปรากฏแทน "ระยะ d"</div></div>
       <div class="proc-step"><div class="num" style="background:var(--accent3);">2</div><div class="txt">ตั้งค่า a (ควรใหญ่กว่า λ อย่างน้อย 2 เท่าเพื่อให้เห็น minima อย่างน้อย 1 คู่) และ f · เริ่มการจำลอง</div></div>
       <div class="proc-step"><div class="num" style="background:var(--accent3);">3</div><div class="txt">สังเกต central maximum (สว่างและกว้างตรงกลาง) และบริเวณ<strong>แถบมืด</strong>ข้างเคียง · (ติ๊ก hint เพื่อเปรียบเทียบ)</div></div>
-      <div class="proc-step"><div class="num" style="background:var(--accent3);">4</div><div class="txt">คลิกจุด P บน<strong>แถบมืด</strong>ลำดับ n=1 · เลือก "บัพ (N)" · ระบุ n=1 · บันทึก → λ = |Δr| / 1 (Path diff) หรือ a sinθ / 1 (Angular)</div></div>
+      <div class="proc-step"><div class="num" style="background:var(--accent3);">4</div><div class="txt">แตะจุด P บน<strong>แถบมืด</strong>ลำดับ n=1 · เลือก "บัพ (N)" · ระบุ n=1 · บันทึก → λ = |Δr| / 1 (Path diff) หรือ a sinθ / 1 (Angular)</div></div>
       <div class="proc-step"><div class="num" style="background:var(--accent3);">5</div><div class="txt">ทำซ้ำกับ secondary maxima: เลือก "ปฏิบัพ (A)" ระบุ n=1, 2 · λ = |Δr| / (n+½)</div></div>
       <div class="proc-step"><div class="num" style="background:var(--accent3);">6</div><div class="txt">ทดลองลด a ให้ใกล้ λ · สังเกตว่า minima หายไป (a ≤ λ) → คลื่นกระจายเหมือนแหล่งกำเนิดจุด</div></div>
 
@@ -411,7 +426,7 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
     <h2>📊 การวิเคราะห์ผลและสรุป</h2>
     <ul>
       <li><strong>λ ที่วัดได้ (เฉลี่ย)</strong> ควรใกล้เคียงค่าจริง v/f · หาก %error &gt; 15% ให้วิเคราะห์ว่ามาจากการอ่านค่าผิด n หรือคลิกจุดเพี้ยน</li>
-      <li>เปลี่ยน d · สังเกตว่าระยะระหว่างแนวบัพ/ปฏิบัพบน canvas แคบลงเมื่อ d เพิ่ม</li>
+      <li>เปลี่ยน d · สังเกตว่าระยะระหว่างแนวบัพ/ปฏิบัพบนกระดาษแคบลงเมื่อ d เพิ่ม</li>
       <li>เปลี่ยน f · สังเกตว่ารูปแบบเปลี่ยนไปอย่างไร (λ สั้นลง ⇒ แนวถี่ขึ้น)</li>
       <li>เปรียบเทียบช่องแคบคู่ (เฟสตรงกันเสมอ) กับจุดสั่น 2 อัน เฟสตรงข้าม · แนวกลาง (θ=0) จาก "ปฏิบัพ A₀" กลายเป็น "บัพ N₀"</li>
     </ul>
@@ -527,6 +542,9 @@ nav.main-nav button.active{background:var(--accent);border-color:var(--accent);c
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../_shared/three.min.js"><\/script>'); }</script>
+<script src="../_shared/kp-real3d.js?v=20261021-17"></script>
 <script>
 /* ============================================================
    Lab 41 — Two-Source Interference (Wave on water)
@@ -553,18 +571,6 @@ const S = {
   records2: []
 };
 
-const cv = document.getElementById('waveCanvas');
-const ov = document.getElementById('overlayCanvas');
-const ctx = cv.getContext('2d');
-const octx = ov.getContext('2d');
-
-// Offscreen low-res for wave pattern
-const lowW = 320, lowH = 192;
-const off = document.createElement('canvas');
-off.width = lowW; off.height = lowH;
-const offCtx = off.getContext('2d');
-const imgData = offCtx.createImageData(lowW, lowH);
-
 // ---------- Geometry helpers ----------
 function srcPositions(){
   // Two-source: S1, S2 at y = ±d/2
@@ -583,174 +589,407 @@ function srcPositions(){
 function isSingleSlit(){ return S.sourceType === 'single'; }
 function lambdaReal(){ return S.v / S.f; }
 
-// World -> pixel (cv drawing)
-function w2p(x, y){
-  const W = cv.width, H = cv.height;
-  const sx = x / S.worldW;           // 0..1
-  const sy = (y + S.worldH/2) / S.worldH; // 0..1
-  return { px: sx * W, py: sy * H };
+/* ===== 3D VIEW (three.js) ===== */
+const gid=id=>document.getElementById(id);
+const clampN=(v,a,b)=>v<a?a:(v>b?b:v);
+const vnum=q=>typeof q==='function'?q():q;
+let renderer=null, scene=null, camera=null, P={}, RAY=null, NDC=null, MAXTS=4096, curView='iso';
+const orbit={target:null, dist:140, az:0.5, el:0.32};
+
+/* ═══ RIPPLE TANK 3D (shared template) ═══════════════════════════════════════════
+   ใช้ซ้ำใน Lab 32 (สะท้อน) · 33 (หักเห) · 34 (เลี้ยวเบน/แทรกสอด) · 41 (แทรกสอด 2 แหล่ง):
+   คัดลอกตั้งแต่บรรทัดนี้จนถึง "═══ END RIPPLE TANK 3D ═══" แล้วเขียนส่วนเฉพาะแลป (ฟังก์ชันสนาม · update3D · VIEWS อ่านค่า)
+
+   หน่วยโลก 3D = cm · ผิวโต๊ะ y = 0 · ถาดน้ำ RT.W × RT.D = 40 × 30 cm · ผิวบนก้นกระจก y = RT.Y
+   พิกัดถาด (u, w) cm: u = 0..40 ซ้าย→ขวา (x = u − 20) · w = 0..30 หลัง→หน้า (z = w − 15)
+     → ตรงกับพิกัด (x, y) ของภาพ 2D เดิม (ซ้าย→ขวา, บน→ล่าง)
+   กระดาษขาวบนโต๊ะใต้ถาด = จอรับภาพ: แถบสว่าง (สันคลื่น) / มืด (ท้องคลื่น) ขนาดเท่าจริง (หลอดไฟไกล ≈ แสงขนาน)
+     ภาพบนกระดาษกับผิวน้ำคำนวณจาก "สนามคลื่น" ชุดเดียวกัน → สิ่งที่นักเรียนวัดบนกระดาษ = คลื่นในถาด
+
+   แลปต้องมี:
+     fieldFn(U, Wc, R, out, n)  เติม out[i] ∈ [−1, 1] = ระดับผิวน้ำ ณ จุด (U[i], Wc[i]) · R[i] = ระยะถึงแหล่งกำเนิดหลัก (RT.SRC_U, RT.SRC_W)
+     shadeFn(U, Wc, R, mask, n) (ไม่บังคับ) ตัวคูณความสว่างคงที่บนกระดาษ เช่น เงาตัวจุ่ม/ขอบแผ่นกระจก — เรียกเมื่อโหมดเปลี่ยน
+     ตัวแปร markers = [{x:u, y:w}, …] (cm ของถาด) + ฟังก์ชัน updateMeasureDisplay() และ draw()
+   เรียก:
+     rtBuild(opt)                     สร้างถาด ขา กระดาษ หลอดไฟ ตัวสั่น แหล่งจ่ายไฟ (opt.freq / opt.amp = ฟังก์ชันคืนค่า Hz / %)
+     rtSetDepth(mm)                   ระดับน้ำ (ความลึกจริง 1:1)
+     rtVibrator(shape, disp, spin)    shape 'circular' (ตัวจุ่มจุด) | 'plane' (คานตรง) · disp = cm ขึ้นลง · spin = มุมมอเตอร์
+     rtShade(shadeFn) · rtUpdateField(fieldFn, flash)  วาดผิวน้ำ + ภาพบนกระดาษใหม่
+     rtPanel() · rtMarkersUpdate() · rtCamera()        ทุกเฟรม
+     rtPaperHit(cx, cy) → {u, w}       จุดที่นิ้วชี้บนกระดาษ (ใช้วางหมุดวัด)
+   ประสิทธิภาพ: ผิวน้ำ 160×120 ช่อง (มือถือ 96×72) · ภาพบนกระดาษ 8 px/cm (มือถือ 6) · normal คำนวณจากผลต่างของความสูง (ไม่เรียก computeVertexNormals) */
+const RT={ W:40, D:30, Y:28, FR:1.2, PAPER_Y:0.06, HV:0.16, SRC_U:2, SRC_W:15, PLANE_U0:1, LAMP_Y:62,
+  LOW: (Math.min(window.innerWidth||1200, window.innerHeight||800) < 700) || !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches) };
+RT.SX=RT.LOW?96:160; RT.SZ=Math.round(RT.SX*0.75); RT.PPC=RT.LOW?6:8;
+RT.waterY=RT.Y+1.0; RT.dirty=true;
+const RT_FONT='"IBM Plex Sans Thai",sans-serif';
+
+/* ── texture / วัสดุ (แบบ Lab 37/72/77) ── */
+function texApply(t){ let an=8; try{ if(renderer&&renderer.capabilities&&renderer.capabilities.getMaxAnisotropy) an=Math.max(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){}
+  t.anisotropy=an; if(renderer&&'outputEncoding' in renderer&&'encoding' in t) t.encoding=renderer.outputEncoding;
+  t.minFilter=THREE.LinearMipmapLinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t; }
+function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=texApply(new THREE.CanvasTexture(c)); t.userData={c,fn}; (P.texs||(P.texs=[])).push(t); return t; }
+function redrawTex(t){ if(!t||!t.userData||!t.userData.c) return; const c=t.userData.c; t.userData.fn(c.getContext('2d'),c.width,c.height); t.needsUpdate=true; }
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+const chromeM=c=>new THREE.MeshStandardMaterial({color:c==null?0xd8dde4:c,metalness:.95,roughness:.22});
+const anoM=c=>new THREE.MeshPhysicalMaterial({color:c==null?0xc3cad3:c,metalness:.78,roughness:.32,clearcoat:.25,clearcoatRoughness:.4});
+const rubberM=()=>new THREE.MeshStandardMaterial({color:0x141518,roughness:.92});
+const glassM=o=>new THREE.MeshPhysicalMaterial(Object.assign({color:0xe0f2fe,transparent:true,opacity:0.2,roughness:0.03,clearcoat:1,clearcoatRoughness:0.05,side:THREE.DoubleSide,depthWrite:false},o||{}));
+function ribKnob(r,h,col){ const g=new THREE.Group(), rm=new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5});
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r*0.94,r,h,32),enamel(col==null?0x15171c:col,0.35,0.5)));
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.07,h*0.88,r*0.13),rm); rib.position.set(Math.cos(a)*r*0.97,0,Math.sin(a)*r*0.97); rib.rotation.y=-a; g.add(rib); }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(r*0.62,r*0.62,h*0.08,32),chromeM(0xb8bec8)); cap.position.y=h/2+h*0.03; g.add(cap); return g; }
+function rubberFoot(r,h){ return new THREE.Mesh(new THREE.CylinderGeometry(r*0.9,r,h,18),rubberM()); }
+function glossTube(pts,r,col){ const V=pts.map(p=>new THREE.Vector3(...p)); const curve=new THREE.CatmullRomCurve3(V,false,'catmullrom',0.15);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(48,V.length*16),r,10,false),new THREE.MeshPhysicalMaterial({color:col,roughness:.35,clearcoat:.6,clearcoatRoughness:.3})); }
+/* ป้ายข้อความ Sprite (ขนาดคงที่บนจอ) — kp-real3d ยกป้ายข้อความยาวขึ้นพร้อมเส้นชี้ให้เอง */
+function labelSprite(fn,w,h,sc){ const t=canvasTex(w,h,fn);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,sizeAttenuation:false,depthWrite:false}));
+  s.scale.set(sc*w/h,sc,1); s.userData.tex=t; s.renderOrder=5; return s; }
+function tagFn(txt,bg,fg,font){ return (g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle=bg; g.beginPath(); if(g.roundRect) g.roundRect(4,4,w-8,h-8,h*0.22); else g.rect(4,4,w-8,h-8); g.fill();
+  g.fillStyle=fg; g.font=font||('bold '+Math.round(h*0.5)+'px '+RT_FONT); g.textAlign='center'; g.textBaseline='middle'; g.fillText(typeof txt==='function'?txt():txt,w/2,h/2+2); }; }
+const nameTag=(txt,col)=>labelSprite(tagFn(txt,'rgba(15,23,42,.9)',col||'#e2e8f0'),Math.max(220,txt.length*20),72,0.03);
+const uX=u=>u-RT.W/2, wZ=w=>w-RT.D/2;
+
+/* ── กระดาษขาว: ขอบมีไม้บรรทัดพิมพ์ (cm · ขีดเล็ก 1 mm) ตามแนว u (ขอบหน้า) และ w (ขอบซ้าย) ── */
+const PAPER_M=6;
+function drawPaper(g,w,h){ const ppc=w/(RT.W+2*PAPER_M), ox=PAPER_M*ppc, oy=PAPER_M*ppc;
+  g.fillStyle='#f3f4f1'; g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(0,0,0,.18)'; g.lineWidth=2; g.strokeRect(ox,oy,RT.W*ppc,RT.D*ppc);
+  g.fillStyle='#0b1220';
+  /* ขอบหน้า: 0–40 cm ตามแนวซ้าย→ขวา */
+  const by=oy+RT.D*ppc;
+  for(let mm=0;mm<=RT.W*10;mm++){ const x=ox+mm/10*ppc, cm=mm%10===0, five=mm%5===0, L=cm?ppc*1.1:five?ppc*0.75:ppc*0.45, tw=cm?2.4:1.4; g.fillRect(x-tw/2,by,tw,L); }
+  g.textAlign='center'; g.textBaseline='top';
+  for(let c=0;c<=RT.W;c++){ g.font='bold '+Math.round(ppc*(c%5===0?0.95:0.62))+'px "Share Tech Mono",monospace'; g.fillStyle=c%10===0?'#b91c1c':'#1f2937'; g.fillText(String(c),ox+c*ppc,by+ppc*1.25); }
+  /* ขอบซ้าย: 0–30 cm ตามแนวหลัง→หน้า */
+  for(let mm=0;mm<=RT.D*10;mm++){ const y=oy+mm/10*ppc, cm=mm%10===0, five=mm%5===0, L=cm?ppc*1.1:five?ppc*0.75:ppc*0.45, tw=cm?2.4:1.4; g.fillStyle='#0b1220'; g.fillRect(ox-L,y-tw/2,L,tw); }
+  g.textAlign='right'; g.textBaseline='middle';
+  for(let c=0;c<=RT.D;c+=5){ g.font='bold '+Math.round(ppc*0.9)+'px "Share Tech Mono",monospace'; g.fillStyle=c%10===0?'#b91c1c':'#1f2937'; g.fillText(String(c),ox-ppc*1.3,oy+c*ppc); }
+  g.textAlign='left'; g.textBaseline='alphabetic'; g.fillStyle='#475569'; g.font='bold '+Math.round(ppc*0.85)+'px '+RT_FONT;
+  g.fillText('จอรับภาพ (กระดาษขาว) · ภาพเท่าจริง · cm ขีดเล็ก 1 mm',ox,by+ppc*4.4); }
+
+/* ── แผงหน้าแหล่งจ่ายไฟตัวสั่น (พิมพ์ลาย + จอแสดงความถี่) ── */
+const PSU_W=15, PSU_H=7.5;
+function drawPsuPanel(g,w,h){ const f=P.optFreq?P.optFreq():0, a=P.optAmp?P.optAmp():0;
+  g.fillStyle='#d9dde3'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(0,0,0,.25)'; g.lineWidth=4; g.strokeRect(6,6,w-12,h-12);
+  g.fillStyle='#1e293b'; g.font='bold 30px "Share Tech Mono",monospace'; g.textAlign='left'; g.textBaseline='alphabetic'; g.fillText('KP-RT  RIPPLE VIBRATOR',26,48);
+  g.fillStyle='#0b1a12'; g.fillRect(26,70,300,128); g.strokeStyle='#475569'; g.lineWidth=5; g.strokeRect(26,70,300,128);
+  g.fillStyle='#4ade80'; g.font='bold 92px "Share Tech Mono",monospace'; g.textAlign='right'; g.fillText(f.toFixed(1),250,170);
+  g.font='bold 40px "Share Tech Mono",monospace'; g.textAlign='left'; g.fillText('Hz',258,170);
+  g.fillStyle='#86efac'; g.font='bold 20px "Share Tech Mono",monospace'; g.fillText('FREQ',38,96);
+  /* แถบแอมพลิจูด */
+  g.fillStyle='#1e293b'; g.font='bold 20px '+RT_FONT; g.fillText('AMPL '+Math.round(a)+' %',26,236);
+  g.fillStyle='#94a3b8'; g.fillRect(26,248,300,16); g.fillStyle='#f59e0b'; g.fillRect(26,248,300*clampN(a/100,0,1),16);
+  g.textAlign='center'; g.fillStyle='#1e293b'; g.font='bold 22px '+RT_FONT; g.fillText('FREQ',w*0.70,h-30); g.fillText('AMPL',w*0.88,h-30);
+  g.fillStyle='#b91c1c'; g.beginPath(); g.arc(w*0.70,96,9,0,Math.PI*2); g.fill(); g.fillStyle='#334155'; g.font='bold 18px '+RT_FONT; g.fillText('POWER',w*0.70,130); }
+
+function rtBuild(opt){ opt=opt||{}; P.optFreq=opt.freq; P.optAmp=opt.amp;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x1a2235,0.95));
+  const d1=new THREE.DirectionalLight(0xffffff,0.72); d1.position.set(60,180,160); scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.26); d2.position.set(-90,80,-70); scene.add(d2);
+  const alu=anoM(), Y=RT.Y, FR=RT.FR, HW=RT.W/2, HD=RT.D/2;
+
+  /* โต๊ะแลป */
+  const bench=rbox(120,4,74,0.8,new THREE.MeshStandardMaterial({color:0x6b4f3a,roughness:.8})); bench.position.set(-6,-2,2); scene.add(bench);
+  [[-62,-31],[-62,35],[50,-31],[50,35]].forEach(([x,z])=>{ const leg=rbox(5,70,5,0.8,enamel(0x3a4250,0.45,0.3)); leg.position.set(x,-39,z); scene.add(leg);
+    const ft=rubberFoot(2.8,1); ft.position.set(x,-74.5,z); scene.add(ft); });
+
+  /* กระดาษขาว (จอรับภาพ) + ภาพคลื่นที่ฉายลงมา */
+  { const TW=Math.min(RT.LOW?1536:2048,MAXTS), TH=Math.round(TW*(RT.D+2*PAPER_M)/(RT.W+2*PAPER_M));
+    const pt=canvasTex(TW,TH,drawPaper);
+    const paper=new THREE.Mesh(new THREE.PlaneGeometry(RT.W+2*PAPER_M,RT.D+2*PAPER_M),new THREE.MeshBasicMaterial({map:pt}));
+    paper.rotation.x=-Math.PI/2; paper.position.set(0,RT.PAPER_Y,0); scene.add(paper); }
+  { const pw=RT.W*RT.PPC, ph=RT.D*RT.PPC, c=document.createElement('canvas'); c.width=pw; c.height=ph;
+    const g=c.getContext('2d'), img=g.createImageData(pw,ph), n=pw*ph, U=new Float32Array(n), Wc=new Float32Array(n), R=new Float32Array(n);
+    for(let j=0;j<ph;j++) for(let i=0;i<pw;i++){ const k=j*pw+i, u=(i+0.5)/RT.PPC, w=(j+0.5)/RT.PPC; U[k]=u; Wc[k]=w; R[k]=Math.hypot(u-RT.SRC_U,w-RT.SRC_W); }
+    for(let k=0;k<n;k++) img.data[k*4+3]=255;
+    const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter; tex.generateMipmaps=false;
+    if(renderer&&'outputEncoding' in renderer) tex.encoding=renderer.outputEncoding;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(RT.W,RT.D),new THREE.MeshBasicMaterial({map:tex}));
+    m.rotation.x=-Math.PI/2; m.position.set(0,RT.PAPER_Y+0.03,0); scene.add(m);
+    RT.scr={c,g,img,n,U,Wc,R,v:new Float32Array(n),mask:new Float32Array(n).fill(1),tex,mesh:m}; }
+  { const t=nameTag('กระดาษขาว: ภาพคลื่นบนจอ','#fde68a'); t.position.set(-HW+4,1.5,HD+5); scene.add(t); }
+
+  /* ขาตั้งถาด 4 ขา + สกรูปรับระดับ */
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const x=sx*(HW+FR/2), z=sz*(HD+FR/2);
+    const leg=rbox(1.6,Y-1.6,1.6,0.35,enamel(0x2f3b4c,0.4,0.35)); leg.position.set(x,(Y-1.6)/2+1.1,z); scene.add(leg);
+    const sc=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,1.4,12),chromeM()); sc.position.set(x,0.75,z); scene.add(sc);
+    const kn=ribKnob(0.9,0.5); kn.position.set(x,0.55,z); scene.add(kn);
+    const ft=rubberFoot(0.8,0.3); ft.position.set(x,0.15,z); scene.add(ft); });
+
+  /* ถาด: ก้นกระจก + ขอบอะลูมิเนียม + ยางกันคลื่นสะท้อนบนขอบ */
+  const gb=rbox(RT.W+2*FR,0.5,RT.D+2*FR,0.3,glassM({opacity:0.16})); gb.position.set(0,Y-0.25,0); gb.renderOrder=1; scene.add(gb);
+  [[0,-(HD+FR/2),RT.W+2*FR,FR],[0,HD+FR/2,RT.W+2*FR,FR],[-(HW+FR/2),0,FR,RT.D],[HW+FR/2,0,FR,RT.D]].forEach(([x,z,w,d])=>{
+    const r=rbox(w,3,d,0.3,alu); r.position.set(x,Y+1.0,z); scene.add(r);
+    const f=rbox(w*0.98,0.5,d*0.98,0.2,new THREE.MeshStandardMaterial({color:0x2b2f36,roughness:.95})); f.position.set(x,Y+2.75,z); scene.add(f); });
+  { const t=nameTag('ถาดคลื่น (ก้นกระจก)','#bae6fd'); t.position.set(HW-6,Y+4,HD+1); scene.add(t); }
+
+  /* น้ำ: ก้อนน้ำโปร่งใส + ผิวน้ำที่ขยับตามสนามคลื่น */
+  RT.body=new THREE.Mesh(new THREE.BoxGeometry(RT.W,1,RT.D),new THREE.MeshStandardMaterial({color:0x7dd3fc,transparent:true,opacity:.16,depthWrite:false})); RT.body.renderOrder=2; scene.add(RT.body);
+  { const g=new THREE.PlaneGeometry(RT.W,RT.D,RT.SX,RT.SZ); g.rotateX(-Math.PI/2);
+    const nv=(RT.SX+1)*(RT.SZ+1), U=new Float32Array(nv), Wc=new Float32Array(nv), R=new Float32Array(nv);
+    for(let iy=0;iy<=RT.SZ;iy++) for(let ix=0;ix<=RT.SX;ix++){ const k=iy*(RT.SX+1)+ix, u=ix*RT.W/RT.SX, w=iy*RT.D/RT.SZ; U[k]=u; Wc[k]=w; R[k]=Math.hypot(u-RT.SRC_U,w-RT.SRC_W); }
+    g.attributes.position.setUsage(THREE.DynamicDrawUsage); g.attributes.normal.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(nv*3).fill(0.7),3).setUsage(THREE.DynamicDrawUsage));
+    const m=new THREE.Mesh(g,new THREE.MeshPhysicalMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0.5,roughness:0.06,metalness:0,clearcoat:1,clearcoatRoughness:0.04,side:THREE.DoubleSide,depthWrite:false}));
+    m.renderOrder=4; m.frustumCulled=false; scene.add(m);
+    RT.wat={mesh:m,n:nv,U,Wc,R,v:new Float32Array(nv),h:new Float32Array(nv)}; }
+
+  /* หลอดไฟเหนือถาด: เสาหนีบขอบหลัง + แขน + โคมกรวย */
+  { const rx=0, rz=-(HD+FR+0.8), top=RT.LAMP_Y+3;
+    const cl=rbox(2.4,2.4,2.2,0.3,enamel(0x3a4250,0.38,0.4)); cl.position.set(rx,Y+1.2,rz+0.2); scene.add(cl);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,top-(Y+1),16),chromeM()); rod.position.set(rx,(top+Y+1)/2,rz); scene.add(rod);
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,-rz,14),chromeM()); arm.rotation.x=Math.PI/2; arm.position.set(rx,top,rz/2); scene.add(arm);
+    const bo=rbox(1.6,1.6,1.6,0.3,enamel(0x3a4250,0.38,0.4)); bo.position.set(rx,top,rz); scene.add(bo);
+    const shade=new THREE.Mesh(new THREE.CylinderGeometry(1.0,3.8,4.2,40,1,true),new THREE.MeshPhysicalMaterial({color:0x1f2937,roughness:.4,clearcoat:.5,side:THREE.DoubleSide})); shade.position.set(0,RT.LAMP_Y,0); scene.add(shade);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.0,1.4,24),chromeM(0xa8b0bb)); cap.position.set(0,RT.LAMP_Y+2.6,0); scene.add(cap);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(1.25,24,16),new THREE.MeshBasicMaterial({color:0xfff7d6})); bulb.position.set(0,RT.LAMP_Y-1.0,0); scene.add(bulb);
+    scene.add(glossTube([[0,RT.LAMP_Y+3.2,0],[0,top+0.9,rz*0.4],[rx+0.6,top+0.6,rz-0.2],[rx+0.8,Y+6,rz-0.6],[rx+3,1.2,rz-4],[rx+12,0.35,rz-6]],0.25,0x111827));
+    const t=nameTag('หลอดไฟ','#fef3c7'); t.position.set(5,RT.LAMP_Y+1,0); scene.add(t); }
+
+  /* ตัวสั่น: เสา 2 ต้นหนีบขอบหน้า/หลัง + คานขวาง + ยางแขวนคานตัวทำคลื่น + มอเตอร์ */
+  { const vx=uX(RT.PLANE_U0-0.4), zp=HD+FR+0.6, top=Y+14;
+    [-zp,zp].forEach(z=>{ const cl=rbox(2.0,2.4,2.4,0.3,enamel(0x3a4250,0.38,0.4)); cl.position.set(vx,Y+1.2,z); scene.add(cl);
+      const p=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,top-Y,14),chromeM()); p.position.set(vx,(top+Y)/2+0.4,z); scene.add(p); });
+    const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,2*zp+1,14),chromeM()); cb.rotation.x=Math.PI/2; cb.position.set(vx,top,0); scene.add(cb);
+    RT.vibTop=top; RT.vibX=vx;
+    const vib=new THREE.Group(); scene.add(vib); RT.vib=vib;
+    const bar=rbox(0.8,1.0,RT.D-2,0.25,enamel(0x9a6b3f,0.5,0.4)); vib.add(bar); RT.bar=bar;   /* คานไม้ ยาวเกือบเต็มความกว้างถาด */
+    const mot=new THREE.Mesh(new THREE.CylinderGeometry(0.95,0.95,3.0,24),enamel(0x1d4ed8,0.35,0.6)); mot.rotation.z=Math.PI/2; mot.position.set(0,1.45,0); vib.add(mot);
+    const mcap=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.3,20),chromeM()); mcap.rotation.z=Math.PI/2; mcap.position.set(1.65,1.45,0); vib.add(mcap);
+    const ecc=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,0.25,20,1),chromeM(0x9aa3ad)); ecc.geometry.translate(0,0,0.35); ecc.rotation.z=Math.PI/2; ecc.position.set(1.95,1.45,0);
+    const eg=new THREE.Group(); eg.position.set(1.95,1.45,0); ecc.position.set(0,0,0); eg.add(ecc); vib.add(eg); RT.ecc=eg;
+    /* ตัวจุ่มจุด: แขนยื่นจากคาน → ก้านลง → ลูกปัด ที่ (SRC_U, SRC_W) */
+    const dip=new THREE.Group(); vib.add(dip); RT.dip=dip; const ax=uX(RT.SRC_U)-vx, az=wZ(RT.SRC_W);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(Math.abs(ax)+0.5,0.35,0.5),anoM()); arm.position.set(ax/2,-0.3,az); dip.add(arm);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,2.4,10),chromeM()); rod.position.set(ax,-1.5,az); dip.add(rod);
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(0.45,20,14),new THREE.MeshPhysicalMaterial({color:0xf8fafc,roughness:.3,clearcoat:.8})); ball.position.set(ax,-2.75,az); dip.add(ball);
+    /* ยางแขวน 2 เส้น (ยืดตามคาน) */
+    RT.bands=[-9,9].map(z=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,1,8),new THREE.MeshStandardMaterial({color:0x7c2d12,roughness:.8})); b.position.z=z; scene.add(b); return b; });
+    RT.mwire=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1,8),new THREE.MeshPhysicalMaterial({color:0xb91c1c,roughness:.35,clearcoat:.6})); scene.add(RT.mwire);
+    const t=nameTag('ตัวทำคลื่น + มอเตอร์','#c7d2fe'); t.position.set(vx-2,top+3,-6); scene.add(t); }
+
+  /* แหล่งจ่ายไฟของตัวสั่น (ปรับความถี่/แอมพลิจูด) + สายไปที่คานขวาง */
+  { const px=-36, pz=6, box=rbox(PSU_W+0.6,PSU_H,10,0.6,enamel(0x2b3442,0.42,0.4)); box.position.set(px,PSU_H/2+0.5,pz); scene.add(box);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const f=rubberFoot(0.6,0.5); f.position.set(px+sx*(PSU_W/2-1),0.25,pz+sz*4); scene.add(f); });
+    P.psuTex=canvasTex(1024,512,drawPsuPanel);
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(PSU_W,PSU_H),new THREE.MeshStandardMaterial({map:P.psuTex,roughness:.55,emissive:0xffffff,emissiveMap:P.psuTex,emissiveIntensity:0.22}));
+    face.position.set(px,PSU_H/2+0.5,pz+5.02); scene.add(face);
+    P.kF=ribKnob(1.1,1.0); P.kF.rotation.x=Math.PI/2; P.kF.position.set(px+PSU_W*0.20,PSU_H/2+0.1,pz+5.5); scene.add(P.kF);
+    P.kA=ribKnob(0.9,0.9,0x7c2d12); P.kA.rotation.x=Math.PI/2; P.kA.position.set(px+PSU_W*0.38,PSU_H/2+0.1,pz+5.45); scene.add(P.kA);
+    scene.add(glossTube([[px+PSU_W/2,PSU_H*0.6,pz-2],[px+PSU_W/2+5,1,pz-6],[RT.vibX-8,0.6,-(RT.D/2+4)],[RT.vibX-1,RT.Y+4,-(RT.D/2+RT.FR+0.9)],[RT.vibX,RT.vibTop-0.6,-(RT.D/2+RT.FR+0.6)],[RT.vibX,RT.vibTop+0.2,-4]],0.22,0x111827));
+    const t=nameTag('แหล่งจ่ายไฟตัวสั่น','#e2e8f0'); t.position.set(px,PSU_H+3,pz+3); scene.add(t); }
 }
-function p2w(px, py){
-  const W = cv.width, H = cv.height;
-  return { x: (px/W)*S.worldW, y: (py/H)*S.worldH - S.worldH/2 };
+
+/* ระดับน้ำ (mm จริง → cm) */
+function rtSetDepth(mm){ const d=Math.max(0.05,mm/10); RT.waterY=RT.Y+d;
+  RT.body.scale.y=d; RT.body.position.set(0,RT.Y+d/2,0); RT.wat.mesh.position.y=RT.waterY; }
+/* ตัวทำคลื่น: คานตรงจุ่มน้ำ (หน้าคลื่นตรง) หรือยกคานให้ลูกปัดจุ่มน้ำ (คลื่นวงกลม) */
+function rtVibrator(shape,disp,spin){ const plane=shape==='plane';
+  const y=RT.waterY+(plane?0.4:3.0)+disp; RT.vib.position.set(RT.vibX,y,0); RT.dip.visible=!plane;
+  if(RT.ecc) RT.ecc.rotation.x=spin||0;
+  RT.bands.forEach(b=>{ const y0=y+0.5, L=Math.max(0.1,RT.vibTop-y0); b.scale.y=L; b.position.set(RT.vibX,y0+L/2,b.position.z); });
+  const y1=y+2.4, L=Math.max(0.1,RT.vibTop-y1); RT.mwire.scale.y=L; RT.mwire.position.set(RT.vibX,y1+L/2,-0.6); }
+/* ตัวคูณความสว่างคงที่บนกระดาษ (เงาตัวจุ่ม · ขอบถาด) */
+function rtShade(fn){ const S=RT.scr, m=S.mask; m.fill(1);
+  for(let k=0;k<S.n;k++){ const u=S.U[k], w=S.Wc[k], e=Math.min(u,RT.W-u,w,RT.D-w); if(e<0.35) m[k]=0.55+e; }
+  if(fn) fn(S.U,S.Wc,S.R,m,S.n); }
+/* วาดผิวน้ำ + ภาพบนกระดาษใหม่จากสนามคลื่นของแลป */
+function rtUpdateField(fn,flash){
+  const S=RT.scr, v=S.v, d=S.img.data, m=S.mask, fl=flash||0; fn(S.U,S.Wc,S.R,v,S.n);
+  for(let k=0,o=0;k<S.n;k++,o+=4){ let L=(0.74+0.5*v[k])*m[k]+fl; L=L<0.12?0.12:(L>1.08?1.08:L);
+    const r=L*238, g=L*244, b=L*252; d[o]=r>255?255:r; d[o+1]=g>255?255:g; d[o+2]=b>255?255:b; }
+  S.g.putImageData(S.img,0,0); S.tex.needsUpdate=true;
+  const G=RT.wat, h=G.h, gv=G.v, NX=RT.SX+1, NZ=RT.SZ+1; fn(G.U,G.Wc,G.R,gv,G.n);
+  const geo=G.mesh.geometry, pa=geo.attributes.position.array, na=geo.attributes.normal.array, ca=geo.attributes.color.array;
+  for(let k=0;k<G.n;k++){ h[k]=RT.HV*gv[k]; pa[k*3+1]=h[k]; const c=gv[k]; ca[k*3]=0.52+0.34*c; ca[k*3+1]=0.76+0.22*c; ca[k*3+2]=0.92+0.1*c; }
+  const i2x=0.5*RT.SX/RT.W, i2z=0.5*RT.SZ/RT.D;
+  for(let iz=0;iz<NZ;iz++){ const z0=iz>0?iz-1:iz, z1=iz<NZ-1?iz+1:iz;
+    for(let ix=0;ix<NX;ix++){ const k=iz*NX+ix, x0=ix>0?ix-1:ix, x1=ix<NX-1?ix+1:ix;
+      const gx=(h[iz*NX+x1]-h[iz*NX+x0])*i2x*(2/(x1-x0||1)), gz=(h[z1*NX+ix]-h[z0*NX+ix])*i2z*(2/(z1-z0||1)), il=1/Math.sqrt(gx*gx+1+gz*gz);
+      na[k*3]=-gx*il; na[k*3+1]=il; na[k*3+2]=-gz*il; } }
+  geo.attributes.position.needsUpdate=true; geo.attributes.normal.needsUpdate=true; geo.attributes.color.needsUpdate=true; }
+/* แผงหน้าแหล่งจ่ายไฟ + ปุ่มหมุน */
+function rtPanel(){ const f=P.optFreq?P.optFreq():0, a=P.optAmp?P.optAmp():0, k=f.toFixed(1)+'|'+Math.round(a);
+  if(k!==P.psuKey){ P.psuKey=k; redrawTex(P.psuTex); }
+  P.kF.rotation.y=Math.PI*0.75-1.5*Math.PI*clampN((f-4)/26,0,1); P.kA.rotation.y=Math.PI*0.75-1.5*Math.PI*clampN(a/100,0,1); }
+
+/* ── หมุดวัดบนกระดาษ ① (ส้ม) ② (ชมพู) + เส้นบอกระยะ ── */
+function rtMarkersBuild(){
+  function pin(col,css,num){ const g=new THREE.Group(), m=new THREE.MeshPhysicalMaterial({color:col,roughness:.3,clearcoat:.8});
+    const st=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.3,8),chromeM()); st.position.y=0.65; g.add(st);
+    const hd=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,12),m); hd.position.y=1.35; g.add(hd);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.16,0.3,24),new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=0.02; g.add(ring);
+    const lb=labelSprite(tagFn(num,css,'#0b1220','bold 60px "Share Tech Mono",monospace'),96,96,0.036); lb.position.y=2.1; lb.userData.kpLabel=false; g.add(lb);
+    g.visible=false; scene.add(g); return g; }
+  P.mk=[pin(0xfb923c,'#fdba74','1'),pin(0xf472b6,'#f9a8d4','2')];
+  P.mLine=new THREE.Mesh(new THREE.BoxGeometry(1,0.03,0.07),new THREE.MeshBasicMaterial({color:0x0f766e})); P.mLine.visible=false; scene.add(P.mLine);
+  P.mTxt=''; P.mTag=labelSprite(tagFn(()=>P.mTxt,'rgba(6,24,18,.92)','#34d399','bold 44px "Share Tech Mono",monospace'),360,80,0.038); P.mTag.userData.kpLabel=false; P.mTag.visible=false; scene.add(P.mTag); }
+function rtMarkersUpdate(){ const y=RT.PAPER_Y+0.04;
+  P.mk.forEach((g,i)=>{ const q=markers[i]; g.visible=!!q; if(q) g.position.set(uX(q.x),y,wZ(q.y)); });
+  const two=markers.length>=2; P.mLine.visible=two; P.mTag.visible=two;
+  if(two){ const a=markers[0], b=markers[1], dx=b.x-a.x, dz=b.y-a.y, L=Math.max(0.001,Math.hypot(dx,dz));
+    P.mLine.scale.x=L; P.mLine.position.set(uX((a.x+b.x)/2),y+0.02,wZ((a.y+b.y)/2)); P.mLine.rotation.y=-Math.atan2(dz,dx);
+    P.mTag.position.set(uX((a.x+b.x)/2),y+3.2,wZ((a.y+b.y)/2));
+    const s='ระยะ '+L.toFixed(2)+' cm'; if(s!==P.mTxt){ P.mTxt=s; redrawTex(P.mTag.userData.tex); } } }
+
+/* ── กล้อง / มุมมอง ── */
+function aspect3d(){ const el=gid('view3d'); return Math.max(0.4,(el&&el.clientWidth?el.clientWidth:800)/((el&&el.clientHeight)?el.clientHeight:420)); }
+const narrow=()=>aspect3d()<1.25;
+function fitDist(w,h){ return Math.max(h, w/aspect3d())/(2*Math.tan(36*Math.PI/360))*1.08; }
+function rtCamera(){ const tg=orbit.target; camera.up.set(0,1,0);
+  camera.position.set(tg.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), tg.y+orbit.dist*Math.sin(orbit.el), tg.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el));
+  camera.lookAt(tg); }
+/* มุมอ่านภาพบนกระดาษ: มองต่ำจากด้านหน้าลอดใต้ถาด (เส้นสายตาไม่ชนขอบถาด) · ใช้ rtReadFocus() ของแลป → {u, w, width} */
+function rtReadView(){ const f=rtReadFocus(), zt=wZ(f.w), clear=RT.Y-RT.PAPER_Y-2.5, el=Math.min(0.98,Math.atan(clear/Math.max(1,RT.D/2+RT.FR+1-zt)));
+  return {t:[uX(f.u),RT.PAPER_Y,zt], d:fitDist(f.width,f.width*0.55), az:0.0001, el}; }
+const VIEWS={
+  iso  :()=>({t:[narrow()?-1:-5,30,0], d:fitDist(narrow()?58:92,76), az:0.52, el:0.34}),
+  front:()=>({t:[narrow()?-1:-5,30,0], d:fitDist(narrow()?56:90,72), az:0.0001, el:0.1}),
+  top  :()=>({t:[0,RT.waterY,0], d:fitDist(RT.W+6,RT.D+6), az:0.0001, el:1.22}),   /* เอียงเล็กน้อย ไม่ให้โคมไฟบังกลางถาด */
+  read :rtReadView
+};
+function resize3D(){ if(!renderer) return; const w=gid('view3d').clientWidth||800, h=gid('view3d').clientHeight||420; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function setView(vw){ const V=VIEWS[vw]; curView=V?vw:'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.toggle('on',b.dataset.vw===curView));
+  if(!V||!orbit.target) return; const o=V(), tt=o.t;
+  /* จอแคบ: ปุ่มมุมมองอยู่ขอบบน → ดันอุปกรณ์ลงเล็กน้อยไม่ให้ปุ่มบัง */
+  const up= narrow()&&vw!=='read'? 0.05*2*o.d*Math.tan(18*Math.PI/180) : 0;
+  orbit.target.set(tt[0],tt[1]+up,tt[2]); orbit.dist=o.d; orbit.az=o.az; orbit.el=o.el; }
+
+/* ═══ แตะ/ลากหมุดวัดบนกระดาษ ═══
+   แตะ (ไม่ลาก) บนกระดาษ = ปักหมุดใหม่ (ครบ 2 หมุดแล้วแตะใหม่ = เริ่มใหม่ เหมือน 2D) · แตะแล้วลาก = หมุนภาพ
+   ลากหมุดเดิม = เลื่อนหมุดแบบละเอียด ¼ ของระยะนิ้ว (HD_FINE) เพื่อเล็งให้ตรงกลางแถบสว่าง */
+const HD={on:false,k:-1,mu:0,mw:0,u0:0,w0:0}, HD_FINE=0.25;
+let lastTouch=false, _pv=null;
+function setRay(cx,cy){ if(!renderer||!camera) return null; if(!RAY){ RAY=new THREE.Raycaster(); NDC=new THREE.Vector2(); }
+  const rc=renderer.domElement.getBoundingClientRect(); if(!rc.width||!rc.height) return null;
+  camera.updateMatrixWorld(); NDC.x=((cx-rc.left)/rc.width)*2-1; NDC.y=-((cy-rc.top)/rc.height)*2+1; RAY.setFromCamera(NDC,camera); return rc; }
+function rtPaperHit(cx,cy){ const rc=setRay(cx,cy); if(!rc) return null; const o=RAY.ray.origin, d=RAY.ray.direction;
+  if(Math.abs(d.y)<1e-6) return null; const s=(RT.PAPER_Y-o.y)/d.y; if(!(s>0)) return null; return {u:o.x+s*d.x+RT.W/2, w:o.z+s*d.z+RT.D/2, rc}; }
+function scr(x,y,z,rc){ if(!_pv) _pv=new THREE.Vector3(); _pv.set(x,y,z).project(camera); return [rc.left+(_pv.x*0.5+0.5)*rc.width, rc.top+(-_pv.y*0.5+0.5)*rc.height]; }
+function segDist(px,py,a,b){ const vx=b[0]-a[0], vy=b[1]-a[1], l2=vx*vx+vy*vy; let u=l2>0?((px-a[0])*vx+(py-a[1])*vy)/l2:0; u=clampN(u,0,1); return Math.hypot(px-a[0]-u*vx, py-a[1]-u*vy); }
+function pickAt(cx,cy){ if(!scene) return null; const h=rtPaperHit(cx,cy); if(!h) return null; const rc=h.rc;
+  let best=-1, bd=1e9; const R=lastTouch?30:18;
+  markers.forEach((q,i)=>{ if(i>1) return; const dd=segDist(cx,cy,scr(uX(q.x),RT.PAPER_Y,wZ(q.y),rc),scr(uX(q.x),RT.PAPER_Y+2.1,wZ(q.y),rc)); if(dd<bd){ bd=dd; best=i; } });
+  if(best>=0&&bd<=R) return {k:best,u:h.u,w:h.w};
+  if(h.u<0||h.u>RT.W||h.w<0||h.w>RT.D) return null;
+  return {k:-1,u:h.u,w:h.w}; }
+function placeAt(cx,cy){ const p=pickAt(cx,cy); if(!p||p.k>=0) return;
+  if(markers.length>=2) markers=[]; markers.push({x:clampN(p.u,0,RT.W),y:clampN(p.w,0,RT.D)}); updateMeasureDisplay(); draw(); }
+function hdStart(p){ HD.on=true; HD.k=p.k; HD.mu=p.u; HD.mw=p.w; HD.u0=markers[p.k].x; HD.w0=markers[p.k].y; }
+function hdMove(cx,cy){ if(!HD.on||!markers[HD.k]) return; const h=rtPaperHit(cx,cy); if(!h) return;
+  markers[HD.k].x=clampN(HD.u0+(h.u-HD.mu)*HD_FINE,0,RT.W); markers[HD.k].y=clampN(HD.w0+(h.w-HD.mw)*HD_FINE,0,RT.D); updateMeasureDisplay(); }
+function hdEnd(){ if(!HD.on) return; HD.on=false; HD.k=-1; draw(); }
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode=false;
+function setPanMode(on){ panMode=!!on; const b=gid('panBtn');
+  if(b){ b.classList.toggle('active',panMode); b.innerHTML=panMode?'✋ เลื่อนภาพ · เปิดอยู่':'✋ เลื่อนภาพ'; }
+  const c=renderer?renderer.domElement:null; if(c) c.style.cursor=panMode?'move':''; }
+function setupPointer(cv){ const T={mode:null,lx:0,ly:0,sx:0,sy:0,d0:0,cx:0,cy:0};
+  const mid=e=>({x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2,d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)});
+  const begin=(x,y,canPick,isPan)=>{ T.lx=T.sx=x; T.ly=T.sy=y;
+    if(canPick&&!isPan){ const p=pickAt(x,y); if(p&&p.k>=0){ hdStart(p); T.mode='hand'; return; } if(p){ T.mode='pend'; return; } }
+    T.mode=isPan?'pan':'rot'; };
+  const drag=(x,y,slop)=>{ if(T.mode==='hand'){ hdMove(x,y); return; }
+    if(T.mode==='pend'){ if(Math.hypot(x-T.sx,y-T.sy)<slop) return; T.mode='rot'; }
+    const dx=x-T.lx, dy=y-T.ly; T.lx=x; T.ly=y; if(T.mode==='pan') camPan(dx,dy); else if(T.mode==='rot') camRotate(dx,dy); };
+  const finish=()=>{ if(T.mode==='hand') hdEnd(); else if(T.mode==='pend') placeAt(T.sx,T.sy); T.mode=null; };
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('mousedown',e=>{ e.preventDefault(); lastTouch=false; begin(e.clientX,e.clientY,e.button===0,e.button===1||e.button===2||e.shiftKey||panMode); cv.style.cursor='grabbing'; });
+  cv.addEventListener('mousemove',e=>{ if(T.mode) return; lastTouch=false; const p=panMode?null:pickAt(e.clientX,e.clientY); cv.style.cursor=p?(p.k>=0?'move':'crosshair'):(panMode?'move':'grab'); });
+  window.addEventListener('mousemove',e=>{ if(!T.mode||T.mode==='pinch') return;
+    if(e.buttons===0){ finish(); cv.style.cursor='grab'; return; } drag(e.clientX,e.clientY,5); });
+  window.addEventListener('mouseup',()=>{ if(T.mode&&T.mode!=='pinch') finish(); cv.style.cursor='grab'; });
+  window.addEventListener('blur',()=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('touchstart',e=>{ e.preventDefault(); lastTouch=true;
+    if(e.touches.length>=2){ if(T.mode==='hand') hdEnd(); const m=mid(e); T.mode='pinch'; T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1){ const t0=e.touches[0]; begin(t0.clientX,t0.clientY,true,panMode); } },{passive:false});
+  cv.addEventListener('touchmove',e=>{ e.preventDefault();
+    if(T.mode==='pinch'&&e.touches.length>=2){ const m=mid(e); if(T.d0>10&&m.d>10) camZoom(T.d0/m.d); camPan(m.x-T.cx,m.y-T.cy); T.d0=m.d; T.cx=m.x; T.cy=m.y; }
+    else if(e.touches.length===1&&T.mode&&T.mode!=='pinch'){ const t0=e.touches[0]; drag(t0.clientX,t0.clientY,9); } },{passive:false});
+  const tend=e=>{ if(e.touches.length===1){ if(T.mode==='hand'||T.mode==='pend') return; T.mode=panMode?'pan':'rot'; T.lx=e.touches[0].clientX; T.ly=e.touches[0].clientY; }
+    else if(e.touches.length===0){ if(T.mode==='pinch') T.mode=null; else finish(); } };
+  cv.addEventListener('touchend',tend); cv.addEventListener('touchcancel',e=>{ if(T.mode==='hand') hdEnd(); T.mode=null; });
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); camZoom(1+e.deltaY*0.0012); },{passive:false}); }
+function freeView(){ if(curView!=='free'){ curView='free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b=>b.classList.remove('on')); } }
+function camRotate(dx,dy){ freeView(); orbit.az-=dx*0.006; orbit.el=Math.max(-0.1,Math.min(1.5,orbit.el+dy*0.006)); }
+function camZoom(f){ freeView(); orbit.dist=Math.max(3,Math.min(600,orbit.dist*f)); }
+function camPan(dx,dy){ freeView(); if(!orbit.target||!camera) return;
+  const k=orbit.dist*2*Math.tan(camera.fov*Math.PI/360)/((gid('view3d').clientHeight)||300), ca=Math.cos(orbit.az), sa=Math.sin(orbit.az), ce=Math.cos(orbit.el), se=Math.sin(orbit.el);
+  orbit.target.x+=(-dx*ca+dy*(-se*sa))*k; orbit.target.y+=dy*ce*k; orbit.target.z+=(dx*sa+dy*(-se*ca))*k; }
+/* ═══ END RIPPLE TANK 3D ═══════════════════════════════════════════════════════ */
+
+/* ===== Lab 41 — ส่วนเฉพาะแลป (ถาดคลื่น 3D) =====
+   พิกัด 2D เดิม (x, y) m ↔ ถาด (u, w) cm: u = 100x · w = 100y + 15 (แนวกลาง y = 0 อยู่กลางถาด)
+   แหล่งกำเนิด/แผ่นกั้นอยู่ที่ x = xM = 0.05 m → u = 5 cm (XB)
+   สนามคลื่น = สูตรเดียวกับภาพ 2D เดิม (drawPattern) ทุกประการ:
+     2 แหล่ง: u = √0.1·[A₁cos(kr₁−ωt) + A₂cos(kr₂−ωt+φ)] · Aᵢ = 1/√max(rᵢ, 0.005) (เฉพาะจุดที่หน้าคลื่น v·t ไปถึงแล้ว)
+     ช่องแคบเดียว: ผลรวม wavelet 12 จุดในช่อง × √0.1 × 2/12 · ตัดที่ ±2 → ระดับผิวน้ำ = u/2
+   เพิ่มเติมเฉพาะในภาพ 3D: ช่องแคบ → ด้านหน้าแผ่นกั้น (u < 5) เป็นคลื่นหน้าตรงจากคานตัวทำคลื่น (เฟสต่อเนื่องที่ช่อง) · ในเนื้อแผ่นกั้นไม่มีน้ำ
+   ความเร็ว: แคช Σ A·cos(kr), Σ A·sin(kr) ต่อจุด (คำนวณใหม่เมื่อชนิดแหล่ง/เฟส/d/λ เปลี่ยน) → ต่อเฟรม = cR·cosωt + cI·sinωt
+     (ผลเท่ากับสูตรเดิมทุกจุดที่หน้าคลื่นผ่านไปแล้ว · จุดที่หน้าคลื่นยังไปไม่ถึงคิดด้วยสูตรเดิมตรง ๆ) */
+let markers=[];   /* หมุด P บนกระดาษใต้ถาด (สูงสุด 1 หมุด) {x:u, y:w} cm ↔ S.P (m) */
+const XB=5, BT=0.5, BAR_H=2.4, SLIT_GAP=0.8, PLANE_A=1, PROT_R=12;
+const toU=x=>x*100, toW=y=>y*100+RT.D/2;
+const L41={cache:new WeakMap()};
+
+/* 0 = สูตร 2 แหล่ง/ช่องแคบ · 1 = คลื่นหน้าตรงก่อนถึงแผ่นกั้น · 2 = เนื้อแผ่นกั้น */
+function zoneAt(u,w){
+  if(S.sourceType==='point') return 0;
+  if(u<XB-BT/2) return 1;
+  if(u>XB+BT/2) return 0;
+  const {S1,S2}=srcPositions();
+  if(S.sourceType==='slit') return (Math.abs(w-toW(S1.y))<SLIT_GAP/2||Math.abs(w-toW(S2.y))<SLIT_GAP/2)?0:2;
+  return Math.abs(w-RT.D/2)<S.d*50?0:2;
 }
+function labField(U,Wc,R,out,n){
+  const {S1,S2}=srcPositions(), k=2*Math.PI/lambdaReal(), omega=2*Math.PI*S.f, t=S.t;
+  const ph2=(S.sourceType==='point'&&S.phase==='anti')?Math.PI:0, single=isSingleSlit(), Nw=12, scale=Math.sqrt(0.10);
+  const cosOT=Math.cos(omega*t), sinOT=Math.sin(omega*t), front=S.t*S.v;
+  const slitYs=new Array(Nw); if(single) for(let kk=0;kk<Nw;kk++) slitYs[kk]=-S.d/2+(kk+0.5)*(S.d/Nw);
+  const gk=S.sourceType+'|'+S.phase+'|'+S.d+'|'+k;
+  let C=L41.cache.get(U);
+  if(!C||C.key!==gk){
+    if(!C||C.n!==n) C={n,cR:new Float32Array(n),cI:new Float32Array(n),rMax:new Float32Array(n),z:new Uint8Array(n)};
+    C.key=gk;
+    for(let i=0;i<n;i++){ const xW=U[i]/100, yW=(Wc[i]-RT.D/2)/100; C.z[i]=zoneAt(U[i],Wc[i]); let sR=0, sI=0, rm=0;
+      if(single){ const dx=xW-S1.x;
+        for(let kk=0;kk<Nw;kk++){ const dy=yW-slitYs[kk], r=Math.sqrt(dx*dx+dy*dy), amp=1/Math.sqrt(Math.max(r,0.005)); sR+=amp*Math.cos(k*r); sI+=amp*Math.sin(k*r); if(r>rm) rm=r; }
+        sR*=scale*(2/Nw); sI*=scale*(2/Nw);
+      } else { const r1=Math.hypot(xW-S1.x,yW-S1.y), r2=Math.hypot(xW-S2.x,yW-S2.y), a1=scale/Math.sqrt(Math.max(r1,0.005)), a2=scale/Math.sqrt(Math.max(r2,0.005));
+        sR=a1*Math.cos(k*r1)+a2*Math.cos(k*r2+ph2); sI=a1*Math.sin(k*r1)+a2*Math.sin(k*r2+ph2); rm=Math.max(r1,r2); }
+      C.cR[i]=sR; C.cI[i]=sI; C.rMax[i]=rm; }
+    L41.cache.set(U,C); }
+  for(let i=0;i<n;i++){ const z=C.z[i];
+    if(z===2){ out[i]=0; continue; }
+    if(z===1){ const dU=(U[i]-RT.PLANE_U0)/100; out[i]=(dU<0||front<=dU)?0:0.5*PLANE_A*Math.cos(k*(U[i]-XB)/100-omega*t); continue; }
+    let u;
+    if(front>C.rMax[i]) u=C.cR[i]*cosOT+C.cI[i]*sinOT;
+    else { const xW=U[i]/100, yW=(Wc[i]-RT.D/2)/100;   /* หน้าคลื่นยังไปไม่ถึงบางแหล่ง: สูตรเดิมตรง ๆ */
+      if(single){ let sR=0, sI=0; const dx=xW-S1.x;
+        for(let kk=0;kk<Nw;kk++){ const dy=yW-slitYs[kk], r=Math.sqrt(dx*dx+dy*dy); if(S.t*S.v<=r) continue; const amp=1/Math.sqrt(Math.max(r,0.005)); sR+=amp*Math.cos(k*r); sI+=amp*Math.sin(k*r); }
+        u=(sR*cosOT+sI*sinOT)*scale*(2/Nw);
+      } else { const r1=Math.hypot(xW-S1.x,yW-S1.y), r2=Math.hypot(xW-S2.x,yW-S2.y);
+        const amp1=(S.t*S.v>r1)?1/Math.sqrt(Math.max(r1,0.005)):0, amp2=(S.t*S.v>r2)?1/Math.sqrt(Math.max(r2,0.005)):0;
+        u=amp1*Math.cos(k*r1-omega*t)*scale+amp2*Math.cos(k*r2-omega*t+ph2)*scale; } }
+    if(u>2) u=2; if(u<-2) u=-2; out[i]=u/2; } }
+/* เงาคงที่บนกระดาษ: ลูกปัดตัวจุ่ม 2 ลูก · คานตัวทำคลื่น · แผ่นกั้น */
+function labShade(U,Wc,R,m,n){ const pt=S.sourceType==='point', {S1,S2}=srcPositions(), w1=toW(S1.y), w2=toW(S2.y);
+  for(let i=0;i<n;i++){ const u=U[i], w=Wc[i];
+    if(pt){ if(Math.hypot(u-XB,w-w1)<0.5||Math.hypot(u-XB,w-w2)<0.5) m[i]*=0.3; }
+    else { if(u<RT.PLANE_U0&&w>1&&w<RT.D-1) m[i]*=0.3; if(zoneAt(u,w)===2) m[i]*=0.25; } } }
 
-// ---------- Wave rendering ----------
-function drawPattern(){
-  const {S1, S2} = srcPositions();
-  const k = 2*Math.PI / lambdaReal();
-  const omega = 2*Math.PI * S.f;
-  const ph2 = (S.sourceType==='point' && S.phase==='anti') ? Math.PI : 0;
-  const t = S.t;
-  const data = imgData.data;
-
-  // Single-slit: precompute wavelet y-positions across slit width
-  const single = isSingleSlit();
-  const Nw = 12;
-  const slitYs = new Array(Nw);
-  if(single){
-    for(let kk=0;kk<Nw;kk++) slitYs[kk] = -S.d/2 + (kk+0.5)*(S.d/Nw);
-  }
-  const scale = Math.sqrt(0.10);
-  const cosOT = Math.cos(omega*t), sinOT = Math.sin(omega*t);
-
-  // Accent color scheme: map u from [-2,2] to a blue-cyan-yellow gradient
-  for(let j=0;j<lowH;j++){
-    const yW = (j/lowH - 0.5) * S.worldH;
-    for(let i=0;i<lowW;i++){
-      const xW = (i/lowW) * S.worldW;
-      let u;
-      if(single){
-        // Sum Huygens wavelets across slit: u = Σ amp·cos(k·r - ωt)
-        //   = cos(ωt)·Σ amp·cos(k·r) + sin(ωt)·Σ amp·sin(k·r)
-        let sR=0, sI=0;
-        const dx = xW - S1.x;
-        for(let kk=0;kk<Nw;kk++){
-          const dy = yW - slitYs[kk];
-          const r = Math.sqrt(dx*dx + dy*dy);
-          if(S.t*S.v <= r) continue;
-          const amp = 1/Math.sqrt(Math.max(r,0.005));
-          sR += amp*Math.cos(k*r);
-          sI += amp*Math.sin(k*r);
-        }
-        u = (sR*cosOT + sI*sinOT) * scale * (2/Nw);
-      } else {
-        const r1 = Math.hypot(xW-S1.x, yW-S1.y);
-        const r2 = Math.hypot(xW-S2.x, yW-S2.y);
-        const amp1 = (S.t*S.v > r1) ? 1/Math.sqrt(Math.max(r1,0.005)) : 0;
-        const amp2 = (S.t*S.v > r2) ? 1/Math.sqrt(Math.max(r2,0.005)) : 0;
-        let u1 = amp1 * Math.cos(k*r1 - omega*t);
-        let u2 = amp2 * Math.cos(k*r2 - omega*t + ph2);
-        u1 *= scale; u2 *= scale;
-        u = u1 + u2;
-      }
-
-      // clamp
-      if(u>2) u=2; if(u<-2) u=-2;
-
-      // color map (dark blue -> black -> light cyan)
-      const n = (u+2)/4;  // 0..1
-      // colorize: trough = deep blue, zero = near-black, crest = cyan/white
-      const r = Math.round(20 + 60*n + 80*n*n);
-      const g = Math.round(30 + 80*n + 120*n*n);
-      const b = Math.round(60 + 120*n + 60*n*n);
-
-      const idx = 4*(j*lowW + i);
-      data[idx]=r; data[idx+1]=g; data[idx+2]=b; data[idx+3]=255;
-    }
-  }
-
-  offCtx.putImageData(imgData, 0, 0);
-
-  // Draw background
-  ctx.fillStyle = '#030612';
-  ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(off, 0, 0, cv.width, cv.height);
-
-  // Barrier overlay for slit modes
-  if(S.sourceType==='slit' || S.sourceType==='single'){
-    const {xM, S1: s1, S2: s2} = srcPositions();
-    ctx.fillStyle = '#0a0e1a';
-    const bx = w2p(xM, 0).px;
-    const bxw = Math.max(4, cv.width*0.012);
-    if(S.sourceType==='slit'){
-      const slitGap = 0.008;
-      const y1a = w2p(0, -S.worldH/2).py;
-      const y1b = w2p(0, s1.y - slitGap/2).py;
-      ctx.fillRect(bx-bxw/2, y1a, bxw, y1b-y1a);
-      const y2a = w2p(0, s1.y + slitGap/2).py;
-      const y2b = w2p(0, s2.y - slitGap/2).py;
-      ctx.fillRect(bx-bxw/2, y2a, bxw, y2b-y2a);
-      const y3a = w2p(0, s2.y + slitGap/2).py;
-      const y3b = w2p(0, S.worldH/2).py;
-      ctx.fillRect(bx-bxw/2, y3a, bxw, y3b-y3a);
-    } else {
-      // single slit: one gap of width S.d centered at y=0
-      const y1a = w2p(0, -S.worldH/2).py;
-      const y1b = w2p(0, -S.d/2).py;
-      ctx.fillRect(bx-bxw/2, y1a, bxw, y1b-y1a);
-      const y2a = w2p(0, S.d/2).py;
-      const y2b = w2p(0, S.worldH/2).py;
-      ctx.fillRect(bx-bxw/2, y2a, bxw, y2b-y2a);
-    }
-    ctx.strokeStyle = '#1e3a5f';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(bx-bxw/2, 0, bxw, cv.height);
-  }
-
-  // sources markers
-  const {S1: s1, S2: s2, xM, yM} = srcPositions();
-  for(const s of [s1,s2]){
-    const p = w2p(s.x, s.y);
-    ctx.beginPath();
-    ctx.arc(p.px, p.py, 6, 0, Math.PI*2);
-    ctx.fillStyle = '#fb923c';
-    ctx.shadowColor = '#fb923c';
-    ctx.shadowBlur = 10;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-  // labels
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = 'bold 12px IBM Plex Sans Thai, sans-serif';
-  const pS1 = w2p(s1.x, s1.y), pS2 = w2p(s2.x, s2.y);
-  if(S.sourceType==='single'){
-    ctx.fillText('S₂ (กลางครึ่งบน)', pS2.px+10, pS2.py-8);
-    ctx.fillText('S₁ (กลางครึ่งล่าง)', pS1.px+10, pS1.py+14);
-  } else {
-    ctx.fillText('S₁', pS1.px-18, pS1.py+4);
-    ctx.fillText('S₂', pS2.px-18, pS2.py+4);
-  }
-
-  // midpoint M
-  const pM = w2p(xM, yM);
-  ctx.beginPath();
-  ctx.arc(pM.px, pM.py, 3, 0, Math.PI*2);
-  ctx.fillStyle = '#818cf8';
-  ctx.fill();
-  ctx.fillText('M', pM.px+6, pM.py-4);
-}
-
-// hint lines: hyperbolae for antinodes and nodes
-function drawHintLines(){
-  if(!S.showHint) return;
-  const {S1, S2, xM} = srcPositions();
-  const c = Math.abs(S2.y - S1.y)/2;  // half-separation of measurement sources
-  const lam = lambdaReal();
-
-  const isInPhase = !(S.sourceType==='point' && S.phase==='anti');
-  const isSingle = S.sourceType==='single';
-  // Determine mDiff values per type
-  let antiOrders = [], nodeOrders = [];
+/* แนวบัพ/ปฏิบัพ (hint) + จุด S₁ S₂ M ที่ทำเครื่องหมายไว้บนกระดาษ — วาดทับภาพคลื่นบนกระดาษ (สูตร hyperbola เดิม) */
+function hintOrders(){
+  const isInPhase=!(S.sourceType==='point'&&S.phase==='anti'), isSingle=S.sourceType==='single';
+  const antiOrders=[], nodeOrders=[];
   if(isSingle){
-    // Foci at ±a/4 ⇒ Δr_meas = (a/2)·sinθ
-    //   Dark (bùp): a·sinθ = nλ ⇒ Δr_meas = (n/2)λ → mDiff = n/2, n=1,2,3…
-    //   Bright (pàti-bùp) secondary: a·sinθ ≈ (n+½)λ ⇒ mDiff = (n+½)/2, n=1,2,3…
-    //   Central max: Δr_meas = 0 (perpendicular bisector)
     for(let n=1;n<=6;n++){ antiOrders.push((n+0.5)/2); antiOrders.push(-(n+0.5)/2); }
     antiOrders.push(0);
     for(let n=1;n<=6;n++){ nodeOrders.push(n/2); nodeOrders.push(-n/2); }
@@ -761,143 +1000,136 @@ function drawHintLines(){
     for(let m=-6;m<=6;m++) antiOrders.push(m+0.5);
     for(let m=-6;m<=6;m++) nodeOrders.push(m);
   }
-
-  function plotHyperbola(mDiff, color, dashed){
-    // |r1 - r2| = |mDiff|*lam  -> 2a = |mDiff|*lam
-    const a = Math.abs(mDiff)*lam/2;
-    if(a >= c) return; // no hyperbola
-    const sign = Math.sign(mDiff);
-    if(mDiff===0){
-      // degenerate: perpendicular bisector y=0 (horizontal) extending both ways
-      octx.beginPath();
-      octx.setLineDash(dashed ? [4,4]:[]);
-      octx.strokeStyle = color;
-      octx.lineWidth = 1.5;
-      const p0 = w2p(0, 0), p1 = w2p(S.worldW, 0);
-      octx.moveTo(p0.px, p0.py);
-      octx.lineTo(p1.px, p1.py);
-      octx.stroke();
-      return;
-    }
-    const b = Math.sqrt(c*c - a*a);
-    // hyperbola: y = sign * a*cosh(t), xRel = xM + b*sinh(t)
-    // only draw xRel >= 0 region (inside canvas)
-    octx.beginPath();
-    octx.setLineDash(dashed ? [4,4]:[]);
-    octx.strokeStyle = color;
-    octx.lineWidth = 1.4;
-    let started = false;
-    const tMax = 3;
-    for(let t=-tMax; t<=tMax; t+=0.05){
-      const y = sign * a * Math.cosh(t);
-      const x = xM + b * Math.sinh(t);
-      if(x<0 || x>S.worldW || y<-S.worldH/2 || y>S.worldH/2){ started=false; continue; }
-      const p = w2p(x,y);
-      if(!started){ octx.moveTo(p.px, p.py); started = true; }
-      else octx.lineTo(p.px, p.py);
-    }
-    octx.stroke();
-    octx.setLineDash([]);
+  return {antiOrders,nodeOrders};
+}
+function paperOverlay(){ if(!RT.scr) return;
+  const g=RT.scr.g, s=RT.PPC, X=x=>toU(x)*s, Y=y=>toW(y)*s, H=RT.D/200;
+  const {S1,S2,xM,yM}=srcPositions();
+  g.save(); g.lineCap='round';
+  if(S.showHint){
+    const c=Math.abs(S2.y-S1.y)/2, lam=lambdaReal(), {antiOrders,nodeOrders}=hintOrders();
+    const plot=(mDiff,color,dashed)=>{ const a=Math.abs(mDiff)*lam/2; if(a>=c) return;
+      g.beginPath(); g.setLineDash(dashed?[3,3]:[]); g.strokeStyle=color; g.lineWidth=1.4;
+      if(mDiff===0){ g.moveTo(X(0),Y(0)); g.lineTo(X(S.worldW),Y(0)); g.stroke(); g.setLineDash([]); return; }
+      const b=Math.sqrt(c*c-a*a), sign=Math.sign(mDiff); let started=false;
+      for(let t=-3;t<=3;t+=0.05){ const y=sign*a*Math.cosh(t), x=xM+b*Math.sinh(t);
+        if(x<0||x>S.worldW||y<-H||y>H){ started=false; continue; }
+        if(!started){ g.moveTo(X(x),Y(y)); started=true; } else g.lineTo(X(x),Y(y)); }
+      g.stroke(); g.setLineDash([]); };
+    for(const m of antiOrders) plot(m,'rgba(5,150,105,0.85)',false);
+    for(const m of nodeOrders) plot(m,'rgba(2,132,199,0.85)',true);
   }
+  [[S1,'#ea580c'],[S2,'#ea580c'],[{x:xM,y:yM},'#6d28d9']].forEach(([p,col])=>{ g.beginPath(); g.arc(X(p.x),Y(p.y),Math.max(1.6,s*0.22),0,Math.PI*2); g.fillStyle=col; g.fill(); });
+  g.restore(); RT.scr.tex.needsUpdate=true; }
 
-  for(const m of antiOrders) plotHyperbola(m, 'rgba(52,211,153,0.55)', false);
-  for(const m of nodeOrders) plotHyperbola(m, 'rgba(56,189,248,0.5)', true);
+/* ไม้โปรแทกเตอร์วงกลมแผ่นใส (การทดลอง 2) วางบนกระดาษ ศูนย์กลางที่ M · 0° = แนวกลาง · มุม + ไปทางด้านหน้า (เหมือนภาพ 2D) */
+function drawProt(g,w,h){ g.clearRect(0,0,w,h); const ppc=w/(2*PROT_R+2), c=w/2, R=PROT_R*ppc;
+  g.fillStyle='rgba(224,231,255,0.20)'; g.beginPath(); g.arc(c,c,R+0.3*ppc,0,Math.PI*2); g.fill();
+  g.strokeStyle='rgba(55,48,163,0.95)'; g.lineWidth=3; g.beginPath(); g.arc(c,c,R,0,Math.PI*2); g.stroke();
+  g.lineWidth=1.6; g.strokeStyle='rgba(55,48,163,0.7)'; g.beginPath(); g.moveTo(c-R,c); g.lineTo(c+R,c); g.moveTo(c,c-R); g.lineTo(c,c+R); g.stroke();
+  for(let a=-90;a<=90;a++){ const rad=a*Math.PI/180, major=a%15===0, five=a%5===0, L=(major?0.9:five?0.55:0.28)*ppc;
+    g.strokeStyle=major?'rgba(30,27,75,0.95)':'rgba(55,48,163,0.8)'; g.lineWidth=major?3:five?2:1.2;
+    g.beginPath(); g.moveTo(c+(R-L)*Math.cos(rad),c+(R-L)*Math.sin(rad)); g.lineTo(c+R*Math.cos(rad),c+R*Math.sin(rad)); g.stroke();
+    if(major){ g.fillStyle='#1e1b4b'; g.font='bold '+Math.round(ppc*0.82)+'px "Share Tech Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText(a+'°',c+(R-1.75*ppc)*Math.cos(rad),c+(R-1.75*ppc)*Math.sin(rad)); } }
+  g.fillStyle='#4c1d95'; g.beginPath(); g.arc(c,c,0.18*ppc,0,Math.PI*2); g.fill();
+  g.font='bold '+Math.round(ppc*0.75)+'px '+RT_FONT; g.textAlign='left'; g.textBaseline='alphabetic'; g.fillStyle='#4c1d95'; g.fillText('M',c-1.3*ppc,c-0.4*ppc); }
+
+/* แถบเส้นบาง ๆ บนกระดาษ (S₁P · S₂P · MP) */
+function segMesh(col){ const m=new THREE.Mesh(new THREE.BoxGeometry(1,0.03,0.09),new THREE.MeshBasicMaterial({color:col})); m.visible=false; scene.add(m); return m; }
+function setSeg(m,u1,w1,u2,w2,y){ const dx=u2-u1, dz=w2-w1, L=Math.max(0.001,Math.hypot(dx,dz)); m.scale.x=L; m.position.set(uX((u1+u2)/2),y,wZ((w1+w2)/2)); m.rotation.y=-Math.atan2(dz,dx); m.visible=true; }
+/* ป้ายชื่อที่ข้อความเปลี่ยนตามโหมด */
+function setTag(key,txt,col){ const o=P[key]; if(o&&o.userData.txt===txt) return o;
+  if(o){ scene.remove(o); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } }
+  const t=nameTag(txt,col); t.userData.txt=txt; scene.add(t); P[key]=t; return t; }
+/* แผ่นกั้น: ช่องแคบคู่ (ช่องกว้าง 0.8 cm ตรง S₁ S₂) หรือช่องแคบเดียว (กว้าง a) ที่ u = 5 cm */
+function buildBarrier(){ const key=S.sourceType+'|'+S.d; if(key===P.barKey) return; P.barKey=key;
+  while(P.bar.children.length){ const c=P.bar.children[0]; P.bar.remove(c); if(c.geometry) c.geometry.dispose(); }
+  P.bar.visible=S.sourceType!=='point'; if(!P.bar.visible) return;
+  const {S1,S2}=srcPositions(), segs=[];
+  if(S.sourceType==='slit'){ const a=toW(S1.y), b=toW(S2.y), h=SLIT_GAP/2; segs.push([0,a-h],[a+h,b-h],[b+h,RT.D]); }
+  else { const h=S.d*50; segs.push([0,RT.D/2-h],[RT.D/2+h,RT.D]); }
+  segs.forEach(([w0,w1])=>{ const L=w1-w0; if(L<0.05) return; const m=rbox(BT,BAR_H,L,0.12,P.barMat); m.position.set(uX(XB),RT.Y+BAR_H/2,wZ((w0+w1)/2)); P.bar.add(m); }); }
+
+/* จุดโฟกัสของมุม 🔍 อ่านภาพ: จุด P (การทดลอง 1) · ไม้โปรแทกเตอร์ + P (การทดลอง 2) · ถ้ายังไม่มี P = บริเวณแนวบัพ/ปฏิบัพใกล้แหล่งกำเนิด */
+function rtReadFocus(){ const q=markers[0];
+  if(S.expTab===2&&S.showProtractor){ let u1=XB-2, u2=XB+PROT_R+1.5, w1=RT.D/2-PROT_R-1, w2=RT.D/2+PROT_R+1;
+    if(q){ u2=Math.max(u2,q.x+2); w1=Math.min(w1,q.y-2); w2=Math.max(w2,q.y+2); }
+    return {u:(u1+u2)/2, w:clampN((w1+w2)/2,0,RT.D), width:clampN(Math.max(u2-u1,(w2-w1)*1.1),12,40)}; }
+  if(q) return {u:q.x, w:q.y, width:16};
+  return {u:XB+11, w:RT.D/2, width:24}; }
+
+function init3D(){
+  const cv=gid('simCanvas'); if(typeof THREE==='undefined'){ gid('nothree').style.display='flex'; return; }
+  orbit.target=new THREE.Vector3(-5,22,0);
+  try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }
+  catch(e){ renderer=null; gid('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้ — ใช้โหมด <b>⚡ บันทึกอัตโนมัติ</b>'; gid('nothree').style.display='flex'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(36,1,0.1,5000);
+  MAXTS=(renderer.capabilities&&renderer.capabilities.maxTextureSize)||4096;
+  RT.SRC_U=XB; rtBuild({freq:()=>S.f, amp:()=>60}); rtSetDepth(8);
+  /* ตัวจุ่ม 2 อันบนคานตัวทำคลื่นอันเดียว: แขนยื่น → ก้าน → ลูกปัด ที่ (5, 15 ∓ d/2) */
+  while(RT.dip.children.length) RT.dip.remove(RT.dip.children[0]);
+  const ax=uX(XB)-RT.vibX;
+  P.dips=[0,1].map(()=>{ const g=new THREE.Group();
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(Math.abs(ax)+0.5,0.35,0.5),anoM()); arm.position.set(ax/2,-0.3,0); g.add(arm);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,2.4,10),chromeM()); rod.position.set(ax,-1.5,0); g.add(rod);
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(0.45,20,14),new THREE.MeshPhysicalMaterial({color:0xf8fafc,roughness:.3,clearcoat:.8})); ball.position.set(ax,-2.75,0); g.add(ball);
+    RT.dip.add(g); return g; });
+  P.bar=new THREE.Group(); scene.add(P.bar); P.barMat=enamel(0x334155,0.45,0.4);
+  /* ไม้โปรแทกเตอร์แผ่นใส + เส้น S₁P S₂P MP */
+  { const pt=canvasTex(1024,1024,drawProt);
+    P.prot=new THREE.Mesh(new THREE.PlaneGeometry(2*PROT_R+2,2*PROT_R+2),new THREE.MeshBasicMaterial({map:pt,transparent:true,depthWrite:false}));
+    P.prot.rotation.x=-Math.PI/2; P.prot.position.set(uX(XB),RT.PAPER_Y+0.06,wZ(RT.D/2)); P.prot.renderOrder=3; P.prot.visible=false; scene.add(P.prot); }
+  P.seg1=segMesh(0xd97706); P.seg2=segMesh(0xe11d48); P.segM=segMesh(0x6d28d9);
+  rtMarkersBuild();
+  /* หมุดเดียว = จุด P (ชมพู เหมือน 2D) */
+  P.mk=[P.mk[1],P.mk[0]];
+  { const lb=P.mk[0].children[3]; if(lb&&lb.userData.tex){ lb.userData.tex.userData.fn=tagFn('P','#f9a8d4','#0b1220','bold 60px "Share Tech Mono",monospace'); redrawTex(lb.userData.tex); } }
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ (P.texs||[]).forEach(redrawTex); }).catch(()=>{});
+  setupPointer(cv); resize3D(); setView('iso');
+  if(window.ResizeObserver) new ResizeObserver(()=>resizeCanvas()).observe(gid('view3d'));
+  (function rl(){ requestAnimationFrame(rl); if(!gid('tab-sim').classList.contains('active')) return; update3D(); renderer.render(scene,camera); })();
 }
 
-// probe: click point P
-function drawProbe(){
-  if(!S.P) return;
-  const {S1, S2, xM, yM} = srcPositions();
-  const pP = w2p(S.P.x, S.P.y);
-  const pS1 = w2p(S1.x, S1.y);
-  const pS2 = w2p(S2.x, S2.y);
-  const pM = w2p(xM, yM);
-
-  // lines
-  octx.setLineDash([]);
-  octx.strokeStyle = '#fbbf24';
-  octx.lineWidth = 1.5;
-  octx.beginPath(); octx.moveTo(pS1.px,pS1.py); octx.lineTo(pP.px,pP.py); octx.stroke();
-  octx.strokeStyle = '#fb7185';
-  octx.beginPath(); octx.moveTo(pS2.px,pS2.py); octx.lineTo(pP.px,pP.py); octx.stroke();
-
-  // P marker
-  octx.beginPath();
-  octx.arc(pP.px, pP.py, 7, 0, Math.PI*2);
-  octx.strokeStyle = '#f472b6';
-  octx.lineWidth = 2;
-  octx.stroke();
-  octx.fillStyle = 'rgba(244,114,182,0.25)';
-  octx.fill();
-  octx.fillStyle = '#f472b6';
-  octx.font = 'bold 12px IBM Plex Sans Thai';
-  octx.fillText('P', pP.px+10, pP.py-8);
-
-  // Exp 2: angle line from M
-  if(S.expTab===2){
-    octx.strokeStyle = '#818cf8';
-    octx.setLineDash([3,3]);
-    octx.lineWidth = 1.2;
-    octx.beginPath();
-    octx.moveTo(pM.px, pM.py);
-    octx.lineTo(pP.px, pP.py);
-    octx.stroke();
-    octx.setLineDash([]);
-  }
+/* ── อัปเดตฉากจาก state เดิมของแลป (S.t, S.f, S.v, S.d, ชนิดแหล่ง, เฟส, จุด P) ── */
+function update3D(){ if(!scene) return;
+  buildBarrier();
+  const mk=S.sourceType+'|'+S.phase+'|'+S.d;
+  if(mk!==P.maskKey){ P.maskKey=mk; rtShade(labShade); RT.dirty=true; }
+  const key=[S.t,S.f,S.v,mk,S.showHint].join('|');
+  if(RT.dirty||key!==P.fKey){ P.fKey=key; RT.dirty=false; rtUpdateField(labField,0); paperOverlay(); }
+  const pt=S.sourceType==='point', anti=pt&&S.phase==='anti', ph=2*Math.PI*S.f*S.t, disp=0.06*Math.cos(ph);
+  rtVibrator(pt?'circular':'plane',disp,ph);
+  const {S1,S2}=srcPositions(), w1=toW(S1.y), w2=toW(S2.y);
+  P.dips[0].position.set(0,0,wZ(w1)); P.dips[1].position.set(0,anti?-2*disp:0,wZ(w2));   /* เฟสตรงข้าม: ตัวจุ่ม 2 ขยับสวนกับตัวจุ่ม 1 */
+  /* ป้าย S₁ S₂ (เหนือตัวจุ่ม/ช่องแคบ) · แผ่นกั้น · M */
+  const single=S.sourceType==='single', ty=pt?RT.waterY+4.6:RT.Y+BAR_H+1.6;
+  setTag('tS1',single?'S₁ (กลางครึ่งล่าง)':'S₁','#fdba74').position.set(uX(XB)+(pt?-1:-1.6),ty,wZ(w1)-1.2);
+  setTag('tS2',single?'S₂ (กลางครึ่งบน)':'S₂','#fdba74').position.set(uX(XB)+(pt?-1:-1.6),ty,wZ(w2)+1.2);
+  const bt=setTag('tBar',S.sourceType==='slit'?'แผ่นกั้นช่องแคบคู่':'แผ่นกั้นช่องแคบเดียว','#cbd5e1'); bt.visible=!pt; bt.position.set(uX(XB)+1,RT.Y+BAR_H+4.5,wZ(2.5));
+  { const tm=setTag('tM','M','#c4b5fd'); tm.userData.kpLabel=false; tm.position.set(uX(XB)-1.6,RT.PAPER_Y+1.2,wZ(RT.D/2)); }
+  /* ไม้โปรแทกเตอร์ + เส้นจาก S₁ S₂ M ไป P */
+  P.prot.visible=(S.expTab===2&&S.showProtractor);
+  const q=markers[0], y=RT.PAPER_Y+0.1;
+  if(q&&S.P){ setSeg(P.seg1,toU(S1.x),w1,q.x,q.y,y); setSeg(P.seg2,toU(S2.x),w2,q.x,q.y,y+0.005);
+    if(S.expTab===2){ const dx=q.x-XB, dz=q.y-RT.D/2, L=Math.hypot(dx,dz)||1, Lx=Math.max(L,P.prot.visible?PROT_R+1:L);   /* ยืดเส้น MP ถึงขอบไม้โปรแทกเตอร์ ให้อ่านมุมได้ */
+      setSeg(P.segM,XB,RT.D/2,XB+dx/L*Lx,RT.D/2+dz/L*Lx,y+0.01); } else P.segM.visible=false; }
+  else { P.seg1.visible=P.seg2.visible=P.segM.visible=false; }
+  rtPanel(); rtMarkersUpdate(); rtCamera();
 }
+function draw(){ RT.dirty=true; }
+function drawPattern(){ draw(); }
+function drawOverlay(){ draw(); }
+function resizeCanvas(){ if(!renderer) return; resize3D(); if(VIEWS[curView]) setView(curView); draw(); }
 
-// protractor at M (Exp2 only)
-function drawProtractor(){
-  if(S.expTab!==2 || !S.showProtractor) return;
-  const {xM, yM} = srcPositions();
-  const pM = w2p(xM, yM);
-  // radius in px: 0.12m worth
-  const pxPerM = cv.width/S.worldW;
-  const R = Math.min(0.12*pxPerM, Math.min(cv.width-pM.px-20, cv.height/2-20));
-
-  octx.save();
-  octx.translate(pM.px, pM.py);
-  octx.strokeStyle = 'rgba(129,140,248,0.45)';
-  octx.fillStyle = 'rgba(129,140,248,0.85)';
-  octx.lineWidth = 1;
-  // full circle outline + semi right half emphasized
-  octx.beginPath();
-  octx.arc(0,0,R,0,Math.PI*2);
-  octx.stroke();
-  // central axis (horizontal)
-  octx.strokeStyle = 'rgba(129,140,248,0.6)';
-  octx.beginPath(); octx.moveTo(-R,0); octx.lineTo(R,0); octx.stroke();
-  // ticks every 10°, labels every 30° on right half
-  octx.font = '10px "Share Tech Mono", monospace';
-  octx.textAlign = 'center';
-  octx.textBaseline = 'middle';
-  for(let a=-90; a<=90; a+=5){
-    const rad = a*Math.PI/180;
-    const major = (a%15===0);
-    const minor = (a%5===0 && a%15!==0);
-    const tick = major ? 14 : (minor ? 6 : 3);
-    const r1 = R - tick;
-    const x1 = r1*Math.cos(rad), y1 = r1*Math.sin(rad);
-    const x2 = R*Math.cos(rad), y2 = R*Math.sin(rad);
-    octx.strokeStyle = major ? 'rgba(129,140,248,0.85)' : 'rgba(129,140,248,0.5)';
-    octx.lineWidth = major ? 1.3 : 0.8;
-    octx.beginPath(); octx.moveTo(x1,y1); octx.lineTo(x2,y2); octx.stroke();
-    if(major){
-      octx.fillStyle = '#a5b4fc';
-      octx.fillText(a.toString()+'°', (R-24)*Math.cos(rad), (R-24)*Math.sin(rad));
-    }
-  }
-  octx.lineWidth = 1;
-  octx.restore();
-}
-
-// overlay render
-function drawOverlay(){
-  octx.clearRect(0,0,ov.width,ov.height);
-  drawHintLines();
-  drawProtractor();
-  drawProbe();
-}
+/* หมุด P บนกระดาษ ↔ S.P (m) · แตะกระดาษ = วาง P · ลากหมุด P = เลื่อนละเอียด (ดู setupPointer/placeAt ใน RIPPLE TANK 3D) */
+function updateMeasureDisplay(){
+  if(markers.length>1) markers=[markers[markers.length-1]];
+  if(markers.length){ const q=markers[0], {xM}=srcPositions();
+    q.x=clampN(q.x,toU(xM+0.005),RT.W); q.y=clampN(q.y,0,RT.D);   /* เหมือน 2D: P ต้องอยู่หลังแนวแหล่งกำเนิด */
+    S.P={x:q.x/100, y:(q.y-RT.D/2)/100}; }
+  else S.P=null;
+  updateReadouts(); }
 
 // ---------- Main loop ----------
 function loop(ts){
@@ -927,7 +1159,7 @@ function togglePlay(){
 }
 function resetSim(){
   cancelAnimationFrame(S.animId);
-  S.isPlaying = false; S.t = 2.5; S.lastTs = null; S.P = null;
+  S.isPlaying = false; S.t = 2.5; S.lastTs = null; S.P = null; markers = [];
   const btn = document.getElementById('playBtn');
   btn.textContent = '▶ เริ่ม'; btn.classList.remove('playing');
   drawPattern(); drawOverlay(); updateReadouts();
@@ -956,8 +1188,8 @@ function setSourceType(t){
   const ht = document.getElementById('hintTxt');
   if(ht){
     ht.textContent = (t==='single')
-      ? 'ช่องแคบเดียว: ปฏิบัพ = แถบสว่าง (central + secondary), บัพ = แถบมืด (minima) · คลิกจุดบนแนวที่เลือก'
-      : 'เลือกแล้วคลิกจุดบนแนวที่คิดว่าเป็นแนวนั้น ๆ · โปรแกรมจะแสดงระยะ S₁P, S₂P';
+      ? 'ช่องแคบเดียว: ปฏิบัพ = แถบสว่าง (central + secondary), บัพ = แถบมืด (minima) · แตะจุดบนกระดาษตรงแนวที่เลือก'
+      : 'เลือกแล้วแตะจุดบนกระดาษใต้ถาด ตรงแนวที่คิดว่าเป็นแนวนั้น ๆ · โปรแกรมจะแสดงระยะ S₁P, S₂P';
   }
   drawPattern(); drawOverlay();
 }
@@ -1098,30 +1330,11 @@ function updateReadouts(){
   }
 }
 
-// ---------- Canvas click ----------
-function handleClick(ev){
-  const rect = ov.getBoundingClientRect();
-  const px = (ev.clientX - rect.left) * (ov.width/rect.width);
-  const py = (ev.clientY - rect.top) * (ov.height/rect.height);
-  const w = p2w(px, py);
-  // require x > source x + small (can't click on source) for slit
-  const {xM} = srcPositions();
-  if(w.x < xM + 0.005) w.x = xM + 0.005;
-  S.P = w;
-  drawOverlay();
-  updateReadouts();
-}
-ov.addEventListener('click', handleClick);
-let isDragging = false;
-ov.addEventListener('mousedown', e=>{ isDragging = true; handleClick(e); });
-ov.addEventListener('mousemove', e=>{ if(isDragging) handleClick(e); });
-window.addEventListener('mouseup', ()=>{ isDragging=false; });
-ov.addEventListener('touchstart', e=>{ e.preventDefault(); const t=e.touches[0]; handleClick(t); }, {passive:false});
-ov.addEventListener('touchmove', e=>{ e.preventDefault(); const t=e.touches[0]; handleClick(t); }, {passive:false});
+// ---------- จุด P: แตะ/ลากบนกระดาษใต้ถาดในภาพ 3D → setupPointer() / placeAt() / updateMeasureDisplay() ----------
 
 // ---------- Record Exp 1 ----------
 function recordExp1(){
-  if(!S.P){ alert('กรุณาคลิกจุด P บน canvas ก่อน'); return; }
+  if(!S.P){ alert('กรุณาแตะวางจุด P บนกระดาษใต้ถาดในภาพ 3D ก่อน'); return; }
   const type = document.getElementById('exp1Type').value;
   const n = parseInt(document.getElementById('exp1N').value);
   if(isNaN(n) || n<0){ alert('กรุณาระบุลำดับ n ให้ถูกต้อง'); return; }
@@ -1168,7 +1381,7 @@ function renderTable1(){
 
 // ---------- Record Exp 2 ----------
 function recordExp2(){
-  if(!S.P){ alert('กรุณาคลิกจุด P บน canvas ก่อน'); return; }
+  if(!S.P){ alert('กรุณาแตะวางจุด P บนกระดาษใต้ถาดในภาพ 3D ก่อน'); return; }
   const type = document.getElementById('exp2Type').value;
   const n = parseInt(document.getElementById('exp2N').value);
   const angInput = document.getElementById('exp2Ang').value;
@@ -1683,13 +1896,6 @@ function drawTheory(){
 }
 
 // ---------- Resize ----------
-function resizeCanvas(){
-  const wrap = document.getElementById('cvWrap');
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  cv.width = w; cv.height = h;
-  ov.width = w; ov.height = h;
-  drawPattern(); drawOverlay();
-}
 window.addEventListener('resize', resizeCanvas);
 
 // ---------- Init ----------
@@ -1730,14 +1936,14 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   S.t = 2.5;
-  resizeCanvas();
-  drawPattern(); drawOverlay(); updateReadouts();
+  init3D();
+  draw(); updateReadouts();
 });
 </script>
 
 
 <!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
-<script>window.KP_MPANEL={move:['#cvWrap + .cbar','.side-panel'], res:['.side-panel'], view:'#cvWrap', hint:'#hintTxt', bp:960};</script>
+<script>window.KP_MPANEL={move:['#view3d + .cbar','.side-panel'], res:['.side-panel'], view:'#view3d', hint:'#hintTxt', bp:960};</script>
 <script src="../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../_shared/watermark.js"></script>
@@ -1746,7 +1952,7 @@ window.addEventListener('DOMContentLoaded', () => {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="../kp-auth.js?v=20261021-16"></script>
+<script src="../kp-auth.js?v=20261021-17"></script>
 
 <!-- KP Page Access Guard -->
 <script>
@@ -1774,8 +1980,9 @@ window.KP_TUTOR = {
   steps: [
     { el: '#playBtn', text: 'กด <b>▶ เริ่ม</b><br><small>คลื่นจากสองแหล่งจะแทรกสอดกันบนผิวน้ำ</small>',
       done: () => S.isPlaying },
-    { el: '#cvWrap', dim: false, text: '<b>แตะจุด P</b> บน<b>แนวปฏิบัพเส้นแรก</b> ถัดจากแนวกลาง<br><small>แนวปฏิบัพ = แนวที่คลื่นสั่นแรงที่สุด · ลากเพื่อปรับได้</small>',
-      done: function(){ const ok = !!S.P && !isDragging;
+    { el: '#view3d', dim: false, text: '<b>แตะจุด P</b> บนกระดาษใต้ถาด ตรง<b>แนวปฏิบัพเส้นแรก</b> ถัดจากแนวกลาง<br><small>แนวปฏิบัพ = แนวที่สว่าง-มืดสลับแรงที่สุด · ลากหมุด P เพื่อปรับได้</small>',
+      start: () => { if (typeof setView === 'function') setView('read'); },
+      done: function(){ const ok = !!S.P && !(typeof HD !== 'undefined' && HD.on);
         if (!ok) { this.t0 = 0; return false; } this.t0 = this.t0 || Date.now(); return Date.now() - this.t0 > 1200; } },
     { el: '[onclick="recordExp1()"]', text: 'กด <b>➕ บันทึกจุดนี้</b><br><small>ตั้งไว้แล้ว: ปฏิบัพ (A) ลำดับ n = 1 · ได้ λ = Δr/n</small>',
       start: function(){ this.n0 = S.records1.length; }, done: function(){ return S.records1.length > this.n0; } },
@@ -1785,6 +1992,6 @@ window.KP_TUTOR = {
 </script>
 
 <!-- KP Lab Mode (🎓 โหมดสอน · 🔒 โหมดอัตโนมัติสำหรับสมาชิก) -->
-<script src="../_shared/kp-labmode.js?v=20261021-16"></script>
+<script src="../_shared/kp-labmode.js?v=20261021-17"></script>
 </body>
 </html>
