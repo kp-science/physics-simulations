@@ -622,6 +622,14 @@ function makePaperTexture(){
   g.strokeStyle='rgba(56,110,160,.55)'; g.lineWidth=2; g.beginPath(); g.arc(X(0),Z(0),RB*k,0,Math.PI); g.stroke();
   const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy(); return t;
 }
+/* ── ตัวช่วยปั้นอุปกรณ์แบบในคลิป: กล่องขอบมน · วัสดุเคลือบเงา · ลายเกรนละเอียด ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+let _nz=null; function noiseTex(){ if(_nz) return _nz; const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), im=g.createImageData(256,256);
+  for(let i=0;i<256*256;i++){ const v=110+90*Math.random(); im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v; im.data[i*4+3]=255; } g.putImageData(im,0,0); _nz=new THREE.CanvasTexture(c); _nz.wrapS=_nz.wrapT=THREE.RepeatWrapping; _nz.repeat.set(8,8); return _nz; }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
@@ -639,10 +647,24 @@ function init3D(){
   const flat=new THREE.Mesh(new THREE.PlaneGeometry(2*RB,TB),blockMat); flat.rotation.y=Math.PI; flat.position.y=TB/2; flat.renderOrder=2; scene.add(flat);
   const edge=new THREE.LineSegments(new THREE.EdgesGeometry(curved,30),new THREE.LineBasicMaterial({color:0x7cc4f0,transparent:true,opacity:.7})); edge.position.y=TB/2; scene.add(edge);
   /* เลเซอร์ */
-  P.box=new THREE.Group(); const body=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.8,3),new THREE.MeshStandardMaterial({color:0x374151,roughness:.6,metalness:.2})); body.position.y=0.9; P.box.add(body);
-  const slit=new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.9),new THREE.MeshBasicMaterial({color:0xff3b30})); slit.position.set(0,0.75,-1.51); slit.rotation.y=Math.PI; P.box.add(slit);
-  const knob=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.3,16),new THREE.MeshStandardMaterial({color:0x9ca3af})); knob.position.set(0,1.95,0.6); P.box.add(knob);
+  /* เลเซอร์ปากกาบนแท่นรองแบบในคลิป: ตัวโลหะดำ · ปลอกโครเมียม · วงแหวนร่อง · แถบป้ายเหลือง · สวิตช์แดง · สายไฟ — หน้าเลเซอร์ (−z) หันเข้าจุดศูนย์กลางเหมือนเดิม */
+  P.box=new THREE.Group(); const chrome=new THREE.MeshStandardMaterial({color:0xdfe3ea,metalness:.95,roughness:.22}), blk=new THREE.MeshStandardMaterial({color:0x1d1f24,roughness:.6});
+  const foot=rbox(1.6,0.24,2.9,0.1,blk); foot.position.y=0.12; P.box.add(foot);
+  [-0.9,0.8].forEach(z=>{ const cr=rbox(1.1,0.3,0.32,0.06,blk); cr.position.set(0,0.39,z); P.box.add(cr); });
+  const LY=1.05, body=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,2.5,32),new THREE.MeshStandardMaterial({color:0x2a2d33,metalness:.8,roughness:.32,bumpMap:noiseTex(),bumpScale:.02})); body.rotation.x=Math.PI/2; body.position.set(0,LY,0.05); P.box.add(body);
+  const bz=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.56,0.3,32),chrome); bz.rotation.x=Math.PI/2; bz.position.set(0,LY,-1.35); P.box.add(bz);
+  const ec=new THREE.Mesh(new THREE.CylinderGeometry(0.58,0.58,0.3,32),chrome); ec.rotation.x=Math.PI/2; ec.position.set(0,LY,1.42); P.box.add(ec);
+  const rk=new THREE.Group(); rk.rotation.x=Math.PI/2; rk.position.set(0,LY,-0.95); P.box.add(rk); rk.add(new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.62,0.45,32),enamel(0x1a1c20,0.35,0.5)));
+  for(let i=0;i<24;i++){ const t=i/24*Math.PI*2, rib=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.39,0.08),new THREE.MeshStandardMaterial({color:0x0c0d10,roughness:.5})); rib.position.set(Math.cos(t)*0.615,0,Math.sin(t)*0.615); rib.rotation.y=-t; rk.add(rib); }
+  const lab=new THREE.Mesh(new THREE.CylinderGeometry(0.565,0.565,1.1,32,1,true),new THREE.MeshStandardMaterial({roughness:.6,map:(()=>{ const c=document.createElement('canvas'); c.width=512; c.height=96; const q=c.getContext('2d'); q.fillStyle='#e8c547'; q.fillRect(0,0,512,96); q.fillStyle='#111'; q.font='700 34px "IBM Plex Sans Thai",sans-serif'; q.textBaseline='middle'; q.fillText('⚠ LASER 650 nm',24,50); return new THREE.CanvasTexture(c); })()}));
+  lab.rotation.x=Math.PI/2; lab.rotation.y=Math.PI; lab.position.set(0,LY,0.45); P.box.add(lab);
+  const sw=rbox(0.34,0.2,0.56,0.06,enamel(0xc42a2a,0.4,0.5)); sw.position.set(0,LY+0.6,0.3); P.box.add(sw);
+  /* หน้าปล่อยแสง (ไม่รับแสง ให้สว่างเหมือนเดิม) */
+  const slit=new THREE.Mesh(new THREE.CircleGeometry(0.24,24),new THREE.MeshBasicMaterial({color:0xff3b30})); slit.position.set(0,LY,-1.51); slit.rotation.y=Math.PI; P.box.add(slit);
+  const cab=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0,LY,1.55),new THREE.Vector3(0,LY-0.15,2.1),new THREE.Vector3(0.25,0.15,2.7),new THREE.Vector3(0.9,0.09,3.4)]),32,0.08,8,false),new THREE.MeshPhysicalMaterial({color:0x15161a,roughness:.45,clearcoat:.4})); P.box.add(cab);
   scene.add(P.box);
+  /* แผ่นรองเทาใต้กระดาษองศา (แบบในคลิป) */
+  { const cb=new THREE.Mesh(new THREE.BoxGeometry(PAPER+0.6,0.12,PAPER+0.6),new THREE.MeshStandardMaterial({color:0x8b8f96,roughness:.8,map:noiseTex()})); cb.position.y=-0.08; scene.add(cb); }
   updateBlock(); setupPointer(cv); resize3D();
   (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')) return;
     if(sweep){ const nt=th1+0.12; if(nt>=89){ setTh(89); toggleSweep(); } else setTh(nt); }

@@ -737,6 +737,14 @@ void main(){
   col=mix(col*uTint, vec3(0.85,0.92,1.0), 0.08+0.35*fres);
   gl_FragColor=vec4(col,1.0);
 }`;
+/* ── ตัวช่วยปั้นอุปกรณ์แบบในคลิป: กล่องขอบมน · วัสดุเคลือบเงา · ลายเกรนละเอียด ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+let _nz=null; function noiseTex(){ if(_nz) return _nz; const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), im=g.createImageData(256,256);
+  for(let i=0;i<256*256;i++){ const v=110+90*Math.random(); im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v; im.data[i*4+3]=255; } g.putImageData(im,0,0); _nz=new THREE.CanvasTexture(c); _nz.wrapS=_nz.wrapT=THREE.RepeatWrapping; _nz.repeat.set(8,8); return _nz; }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้<br>ลองเปิดด้วย Chrome / Edge / Safari รุ่นใหม่'; $('nothree').style.display='flex'; return; }
@@ -745,14 +753,23 @@ function init3D(){
   // โต๊ะ + กระดาษ
   const table=new THREE.Mesh(new THREE.PlaneGeometry(80,60),new THREE.MeshStandardMaterial({color:0x3b2f25,roughness:.95})); table.rotation.x=-Math.PI/2; table.position.y=-0.03; scene.add(table);
   paperCanvas=document.createElement('canvas'); paperCanvas.width=1800; paperCanvas.height=1260; paperTex=new THREE.CanvasTexture(paperCanvas); paperTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  const paper=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),new THREE.MeshStandardMaterial({map:paperTex,roughness:.9,color:0xd4d4d4})); paper.rotation.x=-Math.PI/2; scene.add(paper); P.paper=paper;
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),new THREE.MeshStandardMaterial({map:paperTex,roughness:.9,color:0xd4d4d4,bumpMap:noiseTex(),bumpScale:.02}));   /* กระดาษมีเนื้อเกรนเล็กน้อย */ paper.rotation.x=-Math.PI/2; scene.add(paper); P.paper=paper;
   // แท่งแก้ว (shader หักเห) + render target สำหรับฉากหลัง
   rt=new THREE.WebGLRenderTarget(4,4,{depthTexture:new THREE.DepthTexture(4,4),depthBuffer:true});
   glassMat=new THREE.ShaderMaterial({vertexShader:GLASS_VERT,fragmentShader:GLASS_FRAG,side:THREE.FrontSide,uniforms:{tScene:{value:rt.texture},tDepth:{value:rt.depthTexture},uProj:{value:camera.projectionMatrix},cameraNear:{value:camera.near},cameraFar:{value:camera.far},uIor:{value:1.52},uSize:{value:new THREE.Vector3(GR-GL,BH,GB-GT)},uInvView:{value:new THREE.Matrix4()},uRes:{value:new THREE.Vector2(1,1)},uTint:{value:new THREE.Color(0.9,0.95,1)},uBg:{value:new THREE.Color(0x0f1626)}}});
   P.glass=new THREE.Mesh(new THREE.BoxGeometry(GR-GL,BH,GB-GT),glassMat); P.glass.position.set(0,BH/2,0); scene.add(P.glass);
   const edges=new THREE.LineSegments(new THREE.EdgesGeometry(P.glass.geometry),new THREE.LineBasicMaterial({color:0xe0ecff,transparent:true,opacity:.7})); P.glass.add(edges);
   // หมุด 4 ตัว
-  for(let i=0;i<4;i++){ const col=i<2?0xfb923c:0x34d399, g=new THREE.Group(); const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,PIN_H,10),new THREE.MeshStandardMaterial({color:0xd1d5db,metalness:.7,roughness:.3})); shaft.position.y=PIN_H/2; g.add(shaft); const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.25})); head.position.y=PIN_H; g.add(head); g.visible=false; scene.add(g); pinObjs.push(g); }
+  /* เข็มหมุด: ก้านโครเมียม + หัวกลมเคลือบเงา + ปลอกคอโลหะ (แบบในคลิป) */
+  for(let i=0;i<4;i++){ const col=i<2?0xfb923c:0x34d399, g=new THREE.Group(); const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,PIN_H,12),new THREE.MeshStandardMaterial({color:0xe2e6ec,metalness:.95,roughness:.22})); shaft.position.y=PIN_H/2; g.add(shaft);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.34,24,16),new THREE.MeshPhysicalMaterial({color:col,emissive:col,emissiveIntensity:.18,roughness:.28,clearcoat:.8,clearcoatRoughness:.15})); head.position.y=PIN_H; g.add(head);
+    const collar=new THREE.Mesh(new THREE.CylinderGeometry(.1,.07,.16,14),new THREE.MeshStandardMaterial({color:0xe2e6ec,metalness:.95,roughness:.22})); collar.position.y=PIN_H-0.36; g.add(collar);
+    g.visible=false; scene.add(g); pinObjs.push(g); }
+  /* ไม้บรรทัดพลาสติกใสวางข้างกระดาษ (แบบในคลิป) — ตกแต่งเท่านั้น อยู่นอกกระดาษ */
+  { const rl=rbox(2.6,0.14,22,0.18,new THREE.MeshPhysicalMaterial({color:0xe8eef2,roughness:.25,clearcoat:.8,clearcoatRoughness:.15,transparent:true,opacity:.8})); rl.position.set(PW/2+2.2,0.07,0); scene.add(rl);
+    const c=document.createElement('canvas'); c.width=1760; c.height=208; const q=c.getContext('2d'); q.fillStyle='#1b1e24'; q.font='600 34px "Share Tech Mono",monospace'; q.textAlign='center';
+    for(let i=0;i<=200;i++){ const x=40+i*8, L=i%10===0?70:i%5===0?48:30; q.fillRect(x-1.2,0,2.4,L); if(i%10===0) q.fillText(String(i/10),x,110); }
+    const sc=new THREE.Mesh(new THREE.PlaneGeometry(22,2.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false})); sc.rotation.set(-Math.PI/2,0,-Math.PI/2); sc.position.set(PW/2+2.2,0.15,0); scene.add(sc); }
   setupPointer(cv); resize3D(); applyMaterial3D(); setView('iso');
   (function loop(){ requestAnimationFrame(loop); if(!$('tab-sim').classList.contains('active')||!renderer) return; updateCamera();
     glassMat.uniforms.uProj.value=camera.projectionMatrix; camera.updateMatrixWorld(); glassMat.uniforms.uInvView.value.copy(camera.matrixWorld); glassMat.uniforms.cameraNear.value=camera.near; glassMat.uniforms.cameraFar.value=camera.far;

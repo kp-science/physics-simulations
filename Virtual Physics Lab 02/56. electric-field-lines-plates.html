@@ -631,39 +631,86 @@ const orbit={target:new THREE.Vector3(0,0,0),dist:40,az:0.4,el:0.8};
 const VIEWS={A:{iso:{t:[2,0,0],d:42,az:0.35,el:0.85}, top:{t:[0,0,0],d:30,az:0,el:1.5}}, B:{iso:{t:[0,22,0],d:95,az:0.55,el:0.22}, front:{t:[0,17,0],d:38,az:0,el:0}, base:{t:[0,1,6],d:40,az:0,el:0.5}}};
 function canvasTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; fn(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
 function makeLabel(text,col,sc){ const t=canvasTex(512,96,(g)=>{ g.font='bold 50px IBM Plex Sans Thai, sans-serif'; g.textAlign='center'; g.fillStyle=col; g.fillText(text,256,64); }); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false})); sp.scale.set(10*(sc||1),1.9*(sc||1),1); return sp; }
+/* ── ตัวช่วยปั้นอุปกรณ์แบบในคลิป: กล่องขอบมน · วัสดุเคลือบเงา · ลายเนื้อผิว · สายไฟหลอด ── */
+function rbox(w,h,d,r,m){ const b=Math.min(r*0.6,w*0.3,h*0.3,d*0.3), sw=w-2*b, sh=d-2*b, cr=Math.max(0.02,Math.min(r-b,sw/2-0.01,sh/2-0.01)), s=new THREE.Shape();
+  s.moveTo(-sw/2+cr,-sh/2); s.lineTo(sw/2-cr,-sh/2); s.quadraticCurveTo(sw/2,-sh/2,sw/2,-sh/2+cr); s.lineTo(sw/2,sh/2-cr); s.quadraticCurveTo(sw/2,sh/2,sw/2-cr,sh/2);
+  s.lineTo(-sw/2+cr,sh/2); s.quadraticCurveTo(-sw/2,sh/2,-sw/2,sh/2-cr); s.lineTo(-sw/2,-sh/2+cr); s.quadraticCurveTo(-sw/2,-sh/2,-sw/2+cr,-sh/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:Math.max(0.01,h-2*b),bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:3,curveSegments:8}); g.rotateX(-Math.PI/2); g.center(); return new THREE.Mesh(g,m); }
+const enamel=(c,r,cc)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r==null?0.42:r,clearcoat:cc==null?0.35:cc,clearcoatRoughness:0.45});
+function noiseTex(){ const hs=(a,b)=>{ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); }; const t=canvasTex(256,256,(g)=>{ const im=g.createImageData(256,256); for(let i=0;i<65536;i++){ const v=110+90*hs(i%256,i/256|0); im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v; im.data[i*4+3]=255; } g.putImageData(im,0,0); }); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(4,4); return t; }
+/* สายไฟเคลือบเงาแบบหลอด สร้างจากจุดของเส้น (Line) เดิม */
+function tubeFromLine(line,r,col){ const pa=line.geometry.attributes.position, V=[]; for(let i=0;i<pa.count;i++) V.push(new THREE.Vector3(pa.getX(i),pa.getY(i),pa.getZ(i)));
+  return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(V),48,r,8,false),new THREE.MeshPhysicalMaterial({color:col,roughness:.35,clearcoat:.6,clearcoatRoughness:.3})); }
 function init3D(){
   const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('nothree').style.display='flex'; return; }
   try{ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}); }catch(e){ $('nothree').innerHTML='⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้'; $('nothree').style.display='flex'; return; }
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(34,1,0.2,900);
   scene.add(new THREE.HemisphereLight(0xdbeafe,0x1a2235,0.85)); const d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(30,60,40); scene.add(d1);
-  const steel=new THREE.MeshStandardMaterial({color:0xb8c0cc,metalness:.6,roughness:.3}), dark=new THREE.MeshStandardMaterial({color:0x334155,roughness:.6});
+  const steel=new THREE.MeshStandardMaterial({color:0xb8c0cc,metalness:.6,roughness:.3}), dark=enamel(0x2c313c,0.45,0.35), alu=new THREE.MeshStandardMaterial({color:0xaeb4bd,metalness:.85,roughness:.32}),
+    chrome=new THREE.MeshStandardMaterial({color:0xd8dde4,metalness:.92,roughness:.28}), redBox=enamel(0xc23a2a,0.4,0.4), nzT=noiseTex();
+  /* ปุ่มหมุนหยัก + ฝาโลหะ (แกนหมุนชี้ +z) · ขั้วต่อสาย */
+  const ribKnob=(par,x,y,z,r)=>{ const kn=new THREE.Group(); kn.position.set(x,y,z); par.add(kn); const kb=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,r*0.8,32),enamel(0x15171c,0.35,0.5)); kb.rotation.x=Math.PI/2; kb.position.z=r*0.4; kn.add(kb);
+    for(let i=0;i<24;i++){ const rib=new THREE.Mesh(new THREE.BoxGeometry(r*0.06,r*0.12,r*0.7),new THREE.MeshStandardMaterial({color:0x0c0d10})); const a=i/24*Math.PI*2; rib.position.set(Math.cos(a)*r*1.04,Math.sin(a)*r*1.04,r*0.4); rib.rotation.z=a+Math.PI/2; kn.add(rib); }
+    const kc=new THREE.Mesh(new THREE.CylinderGeometry(r*0.6,r*0.6,0.04,32),chrome); kc.rotation.x=Math.PI/2; kc.position.z=r*0.82; kn.add(kc);
+    const km=new THREE.Mesh(new THREE.BoxGeometry(r*0.12,r*0.5,0.03),new THREE.MeshBasicMaterial({color:0xffffff})); km.position.set(0,r*0.3,r*0.85); kn.add(km); return kn; };
+  const post=(par,x,y,z,c,rot)=>{ const g=new THREE.Group(); g.position.set(x,y,z); if(rot) g.rotation.set(rot[0],rot[1],rot[2]); par.add(g); const b=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.5,20),enamel(c,0.35,0.6)); g.add(b);
+    const n=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.25,6),new THREE.MeshStandardMaterial({color:0xd6b56a,metalness:.9,roughness:.3})); n.position.y=0.36; g.add(n); return g; };
+  const panelTex=(w,h,fn)=>new THREE.MeshStandardMaterial({roughness:.55,map:canvasTex(w,h,(g)=>{ g.fillStyle='#2a2d33'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(255,255,255,.2)'; g.lineWidth=3; g.strokeRect(6,6,w-12,h-12); fn(g); })});
   /* ── ตอน A ── */
   P.grpA=new THREE.Group(); scene.add(P.grpA);
-  const glass=new THREE.MeshPhysicalMaterial({color:0xdbeafe,transparent:true,opacity:.2,roughness:.05,depthWrite:false,side:THREE.DoubleSide});
-  const wall=new THREE.Mesh(new THREE.CylinderGeometry(7,7,1.4,64,1,true),glass); wall.position.y=0.5; P.grpA.add(wall);
-  const bottom=new THREE.Mesh(new THREE.CircleGeometry(7,64),new THREE.MeshStandardMaterial({color:0x1e293b,roughness:.4})); bottom.rotation.x=-Math.PI/2; bottom.position.y=-0.2; P.grpA.add(bottom);
-  const oil=new THREE.Mesh(new THREE.CircleGeometry(6.95,64),new THREE.MeshPhysicalMaterial({color:0xb7791f,transparent:true,opacity:.35,roughness:.05,depthWrite:false})); oil.rotation.x=-Math.PI/2; oil.position.y=0.42; P.grpA.add(oil);
+  /* จานแก้วใส ขอบหนา (แบบในคลิป) วางบนแผ่นรองตัดสีเขียว */
+  const glass=new THREE.MeshPhysicalMaterial({color:0xe8f4ff,transparent:true,opacity:.26,roughness:.02,clearcoat:1,clearcoatRoughness:.02,depthWrite:false,side:THREE.DoubleSide});
+  const wall=new THREE.Mesh(new THREE.CylinderGeometry(7,7,1.4,96,1,true),glass); wall.position.y=0.5; P.grpA.add(wall);
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(7,0.09,8,120),new THREE.MeshPhysicalMaterial({color:0xeaf6ff,transparent:true,opacity:.5,roughness:.02,clearcoat:1,depthWrite:false})); lip.rotation.x=Math.PI/2; lip.position.y=1.2; P.grpA.add(lip);
+  const gbase=new THREE.Mesh(new THREE.CylinderGeometry(7.2,7.2,0.18,96),new THREE.MeshPhysicalMaterial({color:0xcfe4ee,transparent:true,opacity:.55,roughness:.05,clearcoat:1,depthWrite:false})); gbase.position.y=-0.11; P.grpA.add(gbase);
+  const bottom=new THREE.Mesh(new THREE.CircleGeometry(7,96),new THREE.MeshPhysicalMaterial({color:0x1e293b,roughness:.35,clearcoat:.5})); bottom.rotation.x=-Math.PI/2; bottom.position.y=-0.01; P.grpA.add(bottom);
+  const matA=new THREE.Mesh(new THREE.PlaneGeometry(38,26),new THREE.MeshStandardMaterial({roughness:.85,map:canvasTex(1520,1040,(g,w,h)=>{ g.fillStyle='#1f3a34'; g.fillRect(0,0,w,h); const u=w/38;
+    g.strokeStyle='rgba(210,240,225,.16)'; g.lineWidth=1.5; for(let x=0;x<=w;x+=u){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); } for(let y=0;y<=h;y+=u){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+    g.strokeStyle='rgba(230,250,240,.34)'; g.lineWidth=3; for(let x=0;x<=w;x+=u*5){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); } for(let y=0;y<=h;y+=u*5){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); } })}));
+  matA.rotation.x=-Math.PI/2; matA.position.set(5,-0.195,-1); P.grpA.add(matA);
+  const oil=new THREE.Mesh(new THREE.CircleGeometry(6.95,96),new THREE.MeshPhysicalMaterial({color:0xb7791f,transparent:true,opacity:.35,roughness:.05,clearcoat:1,clearcoatRoughness:.05,depthWrite:false})); oil.rotation.x=-Math.PI/2; oil.position.y=0.42; P.grpA.add(oil);
   P.grainMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.05,0.07),new THREE.MeshStandardMaterial({color:0xf5deb3,roughness:.8}),N_GRAIN); P.grainMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); P.grpA.add(P.grainMesh);
   P.elGrp=new THREE.Group(); P.grpA.add(P.elGrp);
-  const hvA=new THREE.Mesh(new THREE.BoxGeometry(8,5,6),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.5})); hvA.position.set(14,2.3,-4); P.grpA.add(hvA);
+  /* แหล่งจ่ายไฟแรงสูง (ตอน A): กล่องแดงขอบมน แผงหน้าเข้ม ขั้วต่อบนฝา */
+  const hvA=rbox(8,5,6,0.5,redBox); hvA.position.set(14,2.3,-4); P.grpA.add(hvA);
+  const hvpA=new THREE.Mesh(new THREE.PlaneGeometry(7.4,4.4),panelTex(740,440,(g)=>{ g.fillStyle='#e8edf5'; g.font='800 30px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('HIGH VOLTAGE',26,312); g.fillStyle='#9fb0c8'; g.font='600 20px "IBM Plex Sans Thai",sans-serif'; g.fillText('DC SUPPLY',26,345); g.textAlign='right'; g.fillText('kV ADJ',560,360); }));
+  hvpA.position.set(14,2.3,-0.995); P.grpA.add(hvpA);
+  ribKnob(P.grpA,16.6,1.0,-1,0.6);
+  const bezA=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.07,8,24),chrome); bezA.position.set(11,4.2,-0.97); P.grpA.add(bezA);
+  post(P.grpA,12.5,5.0,-4,0xd33030); post(P.grpA,15.5,5.0,-4,0x1c1c1c);
   P.hvCA=document.createElement('canvas'); P.hvCA.width=256; P.hvCA.height=96; P.hvTA=new THREE.CanvasTexture(P.hvCA);
   const hvlA=new THREE.Mesh(new THREE.PlaneGeometry(5.5,2),new THREE.MeshBasicMaterial({map:P.hvTA})); hvlA.position.set(14,3,-0.99); P.grpA.add(hvlA);
-  P.lampA=new THREE.Mesh(new THREE.SphereGeometry(0.35,12,8),new THREE.MeshBasicMaterial({color:0x334155})); P.lampA.position.set(11,4.2,-0.95); P.grpA.add(P.lampA);
+  P.lampA=new THREE.Mesh(new THREE.SphereGeometry(0.35,20,12),new THREE.MeshBasicMaterial({color:0x334155})); P.lampA.position.set(11,4.2,-0.95); P.grpA.add(P.lampA);
   P.termA=[new THREE.Vector3(12.5,5,-4),new THREE.Vector3(15.5,5,-4)];
   /* ── ตอน B ── */
   P.grpB=new THREE.Group(); scene.add(P.grpB);
-  const baseB=new THREE.Mesh(new THREE.BoxGeometry(24,1.2,22),dark); baseB.position.set(0,0.6,0); P.grpB.add(baseB);
+  /* ฐานเข้มขอบมนเคลือบเงา + หมุดโครเมียม */
+  const baseB=rbox(24,1.2,22,0.4,dark); baseB.position.set(0,0.6,0); P.grpB.add(baseB);
+  [[-11,-10],[11,-10],[-11,10],[11,10]].forEach(([fx,fz])=>{ const s=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.1,14),chrome); s.position.set(fx,1.22,fz); P.grpB.add(s); });
   const sc=canvasTex(2048,160,(g,W,H)=>{ g.fillStyle='#e9d8a6'; g.fillRect(0,0,W,H); const ppc=W/22; g.strokeStyle='#1f2937'; g.fillStyle='#1f2937'; for(let mm=-110;mm<=110;mm++){ const x=(mm/10+11)*ppc, L=mm%10===0?70:mm%5===0?50:30; g.lineWidth=mm%10===0?3:1.4; g.beginPath(); g.moveTo(x,0); g.lineTo(x,L); g.stroke(); if(mm%10===0&&Math.abs(mm)<110){ g.font='bold 40px "Share Tech Mono", monospace'; g.textAlign='center'; g.fillText(mm/10,x,H-18); } } });
   const scale=new THREE.Mesh(new THREE.PlaneGeometry(22,1.6),new THREE.MeshBasicMaterial({map:sc})); scale.rotation.x=-Math.PI/2; scale.position.set(0,1.22,9.8); P.grpB.add(scale);
-  P.plates=[-1,1].map(sd=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(PLATE_T,PLATE_H,20),steel.clone()); m.position.set(0,5+PLATE_H/2,0); P.grpB.add(m); const foot=new THREE.Mesh(new THREE.BoxGeometry(1.4,3.8,1.4),dark); foot.position.set(0,3,8.8); m.userData.foot=foot; P.grpB.add(foot); return m; });
-  const gantry=new THREE.Mesh(new THREE.BoxGeometry(0.8,PIV_Y-1.2+1,0.8),dark); gantry.position.set(0,(PIV_Y+1.2)/2,-12); P.grpB.add(gantry);
-  const armT=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,12.4),dark); armT.position.set(0,PIV_Y+0.3,-6); P.grpB.add(armT);
-  const baseG=new THREE.Mesh(new THREE.BoxGeometry(6,1,6),dark); baseG.position.set(0,0.5,-12); P.grpB.add(baseG);
+  /* แผ่นโลหะขัดขอบมน + ขาฉนวนเทฟลอนสีขาว (แบบในคลิป) — ยังเป็น Mesh เดียวต่อแผ่น (คลิกลาก/เปลี่ยนสีได้เหมือนเดิม) */
+  const plateM=new THREE.MeshStandardMaterial({color:0xb8c0cc,metalness:.9,roughness:.28,bumpMap:nzT,bumpScale:0.01}), ptfe=new THREE.MeshPhysicalMaterial({color:0xf2f2ee,roughness:.35,clearcoat:.4,clearcoatRoughness:.4});
+  P.plates=[-1,1].map(sd=>{ const m=rbox(PLATE_T,PLATE_H,20,0.15,plateM.clone()); m.position.set(0,5+PLATE_H/2,0); P.grpB.add(m); const foot=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.75,3.8,24),ptfe); foot.position.set(0,3,8.8); m.userData.foot=foot; P.grpB.add(foot); return m; });
+  /* โครงแขวน: เสาอะลูมิเนียมขอบมน + ฐานเข้ม */
+  const gantry=rbox(0.8,PIV_Y-1.2+1,0.8,0.15,alu); gantry.position.set(0,(PIV_Y+1.2)/2,-12); P.grpB.add(gantry);
+  const armT=rbox(0.6,0.6,12.4,0.12,alu); armT.position.set(0,PIV_Y+0.3,-6); P.grpB.add(armT);
+  const baseG=rbox(6,1,6,0.3,dark); baseG.position.set(0,0.5,-12); P.grpB.add(baseG);
+  const hook=rbox(1.2,0.5,1.2,0.12,chrome); hook.position.set(0,PIV_Y,0); P.grpB.add(hook);
   P.threadGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,PIV_Y,0),new THREE.Vector3(0,17,0)]); P.thread=new THREE.Line(P.threadGeo,new THREE.LineBasicMaterial({color:0xe2e8f0})); P.grpB.add(P.thread);
-  P.ball=new THREE.Mesh(new THREE.SphereGeometry(A_BALL*100,28,18),new THREE.MeshStandardMaterial({color:0xe5e7eb,metalness:.5,roughness:.3})); P.grpB.add(P.ball);
+  P.ball=new THREE.Mesh(new THREE.SphereGeometry(A_BALL*100,32,24),new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.85,roughness:.22})); P.grpB.add(P.ball);
   P.ruler=new THREE.Mesh(new THREE.PlaneGeometry(1,1.1),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false})); P.grpB.add(P.ruler);
   P.rulerTex=canvasTex(2048,128,()=>{}); P.ruler.material.map=P.rulerTex;
-  const hvB=new THREE.Mesh(new THREE.BoxGeometry(10,6,7),new THREE.MeshStandardMaterial({color:0x1f2937,roughness:.5})); hvB.position.set(-22,3,4); P.grpB.add(hvB);
+  /* แหล่งจ่ายไฟแรงสูง (ตอน B): กล่องแดงขอบมนเคลือบเงา แผงหน้า ปุ่มหมุน สวิตช์ ขั้วต่อด้านข้าง */
+  const hvB=rbox(10,6,7,0.6,redBox); hvB.position.set(-22,3,4); P.grpB.add(hvB);
+  const hvpB=new THREE.Mesh(new THREE.PlaneGeometry(9.2,5.2),panelTex(920,520,(g)=>{ g.fillStyle='#e8edf5'; g.font='800 30px "IBM Plex Sans Thai",sans-serif'; g.textAlign='left'; g.fillText('HIGH VOLTAGE',22,50);
+    g.fillStyle='#ffc63a'; g.beginPath(); g.moveTo(870,12); g.lineTo(896,56); g.lineTo(844,56); g.closePath(); g.fill(); g.fillStyle='#222'; g.font='800 30px sans-serif'; g.textAlign='center'; g.fillText('!',870,52);
+    g.fillStyle='#cfd8ea'; g.font='600 20px "IBM Plex Sans Thai",sans-serif'; g.fillText('POWER',130,505); g.textAlign='right'; g.fillText('kV ADJ',640,440); }));
+  hvpB.position.set(-22,3,7.505); P.grpB.add(hvpB);
+  ribKnob(P.grpB,-19.2,1.3,7.5,0.75);
+  const swB=rbox(1.2,0.7,0.5,0.15,new THREE.MeshStandardMaterial({color:0x1d1f24,roughness:.5})); swB.position.set(-25.3,1.3,7.7); P.grpB.add(swB);
+  post(P.grpB,-16.95,5,6,0xd33030,[0,0,-Math.PI/2]); post(P.grpB,-16.95,4,5,0x1c1c1c,[0,0,-Math.PI/2]);
+  for(let i=0;i<7;i++){ const v=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.06,4.6),new THREE.MeshStandardMaterial({color:0x5a1a14})); v.position.set(-25+i,6.02,3.5); P.grpB.add(v); }
   P.hvCB=document.createElement('canvas'); P.hvCB.width=256; P.hvCB.height=96; P.hvTB=new THREE.CanvasTexture(P.hvCB);
   const hvlB=new THREE.Mesh(new THREE.PlaneGeometry(7,2.6),new THREE.MeshBasicMaterial({map:P.hvTB})); hvlB.position.set(-22,3.6,7.52); P.grpB.add(hvlB);
   const labHV=makeLabel('แหล่งจ่ายไฟแรงสูง','#fca5a5',0.9); labHV.position.set(-22,8,4); P.grpB.add(labHV);
@@ -679,12 +726,12 @@ let fr=0, lastHV='';
 function tick(dt){ Vout+=((power?V:0)-Vout)*(1-Math.exp(-dt/0.4)); stepGrains(dt); stepBall(dt); if(part==='B'&&mode==='manual'){ /* ลมเบา ๆ */ om+=(Math.random()-0.5)*0.004; } }
 function wirePts(line,a,b,sag){ const pts=line.geometry.attributes.position; for(let i=0;i<pts.count;i++){ const t=i/(pts.count-1), p=a.clone().lerp(b,t); p.y+= Math.sin(Math.PI*t)*sag; pts.setXYZ(i,p.x,p.y,p.z); } pts.needsUpdate=true; }
 function buildElectrodes3D(){ if(!P.elGrp) return; while(P.elGrp.children.length) P.elGrp.remove(P.elGrp.children[0]);
-  const steel=new THREE.MeshStandardMaterial({color:0xcbd5e1,metalness:.7,roughness:.3}); const sol=SOL[cfg];
+  const steel=new THREE.MeshStandardMaterial({color:0xd8dde4,metalness:.92,roughness:.26}), brass=new THREE.MeshStandardMaterial({color:0xd6b56a,metalness:.9,roughness:.3}); const sol=SOL[cfg];   /* ขั้วจุด/วงแหวน = ทองเหลือง · แถบ = โลหะขัด (แบบในคลิป) */
   sol.els.forEach(e=>{ let top;
-    if(e.t==='pt'){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,3.2,16),steel); m.position.set(e.x,1.4,-e.y); P.elGrp.add(m); top=new THREE.Vector3(e.x,3,-e.y); }
+    if(e.t==='pt'){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,3.2,32),brass); m.position.set(e.x,1.4,-e.y); P.elGrp.add(m); top=new THREE.Vector3(e.x,3,-e.y); }
     if(e.t==='strip'){ const m=new THREE.Mesh(new THREE.BoxGeometry(0.2,1.2,e.y1-e.y0),steel); m.position.set(e.x,0.4,-(e.y0+e.y1)/2); P.elGrp.add(m); const post=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,2.4,8),steel); post.position.set(e.x,2,-(e.y1)); P.elGrp.add(post); top=new THREE.Vector3(e.x,3.2,-e.y1); }
-    if(e.t==='ring'){ const m=new THREE.Mesh(new THREE.TorusGeometry(e.R,0.1,8,96),steel); m.rotation.x=Math.PI/2; m.position.set(e.x,0.35,-e.y); P.elGrp.add(m); const post=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,1.6,8),steel); post.position.set(e.x+e.R*0.7071,1.1,-(e.y+e.R*0.7071)); if(e.s) P.elGrp.add(post); top=new THREE.Vector3(e.x+e.R*0.7071,1.9,-(e.y+e.R*0.7071)); }
-    if(e.s){ const geo=new THREE.BufferGeometry().setFromPoints(Array.from({length:20},()=>new THREE.Vector3())); const l=new THREE.Line(geo,new THREE.LineBasicMaterial({color:e.s>0?0xef4444:0x3b82f6})); P.elGrp.add(l); wirePts(l,top,e.s>0?P.termA[0]:P.termA[1],2.5); }
+    if(e.t==='ring'){ const m=new THREE.Mesh(new THREE.TorusGeometry(e.R,0.1,12,128),brass); m.rotation.x=Math.PI/2; m.position.set(e.x,0.35,-e.y); P.elGrp.add(m); const post=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,1.6,8),steel); post.position.set(e.x+e.R*0.7071,1.1,-(e.y+e.R*0.7071)); if(e.s) P.elGrp.add(post); top=new THREE.Vector3(e.x+e.R*0.7071,1.9,-(e.y+e.R*0.7071)); }
+    if(e.s){ const geo=new THREE.BufferGeometry().setFromPoints(Array.from({length:20},()=>new THREE.Vector3())); const l=new THREE.Line(geo,new THREE.LineBasicMaterial({color:e.s>0?0xef4444:0x3b82f6})); P.elGrp.add(l); wirePts(l,top,e.s>0?P.termA[0]:P.termA[1],2.5); P.elGrp.add(tubeFromLine(l,0.13,e.s>0?0xb02424:0x1c1c1c)); }
     else { const lab=makeLabel('วงแหวนลอยตัว (ไม่ต่อสาย)','#94a3b8',0.45); lab.position.set(e.x,1.8,-e.y); P.elGrp.add(lab); }
   }); }
 const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _e=new THREE.Euler(), _p=new THREE.Vector3(), _s=new THREE.Vector3();
@@ -699,6 +746,7 @@ function update3D(){
     if(P.rulerD!==dB){ P.rulerD=dB; const c=P.rulerTex.image, g=c.getContext('2d'), W=c.width,H=c.height, ppc=W/(dB-0.3); g.clearRect(0,0,W,H); g.fillStyle='rgba(186,230,253,.22)'; g.fillRect(0,0,W,H); g.strokeStyle='rgba(15,23,42,.95)'; g.fillStyle='rgba(15,23,42,.95)';
       for(let mm=-80;mm<=80;mm++){ const x=W/2+mm/10*ppc; if(x<0||x>W) continue; const L=mm%10===0?64:mm%5===0?46:28; g.lineWidth=mm%10===0?4:2; g.beginPath(); g.moveTo(x,0); g.lineTo(x,L); g.stroke(); if(mm%10===0){ g.font='bold 44px "Share Tech Mono", monospace'; g.textAlign='center'; g.fillText(mm/10,x,H-10); } } P.rulerTex.needsUpdate=true; }
     wirePts(P.wireB[0],new THREE.Vector3(-18,5,6),new THREE.Vector3(-xp-PLATE_T,5+PLATE_H,8),6); wirePts(P.wireB[1],new THREE.Vector3(-18,4,5),new THREE.Vector3(xp+PLATE_T,5+PLATE_H,8),9);
+    /* สายไฟหลอดเคลือบเงาตามเส้นเดิม — สร้างใหม่เฉพาะเมื่อระยะแผ่นเปลี่ยน */ if(P.wireTubeD!==dB){ P.wireTubeD=dB; (P.wireTubes||[]).forEach(t=>{ P.grpB.remove(t); t.geometry.dispose(); t.material.dispose(); }); P.wireTubes=P.wireB.map((l,i)=>{ const t=tubeFromLine(l,0.15,i?0x15803d:0xb02424); P.grpB.add(t); return t; }); }
     const F=qBall*Efield(); P.arrB.visible= mode==='auto' && Math.abs(F)>1e-8; if(P.arrB.visible){ const L=Math.min(12,Math.abs(F)/(M_BALL*G)*60+1.5); P.arrB.position.set(xb,yb,1); P.arrB.setDirection(new THREE.Vector3(Math.sign(F),0,0)); P.arrB.setLength(L,1.2,0.8); }
   }
   const tg=orbit.target; camera.up.set(0,1,0);
