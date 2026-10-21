@@ -399,7 +399,7 @@
       var wp = hp * o.scale.x / o.scale.y;
       var bk = o.userData.__kpBk;
       _v.copy(_w).project(camera);
-      if (wp > W * 0.3 && wp > 160) {
+      if (wp > W * 0.5 && wp > 230) {
         /* 2) ป้ายคำแนะนำยาว ๆ → เรียงไว้ขอบบนของภาพ (ไม่ทับอุปกรณ์) */
         rec.pos = o.position.clone();
         var ny = 1 - 2 * stackY / H;
