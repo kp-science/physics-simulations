@@ -15,15 +15,18 @@
      dark = ห้องมืด (แลปแสงที่ต้องเห็นลำแสง/ภาพบนฉาก) · space = ไม่มีห้อง/โต๊ะ (อวกาศ) */
   var PRESETS = {
     dark:  ['35', '36', '46', '47', '50', '51', '52', '53'],
+    /* หรี่ไฟ: แลปลำแสง/รังสีแสงที่ต้องอ่านค่าบนกระดาษหรือสเกล — ลำแสงเด่น แต่ยังอ่านได้ */
+    dim:   ['32B', '33B', '49', '116', '87', '88', '94'],
     space: ['69']
   };
   var labNo = (decodeURIComponent(location.pathname).match(/\/(\d+[A-Za-z]?)\.[^\/]*$/) || [])[1];
   var preset = {};
   if (PRESETS.dark.indexOf(labNo) >= 0) preset = { room: 'dark' };
+  if (PRESETS.dim.indexOf(labNo) >= 0) preset = { room: 'dim' };
   if (PRESETS.space.indexOf(labNo) >= 0) preset = { room: false, shadows: false };
   var CFG = Object.assign({ exposure: 1.25, env: 0.45, rim: 0.6, keyBoost: 1.5, shadows: true, room: true, table: true, labels: true }, preset, window.KP_REAL3D || {});
   /* เทียบสไตล์ห้องได้ทาง URL: ?room=studio | wood | dark */
-  var qRoom = (location.search.match(/[?&]room=(studio|wood|dark)\b/) || [])[1];
+  var qRoom = (location.search.match(/[?&]room=(studio|wood|dark|dim)\b/) || [])[1];
   if (qRoom) CFG.room = qRoom === 'wood' ? true : qRoom;
   var STUDIO = CFG.room === 'studio';
   if (STUDIO && !(window.KP_REAL3D && window.KP_REAL3D.exposure)) CFG.exposure = 1.15;
@@ -114,6 +117,13 @@
     return new THREE.CanvasTexture(c);
   }
   function wallTex(dark){
+    if (CFG.room === 'dim') {
+      var cd = document.createElement('canvas'); cd.width = 4; cd.height = 256;
+      var gd = cd.getContext('2d'), gg = gd.createLinearGradient(0, 0, 0, 256);
+      gg.addColorStop(0, '#24272c'); gg.addColorStop(0.6, '#363a41'); gg.addColorStop(1, '#2e3238');
+      gd.fillStyle = gg; gd.fillRect(0, 0, 4, 256);
+      return new THREE.CanvasTexture(cd);
+    }
     if (STUDIO) return studioTex();
     var c = document.createElement('canvas'); c.width = 4; c.height = 256;
     var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
@@ -215,7 +225,7 @@
         if (!litMat(m)) noTone(m);
         if (litMat(m)) lit = true;
         if (m.transparent && m.opacity < 0.9 || m.blending === THREE.AdditiveBlending || m.wireframe) solid = false;
-        if (m.isMeshStandardMaterial && !m.__kpEnv) { m.__kpEnv = true; m.envMapIntensity = st.room === 'dark' ? CFG.env * 0.5 : (STUDIO ? CFG.env * 1.25 : CFG.env); }
+        if (m.isMeshStandardMaterial && !m.__kpEnv) { m.__kpEnv = true; m.envMapIntensity = st.room === 'dark' ? CFG.env * 0.5 : st.room === 'dim' ? CFG.env * 0.6 : (STUDIO ? CFG.env * 1.25 : CFG.env); }
       });
       if (lit && CFG.shadows) { o.receiveShadow = true; o.castShadow = solid; }
     });
@@ -235,7 +245,10 @@
     if (!B) return;                                    /* ฉากยังว่าง รอเฟรมถัดไป */
     st = { frame: 0, pills: [], room: CFG.room, bounds: B };
     states.set(scene, st); scenes.push(scene);
-    var DARK = CFG.room === 'dark';
+    var DARK = CFG.room === 'dark', DIM = CFG.room === 'dim';
+    var WOODC = DARK ? 0x6b6b6b : DIM ? 0x8c8c8c : 0xffffff;
+    /* หรี่ไฟห้อง: ไฟของแลปเหลือ 60% (ลำแสง/จอ/ป้ายเป็นวัสดุไม่รับแสง จึงสว่างเท่าเดิม) */
+    if (DIM) scene.traverse(function(o){ if (o.isLight && !o.userData.__kpRoom && !o.__kpDimRoom) { o.__kpDimRoom = true; o.intensity *= 0.6; } });
 
     var bb = B.gear, size = bb.getSize(new THREE.Vector3()), ctr = bb.getCenter(new THREE.Vector3());
     var span = Math.max(size.x, size.z, size.y * 0.6, 1);
@@ -277,7 +290,7 @@
     }
 
     /* 2b) ไฟขอบจากด้านหลังเฉียงบน → ขอบวัตถุสว่างเป็นเส้น แยกจากฉากหลัง */
-    if (CFG.rim > 0 && st.room !== 'dark') {
+    if (CFG.rim > 0 && st.room !== 'dark' && st.room !== 'dim') {
       var rim = new THREE.DirectionalLight(0xe6eeff, CFG.rim);
       rim.position.set(ctr.x - span * 0.6, ctr.y + span * 1.2, ctr.z - span * 2);
       rim.target.position.copy(ctr); rim.userData.__kpRoom = true;
@@ -294,7 +307,7 @@
         var w = wood().clone(); w.needsUpdate = true;
         var fz = new THREE.Box3().setFromObject(fl).getSize(new THREE.Vector3());
         w.repeat.set(Math.max(1, fz.x / (span * 1.6)), Math.max(1, fz.z / (span * 1.6)));
-        m.map = w; m.color.setHex(DARK ? 0x6b6b6b : 0xffffff);
+        m.map = w; m.color.setHex(WOODC);
         if (m.isMeshStandardMaterial) { m.roughness = 0.55; m.metalness = 0; }
         m.needsUpdate = true;
       });
@@ -310,13 +323,13 @@
       } else if (CFG.table) {
         var t = wood(), tw = span * 6;
         t.repeat.set(tw / (span * 1.6), tw / (span * 1.6));
-        var tm = new THREE.MeshStandardMaterial({ map: t, color: DARK ? 0x6b6b6b : 0xffffff, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 });
+        var tm = new THREE.MeshStandardMaterial({ map: t, color: WOODC, roughness: 0.55, metalness: 0, envMapIntensity: 0.5 });
         var table = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw), tm);
         table.rotation.x = -Math.PI / 2;
         table.position.set(ctr.x, B.all.min.y - span * 0.004, ctr.z);
         table.receiveShadow = true; table.userData.__kpRoom = table.userData.__kpSeen = true;
         scene.add(table);
-        if (!scene.fog) { scene.fog = new THREE.Fog(DARK ? 0x14171c : 0xb7babf, span * 2.2, span * 4.5); scene.fog.__kp = true; }
+        if (!scene.fog) { scene.fog = new THREE.Fog(DARK ? 0x14171c : DIM ? 0x30343a : 0xb7babf, span * 2.2, span * 4.5); scene.fog.__kp = true; }
       }
     }
     st.ctr = ctr; st.span = span;
@@ -342,6 +355,7 @@
     if (!CFG.room) return null;
     var h = 'smoothstep(-0.06,0.06,d.y)';   /* ขอบฟ้าคม: มองตรง = ผนัง · มองต่ำ = โต๊ะ */
     if (CFG.room === 'dark') return ['vec3(0.04,0.045,0.055)', 'vec3(0.07,0.08,0.10)', h];
+    if (CFG.room === 'dim') return ['vec3(0.30,0.25,0.21)', 'vec3(0.20,0.22,0.25)', h];
     if (CFG.room === 'studio') return ['vec3(0.21,0.22,0.24)', 'vec3(0.23,0.24,0.26)', h];
     return ['vec3(0.62,0.53,0.44)', 'vec3(0.78,0.80,0.83)', h];
   }
