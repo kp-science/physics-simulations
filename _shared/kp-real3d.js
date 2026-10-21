@@ -49,7 +49,12 @@
         try { prep(r, scene, camera); } catch (e) { if (!r.__kpErr) { r.__kpErr = 1; console.warn('kp-real3d:', e); } }
         busy = false;
       }
-      return rawRender(scene, camera);
+      if (scene && scene.isScene && !scene.userData.__kpEnvScene) r.__kpLast = [scene, camera];
+      var undo = null;
+      if (scene && scene.isScene && camera && !scene.userData.__kpEnvScene) { try { undo = labelPass(r, scene, camera); } catch (e) { undo = null; if (!r.__kpLblErr) { r.__kpLblErr = 1; console.warn('kp-real3d labels:', e); } } }
+      var out = rawRender(scene, camera);
+      if (undo) undo();
+      return out;
     };
     return r;
   }
@@ -347,6 +352,90 @@
   function collectPills(scene, st){
     st.pills = [];
     scene.traverse(function(o){ if (o.isSprite && o.userData.__kpBk) st.pills.push(o.userData.__kpBk); });
+  }
+
+  /* ── ป้ายชื่อ: ยกให้ห่างจากอุปกรณ์ + เส้นนำ · ปุ่ม 🏷 สลับ ห่าง → ซ่อน → ชิด (แบบเดิม) ──
+     ป้าย = Sprite ตัวหนังสือบนแคนวาส ทรงแถบกว้าง (กว้าง ≥ 1.6 เท่าของสูง) · ปุ่มจับ/เครื่องหมายทรงเหลี่ยม-กลม (เช่น A B ของคาลิปเปอร์) ไม่แตะ
+     เปลี่ยนเฉพาะตอนวาด แล้วคืนค่าเดิมทันที → โค้ดแลป (ตำแหน่ง · การแตะ/ลาก) เห็นค่าเดิมเสมอ
+     แลปที่ไม่อยากให้ป้ายไหนขยับ: sprite.userData.kpLabel = false */
+  var LBL_MODES = ['far', 'off', 'near'], LBL_TXT = { far: '🏷 ป้าย: ห่าง', off: '🏷 ป้าย: ซ่อน', near: '🏷 ป้าย: ชิด' };
+  var lblMode = 'far';
+  try { var sv = localStorage.getItem('kpLblMode'); if (LBL_MODES.indexOf(sv) >= 0) lblMode = sv; } catch (e) {}
+  function isLabel(o){
+    if (!o.isSprite || o.userData.__kpFor || o.userData.kpLabel === false) return false;   /* __kpFor = กรอบพื้นหลังที่ kp-real3d เติมให้ */
+    var m = o.material, img = m && m.map && m.map.image;
+    if (!img || !img.getContext || m.blending === THREE.AdditiveBlending) return false;
+    return o.userData.kpLabel === true || o.scale.x >= 1.6 * o.scale.y;
+  }
+  var _v = new THREE.Vector3(), _w = new THREE.Vector3(), _s = new THREE.Vector3(), _sz = new THREE.Vector2();
+  function labelPass(r, scene, camera){
+    var st = states.get(scene); if (!st) return null;
+    st.lblN = (st.lblN || 0) + 1;
+    if (!st.labels || st.lblN % (st.labels.length ? 45 : 10) === 1) { st.labels = []; scene.traverse(function(o){ if (isLabel(o)) st.labels.push(o); }); }
+    var ov = overlay(r);
+    if (ov) { var c = ov.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, ov.width, ov.height); }
+    if (!st.labels.length || lblMode === 'near') return null;
+    var vis = function(o){ for (var p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+    var done = [];
+    if (lblMode === 'off') {
+      st.labels.forEach(function(o){ if (!o.visible) return; o.visible = false; var bk = o.userData.__kpBk; if (bk) bk.visible = false; done.push(o); });
+      return function(){ done.forEach(function(o){ o.visible = true; var bk = o.userData.__kpBk; if (bk) syncBacking(bk); }); };
+    }
+    r.getSize(_sz); var W = _sz.x, H = _sz.y; if (!W || !H) return null;
+    camera.updateMatrixWorld(); var P5 = camera.projectionMatrix.elements[5], ortho = !!camera.isOrthographicCamera;
+    var c2 = ov && ov.getContext('2d'), dpr = ov ? ov.width / W : 1;
+    if (c2) { c2.setTransform(dpr, 0, 0, dpr, 0, 0); c2.lineWidth = 1.4; c2.lineCap = 'round'; }
+    st.labels.forEach(function(o){
+      if (!o.visible || !vis(o) || o.material.opacity < 0.05) return;
+      o.getWorldPosition(_w); _v.copy(_w).applyMatrix4(camera.matrixWorldInverse);
+      if (!ortho && _v.z > -1e-6) return;
+      o.getWorldScale(_s);
+      var ndcH = o.material.sizeAttenuation === false || ortho ? _s.y * P5 : _s.y * P5 / -_v.z;
+      var hp = ndcH * H / 2; if (!(hp > 5 && hp < 140)) return;
+      var lift = hp * 0.75 + 16, cy0 = o.center.y;
+      o.center.y = cy0 - lift / hp;
+      var bk = o.userData.__kpBk; if (bk) syncBacking(bk);
+      done.push([o, cy0]);
+      if (c2) {
+        _v.copy(_w).project(camera);
+        var ax = (_v.x + 1) / 2 * W, ay = (1 - _v.y) / 2 * H, by = ay + cy0 * hp - lift + 1;   /* ขอบล่างของป้ายหลังยก */
+        c2.strokeStyle = 'rgba(15,23,42,.55)'; c2.beginPath(); c2.moveTo(ax, ay); c2.lineTo(ax, by); c2.stroke();
+        c2.fillStyle = 'rgba(255,255,255,.9)'; c2.beginPath(); c2.arc(ax, ay, 2.2, 0, 6.3); c2.fill();
+        c2.strokeStyle = 'rgba(15,23,42,.7)'; c2.stroke();
+      }
+    });
+    return function(){ done.forEach(function(d){ d[0].center.y = d[1]; var bk = d[0].userData.__kpBk; if (bk) syncBacking(bk); }); };
+  }
+  /* แคนวาส 2D โปร่งใสวางทับภาพ 3D สำหรับเส้นนำ (ไม่รับการแตะ) */
+  function overlay(r){
+    var cv = r.domElement, p = cv.parentElement; if (!p) return null;
+    var ov = r.__kpOv;
+    if (!ov) {
+      ov = r.__kpOv = document.createElement('canvas');
+      ov.style.cssText = 'position:absolute;pointer-events:none;z-index:1';
+      if (getComputedStyle(p).position === 'static') p.style.position = 'relative';
+      p.insertBefore(ov, cv.nextSibling);
+      lblButton(cv);
+    }
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+    ov.style.left = cv.offsetLeft + 'px'; ov.style.top = cv.offsetTop + 'px'; ov.style.width = w + 'px'; ov.style.height = h + 'px';
+    if (ov.width !== Math.round(w * dpr) || ov.height !== Math.round(h * dpr)) { ov.width = Math.round(w * dpr); ov.height = Math.round(h * dpr); }
+    return ov;
+  }
+  /* ปุ่ม 🏷 ป้าย: ใส่ในแถวปุ่มมุมมองของแลป (ปุ่มที่เรียก setView) ถ้าไม่มี ลอยมุมซ้ายบนของภาพ */
+  function lblButton(cv){
+    if (document.getElementById('kpLblBtn')) return;
+    var b = document.createElement('button'); b.id = 'kpLblBtn'; b.type = 'button';
+    b.title = 'ป้ายชื่ออุปกรณ์: ห่าง (มีเส้นนำ) → ซ่อน → ชิด';
+    var set = function(){ b.textContent = LBL_TXT[lblMode]; b.classList.toggle('active', lblMode !== 'far'); };
+    b.addEventListener('click', function(e){ e.stopPropagation(); lblMode = LBL_MODES[(LBL_MODES.indexOf(lblMode) + 1) % 3]; try { localStorage.setItem('kpLblMode', lblMode); } catch (x) {} set();
+      /* แลปที่วาดเฉพาะตอนมีการเปลี่ยนแปลง → วาดใหม่ให้เห็นผลทันที */
+      renderers.forEach(function(rr){ if (rr.__kpLast) try { rr.render(rr.__kpLast[0], rr.__kpLast[1]); } catch (x) {} }); });
+    set();
+    var vb = document.querySelector('button[onclick*="setView("]');
+    if (vb && vb.parentElement) { b.className = vb.className.replace(/\b(on|active)\b/g, '').trim(); vb.parentElement.insertBefore(b, vb); set(); return; }
+    b.style.cssText = 'position:absolute;left:8px;top:8px;z-index:5;padding:4px 10px;border-radius:7px;border:1px solid rgba(148,163,184,.5);background:rgba(15,23,42,.82);color:#e2e8f0;font:600 12px "IBM Plex Sans Thai Looped","IBM Plex Sans Thai",sans-serif;cursor:pointer';
+    cv.parentElement.appendChild(b);
   }
 
   /* สีพื้นหลังสำหรับ shader ที่ trace แสงเอง (แลป 48 49 51 52): [มองลง (โต๊ะ), มองขึ้น (ผนัง)] เป็น GLSL vec3
