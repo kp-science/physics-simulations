@@ -1037,6 +1037,22 @@ function recordRow(){
   renderTable();
 }
 
+/* ช่องคลาดเคลื่อนของแถว (แยกออกมา เพื่ออัปเดตเฉพาะช่องนี้ระหว่างพิมพ์ — ไม่วาดตารางใหม่ ช่องพิมพ์จะได้ไม่หลุดโฟกัส) */
+function errCellHTML(r){
+  let errCell = '<td class="mono">—</td>';
+  if (r.measured !== null && r.measured !== ''){
+    const m = parseFloat(r.measured), th = parseFloat(r.sumTh);
+    if (Math.abs(th) < 0.01){
+      const cls = Math.abs(m) < 0.1 ? 'ok' : 'bad';
+      errCell = `<td class="mono ${cls}">${Math.abs(m).toFixed(2)}cm</td>`;
+    } else {
+      const e = Math.abs((m-th)/th)*100;
+      const cls = e < 5 ? 'ok' : (e < 15 ? '' : 'bad');
+      errCell = `<td class="mono ${cls}">${e.toFixed(1)}%</td>`;
+    }
+  }
+  return errCell;
+}
 function renderTable(){
   const tbody = document.getElementById('dataBody');
   if (records.length===0){
@@ -1045,33 +1061,23 @@ function renderTable(){
   }
   tbody.innerHTML = records.map((r,i)=>{
     const measVal = r.measured===null ? '' : r.measured;
-    let errCell = '<td class="mono">—</td>';
-    if (r.measured !== null && r.measured !== ''){
-      const m = parseFloat(r.measured), th = parseFloat(r.sumTh);
-      if (Math.abs(th) < 0.01){
-        const cls = Math.abs(m) < 0.1 ? 'ok' : 'bad';
-        errCell = `<td class="mono ${cls}">${Math.abs(m).toFixed(2)}cm</td>`;
-      } else {
-        const e = Math.abs((m-th)/th)*100;
-        const cls = e < 5 ? 'ok' : (e < 15 ? '' : 'bad');
-        errCell = `<td class="mono ${cls}">${e.toFixed(1)}%</td>`;
-      }
-    }
+    const errCell = errCellHTML(r);
     return `<tr>
       <td class="mono">${i+1}</td>
       <td class="mono">${r.t}</td>
       <td class="mono">${r.x}</td>
       <td class="mono" style="color:var(--accent2)">${r.y1}</td>
       <td class="mono" style="color:var(--accent3)">${r.y2}</td>
-      <td><input class="cell" type="number" step="0.01" value="${measVal}" oninput="updateMeasured(${i}, this.value)"></td>
+      <td><input class="cell" type="number" step="0.01" value="${measVal}" oninput="updateMeasured(${i}, this.value, this)"></td>
       ${errCell}
       <td class="row-actions"><button onclick="deleteRow(${i})" title="ลบ">✕</button></td>
     </tr>`;
   }).join('');
 }
-function updateMeasured(i, v){
+function updateMeasured(i, v, el){
   records[i].measured = v;
-  renderTable();
+  const td = el && el.closest('td') && el.closest('td').nextElementSibling;
+  if (td) td.outerHTML = errCellHTML(records[i]); else renderTable();
 }
 function deleteRow(i){
   records.splice(i,1);
