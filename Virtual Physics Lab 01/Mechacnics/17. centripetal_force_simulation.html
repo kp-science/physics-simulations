@@ -28,7 +28,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KP Science simulation — การทดลองแรงสู่ศูนย์กลาง (Experiment 17)</title>
+<title>KP Science simulation — การทดลองแรงสู่ศูนย์กลาง (3D) (Experiment 17)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -164,7 +164,22 @@ nav button.active { background: var(--accent); border-color: var(--accent); colo
   border-radius: 8px; aspect-ratio: 4 / 3;
   overflow: hidden;
 }
-#simCanvas { width: 100%; height: 100%; display: block; }
+#simCanvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.view3d { background: linear-gradient(180deg,#141c2c,#0a0f1c); }
+.view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 20px)}
+.view3d .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.view3d .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.view3d .viewbtns button.on{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.view3d .viewbtns button.active{border-color:var(--accent4);color:var(--accent4);font-weight:700}
+.view3d .info3d{position:absolute;left:8px;top:8px;background:rgba(17,24,39,.88);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-family:'Share Tech Mono',monospace;font-size:.72rem;font-weight:700;line-height:1.5;pointer-events:none;max-width:58%}
+.view3d .info3d .i-name{font-family:'IBM Plex Sans Thai',sans-serif;font-weight:500;color:#94a3b8}
+.view3d .info3d .i-hl{font-family:'IBM Plex Sans Thai',sans-serif;margin-top:2px}
+.view3d .viewhint{position:absolute;right:8px;top:8px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:40%;animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.view3d .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
+@media(max-width:900px){.view3d .viewbtns{top:8px;bottom:auto}.view3d .viewhint{display:none}.view3d .info3d{top:auto;bottom:8px;max-width:calc(100% - 16px);font-size:.66rem}}
+/* จอมือถือ: ภาพ 3D สูงขึ้น (ปุ่มมุมมองอยู่บน กล่องข้อมูลอยู่ล่าง จะได้เหลือที่ให้เห็นอุปกรณ์) */
+@media(max-width:600px){.canvas-wrap.view3d{aspect-ratio:auto;height:112vw;max-height:520px}}
 
 .readouts {
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -414,7 +429,7 @@ footer {
 <header>
   <span class="icon">🔄</span>
   <div>
-    <h1>การทดลองแรงสู่ศูนย์กลาง (Centripetal Force)</h1>
+    <h1>การทดลองแรงสู่ศูนย์กลาง (Centripetal Force) (3D)</h1>
     <p>Experiment 17 — ความสัมพันธ์ระหว่างแรงสู่ศูนย์กลาง ความเร็ว รัศมี และมวล</p>
   </div>
   <span class="badge">KP Science simulation</span>
@@ -463,9 +478,19 @@ footer {
 
     <!-- LEFT: Canvas + animation -->
     <div class="card">
-      <h3>🔭 มุมมองจากด้านบน (Top view)</h3>
-      <div class="canvas-wrap">
+      <h3>🔭 ชุดหลอดแก้ว–จุกยาง (3D)</h3>
+      <div class="canvas-wrap view3d" id="view3d">
         <canvas id="simCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" onclick="setView('iso')">มุมเฉียง</button>
+          <button data-vw="top" onclick="setView('top')">⬇ มองจากด้านบน</button>
+          <button data-vw="side" onclick="setView('side')">👁 มองด้านข้าง</button>
+          <button data-vw="tube" onclick="setView('tube')">🔍 ปลายหลอด · มาร์กเกอร์</button>
+        </div>
+        <div class="info3d" id="info3d"></div>
+        <div class="viewhint">🖱 ลาก = หมุนภาพ · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = หมุน · 2 นิ้ว = ซูม/เลื่อน<br>② แปรผันรัศมี: ลาก<b>จุกยาง</b>เข้า-ออกเพื่อเปลี่ยน r</div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ยังใช้นาฬิกาจับเวลา ตาราง และกราฟได้ตามปกติ</div>
       </div>
       <div class="readouts">
         <div class="ro"><div class="k">เวลาแอนิเมชัน</div><div class="v mono" id="ro-t">0.00 s</div></div>
@@ -725,6 +750,9 @@ footer {
 
 <footer>KP Science simulation • อ้างอิง Experiment 17 Centripetal Force • v = √(Fr/m)</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../../_shared/three.min.js"><\/script>'); }</script>
+<script src="../../_shared/kp-real3d.js?v=20261021-8"></script>
 <script>
 // ============================================================
 // PHYSICS & DATA
@@ -772,7 +800,7 @@ const EXPERIMENTS = {
     ],
     procedure: [
       'ใช้จุกยางมวล m = 0.016 kg และมวลแขวน M = 0.100 kg (F = 0.98 N) คงที่',
-      'เลือกรัศมี r (ลากเครื่องหมายใต้หลอดแก้วให้ตรงที่ต้องการ)',
+      'เลือกรัศมี r (ใช้แถบเลื่อน หรือลากจุกยางในภาพ 3D เข้า-ออก)',
       'แกว่งจุกยาง 10 รอบ จับเวลาและคำนวณ v = 2πrn / t',
       'เปลี่ยน r ซ้ำขั้นตอนและเขียนกราฟ v vs r'
     ],
@@ -1006,422 +1034,276 @@ function updateHint() {
 }
 
 // ============================================================
-// CANVAS ANIMATION
+// 3D VIEW (three.js r128 · หน่วย cm)
+// ภาพ 3D เป็นแค่ "มุมมอง" ของสถานะเดิม (state.angle, state.r, state.m, state.F, state.M, state.exp, state.showVectors)
+// จุกยางหมุนเป็นวงกลมแนวราบรัศมี r ที่ระดับปากหลอดแก้ว · เชือกลอดหลอดลงไปที่มาร์กเกอร์และตุ้มถ่วง M
 // ============================================================
 const canvas = document.getElementById('simCanvas');
-const ctx = canvas.getContext('2d');
-let W = 800, H = 600;
+let renderer = null, scene = null, camera = null, P = {}, TEXS = [], curView = 'iso';
+const TUBE_TOP = 110, TUBE_LEN = 14, GRIP_Y = TUBE_TOP - TUBE_LEN * 0.6;
+const CLIP_Y = TUBE_TOP - TUBE_LEN - 2.2;    /* มาร์กเกอร์ (คลิป) ต่ำกว่าปลายหลอด ~2 cm */
+const HANG_Y = CLIP_Y - 20;                  /* ที่แขวนตุ้มถ่วง */
+const orbit = { target: null, dist: 200, az: 0.55, el: 0.42 };
+const Rcm = () => state.r * 100;
+const VIEWS = {
+  iso : () => ({ t: [0, TUBE_TOP - 16, 0], d: 58 + 1.6 * Rcm(), az: 0.55, el: 0.42 }),
+  top : () => ({ t: [0, TUBE_TOP, 0], d: 80 + 2.7 * Rcm(), az: 0.0001, el: 1.52 }),
+  side: () => ({ t: [0, TUBE_TOP - 22, 0], d: 70 + 1.9 * Rcm(), az: 0.0001, el: 0.04 }),
+  tube: () => ({ t: [0, TUBE_TOP - TUBE_LEN - 8, 0], d: 52, az: 0.7, el: 0.14 })
+};
+let UP = null;
+function placeRod(mesh, a, b) { if (!UP) UP = new THREE.Vector3(0, 1, 0); const d = b.clone().sub(a), len = Math.max(0.001, d.length()); mesh.position.copy(a).addScaledVector(d, 0.5); mesh.scale.set(1, len, 1); mesh.quaternion.setFromUnitVectors(UP, d.divideScalar(len)); }
 
-function resizeCanvas() {
-  const parent = canvas.parentElement;
-  const dpr = window.devicePixelRatio || 1;
-  const w = parent.clientWidth || 600;
-  const h = parent.clientHeight || 450;
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  W = w; H = h;
-  draw();
+/* ── texture + ป้ายข้อความ (Sprite พื้นทึบ · ตัวหนังสือย่อเองให้พอดีป้าย · เปลี่ยนข้อความด้วย setText) ── */
+function texApply(t) { let an = 8; try { if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) an = Math.max(8, renderer.capabilities.getMaxAnisotropy()); } catch (e) {}
+  t.anisotropy = an; if (renderer && 'outputEncoding' in renderer && 'encoding' in t) t.encoding = renderer.outputEncoding;
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t; }
+function canvasTex(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); const t = texApply(new THREE.CanvasTexture(c)); TEXS.push({ t, fn }); return t; }
+function redrawTexs() { TEXS.forEach(o => { const c = o.t.image; o.fn(c.getContext('2d'), c.width, c.height); o.t.needsUpdate = true; }); }
+function makeLabel(text, col, wcm) { const st = { text, col };
+  const tex = canvasTex(768, 128, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = 'rgba(12,18,32,.9)'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = st.col; g.globalAlpha = .55; g.lineWidth = 5; g.strokeRect(3, 3, w - 6, h - 6); g.globalAlpha = 1;
+    let fs = 64; g.font = 'bold ' + fs + 'px "IBM Plex Sans Thai",sans-serif'; while (fs > 26 && g.measureText(st.text).width > w - 36) { fs -= 4; g.font = 'bold ' + fs + 'px "IBM Plex Sans Thai",sans-serif'; }
+    g.fillStyle = st.col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(st.text, w / 2, h / 2 + 4); });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  const wc = wcm || 18; sp.scale.set(wc, wc / 6, 1);
+  sp.userData.setText = (t, c) => { if (t === st.text && (!c || c === st.col)) return; st.text = t; if (c) st.col = c; const cv = tex.image; const o = TEXS.find(q => q.t === tex); if (o) o.fn(cv.getContext('2d'), cv.width, cv.height); tex.needsUpdate = true; };
+  return sp; }
+/* แสงเรือง (ไฮไลต์ตัวแปรที่กำลังศึกษา) — Sprite แบบบวกแสง ไม่มีกรอบป้าย */
+function glowSprite(hex) { const tex = canvasTex(128, 128, (g, w, h) => { g.clearRect(0, 0, w, h); const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    gr.addColorStop(0, 'rgba(255,255,255,.85)'); gr.addColorStop(.35, 'rgba(255,255,255,.32)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: hex, transparent: true, opacity: .6, blending: THREE.AdditiveBlending, depthWrite: false })); }
+
+/* ── ตัวช่วยปั้นอุปกรณ์แบบแลปจริง: กล่องขอบมน · วัสดุเคลือบเงา · ปุ่มมีร่อง · บอสแคลมป์ (ภาพเท่านั้น ไม่แตะฟิสิกส์) ── */
+function rbox(w, h, d, r, m) { const b = Math.min(r * 0.6, w * 0.3, h * 0.3, d * 0.3), sw = w - 2 * b, sh = d - 2 * b, cr = Math.max(0.02, Math.min(r - b, sw / 2 - 0.01, sh / 2 - 0.01)), s = new THREE.Shape();
+  s.moveTo(-sw / 2 + cr, -sh / 2); s.lineTo(sw / 2 - cr, -sh / 2); s.quadraticCurveTo(sw / 2, -sh / 2, sw / 2, -sh / 2 + cr); s.lineTo(sw / 2, sh / 2 - cr); s.quadraticCurveTo(sw / 2, sh / 2, sw / 2 - cr, sh / 2);
+  s.lineTo(-sw / 2 + cr, sh / 2); s.quadraticCurveTo(-sw / 2, sh / 2, -sw / 2, sh / 2 - cr); s.lineTo(-sw / 2, -sh / 2 + cr); s.quadraticCurveTo(-sw / 2, -sh / 2, -sw / 2 + cr, -sh / 2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.01, h - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 8 }); g.rotateX(-Math.PI / 2); g.center(); return new THREE.Mesh(g, m); }
+const enamel = (c, r, cc) => new THREE.MeshPhysicalMaterial({ color: c, roughness: r == null ? 0.42 : r, clearcoat: cc == null ? 0.35 : cc, clearcoatRoughness: 0.45 });
+let KM = {};
+function kmInit() { KM = { chrome: new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: .95, roughness: .22 }),
+  anod: new THREE.MeshPhysicalMaterial({ color: 0x2a2d33, metalness: .75, roughness: .35, clearcoat: .3, clearcoatRoughness: .4 }),
+  rubber: new THREE.MeshStandardMaterial({ color: 0x111214, roughness: .92 }),
+  knob: enamel(0x15171c, 0.35, 0.5), rib: new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: .5 }) }; }
+function ribKnob(r, h) { const k = new THREE.Group(); k.add(new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, h, 32), KM.knob));
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2, rib = new THREE.Mesh(new THREE.BoxGeometry(r * 0.08, h * 0.86, r * 0.14), KM.rib); rib.position.set(Math.cos(a) * r * 1.02, 0, Math.sin(a) * r * 1.02); rib.rotation.y = -a; k.add(rib); }
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, 0.05, 32), KM.chrome); cap.position.y = h / 2 + 0.01; k.add(cap); return k; }
+function bossClamp(rr) { const g = new THREE.Group(), b = rbox(rr * 3.4, rr * 3.4, rr * 3.4, rr * 0.6, KM.anod); g.add(b);
+  const k = ribKnob(rr * 1.1, rr * 1.2); k.rotation.x = Math.PI / 2; k.position.z = rr * 2.3; g.add(k); return g; }
+
+function init3D() {
+  const nt = document.getElementById('nothree');
+  if (typeof THREE === 'undefined') { if (nt) nt.style.display = 'flex'; return; }
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch (e) { renderer = null; if (nt) { nt.innerHTML = '⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้<br>ยังใช้นาฬิกาจับเวลา ตาราง และกราฟได้ตามปกติ'; nt.style.display = 'flex'; } return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(36, 1, 0.5, 4000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a2235, 0.85)); const d1 = new THREE.DirectionalLight(0xffffff, 0.6); d1.position.set(80, 240, 140); scene.add(d1);
+  kmInit(); orbit.target = new THREE.Vector3(0, TUBE_TOP - 16, 0);
+  /* พื้นโต๊ะใต้ชุดอุปกรณ์ (kp-real3d เปลี่ยนเป็นลายไม้) — วางต่ำกว่าตุ้มถ่วงที่หนักที่สุด จึงไม่ทะลุโต๊ะเมื่อเพิ่ม M */
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(320, 0.6, 320), new THREE.MeshStandardMaterial({ color: 0x6b5040, roughness: .8 })); bench.position.y = 44; scene.add(bench);
+
+  /* หลอดแก้วเคลือบใส (ผนังหนา ขอบปากหลอมมน) + ด้ามจับยางมีร่อง */
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0xd6eefc, transparent: true, opacity: .38, roughness: .04, metalness: 0, clearcoat: 1, clearcoatRoughness: .05, side: THREE.DoubleSide, depthWrite: false });
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, TUBE_LEN, 32, 1, true), glass); tube.position.y = TUBE_TOP - TUBE_LEN / 2; scene.add(tube);
+  const tubeIn = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, TUBE_LEN, 32, 1, true), glass); tubeIn.position.y = TUBE_TOP - TUBE_LEN / 2; scene.add(tubeIn);
+  [TUBE_TOP, TUBE_TOP - TUBE_LEN].forEach(y => { const lip = new THREE.Mesh(new THREE.TorusGeometry(0.51, 0.11, 12, 32), new THREE.MeshPhysicalMaterial({ color: 0xe0f2fe, transparent: true, opacity: .75, roughness: .05, clearcoat: 1 })); lip.rotation.x = Math.PI / 2; lip.position.y = y; scene.add(lip); });
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 6, 32), new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: .85 })); grip.position.y = GRIP_Y; scene.add(grip);
+  for (let i = 0; i < 7; i++) { const gr = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.09, 8, 32), KM.rubber); gr.rotation.x = Math.PI / 2; gr.position.y = GRIP_Y - 2.55 + i * 0.85; scene.add(gr); }
+  [3.05, -3.05].forEach(dy => { const fe = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.35, 32), KM.chrome); fe.position.y = GRIP_Y + dy; scene.add(fe); });
+  P.lblTube = makeLabel('หลอดแก้ว (มือจับ)', '#bae6fd', 16); P.lblTube.position.set(-13, GRIP_Y, 0); scene.add(P.lblTube);
+
+  /* เชือกไนลอนเงา: ปากหลอด → จุกยาง · ปลายล่างหลอด → ตุ้มถ่วง */
+  const strMat = new THREE.MeshPhysicalMaterial({ color: 0xf1f5f9, roughness: .55, clearcoat: .3 });
+  P.strA = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1, 10), strMat); scene.add(P.strA);
+  P.strB = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1, 10), strMat); scene.add(P.strB);
+  placeRod(P.strB, new THREE.Vector3(0, TUBE_TOP - TUBE_LEN, 0), new THREE.Vector3(0, HANG_Y + 0.3, 0));
+
+  /* จุกยางทรงเรียว ผิวยางกึ่งด้าน + ห่วงโลหะร้อยเชือก (ขนาดตามมวล m) */
+  P.stopper = new THREE.Group(); scene.add(P.stopper);
+  P.stopMat = new THREE.MeshPhysicalMaterial({ color: 0x9a3412, roughness: .7, clearcoat: .15, clearcoatRoughness: .6, emissive: 0x000000 });
+  P.stopMesh = new THREE.Mesh(new THREE.LatheGeometry([[0, -1.7], [1.8, -1.7], [2.0, -1.5], [1.52, 1.5], [1.36, 1.7], [0, 1.7]].map(([r, y]) => new THREE.Vector2(r, y)), 40), P.stopMat); P.stopMesh.rotation.x = Math.PI / 2; P.stopper.add(P.stopMesh);
+  const eye = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.08, 8, 20), KM.chrome); eye.position.z = 1.95; P.stopper.add(eye);
+  P.glowS = glowSprite(0xf472b6); scene.add(P.glowS);
+  P.lblStop = makeLabel('จุกยาง', '#fca5a5', 15); scene.add(P.lblStop);
+
+  /* มาร์กเกอร์ (คลิปหนีบกระดาษสีส้ม) ใต้ปลายหลอด */
+  P.clip = new THREE.Group(); P.clip.position.set(0, CLIP_Y, 0); scene.add(P.clip);
+  const clipMat = new THREE.MeshStandardMaterial({ color: 0xfb923c, metalness: .5, roughness: .35 });
+  const c1 = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.14, 6, 20, Math.PI * 1.6), clipMat); c1.rotation.y = Math.PI / 2; P.clip.add(c1);
+  const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 1.8), clipMat); c2.position.y = -0.2; P.clip.add(c2);
+  const lc = makeLabel('มาร์กเกอร์', '#fdba74', 12); lc.position.set(9, 0.4, 0); P.clip.add(lc);
+
+  /* ตุ้มถ่วง: ที่แขวนโครเมียม + ตุ้มมีร่องทองเหลือง 50 g ต่อแผ่น (จำนวนแผ่นตาม M) */
+  P.hang = new THREE.Group(); P.hang.position.set(0, HANG_Y, 0); scene.add(P.hang);
+  const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 3, 16), KM.chrome); hook.position.y = -1.5; P.hang.add(hook);
+  const hkr = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.1, 8, 20), KM.chrome); hkr.position.y = 0.3; P.hang.add(hkr);
+  const slotG = new THREE.LatheGeometry([[0.25, -0.62], [2.15, -0.62], [2.3, -0.47], [2.3, 0.47], [2.15, 0.62], [0.25, 0.62]].map(([r, y]) => new THREE.Vector2(r, y)), 40);
+  P.slotMats = [0xb8862f, 0xc9973f].map(c => new THREE.MeshPhysicalMaterial({ color: c, metalness: .8, roughness: .3, clearcoat: .5, clearcoatRoughness: .3, emissive: 0x000000 }));
+  const slotIn = new THREE.MeshStandardMaterial({ color: 0x3a2c12, roughness: .7 });
+  P.slots = Array.from({ length: 10 }, (_, i) => { const s = new THREE.Mesh(slotG, P.slotMats[i % 2]); s.position.y = -3.6 - i * 1.3; P.hang.add(s);
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.27, 2.1), slotIn); slot.position.z = 1.3; s.add(slot); return s; });
+  P.glowM = glowSprite(0xfb923c); scene.add(P.glowM);
+  P.lblM = makeLabel('ตุ้มถ่วง M', '#fde68a', 17); scene.add(P.lblM);
+  P.mgArrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(4.2, HANG_Y - 2, 0), 10, 0xf87171, 2, 1.3); scene.add(P.mgArrow);
+  P.lblMg = makeLabel('Mg', '#f87171', 6); scene.add(P.lblMg);
+
+  /* วงทางเดินของจุกยาง (สร้างใหม่เมื่อ r เปลี่ยน) */
+  P.ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: .4, depthWrite: false });
+  P.ring = new THREE.Mesh(new THREE.TorusGeometry(50, 0.3, 6, 160), P.ringMat); P.ring.rotation.x = Math.PI / 2; P.ring.position.y = TUBE_TOP; scene.add(P.ring);
+  /* แถบรัศมี r (เด่นในการทดลอง ② แปรผันรัศมี) */
+  P.rBar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1, 10), new THREE.MeshBasicMaterial({ color: 0x818cf8, transparent: true, opacity: .85 })); scene.add(P.rBar);
+  P.lblR = makeLabel('r = 0.50 m', '#a5b4fc', 16); scene.add(P.lblR);
+
+  /* ธงจุดนับรอบ (ทุกครั้งที่จุกยางผ่านธง = ครบ 1 รอบ) บนเสาโครเมียม + บอสแคลมป์ */
+  P.flag = new THREE.Group(); scene.add(P.flag);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 12, 20), KM.chrome); pole.position.y = -4; P.flag.add(pole);
+  const fbc = bossClamp(0.45); fbc.position.y = -0.3; P.flag.add(fbc);
+  const ptip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 10), KM.chrome); ptip.position.y = 2; P.flag.add(ptip);
+  P.flagCloth = new THREE.Mesh(new THREE.ConeGeometry(1.6, 5, 32), new THREE.MeshPhysicalMaterial({ color: 0xfacc15, emissive: 0x000000, roughness: .4, clearcoat: .5 })); P.flagCloth.position.set(-2.5, 2, 0); P.flagCloth.rotation.z = Math.PI / 2; P.flag.add(P.flagCloth);
+  const lf = makeLabel('ธงนับรอบ', '#fde047', 11); lf.position.set(0, 7, 0); P.flag.add(lf);
+
+  /* เวกเตอร์ F (เข้าหาศูนย์กลาง) และ v (สัมผัสวง) */
+  P.fArrow = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(), 16, 0xf87171, 3.2, 2); scene.add(P.fArrow);
+  P.vArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 18, 0x34d399, 3.2, 2); scene.add(P.vArrow);
+  P.lblF = makeLabel('F', '#f87171', 13); scene.add(P.lblF);
+  P.lblV = makeLabel('v', '#34d399', 6); scene.add(P.lblV);
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => redrawTexs()).catch(() => {});
+  setupPointer(canvas); resizeCanvas(); setView('iso'); update3D();
+  (function rl() { requestAnimationFrame(rl);
+    const ts = document.getElementById('tab-sim'); if (ts && !ts.classList.contains('active')) return;
+    update3D(); renderer.render(scene, camera); })();
 }
 
-// Helper: glow halo around point/region (for highlighting selected variable)
-function drawGlow(x, y, radius, color) {
-  const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-  grad.addColorStop(0, color + 'cc');
-  grad.addColorStop(0.4, color + '66');
-  grad.addColorStop(1, color + '00');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
+let _lastRev = 0, _flash = 0;
+function update3D() { if (!scene) return;
+  const R = Rcm(), a = state.angle, s = Math.cbrt(state.m / 0.031), exp = state.exp;
+  if (R !== P.lastR) { P.lastR = R; P.ring.geometry.dispose(); P.ring.geometry = new THREE.TorusGeometry(R, exp === 'radius' ? 0.45 : 0.3, 6, 200); P.ringExp = exp;
+    if (!DRAGGING && curView !== 'free' && curView !== 'tube') setView(curView); }
+  if (P.ringExp !== exp) { P.ringExp = exp; P.ring.geometry.dispose(); P.ring.geometry = new THREE.TorusGeometry(R, exp === 'radius' ? 0.45 : 0.3, 6, 200); }
+  /* จุกยาง (จุดศูนย์กลางอยู่ที่รัศมี r) · ห่วงหันเข้าหาปากหลอด */
+  const top = new THREE.Vector3(0, TUBE_TOP, 0), sp = new THREE.Vector3(R * Math.cos(a), TUBE_TOP, R * Math.sin(a));
+  const dir = top.clone().sub(sp).normalize();
+  P.stopper.position.copy(sp); P.stopper.scale.setScalar(s); P.stopper.lookAt(top);
+  placeRod(P.strA, top, sp.clone().addScaledVector(dir, 1.95 * s));
+  const hlMass = exp === 'mass';
+  P.stopMat.emissive.setHex(hlMass ? 0x5b1030 : 0x000000);
+  P.glowS.visible = hlMass; P.glowS.position.copy(sp); P.glowS.scale.setScalar(13 * s);
+  P.lblStop.position.set(sp.x, sp.y + 4.5 * s + 3, sp.z);
+  P.lblStop.userData.setText(hlMass ? 'จุกยาง m = ' + state.m.toFixed(3) + ' kg' : 'จุกยาง m', hlMass ? '#f9a8d4' : '#fca5a5');
+  /* ตุ้มถ่วง: M = F/g (ในการทดลอง ① = ค่าที่เลือก) */
+  const Mk = exp === 'force' ? state.M : state.F / G, n = Math.max(1, Math.min(10, Math.round(Mk / 0.05))), hlF = exp === 'force';
+  P.slots.forEach((sl, i) => sl.visible = i < n);
+  P.slotMats.forEach(m => m.emissive.setHex(hlF ? 0x5a2308 : 0x000000));
+  const mMid = HANG_Y - 3.6 - (n - 1) * 0.65;
+  P.glowM.visible = hlF; P.glowM.position.set(0, mMid, 0); P.glowM.scale.setScalar(12 + n * 1.4);
+  P.lblM.position.set(-15, mMid, 0);
+  P.lblM.userData.setText('M = ' + Mk.toFixed(3) + ' kg · F = Mg = ' + state.F.toFixed(2) + ' N', hlF ? '#fdba74' : '#cbd5e1');
+  const mgLen = 6 + n * 1.3; P.mgArrow.position.set(4.6, HANG_Y - 2, 0); P.mgArrow.setLength(mgLen, 2, 1.3);
+  P.lblMg.position.set(8.4, HANG_Y - 2 - mgLen * 0.6, 0);
+  /* วงทางเดิน + แถบรัศมี */
+  const hlR = exp === 'radius';
+  P.ringMat.color.setHex(hlR ? 0x818cf8 : 0x38bdf8); P.ringMat.opacity = hlR ? 0.85 : 0.4;
+  P.rBar.visible = hlR; P.lblR.visible = hlR;
+  if (hlR) { const off = new THREE.Vector3(0, -1.6, 0); placeRod(P.rBar, top.clone().add(off), sp.clone().add(off).addScaledVector(dir, 2.2 * s));
+    P.lblR.position.set(sp.x * 0.5, TUBE_TOP + 5, sp.z * 0.5); P.lblR.userData.setText('r = ' + state.r.toFixed(2) + ' m'); }
+  /* ธงนับรอบที่มุม 0 (แกน +x) — กะพริบเมื่อครบรอบ */
+  P.flag.position.set(R + 9, TUBE_TOP - 2, 0);
+  if (state.revsAuto !== _lastRev) { if (state.revsAuto > _lastRev) _flash = 1; _lastRev = state.revsAuto; }
+  _flash = Math.max(0, _flash - 0.06); P.flagCloth.material.emissive.setRGB(_flash * 0.6, _flash * 0.5, 0);
+  /* เวกเตอร์ */
+  const showV = state.showVectors && (state.playing || state.elapsed > 0);
+  P.fArrow.visible = P.vArrow.visible = P.lblF.visible = P.lblV.visible = showV;
+  if (showV) { const fL = Math.min(16, R * 0.45);
+    P.fArrow.position.copy(sp).addScaledVector(dir, 2.4 * s); P.fArrow.setDirection(dir); P.fArrow.setLength(fL, 3.2, 2);
+    const tg = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
+    P.vArrow.position.copy(sp); P.vArrow.setDirection(tg); P.vArrow.setLength(18, 3.2, 2);
+    P.lblF.position.copy(sp).addScaledVector(dir, 2.4 * s + fL * 0.55); P.lblF.position.y -= 3.2; P.lblF.userData.setText('F = ' + state.F.toFixed(2) + ' N');
+    P.lblV.position.copy(sp).addScaledVector(tg, 21); P.lblV.position.y += 1.5; }
+  /* กล้อง */
+  const t = orbit.target; camera.up.set(0, 1, 0);
+  camera.position.set(t.x + orbit.dist * Math.sin(orbit.az) * Math.cos(orbit.el), t.y + orbit.dist * Math.sin(orbit.el), t.z + orbit.dist * Math.cos(orbit.az) * Math.cos(orbit.el));
+  camera.lookAt(t);
 }
+function resizeCanvas() { if (!renderer) return; const el = document.getElementById('view3d'); const w = el.clientWidth || 600, h = el.clientHeight || 450; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+function setView(v) { const V = VIEWS[v]; curView = V ? v : 'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.toggle('on', b.dataset.vw === curView));
+  if (!V || !orbit.target) return; const V0 = V(); orbit.target.set(V0.t[0], V0.t[1], V0.t[2]); orbit.dist = V0.d; orbit.az = V0.az; orbit.el = V0.el; }
+function freeView() { if (curView === 'free') return; curView = 'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.remove('on')); }
 
+/* กล่องข้อมูลมุมซ้ายบนของภาพ (แทนข้อความที่เคยวาดบน canvas 2D) */
+let _infoKey = '';
 function draw() {
-  ctx.clearRect(0, 0, W, H);
-  // Sky gradient bg (3D scene)
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrad.addColorStop(0, '#0a1428');
-  skyGrad.addColorStop(0.55, '#0a0e1a');
-  skyGrad.addColorStop(1, '#050811');
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  // Floor — simple perspective grid
-  const horizonY = H * 0.42;
-  ctx.strokeStyle = '#0e1a30';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 12; i++) {
-    const t = i / 11;
-    const yy = horizonY + (H - horizonY) * t * t;
-    ctx.beginPath();
-    ctx.moveTo(0, yy);
-    ctx.lineTo(W, yy);
-    ctx.stroke();
-  }
-  for (let i = -6; i <= 6; i++) {
-    ctx.beginPath();
-    ctx.moveTo(W / 2 + i * 30, horizonY);
-    ctx.lineTo(W / 2 + i * 200, H);
-    ctx.stroke();
-  }
-
-  // === 3D Scene parameters ===
-  const cx = W / 2;
-  const orbitY = horizonY + 10;        // top of glass tube / center of horizontal orbit (screen y)
-  const tubeLen = H * 0.18;
-  const tubeBotY = orbitY + tubeLen;
-  const tubeW = 14;
-
-  // Map real radius (m) to pixels — keep proportional
-  const scale = Math.min(W, H) * 0.32 / 1.2;
-  const rPx = state.r * scale;
-
-  // 3D tilt: horizontal circle becomes ellipse with squashed y
-  const tilt = 0.33;
-  const ellipseRy = rPx * tilt;
-
-  // Highlight color per experiment
-  const highlightColor = (state.exp === 'force')  ? '#fb923c'
-                      : (state.exp === 'radius') ? '#818cf8'
-                      :                            '#f472b6';
-
-  // === HIGHLIGHT BACKGROUND GLOWS ===
-  if (state.exp === 'radius') {
-    // Glow around the entire orbit
-    ctx.save();
-    ctx.translate(cx, orbitY);
-    ctx.scale(1, tilt);
-    drawGlow(0, 0, rPx + 30, '#818cf8');
-    ctx.restore();
-  }
-
-  // === ORBIT ELLIPSE (back half first for depth) ===
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 5]);
-  // back half (top of ellipse, behind tube)
-  ctx.strokeStyle = state.exp === 'radius' ? '#818cf8aa' : '#1e3a5f';
-  ctx.beginPath();
-  ctx.ellipse(cx, orbitY, rPx, ellipseRy, 0, Math.PI, 0);
-  ctx.stroke();
-
-  // Stopper position in 3D orbit (angle 0 = +x, going CCW in horizontal plane)
-  // Screen: x = cx + r*cos(a), y = orbitY + r*sin(a)*tilt
-  // Front when sin(angle) > 0 (closer to viewer, drawn lower on screen)
-  const ang = state.angle;
-  const sx = cx + rPx * Math.cos(ang);
-  const sy = orbitY + rPx * Math.sin(ang) * tilt;
-  const inFront = Math.sin(ang) > 0;
-
-  // Draw stopper if it's BEHIND the tube
-  if (!inFront) {
-    drawString3D(cx, orbitY, sx, sy);
-    drawStopper3D(sx, sy, ang, highlightColor, state.exp === 'mass');
-  }
-
-  // === GLASS TUBE (vertical, with hand grip) ===
-  // Tube outline with gradient
-  const tubeGrad = ctx.createLinearGradient(cx - tubeW, 0, cx + tubeW, 0);
-  tubeGrad.addColorStop(0, '#1e293b');
-  tubeGrad.addColorStop(0.3, '#475569');
-  tubeGrad.addColorStop(0.5, '#94a3b8');
-  tubeGrad.addColorStop(0.7, '#475569');
-  tubeGrad.addColorStop(1, '#1e293b');
-  ctx.fillStyle = tubeGrad;
-  ctx.fillRect(cx - tubeW / 2, orbitY - 4, tubeW, tubeLen + 4);
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1.2;
-  ctx.strokeRect(cx - tubeW / 2, orbitY - 4, tubeW, tubeLen + 4);
-  // Top opening (ellipse)
-  ctx.fillStyle = '#0a0e1a';
-  ctx.beginPath();
-  ctx.ellipse(cx, orbitY - 4, tubeW / 2, tubeW / 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#64748b';
-  ctx.stroke();
-
-  // Tape on tube (orange band)
-  ctx.fillStyle = '#fb923c44';
-  ctx.fillRect(cx - tubeW / 2 - 1, orbitY + 14, tubeW + 2, 8);
-  ctx.fillStyle = '#fb923c88';
-  ctx.fillRect(cx - tubeW / 2 - 1, orbitY + tubeLen - 18, tubeW + 2, 8);
-
-  // Hand grip (simple stylized)
-  const handY = orbitY + tubeLen / 2;
-  drawHand3D(cx, handY);
-
-  // === Marker (tape clip 2cm below tube) ===
-  ctx.fillStyle = '#fb923c';
-  ctx.fillRect(cx - 8, tubeBotY + 4, 16, 5);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '9px IBM Plex Sans Thai';
-  ctx.fillText('marker', cx + 12, tubeBotY + 9);
-
-  // === Cord going down to hanging mass ===
-  const cordTopY = tubeBotY + 9;
-  const cordBotY = tubeBotY + 60 + state.M * 60; // longer cord for heavier mass
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(cx, cordTopY);
-  ctx.lineTo(cx, cordBotY);
-  ctx.stroke();
-
-  // === Hanging mass ===
-  drawHangingMass3D(cx, cordBotY, state.M, state.exp === 'force');
-
-  // === FRONT half of orbit ellipse ===
-  ctx.strokeStyle = state.exp === 'radius' ? '#818cf8' : '#38bdf8aa';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(cx, orbitY, rPx, ellipseRy, 0, 0, Math.PI);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Stopper if in front
-  if (inFront) {
-    drawString3D(cx, orbitY, sx, sy);
-    drawStopper3D(sx, sy, ang, highlightColor, state.exp === 'mass');
-  }
-
-  // === RADIUS LINE (highlighted on ground projection) ===
-  if (state.exp === 'radius') {
-    // Show radius arrow on the ellipse plane
-    ctx.strokeStyle = '#818cf8';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx, orbitY);
-    ctx.lineTo(sx, sy);
-    ctx.stroke();
-    ctx.fillStyle = '#818cf8';
-    ctx.font = 'bold 13px Share Tech Mono';
-    ctx.fillText('r = ' + state.r.toFixed(2) + ' m', (cx + sx) / 2 + 8, (orbitY + sy) / 2 - 6);
-  }
-
-  // === Force/Velocity vectors (only when running and toggle is on) ===
-  if (state.showVectors && (state.playing || state.elapsed > 0)) {
-    // F vector — projected onto tilted ellipse plane (toward center)
-    const dx = cx - sx, dy = orbitY - sy;
-    const dLen = Math.hypot(dx, dy);
-    if (dLen > 1) {
-      const fLen = 40;
-      const fx = sx + (dx / dLen) * fLen;
-      const fy = sy + (dy / dLen) * fLen;
-      ctx.strokeStyle = '#f87171';
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(fx, fy); ctx.stroke();
-      const aang = Math.atan2(dy, dx);
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx - 9 * Math.cos(aang - 0.4), fy - 9 * Math.sin(aang - 0.4));
-      ctx.lineTo(fx - 9 * Math.cos(aang + 0.4), fy - 9 * Math.sin(aang + 0.4));
-      ctx.closePath();
-      ctx.fillStyle = '#f87171';
-      ctx.fill();
-      ctx.font = 'bold 11px Share Tech Mono';
-      ctx.fillText('F=' + state.F.toFixed(2) + 'N', fx + 6, fy + 4);
-    }
-
-    // v vector — tangent on tilted ellipse
-    // tangent in 3D is (-sin(a), cos(a)) in xz-plane → screen: (-sin(a), cos(a)*tilt)
-    const tx0 = -Math.sin(ang), ty0 = Math.cos(ang) * tilt;
-    const tLen = Math.hypot(tx0, ty0);
-    const vLen = 45;
-    const vx = sx + (tx0 / tLen) * vLen;
-    const vy = sy + (ty0 / tLen) * vLen;
-    ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(vx, vy); ctx.stroke();
-    const vang = Math.atan2(ty0, tx0);
-    ctx.beginPath();
-    ctx.moveTo(vx, vy);
-    ctx.lineTo(vx - 9 * Math.cos(vang - 0.4), vy - 9 * Math.sin(vang - 0.4));
-    ctx.lineTo(vx - 9 * Math.cos(vang + 0.4), vy - 9 * Math.sin(vang + 0.4));
-    ctx.closePath();
-    ctx.fillStyle = '#34d399';
-    ctx.fill();
-    ctx.font = 'bold 11px Share Tech Mono';
-    ctx.fillText('v', vx + 6, vy);
-  }
-
-  // === Info overlay top-left ===
-  ctx.fillStyle = 'rgba(17,24,39,0.88)';
-  ctx.fillRect(8, 8, 200, 70);
-  ctx.strokeStyle = '#1e3a5f';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(8, 8, 200, 70);
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '11px IBM Plex Sans Thai';
-  ctx.fillText('การทดลอง: ' + EXPERIMENTS[state.exp].name, 14, 24);
-  ctx.font = 'bold 11px Share Tech Mono';
-  ctx.fillStyle = state.exp === 'radius' ? '#818cf8' : '#38bdf8';
-  ctx.fillText('r = ' + state.r.toFixed(2) + ' m', 14, 40);
-  ctx.fillStyle = state.exp === 'mass' ? '#f472b6' : '#38bdf8';
-  ctx.fillText('m = ' + state.m.toFixed(3) + ' kg', 14, 54);
-  ctx.fillStyle = state.exp === 'force' ? '#fb923c' : '#38bdf8';
-  ctx.fillText('F = ' + state.F.toFixed(2) + ' N', 14, 68);
-  const vTrue = calcV(state.F, state.r, state.m);
-  if (state.mode === 'auto') {
-    ctx.fillStyle = '#34d399';
-    ctx.fillText('v = ' + vTrue.toFixed(2) + ' m/s', 110, 68);
-  } else {
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('v = ?', 110, 68);
-  }
-
-  // === Highlight legend (bottom) ===
-  ctx.fillStyle = 'rgba(17,24,39,0.85)';
-  ctx.fillRect(8, H - 30, 260, 22);
-  ctx.strokeStyle = highlightColor;
-  ctx.strokeRect(8, H - 30, 260, 22);
-  ctx.fillStyle = highlightColor;
-  ctx.font = 'bold 11px IBM Plex Sans Thai';
-  let label = '';
-  if (state.exp === 'force') label = '🔆 ไฮไลต์: มวลแขวน M (= แรง F)';
-  else if (state.exp === 'radius') label = '🔆 ไฮไลต์: รัศมีการหมุน r';
-  else label = '🔆 ไฮไลต์: จุกยาง m (มวลที่หมุน)';
-  ctx.fillText(label, 14, H - 14);
+  const box = document.getElementById('info3d'); if (!box) return;
+  const exp = EXPERIMENTS[state.exp], vTrue = calcV(state.F, state.r, state.m);
+  const key = state.exp + state.mode + state.r + '|' + state.m + '|' + state.F;
+  if (key === _infoKey) return; _infoKey = key;
+  const hl = state.exp === 'force' ? ['#fb923c', '🔆 ไฮไลต์: มวลแขวน M (= แรง F)'] : state.exp === 'radius' ? ['#818cf8', '🔆 ไฮไลต์: รัศมีการหมุน r'] : ['#f472b6', '🔆 ไฮไลต์: จุกยาง m (มวลที่หมุน)'];
+  box.style.borderColor = hl[0];
+  box.innerHTML = `<div class="i-name">การทดลอง: ${exp.name}</div>`
+    + `<span style="color:${state.exp === 'radius' ? '#818cf8' : '#38bdf8'}">r = ${state.r.toFixed(2)} m</span> · `
+    + `<span style="color:${state.exp === 'mass' ? '#f472b6' : '#38bdf8'}">m = ${state.m.toFixed(3)} kg</span><br>`
+    + `<span style="color:${state.exp === 'force' ? '#fb923c' : '#38bdf8'}">F = ${state.F.toFixed(2)} N</span> · `
+    + (state.mode === 'auto' ? `<span style="color:#34d399">v = ${vTrue.toFixed(2)} m/s</span>` : `<span style="color:#64748b">v = ?</span>`)
+    + `<div class="i-hl" style="color:${hl[0]}">${hl[1]}</div>`;
 }
 
-// 3D Helper: draw stopper as a sphere with shading
-function drawStopper3D(x, y, ang, highlightColor, isHighlighted) {
-  const baseR = Math.max(10, Math.min(20, 8 + state.m * 220));
+/* ═══════════ ลากจุกยางเข้า-ออกในภาพ 3D = เปลี่ยนรัศมี r (เฉพาะการทดลอง ② · ตอนยังไม่หมุน) ═══════════ */
+let RAY = null, NDC = null, PLANE = null, DRAGGING = false;   /* ระหว่างลากไม่ปรับระยะกล้องตาม r (กันภาพหนีนิ้ว) · ปล่อยแล้วค่อยจัดมุมมองใหม่ */
+function endDrag() { if (!DRAGGING) return; DRAGGING = false; if (curView !== 'free' && curView !== 'tube') setView(curView); }
+function rayAt(cx, cy) { if (!renderer || !camera) return null; if (!RAY) { RAY = new THREE.Raycaster(); NDC = new THREE.Vector2(); PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TUBE_TOP); }
+  const rc = canvas.getBoundingClientRect(); if (!rc.width || !rc.height) return null;
+  NDC.x = ((cx - rc.left) / rc.width) * 2 - 1; NDC.y = -((cy - rc.top) / rc.height) * 2 + 1; RAY.setFromCamera(NDC, camera); return rc; }
+function canDragR() { return !!scene && state.exp === 'radius' && !state.playing && !state.swRunning; }
+function toScreen(v3, rc) { const V = v3.clone().project(camera); return { x: rc.left + (V.x * 0.5 + 0.5) * rc.width, y: rc.top + (-V.y * 0.5 + 0.5) * rc.height, ok: V.z < 1 }; }
+function pickStopper(cx, cy) { if (!canDragR()) return false; const rc = rayAt(cx, cy); if (!rc) return false;
+  if (RAY.intersectObject(P.stopper, true).length) return true;
+  const S = toScreen(P.stopper.position, rc); return S.ok && Math.hypot(cx - S.x, cy - S.y) <= 34; }   /* เผื่อนิ้ว: แตะใกล้จุกยาง 34 px */
+function dragStopperTo(cx, cy) { const rc = rayAt(cx, cy); if (!rc) return; let Rn = null;
+  const hit = new THREE.Vector3();
+  if (orbit.el > 0.25 && RAY.ray.intersectPlane(PLANE, hit)) Rn = Math.hypot(hit.x, hit.z);
+  else { /* มองเกือบแนวระดับ: ใช้ระยะตามแนวรัศมีบนจอแทน */
+    const a = state.angle, A = toScreen(new THREE.Vector3(0, TUBE_TOP, 0), rc), B = toScreen(new THREE.Vector3(100 * Math.cos(a), TUBE_TOP, 100 * Math.sin(a)), rc);
+    const ux = B.x - A.x, uy = B.y - A.y, L2 = ux * ux + uy * uy; if (L2 > 400) Rn = 100 * ((cx - A.x) * ux + (cy - A.y) * uy) / L2; }
+  if (Rn !== null && isFinite(Rn)) setRFromDrag(Rn / 100); }
+function setRFromDrag(v) { const sl = document.getElementById('sl-var'), vi = document.getElementById('vi-var'); if (!sl) return;
+  const E = EXPERIMENTS.radius, st = E.varStep; v = Math.round(v / st) * st; v = Math.max(E.varMin, Math.min(E.varMax, v)); v = +v.toFixed(2);
+  if (!isFinite(v) || Math.abs(v - state.r) < 1e-9) return; sl.value = v; if (vi) vi.value = v.toFixed(2); applyVar(v); }
 
-  // Glow if highlighted (mass experiment)
-  if (isHighlighted) {
-    drawGlow(x, y, baseR + 18, highlightColor);
-  }
-
-  // Sphere with radial gradient (3D shading)
-  const grad = ctx.createRadialGradient(x - baseR * 0.35, y - baseR * 0.35, 0, x, y, baseR);
-  grad.addColorStop(0, '#ffd9b3');
-  grad.addColorStop(0.4, '#fb923c');
-  grad.addColorStop(1, '#7c2d12');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(x, y, baseR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = isHighlighted ? '#fff' : '#1c1917';
-  ctx.lineWidth = isHighlighted ? 2.5 : 1.5;
-  ctx.stroke();
-
-  // Highlight specular dot
-  ctx.fillStyle = '#fff8';
-  ctx.beginPath();
-  ctx.arc(x - baseR * 0.35, y - baseR * 0.35, baseR * 0.22, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Label "m"
-  if (isHighlighted) {
-    ctx.fillStyle = highlightColor;
-    ctx.font = 'bold 12px Share Tech Mono';
-    ctx.fillText('m=' + state.m.toFixed(3) + 'kg', x + baseR + 4, y + 4);
-  }
-}
-
-// 3D string from tube top to stopper
-function drawString3D(x1, y1, x2, y2) {
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-}
-
-// 3D Hand grip — stylized
-function drawHand3D(cx, cy) {
-  const w = 38, h = 50;
-  // Palm
-  const grad = ctx.createLinearGradient(cx - w / 2, cy, cx + w / 2, cy);
-  grad.addColorStop(0, '#7c4a2a');
-  grad.addColorStop(0.5, '#c89070');
-  grad.addColorStop(1, '#7c4a2a');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#5a3018';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Finger lines (simple)
-  ctx.strokeStyle = '#5a3018';
-  ctx.lineWidth = 1;
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.moveTo(cx - w / 2 + 4, cy + i * 8);
-    ctx.lineTo(cx - w / 2 - 2, cy + i * 8);
-    ctx.stroke();
-  }
-}
-
-// 3D Hanging mass — cylindrical weight with shading
-function drawHangingMass3D(cx, topY, M, isHighlighted) {
-  // Mass appearance scales with M
-  const w = 28 + M * 30;
-  const h = 18 + M * 30;
-
-  // Glow if highlighted
-  if (isHighlighted) {
-    drawGlow(cx, topY + h / 2, w * 0.9, '#fb923c');
-  }
-
-  // Top ellipse
-  ctx.fillStyle = '#94a3b8';
-  ctx.beginPath();
-  ctx.ellipse(cx, topY, w / 2, w / 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#475569';
-  ctx.stroke();
-
-  // Body with vertical gradient (3D shading)
-  const grad = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
-  grad.addColorStop(0, '#334155');
-  grad.addColorStop(0.5, '#94a3b8');
-  grad.addColorStop(1, '#334155');
-  ctx.fillStyle = grad;
-  ctx.fillRect(cx - w / 2, topY, w, h);
-  ctx.strokeStyle = '#1e293b';
-  ctx.strokeRect(cx - w / 2, topY, w, h);
-
-  // Bottom ellipse
-  ctx.fillStyle = '#475569';
-  ctx.beginPath();
-  ctx.ellipse(cx, topY + h, w / 2, w / 6, 0, 0, Math.PI);
-  ctx.fill();
-  ctx.stroke();
-
-  // Mg arrow (down)
-  ctx.strokeStyle = '#f87171';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(cx + w / 2 + 18, topY + 4);
-  ctx.lineTo(cx + w / 2 + 18, topY + h + 22);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cx + w / 2 + 18, topY + h + 22);
-  ctx.lineTo(cx + w / 2 + 14, topY + h + 16);
-  ctx.lineTo(cx + w / 2 + 22, topY + h + 16);
-  ctx.closePath();
-  ctx.fillStyle = '#f87171';
-  ctx.fill();
-  ctx.fillStyle = '#f87171';
-  ctx.font = 'bold 11px Share Tech Mono';
-  ctx.fillText('Mg', cx + w / 2 + 26, topY + h / 2 + 4);
-
-  // Label M
-  if (isHighlighted) {
-    ctx.fillStyle = '#fb923c';
-    ctx.font = 'bold 12px Share Tech Mono';
-    ctx.fillText('M=' + M.toFixed(3) + 'kg', cx - w / 2 - 80, topY + h / 2 + 4);
-    ctx.fillText('F=' + (M * G).toFixed(2) + 'N', cx - w / 2 - 80, topY + h / 2 + 18);
-  } else {
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px IBM Plex Sans Thai';
-    ctx.fillText('M = ' + M.toFixed(3) + ' kg', cx - w / 2 - 70, topY + h / 2 + 4);
-  }
-}
+/* ── ✋ โหมดเลื่อนภาพ ── */
+let panMode = false;
+function setPanMode(on) { panMode = !!on; const b = document.getElementById('panBtn');
+  if (b) { b.classList.toggle('active', panMode); b.innerHTML = panMode ? '✋ เลื่อนภาพ · เปิดอยู่' : '✋ เลื่อนภาพ'; }
+  if (renderer) renderer.domElement.style.cursor = panMode ? 'move' : ''; }
+/* นิ้วบนภาพ 3D: 1 นิ้วลาก = หมุน (แตะจุกยางในการทดลอง ② = ลากเปลี่ยน r) · 2 นิ้ว = ซูม/เลื่อน · เมาส์: ลาก = หมุน · คลิกขวา/Shift+ลาก = เลื่อน · ล้อ = ซูม */
+function setupPointer(cv) { const T = { mode: null, lx: 0, ly: 0, d0: 0, cx: 0, cy: 0 };
+  const mid = e => ({ x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2, d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => { e.preventDefault();
+    if (e.button === 0 && !e.shiftKey && !panMode && pickStopper(e.clientX, e.clientY)) { T.mode = 'drag'; DRAGGING = true; cv.style.cursor = 'grabbing'; return; }
+    T.mode = (e.button === 1 || e.button === 2 || e.shiftKey || panMode) ? 'pan' : 'rot'; T.lx = e.clientX; T.ly = e.clientY; cv.style.cursor = 'grabbing'; });
+  cv.addEventListener('mousemove', e => { if (T.mode) return; cv.style.cursor = pickStopper(e.clientX, e.clientY) ? 'grab' : (panMode ? 'move' : ''); });
+  window.addEventListener('mousemove', e => { if (!T.mode || T.mode === 'pinch') return;
+    if (e.buttons === 0) { T.mode = null; endDrag(); cv.style.cursor = ''; return; }
+    if (T.mode === 'drag') { dragStopperTo(e.clientX, e.clientY); return; }
+    const dx = e.clientX - T.lx, dy = e.clientY - T.ly; T.lx = e.clientX; T.ly = e.clientY; if (T.mode === 'pan') camPan(dx, dy); else camRotate(dx, dy); });
+  window.addEventListener('mouseup', () => { if (T.mode !== 'pinch') T.mode = null; endDrag(); cv.style.cursor = ''; });
+  window.addEventListener('blur', () => { T.mode = null; endDrag(); });
+  cv.addEventListener('touchstart', e => { e.preventDefault();
+    if (e.touches.length >= 2) { const m = mid(e); endDrag(); T.mode = 'pinch'; T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if (e.touches.length === 1) { const t = e.touches[0]; if (!panMode && pickStopper(t.clientX, t.clientY)) { T.mode = 'drag'; DRAGGING = true; return; } T.mode = panMode ? 'pan' : 'rot'; T.lx = t.clientX; T.ly = t.clientY; } }, { passive: false });
+  cv.addEventListener('touchmove', e => { e.preventDefault();
+    if (T.mode === 'pinch' && e.touches.length >= 2) { const m = mid(e); if (T.d0 > 10 && m.d > 10) camZoom(T.d0 / m.d); camPan(m.x - T.cx, m.y - T.cy); T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if (T.mode === 'drag' && e.touches.length === 1) dragStopperTo(e.touches[0].clientX, e.touches[0].clientY);
+    else if ((T.mode === 'rot' || T.mode === 'pan') && e.touches.length === 1) { const t = e.touches[0]; (T.mode === 'pan' ? camPan : camRotate)(t.clientX - T.lx, t.clientY - T.ly); T.lx = t.clientX; T.ly = t.clientY; } }, { passive: false });
+  const tend = e => { if (e.touches.length === 1 && T.mode !== 'drag') { T.mode = panMode ? 'pan' : 'rot'; T.lx = e.touches[0].clientX; T.ly = e.touches[0].clientY; } else if (e.touches.length === 0) { T.mode = null; endDrag(); } };
+  cv.addEventListener('touchend', tend); cv.addEventListener('touchcancel', () => { T.mode = null; endDrag(); });
+  cv.addEventListener('wheel', e => { e.preventDefault(); camZoom(1 + e.deltaY * 0.0012); }, { passive: false }); }
+function camRotate(dx, dy) { freeView(); orbit.az -= dx * 0.006; orbit.el = Math.max(-0.4, Math.min(1.54, orbit.el + dy * 0.006)); }
+function camZoom(f) { freeView(); orbit.dist = Math.max(15, Math.min(900, orbit.dist * f)); }
+function camPan(dx, dy) { freeView(); const o = orbit; if (!o.target || !camera) return;
+  const k = o.dist * 2 * Math.tan(camera.fov * Math.PI / 360) / ((document.getElementById('view3d').clientHeight) || 300), ca = Math.cos(o.az), sa = Math.sin(o.az), ce = Math.cos(o.el), se = Math.sin(o.el);
+  o.target.x += (-dx * ca + dy * (-se * sa)) * k; o.target.y += dy * ce * k; o.target.z += (dx * sa + dy * (-se * ca)) * k; }
 
 // Animation loop
 function animLoop(ts) {
@@ -1805,6 +1687,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateFixedBox();
   updateProcedure();
   updateTable();
+  init3D();
   setMode('manual');
   resizeCanvas();
   updateReadouts();
@@ -1840,7 +1723,7 @@ window.addEventListener('DOMContentLoaded', () => {
     state.swTargetN = parseInt(slT.value);
   }
 });
-new ResizeObserver(()=>{ resizeCanvas(); drawGraph(); }).observe(canvas.parentElement);
+new ResizeObserver(()=>{ resizeCanvas(); drawGraph(); }).observe(document.getElementById('view3d'));
 </script>
 
 <!-- KP Auth Modal -->
@@ -1956,7 +1839,7 @@ function _doDl(path) {
 </script>
 
 <!-- KP Mobile Panel: แผงตั้งค่าเลื่อนขึ้นจากขอบล่างบนจอแคบ -->
-<script>window.KP_MPANEL={"move":["#tab-sim > .exp-selector","#tab-sim > .mode-row","#fixedBox","#paramsBox","#procedureBox","#tab-sim > .main-grid + .main-grid"],"res":["#dataTable","#graphCanvas"],"view":".canvas-wrap","hint":"#manualHint","bp":960};</script>
+<script>window.KP_MPANEL={"move":["#tab-sim > .exp-selector","#tab-sim > .mode-row","#fixedBox","#paramsBox","#procedureBox","#tab-sim > .main-grid + .main-grid"],"res":["#dataTable","#graphCanvas"],"view":"#view3d","hint":"#manualHint","bp":960};</script>
 <script src="../../_shared/kp-mobile-panel.js"></script>
 <!-- KP Watermark -->
 <script src="../../_shared/watermark.js"></script>

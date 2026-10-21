@@ -28,7 +28,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KP Science Simulation — การทดลองที่ 14: มวลและน้ำหนัก</title>
+<title>KP Science Simulation — การทดลองที่ 14: มวลและน้ำหนัก (3D)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -56,11 +56,24 @@ nav button.active{background:var(--accent);border-color:var(--accent);color:#0a0
 /* ── SIMULATION TAB ── */
 .sim-layout{display:grid;grid-template-columns:1fr 340px;gap:0;height:calc(100vh - 106px);overflow:hidden;}
 .sim-left{display:flex;flex-direction:column;overflow:hidden;}
-.canvas-wrap{position:relative;flex:1;min-height:0;background:#060c18;}
-#simCanvas{width:100%;height:100%;display:block;}
+.canvas-wrap{position:relative;flex:1;min-height:0;background:linear-gradient(180deg,#141c2c,#0a0f1c);overflow:hidden;}
+/* 3D view (three.js) */
+#simCanvas{width:100%;height:100%;display:block;cursor:default;touch-action:none;}
+.canvas-wrap .viewbtns{position:absolute;left:10px;top:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 300px);z-index:6}
+.canvas-wrap .viewbtns button{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
+.canvas-wrap .viewbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.canvas-wrap .viewbtns button.on,.canvas-wrap .viewbtns button.active{background:var(--accent);border-color:var(--accent);color:#0a0e1a;font-weight:700}
+.canvas-wrap .viewhint{position:absolute;left:10px;top:46px;background:rgba(11,18,32,.82);border:1px solid var(--border);border-radius:7px;padding:3px 8px;font-size:.68rem;color:var(--muted);line-height:1.45;pointer-events:none;max-width:calc(100% - 300px);animation:vhFade .6s ease 10s forwards}
+@keyframes vhFade{to{opacity:0;visibility:hidden}}
+.canvas-wrap .nothree{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;font-size:.85rem}
 .overlay-info{position:absolute;top:10px;right:12px;background:rgba(0,0,0,.6);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.8rem;line-height:1.8;pointer-events:none;}
 .overlay-info span{color:var(--accent);font-family:'Share Tech Mono',monospace;}
-.cycle-flash{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(52,211,153,.15);border:1px solid var(--accent3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--accent3);opacity:0;transition:opacity .1s;}
+.overlay-info .ov-planet{border-top:1px solid rgba(255,255,255,.1);margin-top:4px;padding-top:3px;font-size:.76rem;line-height:1.5;}
+.overlay-info .ov-planet b{font-weight:600}
+.overlay-info .ov-planet .mono{color:#e2e8f0}
+.overlay-info .ov-planet .ow{color:#fb923c}
+.overlay-info .ov-speed{color:#34d399;font-family:'Share Tech Mono',monospace;font-size:.74rem;line-height:1.4}
+.cycle-flash{position:absolute;top:50px;left:50%;transform:translateX(-50%);background:rgba(52,211,153,.15);border:1px solid var(--accent3);border-radius:20px;padding:4px 16px;font-size:0.8rem;color:var(--accent3);opacity:0;transition:opacity .1s;}
 .cycle-flash.show{opacity:1;}
 .big-cycle-counter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Share Tech Mono',monospace;font-size:6rem;font-weight:700;color:rgba(52,211,153,.18);text-shadow:0 0 40px rgba(52,211,153,.25);pointer-events:none;user-select:none;line-height:1;letter-spacing:-2px;display:none;}
 .big-cycle-counter.show{display:block;animation:popCount .2s ease;}
@@ -193,14 +206,24 @@ table.data-tbl .unk{color:var(--accent5);}
 
 footer{text-align:center;padding:14px;font-size:0.75rem;color:var(--muted);border-top:1px solid var(--border);margin-top:auto;}
 
+@media(max-width:900px){
+  .canvas-wrap .viewbtns{max-width:calc(100% - 20px)}
+  .canvas-wrap .viewhint{display:none}
+  .overlay-info{top:auto;bottom:66px;right:8px;padding:5px 9px;font-size:.72rem;line-height:1.6}
+  .cycle-flash{top:76px}
+}
 @media(max-width:768px){
   .canvas-wrap{order:-1}
-  .sim-layout{grid-template-columns:1fr;grid-template-rows:300px 1fr;height:auto;}
+  .sim-layout{grid-template-columns:1fr;grid-template-rows:minmax(330px,56vh) 1fr;height:auto;}
   .sim-right{height:auto;}
   .th-body{flex-direction:column;}
 }
 @media(max-width:600px){
-  .sim-layout{grid-template-rows:260px 1fr}
+  .sim-layout{grid-template-rows:minmax(310px,54vh) 1fr}
+  .canvas-wrap .viewbtns button{padding:5px 8px;font-size:.72rem}
+  .overlay-info .ov-planet{font-size:.68rem}
+  .btn-canvas{padding:9px 14px;font-size:.86rem}
+  .big-cycle-counter{font-size:4.4rem}
   .ctrl-bar{flex-wrap:wrap;gap:6px}
   .data-tbl{font-size:0.72rem}
   #chartCanvas{height:160px!important}
@@ -272,10 +295,10 @@ footer{text-align:center;padding:14px;font-size:0.75rem;color:var(--muted);borde
 <header>
   <div class="icon">⚖️</div>
   <div>
-    <h1>การทดลองที่ 14 — มวลและน้ำหนัก</h1>
+    <h1>การทดลองที่ 14 — มวลและน้ำหนัก (3D)</h1>
     <p>Inertial Balance · Mass &amp; Weight · SHM</p>
   </div>
-  <div class="badge">KP Science Simulation</div>
+  <div class="badge">KP Science Simulation · 3D</div>
 </header>
 
 <nav>
@@ -292,9 +315,20 @@ footer{text-align:center;padding:14px;font-size:0.75rem;color:var(--muted);borde
     <div class="sim-left">
       <div class="canvas-wrap">
         <canvas id="simCanvas"></canvas>
+        <div class="viewbtns" id="viewBtns">
+          <button id="panBtn" onclick="setPanMode(!panMode)" title="เลื่อนภาพขึ้น-ลง ซ้าย-ขวา · หรือกด Shift ค้างแล้วลาก / คลิกขวาลาก / ใช้สองนิ้ว">✋ เลื่อนภาพ</button>
+          <button data-vw="iso" class="on" onclick="setView('iso')">มุมเฉียง</button>
+          <button data-vw="front" onclick="setView('front')">👁 ตรงหน้า</button>
+          <button data-vw="top" onclick="setView('top')">⬇ มุมบน</button>
+          <button data-vw="pan" onclick="setView('pan')">🔍 ซูมถาด</button>
+        </div>
+        <div class="viewhint">🖱 ลากภาพ = หมุนมุมมอง · ล้อ = ซูม · Shift+ลาก = เลื่อน<br>📱 1 นิ้ว = หมุน · 2 นิ้ว = ซูม/เลื่อน</div>
         <div class="overlay-info">
           คาบ T = <span id="ovT">—</span> s &nbsp;|&nbsp; ω = <span id="ovOmega">—</span> rad/s
+          <div class="ov-planet" id="ovPlanet"></div>
+          <div class="ov-speed" id="ovSpeed"></div>
         </div>
+        <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ หรือเบราว์เซอร์นี้ไม่รองรับ WebGL<br>ยังทดลองต่อได้: เวลาและจำนวนรอบอยู่ในแผง "🎯 ผลการวัด"</div>
         <div class="cycle-flash" id="cycleFlash">◎ ครบ 1 รอบ!</div>
         <div class="big-cycle-counter" id="bigCycleCounter">0</div>
         <div class="canvas-btn-group">
@@ -611,6 +645,10 @@ footer{text-align:center;padding:14px;font-size:0.75rem;color:var(--muted);borde
 
 <footer>KP Science Simulation · การทดลองที่ 14: มวลและน้ำหนัก · ข้อมูลอ้างอิง: Halliday, Resnick &amp; Krane; หลักสูตรแกนกลาง 2560</footer>
 
+<!-- three.js (3D) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if(typeof THREE==="undefined"){ document.write('<script src="../../_shared/three.min.js"><\/script>'); }</script>
+<script src="../../_shared/kp-real3d.js?v=20261021-8"></script>
 <script>
 // ═══════════════════════════════════════════════════
 // CONSTANTS & REFERENCE DATA
@@ -674,17 +712,10 @@ function showTab(name, btn) {
 }
 
 // ═══════════════════════════════════════════════════
-// CANVAS ANIMATION
+// PHYSICS HELPERS (เหมือนเดิม)
 // ═══════════════════════════════════════════════════
 const simCanvas = document.getElementById('simCanvas');
-const simCtx = simCanvas.getContext('2d');
-
-function resizeSimCanvas() {
-  const wrap = simCanvas.parentElement;
-  simCanvas.width  = wrap.clientWidth  || 600;
-  simCanvas.height = wrap.clientHeight || 300;
-  drawSim();
-}
+const viewWrap = () => simCanvas.parentElement || simCanvas;   /* กรอบภาพ 3D (.canvas-wrap) */
 
 // Interpolate T between reference points for fractional mass
 function interpolateT(massInClamps) {
@@ -711,11 +742,6 @@ function getOmega(n) {
   return 2 * Math.PI / getEffectiveT(n);
 }
 
-function getAmplitude() {
-  // Amplitude in px — fixed visual amplitude for clarity
-  return Math.min(simCanvas.height * 0.18, 55);
-}
-
 function animLoop(ts) {
   if (!lastAnimTs) lastAnimTs = ts;
   const dt = Math.min((ts - lastAnimTs) / 1000, 0.04);
@@ -737,253 +763,263 @@ function stopAnim() {
   if (animId) { cancelAnimationFrame(animId); animId = null; }
 }
 
+/* ค่าบนภาพ (เดิมวาดบน canvas 2D): ดาว · g · น้ำหนัก 1 C clamp · ความเร็ว */
 function drawSim() {
-  const W = simCanvas.width, H = simCanvas.height;
-  const ctx = simCtx;
-  ctx.clearRect(0, 0, W, H);
-
-  // Background
-  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
-  bgGrad.addColorStop(0, '#060c18');
-  bgGrad.addColorStop(1, '#0a1020');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid lines (subtle)
-  ctx.strokeStyle = 'rgba(30,58,95,0.3)';
-  ctx.lineWidth = 1;
-  for (let x = 40; x < W; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 40; y < H; y += 40) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-
-  const tableW = Math.min(W * 0.22, 110);
-  const centerY = H / 2;
-  const fixedX = tableW;
-  // Dynamic beam length based on springLength
-  const availW = W - fixedX - 70;
-  const baseLen = availW * 0.55;  // base length at L=1
-  const beamLength = Math.max(baseLen * 0.45, Math.min(baseLen * springLength, availW - 20));
-  const beamEndX = fixedX + beamLength;
-  const amp = getAmplitude();
-  const omega = getOmega(nClamps);
-  const disp = animRunning ? amp * Math.sin(omega * animTime) : 0;
-  const tipX = beamEndX;
-  const tipY = centerY + disp;
-
-  // TABLE
-  const tableGrad = ctx.createLinearGradient(0, 0, tableW, 0);
-  tableGrad.addColorStop(0, '#1a0f08');
-  tableGrad.addColorStop(1, '#2d1e14');
-  ctx.fillStyle = tableGrad;
-  ctx.fillRect(0, 0, tableW, H);
-
-  // Table wood grain lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = 1;
-  for (let y = 20; y < H; y += 18) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(tableW, y); ctx.stroke();
-  }
-
-  // Table edge
-  ctx.strokeStyle = '#5a3e28';
-  ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(tableW, 0); ctx.lineTo(tableW, H); ctx.stroke();
-  ctx.strokeStyle = '#7a5e3e';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(tableW - 2, 0); ctx.lineTo(tableW - 2, H); ctx.stroke();
-
-  // TABLE LABEL
-  ctx.save();
-  ctx.translate(tableW / 2, H / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = '600 13px IBM Plex Sans Thai, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('ขอบโต๊ะ', 0, 4);
-  ctx.restore();
-
-  // CLAMP (C-clamp securing beam to table)
-  const clampX = fixedX - 12;
-  const clampY = centerY;
-  const clampH = 36;
-  ctx.fillStyle = '#708090';
-  ctx.strokeStyle = '#90a0b0';
-  ctx.lineWidth = 2;
-  // Clamp body
-  ctx.beginPath();
-  ctx.roundRect(clampX - 8, clampY - clampH/2, 10, clampH, 3);
-  ctx.fill(); ctx.stroke();
-  // Clamp jaw top
-  ctx.beginPath();
-  ctx.roundRect(clampX - 8, clampY - clampH/2, 18, 7, 2);
-  ctx.fillStyle = '#8090a0'; ctx.fill(); ctx.stroke();
-  // Clamp jaw bottom
-  ctx.beginPath();
-  ctx.roundRect(clampX - 8, clampY + clampH/2 - 7, 18, 7, 2);
-  ctx.fill(); ctx.stroke();
-  // Screw knob
-  ctx.beginPath();
-  ctx.arc(clampX + 10, clampY, 6, 0, Math.PI * 2);
-  ctx.fillStyle = '#b0c0d0'; ctx.fill();
-  ctx.strokeStyle = '#708090'; ctx.stroke();
-
-  // BEAM (cantilever — bezier curve)
-  const cpX = fixedX + (tipX - fixedX) * 0.55;
-  const cpY = centerY + disp * 0.4;
-  const cp2X = tipX - 30;
-  const cp2Y = tipY;
-
-  // Beam shadow
-  ctx.beginPath();
-  ctx.moveTo(fixedX, centerY + 2);
-  ctx.bezierCurveTo(cpX, cpY + 2, cp2X, cp2Y + 2, tipX, tipY + 2);
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.lineWidth = 12;
-  ctx.lineCap = 'butt';
-  ctx.stroke();
-
-  // Beam main body
-  const beamGrad = ctx.createLinearGradient(fixedX, centerY, tipX, tipY);
-  beamGrad.addColorStop(0, '#4a7fa8');
-  beamGrad.addColorStop(0.5, '#6ab0d0');
-  beamGrad.addColorStop(1, '#4a90aa');
-  ctx.beginPath();
-  ctx.moveTo(fixedX, centerY);
-  ctx.bezierCurveTo(cpX, cpY, cp2X, cp2Y, tipX, tipY);
-  ctx.strokeStyle = beamGrad;
-  ctx.lineWidth = 9;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // Beam highlight
-  ctx.beginPath();
-  ctx.moveTo(fixedX, centerY - 2);
-  ctx.bezierCurveTo(cpX, cpY - 2, cp2X, cp2Y - 2, tipX, tipY - 2);
-  ctx.strokeStyle = 'rgba(180,230,255,0.3)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // DRAW MASSES at tip
-  const n = nClamps;
-  if (n === 'unknown') {
-    drawUnknownObject(ctx, tipX, tipY);
-  } else {
-    for (let i = 0; i < parseInt(n); i++) {
-      drawCClamp(ctx, tipX + 8, tipY - 22 + i * 20, i);
-    }
-    if (parseInt(n) === 0) {
-      // Show tip dot
-      ctx.beginPath();
-      ctx.arc(tipX, tipY, 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#38bdf8';
-      ctx.fill();
-    }
-  }
-
-  // EQUILIBRIUM LINE (dashed)
-  ctx.setLineDash([4, 6]);
-  ctx.strokeStyle = 'rgba(56,189,248,0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(fixedX + 20, centerY);
-  ctx.lineTo(tipX + 20, centerY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // DISPLACEMENT INDICATOR
-  if (animRunning && Math.abs(disp) > 3) {
-    ctx.fillStyle = 'rgba(56,189,248,0.8)';
-    ctx.font = '500 11px Share Tech Mono, monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText((disp > 0 ? '+' : '') + disp.toFixed(1) + ' px', tipX + 14, tipY + 4);
-  }
-
-  // LABEL
-  ctx.fillStyle = 'rgba(148,163,184,0.7)';
-  ctx.font = '500 12px IBM Plex Sans Thai, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(nClamps === 'unknown' ? 'Unknown object' : `${n} C clamp${parseInt(n) !== 1 ? 's' : ''}`, (fixedX + tipX) / 2, H - 12);
-
-  // PLANET BADGE (bottom-left)
   const p = PLANETS[currentPlanet];
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.strokeStyle = p.color;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(10, H - 52, 170, 40, 8);
-  else ctx.rect(10, H - 52, 170, 40);
-  ctx.fill(); ctx.stroke();
-  ctx.fillStyle = p.color;
-  ctx.font = '600 13px IBM Plex Sans Thai, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(p.name, 18, H - 36);
-  ctx.fillStyle = '#e2e8f0';
-  ctx.font = '500 11px Share Tech Mono, monospace';
-  ctx.fillText(`g = ${p.g.toFixed(2)} m/s²`, 18, H - 20);
-  // Mini weight indication
-  const wc = clampWeight();
-  ctx.fillStyle = '#fb923c';
-  ctx.textAlign = 'right';
-  ctx.fillText(`W₁ = ${wc.toFixed(2)} N`, 172, H - 20);
-
-  // SPEED badge (top-left)
-  if (animSpeed < 0.95 || animSpeed > 1.05) {
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(tableW + 10, 10, 95, 26, 6);
-    else ctx.rect(tableW + 10, 10, 95, 26);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#34d399';
-    ctx.font = '600 11px Share Tech Mono, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`⏱ ${animSpeed.toFixed(2)}× speed`, tableW + 57, 27);
+  const ov = document.getElementById('ovPlanet');
+  if (ov) {
+    const html = `<b style="color:${p.color}">${p.name}</b> · g = <span class="mono">${p.g.toFixed(2)}</span> m/s² · <span class="ow">W₁ = ${clampWeight().toFixed(2)} N</span>`;
+    if (ov.innerHTML !== html) ov.innerHTML = html;
+  }
+  const sp = document.getElementById('ovSpeed');
+  if (sp) {
+    const t = (animSpeed < 0.95 || animSpeed > 1.05) ? `⏱ ${animSpeed.toFixed(2)}× speed` : '';
+    if (sp.textContent !== t) sp.textContent = t;
   }
 }
+function resizeSimCanvas() { resize3D(); drawSim(); }
 
-function drawCClamp(ctx, x, y, idx) {
-  const colors = ['#fb923c', '#f97316', '#ea580c', '#c2410c'];
-  const col = colors[idx % colors.length];
-  // C clamp body
-  ctx.strokeStyle = col;
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.arc(x, y, 10, Math.PI * 0.3, Math.PI * 1.7);
-  ctx.stroke();
-  // Screw bar
-  ctx.beginPath();
-  ctx.moveTo(x + 8, y - 6);
-  ctx.lineTo(x + 8, y + 6);
-  ctx.strokeStyle = '#aaa';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  // Hole
-  ctx.beginPath();
-  ctx.arc(x, y, 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#0a0e1a';
-  ctx.fill();
+// ═══════════════════════════════════════════════════
+// 3D VIEW (three.js) — อิเนอร์เชียลบาลานซ์: แผ่นสปริงเหล็ก 2 แผ่นยึดขอบโต๊ะด้วย C-clamp · ถาดอยู่ปลายแผ่น
+// หน่วยในฉาก = cm · พื้นโต๊ะ y = 0 · ขอบโต๊ะ z = 0 (โต๊ะอยู่ฝั่ง z < 0) · ถาดสั่นซ้าย-ขวาตามแกน x
+// การกระจัดของถาดมาจากสถานะเดียวกับที่โปรแกรมใช้นับรอบ: sin(ω·animTime)
+// ═══════════════════════════════════════════════════
+let renderer = null, scene = null, camera = null;
+const P = {}, TEXS = [];
+const LEAF_X = 5.2, LEAF_Y0 = 2.2, LEAF_H = 5, LEAF_TH = 0.16;   /* แผ่นสปริง 2 แผ่นที่ x = ±5.2 cm สูง 5 cm */
+const TRAY_Y = 1.2, TRAY_T = 0.8, TRAY_D = 10, TRAY_W = 12.4;     /* ถาดใส่มวล (ล่างสุด y = 1.2) */
+const AMP_CM = 1.6;                                                /* แอมพลิจูดที่แสดง (cm) — ภาพเท่านั้น */
+const TIM = { x: -30, z: -16 };                                    /* นาฬิกาจับเวลาบนโต๊ะ */
+const CLAMP_COLS = [0xfb923c, 0xf97316, 0xea580c];
+function leafLen() { return 20 * springLength; }                   /* ยาวแผ่นสปริง (cm) ตามสไลเดอร์ 📏 */
+function massIdx() { return nClamps === 'unknown' ? -1 : (parseInt(nClamps) || 0); }
+function panDisp() { return animRunning ? AMP_CM * Math.sin(getOmega(nClamps) * animTime) : 0; }
+
+const orbit = { target: null, dist: 110, az: 0.75, el: 0.4 };
+let curView = 'iso';
+function fitDist(wCm, hCm) {
+  const el = viewWrap(), asp = Math.max(0.4, (el.clientWidth || 600) / (el.clientHeight || 300)), t = Math.tan(36 * Math.PI / 360);
+  return Math.max(12, Math.min(520, Math.max(hCm / (2 * t), wCm / (2 * t * asp)) * 1.08));
+}
+const VIEWS = {
+  iso:   { t: () => [-2, 1, leafLen() / 2 - 2], d: () => fitDist(leafLen() + 52, 30), az: 0.72, el: 0.42 },
+  front: { t: () => [0, 2.5, leafLen()], d: () => fitDist(40, 26), az: 0.0001, el: 0.12 },
+  top:   { t: () => [0, 2, leafLen() / 2], d: () => fitDist(34, leafLen() + 30), az: 0.0001, el: 1.45 },
+  pan:   { t: () => [0, 3.5, leafLen() + 4.5], d: () => fitDist(26, 17), az: 0.5, el: 0.5 }
+};
+const vnum = q => (typeof q === 'function') ? q() : q;
+
+function texApply(t) { let an = 8; try { if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) an = Math.max(8, renderer.capabilities.getMaxAnisotropy()); } catch (e) {}
+  t.anisotropy = an; if (renderer && 'outputEncoding' in renderer && 'encoding' in t) t.encoding = renderer.outputEncoding;
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t; }
+function canvasTex(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); const t = texApply(new THREE.CanvasTexture(c)); TEXS.push({ t, fn }); return t; }
+function redrawTex(t) { const o = TEXS.find(e => e.t === t); if (!o) return; const c = o.t.image; o.fn(c.getContext('2d'), c.width, c.height); o.t.needsUpdate = true; }
+function redrawTexs() { TEXS.forEach(o => { const c = o.t.image; o.fn(c.getContext('2d'), c.width, c.height); o.t.needsUpdate = true; }); }
+function rr(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
+
+/* ── ป้าย Sprite (ข้อความเปลี่ยนได้) ── */
+function makeLabel(col, wcm) {
+  const L = { txt: '', col };
+  L.tex = canvasTex(512, 128, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = 'rgba(11,18,32,.9)'; rr(g, 6, 6, w - 12, h - 12, 22); g.fill();
+    g.strokeStyle = L.col; g.lineWidth = 5; rr(g, 6, 6, w - 12, h - 12, 22); g.stroke();
+    g.fillStyle = L.col; g.font = 'bold 58px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(L.txt, w / 2, h / 2 + 3); });
+  L.sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: L.tex, transparent: true, depthWrite: false }));
+  L.sp.scale.set(wcm, wcm / 4, 1);
+  L.set = s => { if (s === L.txt) return; L.txt = s; redrawTex(L.tex); };
+  return L;
+}
+/* ── หน้าจอนาฬิกาจับเวลาบนโต๊ะ (ค่าเดียวกับ ⏱ ในแผงผลการวัด) ── */
+function drawTimerFace(g, w, h) {
+  g.fillStyle = '#10161f'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#38bdf8'; g.lineWidth = 5; g.strokeRect(5, 5, w - 10, h - 10);
+  g.fillStyle = '#7dd3fc'; g.font = 'bold 30px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'left';
+  g.fillText('KP TIMER · นับรอบ + จับเวลา', 22, 44);
+  const x0 = 22, y0 = 62, pw = w - 44, ph = h - 82;
+  g.fillStyle = '#1c1206'; g.fillRect(x0, y0, pw, ph);
+  g.strokeStyle = '#7c4a12'; g.lineWidth = 3; g.strokeRect(x0, y0, pw, ph);
+  g.textAlign = 'right'; g.font = 'bold 92px "Share Tech Mono",monospace';
+  g.fillStyle = 'rgba(255,157,47,.12)'; g.fillText('888.88', x0 + pw - 120, y0 + 100);
+  g.fillStyle = '#ff9d2f'; g.fillText(stopwatchElapsed.toFixed(2), x0 + pw - 120, y0 + 100);
+  g.font = 'bold 40px "Share Tech Mono",monospace'; g.textAlign = 'left'; g.fillText('s', x0 + pw - 108, y0 + 100);
+  g.fillStyle = '#86efac'; g.font = 'bold 44px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'left';
+  g.fillText('รอบ ' + programCycleCount + ' / ' + targetVibs, x0 + 18, y0 + ph - 22);
+  g.beginPath(); g.arc(x0 + pw - 30, y0 + ph - 36, 11, 0, Math.PI * 2); g.fillStyle = expRunning ? '#22c55e' : '#3f3f46'; g.fill();
+}
+function drawUnknownFace(g, w, h) {
+  g.fillStyle = '#6d28d9'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#c4b5fd'; g.lineWidth = 8; g.strokeRect(8, 8, w - 16, h - 16);
+  g.fillStyle = '#f5f3ff'; g.font = 'bold 150px "IBM Plex Sans Thai",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('?', w / 2, h / 2 + 6);
 }
 
-function drawUnknownObject(ctx, x, y) {
-  // Purple rounded rectangle
-  ctx.beginPath();
-  ctx.roundRect(x - 12, y - 16, 24, 32, 5);
-  ctx.fillStyle = '#7c3aed';
-  ctx.fill();
-  ctx.strokeStyle = '#a78bfa';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // "?" label
-  ctx.fillStyle = '#e9d5ff';
-  ctx.font = '700 14px IBM Plex Sans Thai, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('?', x, y + 5);
+/* ── ตัวช่วยปั้นอุปกรณ์แบบแลปจริง (ต้นแบบ Lab 108 · เหมือน Lab 71/76) ── */
+function rbox(w, h, d, r, m) { const b = Math.min(r * 0.6, w * 0.3, h * 0.3, d * 0.3), sw = w - 2 * b, sh = d - 2 * b, cr = Math.max(0.02, Math.min(r - b, sw / 2 - 0.01, sh / 2 - 0.01)), s = new THREE.Shape();
+  s.moveTo(-sw / 2 + cr, -sh / 2); s.lineTo(sw / 2 - cr, -sh / 2); s.quadraticCurveTo(sw / 2, -sh / 2, sw / 2, -sh / 2 + cr); s.lineTo(sw / 2, sh / 2 - cr); s.quadraticCurveTo(sw / 2, sh / 2, sw / 2 - cr, sh / 2);
+  s.lineTo(-sw / 2 + cr, sh / 2); s.quadraticCurveTo(-sw / 2, sh / 2, -sw / 2, sh / 2 - cr); s.lineTo(-sw / 2, -sh / 2 + cr); s.quadraticCurveTo(-sw / 2, -sh / 2, -sw / 2 + cr, -sh / 2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.01, h - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 8 }); g.rotateX(-Math.PI / 2); g.center(); return new THREE.Mesh(g, m); }
+const enamel = (c, r, cc) => new THREE.MeshPhysicalMaterial({ color: c, roughness: r == null ? 0.42 : r, clearcoat: cc == null ? 0.35 : cc, clearcoatRoughness: 0.45 });
+const chromeM = c => new THREE.MeshStandardMaterial({ color: c == null ? 0xd8dde4 : c, metalness: .95, roughness: .22 });
+const anoM = c => new THREE.MeshPhysicalMaterial({ color: c == null ? 0xc3cad3 : c, metalness: .78, roughness: .32, clearcoat: .25, clearcoatRoughness: .4 });
+const rubberM = () => new THREE.MeshStandardMaterial({ color: 0x141518, roughness: .92 });
+function rubberFoot(r, h) { return new THREE.Mesh(new THREE.CylinderGeometry(r * 0.9, r, h, 18), rubberM()); }
+/* ปุ่มหมุนมีร่อง + ฝาโลหะ (แกนหมุน = แกน y ของกลุ่ม) */
+function ribKnob(r, h, col) { const g = new THREE.Group(), rm = new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: .5 });
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.94, r, h, 32), enamel(col == null ? 0x15171c : col, 0.35, 0.5)));
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, rib = new THREE.Mesh(new THREE.BoxGeometry(r * 0.07, h * 0.88, r * 0.13), rm); rib.position.set(Math.cos(a) * r * 0.97, 0, Math.sin(a) * r * 0.97); rib.rotation.y = -a; g.add(rib); }
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.62, r * 0.62, h * 0.08, 32), chromeM(0xb8bec8)); cap.position.y = h / 2 + h * 0.03; g.add(cap); return g; }
+/* สกรูหัว T: แกนเกลียวโครเมียมแนวตั้ง (y0 → y1) + ด้ามจับขวางตามแกน x ที่ปลายล่าง + แป้นกดที่ปลายบน */
+function tScrew(r, y0, y1, handle) { const g = new THREE.Group();
+  const rod = new THREE.Mesh(new THREE.CylinderGeometry(r, r, y1 - y0, 14), chromeM(0xc9ced6)); rod.position.y = (y0 + y1) / 2; g.add(rod);
+  for (let y = y0 + r * 3; y < y1 - r * 2; y += r * 1.6) { const th = new THREE.Mesh(new THREE.TorusGeometry(r * 1.02, r * 0.16, 6, 16), chromeM(0xaab2bc)); th.rotation.x = Math.PI / 2; th.position.y = y; g.add(th); }
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(r * 2.6, r * 2.6, r * 1.1, 20), chromeM(0xb9c1ca)); pad.position.y = y1 - r * 0.55; g.add(pad);
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, handle, 12), chromeM()); bar.rotation.z = Math.PI / 2; bar.position.y = y0 + r; g.add(bar);
+  [-1, 1].forEach(s => { const b = new THREE.Mesh(new THREE.SphereGeometry(r * 0.95, 14, 10), enamel(0x15171c, 0.35, 0.5)); b.position.set(s * handle / 2, y0 + r, 0); g.add(b); });
+  return g; }
+/* C-clamp (G-clamp) โครงเหล็กหล่อเคลือบเงา: ปากบน (ปากตาย) วางบนผิวชิ้นงานที่ yTop · ปากล่างใต้ชิ้นงานที่ yBot · สันโครงอยู่ฝั่ง +z
+   คืนกลุ่มที่จุดอ้างอิง = ขอบชิ้นงาน (z = 0) */
+function cClamp(o) { const g = new THREE.Group(), m = enamel(o.col, 0.38, 0.55), w = o.w, t = o.t, reach = o.reach, back = o.back;
+  const top = rbox(w, t, reach + back, t * 0.35, m); top.position.set(0, o.yTop + t / 2, (back - reach) / 2); g.add(top);
+  const spH = (o.yTop + t) - (o.yBot - o.gap - t);
+  const sp = rbox(w, spH, t * 1.15, t * 0.35, m); sp.position.set(0, (o.yTop + t + o.yBot - o.gap - t) / 2, back - t * 0.55); g.add(sp);
+  const bot = rbox(w, t, reach + back, t * 0.35, m); bot.position.set(0, o.yBot - o.gap - t / 2, (back - reach) / 2); g.add(bot);
+  const sc = tScrew(o.sr, o.yBot - o.gap - t - o.sr * 9, o.yBot, o.handle); sc.position.z = -reach + w * 0.55; g.add(sc);
+  return g; }
+
+function init3D() {
+  const nt = document.getElementById('nothree');
+  if (typeof THREE === 'undefined') { if (nt) nt.style.display = 'flex'; return; }
+  orbit.target = new THREE.Vector3(0, 2, 10);
+  try { renderer = new THREE.WebGLRenderer({ canvas: simCanvas, antialias: true, alpha: true }); }
+  catch (e) { renderer = null; if (nt) { nt.innerHTML = '⚠️ อุปกรณ์/เบราว์เซอร์นี้ไม่รองรับ WebGL จึงแสดงภาพ 3D ไม่ได้ — ยังทดลองต่อได้: เวลาและจำนวนรอบอยู่ในแผง "🎯 ผลการวัด"'; nt.style.display = 'flex'; } return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(36, 1, 0.3, 3000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x1a2235, 0.95));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.70); d1.position.set(60, 170, 150); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xffffff, 0.28); d2.position.set(-90, 80, -70); scene.add(d2);
+
+  /* โต๊ะแลป: แผ่นท็อปลามิเนตขอบมน (ขอบหน้าที่ z = 0) + ขาเหล็กพ่นสี + ยางรอง + พื้นห้อง */
+  const BW = 120, BD = 62, BT = 4, LEG = 68;
+  const bench = rbox(BW, BT, BD, 1.2, enamel(0x8d99a8, 0.6, 0.2)); bench.position.set(-6, -BT / 2, -BD / 2); scene.add(bench);
+  const edge = rbox(BW, 1.2, 1.4, 0.4, enamel(0x3a4250, 0.45, 0.3)); edge.position.set(-6, -0.7, 0.2); scene.add(edge);
+  [[-62, -4], [-62, -58], [50, -4], [50, -58]].forEach(([x, z]) => { const leg = rbox(5, LEG, 5, 0.8, enamel(0x3a4250, 0.45, 0.3)); leg.position.set(x, -BT - LEG / 2, z); scene.add(leg);
+    const ft = rubberFoot(3.0, 1.2); ft.position.set(x, -BT - LEG - 0.6, z); scene.add(ft); });
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(320, 2, 230), new THREE.MeshStandardMaterial({ color: 0x2c2318, roughness: .95 }));
+  floor.position.set(-6, -BT - LEG - 1.2 - 1, -30); scene.add(floor);
+
+  /* ฐานบาลานซ์: แผ่นรองอะลูมิเนียม + บล็อกยึดแผ่นสปริง (หนีบแผ่นสปริงด้วยแผ่นโครเมียม + น็อต) */
+  const plate = rbox(30, 1, 13, 0.4, anoM(0x9aa5b2)); plate.position.set(0, 0.5, -6.5); scene.add(plate);
+  const block = rbox(14, 7.4, 6.4, 0.8, enamel(0x2f3b4c, 0.4, 0.35)); block.position.set(0, 1 + 3.7, -3.2); scene.add(block);
+  [-1, 1].forEach(sd => {
+    const cp = rbox(1.0, 6.0, 2.6, 0.3, chromeM(0xc3c9d1)); cp.position.set(sd * (LEAF_X + 0.62), LEAF_Y0 + LEAF_H / 2, 1.1); scene.add(cp);
+    const ip = rbox(1.0, 6.0, 2.6, 0.3, chromeM(0xc3c9d1)); ip.position.set(sd * (LEAF_X - 0.62), LEAF_Y0 + LEAF_H / 2, 1.1); scene.add(ip);
+    [LEAF_Y0 + 1.1, LEAF_Y0 + LEAF_H - 1.1].forEach(y => { const bo = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 3.2, 6), chromeM()); bo.rotation.z = Math.PI / 2; bo.position.set(sd * LEAF_X, y, 1.4); scene.add(bo); });
+  });
+  /* ปุ่มขันมีร่องบนบล็อก (ตกแต่ง: ตัวล็อกแผ่นสปริง) */
+  { const kn = ribKnob(1.2, 1.0); kn.position.set(0, 8.4 + 0.5, -3.2); scene.add(kn); }
+  /* C-clamp ใหญ่ 2 ตัว ยึดแผ่นรองกับขอบโต๊ะ (สันโครงอยู่หน้าขอบโต๊ะ) */
+  [-11.5, 11.5].forEach(x => { const cl = cClamp({ col: 0x2f5d8a, w: 2.2, t: 1.6, reach: 7.5, back: 3.2, yTop: 1.0, yBot: -BT, gap: 2.2, sr: 0.38, handle: 5.6 }); cl.position.set(x, 0, 0); scene.add(cl); });
+
+  /* แผ่นสปริงเหล็ก 2 แผ่น (โค้งรูปตัว S แบบคานปลายถูกบังคับ: u(s) = d·(3t² − 2t³)) */
+  const leafM = new THREE.MeshPhysicalMaterial({ color: 0xaeb8c4, metalness: .85, roughness: .26, clearcoat: .35, clearcoatRoughness: .3 });
+  P.leaves = [-1, 1].map(sd => { const geo = new THREE.BoxGeometry(LEAF_TH, LEAF_H, 1, 1, 1, 48); geo.translate(0, 0, 0.5);
+    const m = new THREE.Mesh(geo, leafM); m.position.set(sd * LEAF_X, LEAF_Y0 + LEAF_H / 2, 0); m.frustumCulled = false;
+    m.userData.base = Float32Array.from(geo.attributes.position.array); scene.add(m); return m; });
+  P.lastD = null; P.L = null;
+
+  /* ส่วนที่สั่น (ถาด + ตัวยึดปลายแผ่น + มวล) — ตำแหน่ง z = ปลายแผ่นสปริง · x = การกระจัด */
+  P.mov = new THREE.Group(); scene.add(P.mov);
+  [-1, 1].forEach(sd => { const tb = rbox(1.9, 6.0, 2.8, 0.4, anoM(0xb8c2cd)); tb.position.set(sd * LEAF_X, LEAF_Y0 + LEAF_H / 2, 0.2); P.mov.add(tb);
+    const bo = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 2.4, 6), chromeM()); bo.rotation.z = Math.PI / 2; bo.position.set(sd * LEAF_X, LEAF_Y0 + LEAF_H / 2, 0.2); P.mov.add(bo); });
+  const tray = rbox(TRAY_W, TRAY_T, TRAY_D, 0.5, anoM(0xc3cad3)); tray.position.set(0, TRAY_Y + TRAY_T / 2, TRAY_D / 2 - 1); P.mov.add(tray);
+  const mat = rbox(TRAY_W - 4.4, 0.14, TRAY_D - 3.2, 0.3, rubberM()); mat.position.set(0, TRAY_Y + TRAY_T + 0.07, TRAY_D / 2 + 0.6); P.mov.add(mat);
+  /* C-clamp เล็ก (มวล 1 หน่วย) หนีบที่ขอบหน้าถาด */
+  P.clamps = [0, -3.6, 3.6].map((x, i) => { const cl = cClamp({ col: CLAMP_COLS[i], w: 1.5, t: 0.8, reach: 3.2, back: 1.5, yTop: TRAY_Y + TRAY_T, yBot: TRAY_Y, gap: 0.6, sr: 0.2, handle: 2.4 });
+    cl.position.set(x, 0, TRAY_D - 1); cl.visible = false; P.mov.add(cl); return cl; });
+  /* วัตถุ Unknown: กล่องม่วงมีเครื่องหมาย ? */
+  P.unk = new THREE.Group(); P.mov.add(P.unk);
+  { const bx = rbox(6, 4.2, 5, 0.6, enamel(0x6d28d9, 0.35, 0.6)); bx.position.set(0, TRAY_Y + TRAY_T + 2.1, TRAY_D / 2 + 0.2); P.unk.add(bx);
+    const ft = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 3.2), new THREE.MeshBasicMaterial({ map: canvasTex(256, 192, drawUnknownFace) })); ft.position.set(0, TRAY_Y + TRAY_T + 2.1, TRAY_D / 2 + 0.2 + 2.52); P.unk.add(ft);
+    const tp = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 3.6), new THREE.MeshBasicMaterial({ map: canvasTex(256, 192, drawUnknownFace) })); tp.rotation.x = -Math.PI / 2; tp.position.set(0, TRAY_Y + TRAY_T + 4.22, TRAY_D / 2 + 0.2); P.unk.add(tp); }
+  P.unk.visible = false;
+
+  /* นาฬิกาจับเวลา + นับรอบ ตั้งบนโต๊ะ */
+  P.timerTex = canvasTex(640, 300, drawTimerFace); P.timerKey = '';
+  const tbody = rbox(22, 11, 5, 1.2, enamel(0x1b2130, 0.45, 0.35)); tbody.position.set(TIM.x, 7.2, TIM.z); tbody.rotation.y = 0.35; scene.add(tbody);
+  const tface = new THREE.Mesh(new THREE.PlaneGeometry(20, 9.4), new THREE.MeshBasicMaterial({ map: P.timerTex })); tface.position.set(TIM.x + Math.sin(0.35) * 2.53, 7.2, TIM.z + Math.cos(0.35) * 2.53); tface.rotation.y = 0.35; scene.add(tface);
+  { const st = rbox(16, 1.4, 7, 0.5, enamel(0x2c313c, 0.45, 0.3)); st.position.set(TIM.x, 0.7, TIM.z); st.rotation.y = 0.35; scene.add(st);
+    const nk = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.6, 16), chromeM()); nk.position.set(TIM.x, 2.2, TIM.z); scene.add(nk); }
+
+  /* ป้าย */
+  P.lbMass = makeLabel('#fb923c', 17); P.mov.add(P.lbMass.sp); P.lbMass.sp.position.set(0, 12.5, TRAY_D / 2);
+  P.lbLeaf = makeLabel('#7dd3fc', 19); P.lbLeaf.set('แผ่นสปริงเหล็ก'); scene.add(P.lbLeaf.sp);
+  P.lbClamp = makeLabel('#93c5fd', 21); P.lbClamp.set('C-clamp ยึดขอบโต๊ะ'); P.lbClamp.sp.position.set(22, 4, 4); scene.add(P.lbClamp.sp);
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { redrawTexs(); }).catch(() => {});
+  setupPointer(simCanvas); resize3D(); setView('iso'); update3D();
+  (function frame3D() { requestAnimationFrame(frame3D);
+    const tab = document.getElementById('tab-sim'); if (tab && !tab.classList.contains('active')) return;
+    update3D(); renderer.render(scene, camera); })();
 }
+
+function bendLeaves(d) {
+  if (P.lastD === d) return; P.lastD = d;
+  P.leaves.forEach(m => { const a = m.geometry.attributes.position.array, b = m.userData.base;
+    for (let i = 0; i < a.length; i += 3) { const t = b[i + 2]; a[i] = b[i] + d * (3 * t * t - 2 * t * t * t); }
+    m.geometry.attributes.position.needsUpdate = true; });
+}
+function update3D() { if (!scene) return;
+  const L = leafLen(), d = panDisp(), n = massIdx();
+  if (L !== P.L) { P.L = L; P.leaves.forEach(m => { m.scale.z = L; }); P.mov.position.z = L;
+    P.lbLeaf.sp.position.set(LEAF_X + 6, 9.5, L * 0.5); if (VIEWS[curView]) setView(curView); }
+  P.mov.position.x = d; bendLeaves(d);
+  P.clamps.forEach((c, i) => { c.visible = n > i; });
+  P.unk.visible = n < 0;
+  P.lbMass.set(n < 0 ? 'Unknown ?' : (n + ' C clamp' + (n !== 1 ? 's' : '')));
+  P.lbMass.sp.position.y = n < 0 ? 11.5 : 9.5;
+  const tk = stopwatchElapsed.toFixed(2) + '|' + programCycleCount + '|' + targetVibs + '|' + (expRunning ? 1 : 0);
+  if (tk !== P.timerKey) { P.timerKey = tk; redrawTex(P.timerTex); }
+  const tg = orbit.target; camera.up.set(0, 1, 0);
+  camera.position.set(tg.x + orbit.dist * Math.sin(orbit.az) * Math.cos(orbit.el), tg.y + orbit.dist * Math.sin(orbit.el), tg.z + orbit.dist * Math.cos(orbit.az) * Math.cos(orbit.el));
+  camera.lookAt(tg); }
+function resize3D() { if (!renderer) return; const el = viewWrap(), w = el.clientWidth || 600, h = el.clientHeight || 300;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (VIEWS[curView]) orbit.dist = vnum(VIEWS[curView].d); }
+function setView(vw) { const V = VIEWS[vw]; curView = V ? vw : 'free';
+  document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.toggle('on', b.dataset.vw === curView));
+  if (!V || !orbit.target) return;
+  const t = vnum(V.t); orbit.target.set(t[0], t[1], t[2]); orbit.dist = vnum(V.d); orbit.az = vnum(V.az); orbit.el = vnum(V.el); }
+function freeView() { if (curView === 'free') return; curView = 'free'; document.querySelectorAll('#viewBtns button[data-vw]').forEach(b => b.classList.remove('on')); }
+
+/* ── ✋ โหมดเลื่อนภาพ + หมุน/ซูม/เลื่อนกล้อง (เมาส์ · นิ้ว) ── */
+let panMode = false;
+function setPanMode(on) { panMode = !!on; const b = document.getElementById('panBtn');
+  if (b) { b.classList.toggle('on', panMode); b.innerHTML = panMode ? '✋ เลื่อนภาพ · เปิดอยู่' : '✋ เลื่อนภาพ'; }
+  if (renderer) renderer.domElement.style.cursor = panMode ? 'move' : ''; }
+function setupPointer(cv) { const T = { mode: null, lx: 0, ly: 0, d0: 0, cx: 0, cy: 0 };
+  const mid = e => ({ x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2, d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('mousedown', e => { e.preventDefault();
+    T.mode = (e.button === 1 || e.button === 2 || e.shiftKey || panMode) ? 'pan' : 'rot'; T.lx = e.clientX; T.ly = e.clientY; cv.style.cursor = 'grabbing'; });
+  window.addEventListener('mousemove', e => { if (!T.mode || T.mode === 'pinch') return;
+    if (e.buttons === 0) { T.mode = null; cv.style.cursor = panMode ? 'move' : ''; return; }
+    const dx = e.clientX - T.lx, dy = e.clientY - T.ly; T.lx = e.clientX; T.ly = e.clientY; if (T.mode === 'pan') camPan(dx, dy); else camRotate(dx, dy); });
+  const up = () => { if (T.mode !== 'pinch') T.mode = null; cv.style.cursor = panMode ? 'move' : ''; };
+  window.addEventListener('mouseup', up); window.addEventListener('blur', () => { T.mode = null; });
+  cv.addEventListener('touchstart', e => { e.preventDefault();
+    if (e.touches.length >= 2) { const m = mid(e); T.mode = 'pinch'; T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if (e.touches.length === 1) { const t = e.touches[0]; T.mode = panMode ? 'pan' : 'rot'; T.lx = t.clientX; T.ly = t.clientY; } }, { passive: false });
+  cv.addEventListener('touchmove', e => { e.preventDefault();
+    if (T.mode === 'pinch' && e.touches.length >= 2) { const m = mid(e); if (T.d0 > 10 && m.d > 10) camZoom(T.d0 / m.d); camPan(m.x - T.cx, m.y - T.cy); T.d0 = m.d; T.cx = m.x; T.cy = m.y; }
+    else if ((T.mode === 'rot' || T.mode === 'pan') && e.touches.length === 1) { const t = e.touches[0]; (T.mode === 'pan' ? camPan : camRotate)(t.clientX - T.lx, t.clientY - T.ly); T.lx = t.clientX; T.ly = t.clientY; } }, { passive: false });
+  const tend = e => { if (e.touches.length === 1) { T.mode = panMode ? 'pan' : 'rot'; T.lx = e.touches[0].clientX; T.ly = e.touches[0].clientY; }
+    else if (e.touches.length === 0) T.mode = null; };
+  cv.addEventListener('touchend', tend); cv.addEventListener('touchcancel', tend);
+  cv.addEventListener('wheel', e => { e.preventDefault(); camZoom(1 + e.deltaY * 0.0012); }, { passive: false }); }
+function camRotate(dx, dy) { freeView(); orbit.az -= dx * 0.006; orbit.el = Math.max(-0.35, Math.min(1.45, orbit.el + dy * 0.006)); }
+function camZoom(f) { freeView(); orbit.dist = Math.max(8, Math.min(600, orbit.dist * f)); }
+function camPan(dx, dy) { freeView();
+  const o = orbit; if (!o.target || !camera) return;
+  const k = o.dist * 2 * Math.tan(camera.fov * Math.PI / 360) / ((viewWrap().clientHeight) || 300), ca = Math.cos(o.az), sa = Math.sin(o.az), ce = Math.cos(o.el), se = Math.sin(o.el);
+  o.target.x += (-dx * ca + dy * (-se * sa)) * k; o.target.y += dy * ce * k; o.target.z += (dx * sa + dy * (-se * ca)) * k; }
 
 // ═══════════════════════════════════════════════════
 // EXPERIMENT LOGIC
@@ -1035,8 +1071,8 @@ function startExperiment() {
 
 function stopwatchTick() {
   if (!expRunning) return;
-  // elapsed advances in experiment-time (scaled by speed)
-  stopwatchElapsed += 0.05 * animSpeed;
+  // elapsed = experiment-time ชุดเดียวกับที่ใช้นับรอบ (animTime) → T ถูกต้องแม้กด 🐢 ชะลอภาพ หรือแท็บถูกหน่วง
+  stopwatchElapsed = animTime;
 
   // Program counts cycles from physics: each full 2π = 1 cycle
   const omega = getOmega(nClamps);
@@ -1615,6 +1651,7 @@ function drawTheory3() {
 // INIT
 // ═══════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
+  init3D();
   resizeSimCanvas();
   updateChart();
   updateOverlay();
