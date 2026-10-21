@@ -175,7 +175,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
         </div>
         <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต</div>
       </div>
-      <div class="cap-note" id="capNote">รังสีจากหลอดไฟในระนาบกลางสระ: <span class="lg" style="background:var(--rayOut)"></span><b style="color:var(--rayOut)">เหลือง</b> = มุมตกกระทบน้อยกว่า θc หักเหออกสู่อากาศ (เส้นจางที่ย้อนลง = แสงสะท้อนบางส่วน) · <span class="lg" style="background:var(--rayCrit)"></span><b>ฟ้า</b> = มุมวิกฤต θc (หักเหเลียดผิวน้ำ) · <span class="lg" style="background:var(--rayTir)"></span><b style="color:var(--rayTir)">ชมพู</b> = มุมตกกระทบมากกว่า θc สะท้อนกลับหมด · <b>ลากหลอดไฟขึ้น-ลง</b> เพื่อเปลี่ยนความลึก d (กด Shift ค้างขณะลาก = ปรับละเอียด) · ลากที่ว่าง = หมุนมุมมอง · ล้อเมาส์/สองนิ้ว = ซูม</div>
+      <div class="cap-note" id="capNote">แสงจากหลอดไฟแผ่ไปรอบตัวในน้ำ — แสงที่ไปถึงผิวน้ำ<b>ในวงรัศมี r</b> หักเหออกเป็นวงสว่าง · นอกวง (มุมเกิน θc) สะท้อนกลับลงไปในน้ำ (โทนชมพู) · ติ๊ก <b>แสดงเส้นรังสี</b> เพื่อดูแบบแผนภาพ: <span class="lg" style="background:var(--rayOut)"></span><b style="color:var(--rayOut)">เหลือง</b> = มุมตกกระทบน้อยกว่า θc หักเหออกสู่อากาศ (เส้นจางที่ย้อนลง = แสงสะท้อนบางส่วน) · <span class="lg" style="background:var(--rayCrit)"></span><b>ฟ้า</b> = มุมวิกฤต θc (หักเหเลียดผิวน้ำ) · <span class="lg" style="background:var(--rayTir)"></span><b style="color:var(--rayTir)">ชมพู</b> = มุมตกกระทบมากกว่า θc สะท้อนกลับหมด · <b>ลากหลอดไฟขึ้น-ลง</b> เพื่อเปลี่ยนความลึก d (กด Shift ค้างขณะลาก = ปรับละเอียด) · ลากที่ว่าง = หมุนมุมมอง · ล้อเมาส์/สองนิ้ว = ซูม</div>
     </div>
 
     <div class="sim-panel" id="simPanel">
@@ -218,6 +218,7 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
           <button class="btn btn-outline btn-sm" style="flex:1" onclick="setD(1)">d = 1.00</button>
           <button class="btn btn-outline btn-sm" style="flex:1" onclick="setD(2)">d = 2.00</button>
         </div>
+        <label class="chk"><input type="checkbox" id="chkRays" onchange="showRays=this.checked;dirty=true;updateHint()"> แสดงเส้นรังสี (แบบแผนภาพ) แทนแสงจริง</label>
         <label class="chk"><input type="checkbox" id="chkRefl" checked onchange="showRefl=this.checked;dirty=true"> แสดงแสงสะท้อนบางส่วนที่ผิวน้ำ (รังสีเหลืองจาง)</label>
         <label class="chk"><input type="checkbox" id="chkCone" checked onchange="showCone=this.checked;dirty=true"> แสดงกรวยแสงที่ออกจากผิวน้ำได้ (3 มิติ)</label>
       </div>
@@ -323,7 +324,7 @@ console.log('KP Science VPL02 Lab 118 — build v1.0 3D light circle (2569-10-22
 const $ = id => document.getElementById(id);
 const D2R=Math.PI/180, PW=4, PZ=4, H=3.3, RIM=0.3, DMIN=0.2, DMAX=3.0, NMIN=1.00, NMAX=2.42;
 const MEDIA=[{name:'น้ำ',n:1.33,col:0x2a86c8},{name:'แก้ว',n:1.50,col:0x4fae98},{name:'เพชร',n:2.42,col:0xb9cfe6}];
-let n=1.33, d=1.00, view='iso', showRefl=true, showCone=true, rows=[], dirty=true;
+let n=1.33, d=1.00, view='iso', showRefl=true, showCone=true, showRays=false, rows=[], dirty=true;
 const r2=v=>Math.round(v*100)/100;
 const f2=v=>isFinite(v)?v.toFixed(2):'∞';
 
@@ -345,7 +346,7 @@ function syncInputs(){ const a=document.activeElement;
   if(a!==$('sl-n')) $('sl-n').value=n; if(a!==$('vi-n')) $('vi-n').value=n.toFixed(2);
   if(a!==$('sl-d')) $('sl-d').value=d; if(a!==$('vi-d')) $('vi-d').value=d.toFixed(2);
   document.querySelectorAll('#medBtns button').forEach((b,i)=>b.classList.toggle('active',Math.abs(MEDIA[i].n-n)<0.005)); }
-function resetLab(){ n=1.33; d=1.00; showRefl=true; showCone=true; $('chkRefl').checked=true; $('chkCone').checked=true; syncInputs(); setView('iso'); dirty=true; updateUI(); }
+function resetLab(){ n=1.33; d=1.00; showRefl=true; showCone=true; showRays=false; $('chkRefl').checked=true; $('chkCone').checked=true; $('chkRays').checked=false; syncInputs(); setView('iso'); dirty=true; updateUI(); }
 function updateUI(){
   const tc=thetaC(n), r=radiusR(n,d), crit=n>1;
   $('rd-tc').textContent=crit?tc.toFixed(2)+'°':'ไม่มี';
@@ -362,7 +363,7 @@ function updateHint(){
   let cls='info', t;
   if(n<=1) { cls='warn'; t='n = 1.00 เท่ากับอากาศ → ไม่มีรอยต่อ ไม่มีมุมวิกฤต แสงออกได้ทุกมุม · กด <b>น้ำ</b> เพื่อกลับ'; }
   else if(view==='fish') t='🐟 ภาพที่ตาปลา (ตำแหน่งหลอดไฟ) เห็นเมื่อมองขึ้น: <b>ในวง</b> = ห้องเหนือน้ำทั้งหมด 180° อัดอยู่ในกรวยมุม 2θc · <b>นอกวง</b> = ภาพก้นสระที่สะท้อนกลับหมด · ลอง <b>เพชร</b> หรือเปลี่ยน d — หน้าต่างเปลี่ยนเมื่อไร?';
-  else if(!rows.length) t='① กด <b>ด้านข้าง</b> ดูรังสีเหลือง (ออก) ชมพู (สะท้อนกลับหมด) ฟ้า (มุมวิกฤต) ② กด <b>ด้านบน</b> ดูวงสว่าง ③ ตั้ง d = 0.50, 1.00, 2.00 m แล้วกด <b>📌 บันทึก</b> ทุกครั้ง';
+  else if(!rows.length) t=(showRays?'① กด <b>ด้านข้าง</b> ดูรังสีเหลือง (ออก) ชมพู (สะท้อนกลับหมด) ฟ้า (มุมวิกฤต)':'① ลากหลอดไฟขึ้น-ลง ดูวงสว่างบนผิวน้ำโตและเล็กลง (ติ๊ก <b>แสดงเส้นรังสี</b> เพื่อดูทางเดินแสง)')+' ② กด <b>ด้านบน</b> ดูวงสว่าง ③ ตั้ง d = 0.50, 1.00, 2.00 m แล้วกด <b>📌 บันทึก</b> ทุกครั้ง';
   else if(rows.length<3) t=`บันทึกแล้ว ${rows.length} ครั้ง — เปลี่ยน d แล้วบันทึกต่อ ดูว่า r/d คงตัวหรือไม่ (tan θc = ${Math.tan(thetaC(n)*D2R).toFixed(2)})`;
   else { cls='ok'; t='✓ r แปรผันตรงกับ d (r/d = tan θc คงตัว) · ลองกด <b>แก้ว</b> หรือ <b>เพชร</b> — วงเล็กลงเพราะ θc เล็กลง · แล้วกด <b>🐟 ปลามองขึ้น</b>'; }
   const h=$('hint'); if(h.dataset.t!==t){ h.innerHTML=t; h.dataset.t=t; } h.className='hint-box '+cls;
@@ -461,6 +462,12 @@ function init3D(){
   /* กรวยแสง (ทุกทิศรอบหลอดไฟที่ออกจากผิวน้ำได้) */
   const cg=new THREE.ConeGeometry(1,1,64,1,true); cg.rotateX(Math.PI); cg.translate(0,0.5,0);
   G.cone=new THREE.Mesh(cg,new THREE.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:.07,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})); G.cone.renderOrder=4; scene.add(G.cone);
+  /* แสงจริงแบบไม่มีเส้น: ปริมาตรแสงในน้ำ + อากาศเหนือผิวน้ำ (ray-march · สมมาตรรอบหลอดไฟ) */
+  G.vol=new THREE.Mesh(new THREE.BoxGeometry(2*PW-0.02,H-0.02+VOL_TOP,2*PZ-0.02),new THREE.ShaderMaterial({
+    uniforms:{uD:{value:d},uN:{value:n},uH:{value:H},uPW:{value:PW},uPZ:{value:PZ},uTop:{value:VOL_TOP},uRefl:{value:1},uGain:{value:0.4},uMu:{value:0.7},uAir:{value:8.0}},
+    vertexShader:'varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+    fragmentShader:VOL_FS, transparent:true, depthWrite:false, depthTest:true, side:THREE.BackSide, blending:THREE.AdditiveBlending }));
+  G.vol.position.y=(VOL_TOP-H+0.02)/2; G.vol.renderOrder=4; G.vol.frustumCulled=false; scene.add(G.vol);
   /* ชานสระด้านหลัง + คนยืน + กระถางต้นไม้ (สิ่งของเหนือน้ำที่ปลาเห็นในหน้าต่าง) */
   const deck=rbox(2*PW+0.4,H+0.62,1.7,0.04,enamel(0x8a7458,0.7,0.1)); deck.position.set(0,(RIM-H-0.32)/2,-PZ-0.16-0.85); scene.add(deck);
   { const P=new THREE.Group(); P.position.set(PERSON.x,RIM,PERSON.z);
@@ -511,6 +518,31 @@ function label(key,text,pos,color,cx,cy,show){ let L=G.labels[key];
 
 /* ── สร้างรังสี/เส้นบอกขนาด/ป้าย ใหม่เมื่อค่าเปลี่ยน ── */
 const C_OUT=0xfde047, C_TIR=0xfb7185, C_CRIT=0x22d3ee, C_DIM=0xe2e8f0;
+/* ความสว่างที่จุด (ρ = ระยะแนวราบจากหลอดไฟ, y) · ในน้ำ: แสงตรง (เหลือง = จะออกได้ · ชมพู = มุมเกิน θc) + แสงสะท้อนที่ผิว (ภาพหลอดไฟที่ y = +d)
+   · อากาศ: แสงที่หักเหออก หาจุดออก ρs ด้วยการแบ่งครึ่งช่วง · ความเข้ม ∝ 1/ระยะทาง² */
+const VOL_TOP=2.6, VOL_FS=`
+precision highp float; varying vec3 vW;
+uniform float uD,uN,uH,uPW,uPZ,uTop,uRefl,uGain,uMu,uAir;
+float fres(float ci,float n){ float si=n*sqrt(max(0.0,1.0-ci*ci)); if(si>=1.0) return 1.0; float ct=sqrt(1.0-si*si);
+  float rs=(n*ci-ct)/(n*ci+ct), rp=(n*ct-ci)/(n*ct+ci); return 0.5*(rs*rs+rp*rp); }
+vec3 light(vec3 p){ const vec3 Y=vec3(1.0,0.86,0.30), P=vec3(1.0,0.36,0.50), Wm=vec3(1.0,0.93,0.72);
+  float rho=length(p.xz), y=p.y, sc=uN>1.0?1.0/uN:1.0, tc=uN>1.0?asin(sc):1.5708;
+  if(y<0.0){ vec3 c=vec3(0.0); float dy=y+uD, q=rho*rho+dy*dy;
+    float at=exp(-uMu*sqrt(q)); if(dy>0.0){ float ph=atan(rho,dy); c+=(ph<tc?Y:P)*at/(q+0.03); } else c+=Wm*0.55*at/(q+0.03);
+    float dr=uD-y, ph2=atan(rho*uD/dr,uD), q2=rho*rho+dr*dr;
+    float at2=exp(-uMu*sqrt(q2)); if(ph2>tc) c+=P*0.9*at2/(q2+0.03); else c+=Y*uRefl*fres(cos(ph2),uN)*at2/(q2+0.03);
+    return c; }
+  if(uN<=1.0) return Y*0.5/(rho*rho+(y+uD)*(y+uD)+0.03);
+  float rc=uD*tan(tc)*0.9999, lo=0.0, hi=min(rho,rc);
+  for(int i=0;i<12;i++){ float m=0.5*(lo+hi), ph=atan(m,uD), sa=min(0.9999,uN*sin(ph)); float xr=m+y*sa/sqrt(1.0-sa*sa); if(xr<rho) lo=m; else hi=m; }
+  float rs=0.5*(lo+hi), ph=atan(rs,uD), T=1.0-fres(cos(ph),uN), L=sqrt(rs*rs+uD*uD)+sqrt((rho-rs)*(rho-rs)+y*y);
+  return Y*0.55*T*exp(-uMu*sqrt(rs*rs+uD*uD))/(L*L+0.03); }
+void main(){ vec3 ro=cameraPosition, rd=normalize(vW-cameraPosition);
+  vec3 bmin=vec3(-uPW,-uH+0.02,-uPZ), bmax=vec3(uPW,uTop,uPZ), t1=(bmin-ro)/rd, t2=(bmax-ro)/rd, tn=min(t1,t2), tf=max(t1,t2);
+  float a=max(max(max(tn.x,tn.y),tn.z),0.0), b=min(min(tf.x,tf.y),tf.z); if(b<=a) discard;
+  const int N=56; float dt=(b-a)/float(N); vec3 acc=vec3(0.0);
+  for(int i=0;i<N;i++){ vec3 p=ro+rd*(a+(float(i)+0.5)*dt); acc+=light(p)*(p.y<0.0?1.0:uAir); }
+  acc*=dt*uGain; gl_FragColor=vec4(1.0-exp(-acc),1.0); }`;
 function rebuild(){
   if(!scene) return;
   ['n','a','c'].forEach(k=>{ used[k]=0; pools[k].forEach(m=>m.visible=false); });
@@ -518,12 +550,13 @@ function rebuild(){
   G.lamp.position.set(0,-d,0); lampLight.position.set(0,-d,0);
   const pl=H-d-0.15; G.pole.scale.set(1,Math.max(0.01,pl),1); G.pole.position.set(0,-H+pl/2,0);
   G.waterM.color.setHex(med?med.col:0x2a86c8); G.waterM.opacity=med&&med.n>2?0.2:0.15;
-  G.cone.visible=showCone&&crit&&r<=PW&&view!=='top'; if(G.cone.visible){ G.cone.position.set(0,-d,0); G.cone.scale.set(r,d,r); }
+  G.vol.visible=!showRays; const vu=G.vol.material.uniforms; vu.uD.value=d; vu.uN.value=n; vu.uRefl.value=showRefl?1:0;
+  G.cone.visible=showRays&&showCone&&crit&&r<=PW&&view!=='top'; if(G.cone.visible){ G.cone.position.set(0,-d,0); G.cone.scale.set(r,d,r); }
   drawGlow(r);
   /* พัดรังสีในระนาบ z = 0: −87° … 87° ทุก 6° + รังสีมุมวิกฤตพอดี */
   const angs=[]; for(let a=-87;a<=87.01;a+=6) angs.push(a*D2R); if(crit) angs.push(tc,-tc);
   const dn=(x0,phi,s)=>{ /* รังสีที่สะท้อนลงจากจุด (x0,0) → ก้นสระหรือผนัง */ const t=Math.tan(Math.abs(phi)), xe=x0+s*H*t; if(Math.abs(xe)<=PW) return [xe,-H]; const xw=s*PW; return [xw,-Math.abs(xw-x0)/t]; };
-  angs.forEach(phi=>{ const s=phi>=0?1:-1, ap=Math.abs(phi), isC=crit&&Math.abs(ap-tc)<1e-9, hx=d*Math.tan(ap)*s, L0=[0,-d,0];
+  if(showRays) angs.forEach(phi=>{ const s=phi>=0?1:-1, ap=Math.abs(phi), isC=crit&&Math.abs(ap-tc)<1e-9, hx=d*Math.tan(ap)*s, L0=[0,-d,0];
     const tir=crit&&ap>tc+1e-9, col=isC?C_CRIT:tir?C_TIR:C_OUT;
     if(Math.abs(hx)>PW){ const xw=s*PW, yw=-d+PW/Math.tan(ap); seg(L0,[xw,yw,0],col,0.55,1.6,false); return; }   /* ไปชนผนังก่อนถึงผิวน้ำ */
     const P=[hx,0,0];
