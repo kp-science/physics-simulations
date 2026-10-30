@@ -60,6 +60,10 @@ const VLAB_SERIES = {
   vpl06: {
     label: 'Virtual Lab 06 (ไฟฟ้ากระแสและวงจร)',
     labs: ['lab-108','lab-109','lab-110','lab-111','lab-112','lab-113','lab-114','lab-115']
+  },
+  vpl07: {
+    label: 'Virtual Lab 07 (แม่เหล็กไฟฟ้า)',
+    labs: ['lab-123']
   }
 };
 
@@ -96,16 +100,16 @@ const ACCESS_SCHEMA = [
 // Role defaults (preset)
 const ROLE_ACCESS_PRESETS = {
   blocked:  [],
-  member:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*'],                  // free member = anon + ฟรี
-  pro:      ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'manual:vpl01:*'],  // + คู่มือ VPL01
-  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
+  member:   ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'vlab:vpl07:*'],                  // free member = anon + ฟรี
+  pro:      ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'vlab:vpl07:*', 'manual:vpl01:*'],  // + คู่มือ VPL01
+  premium:  ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'vlab:vpl07:*', 'manual:vpl01:*', 'manual:vpl02:*', 'exam:*'],
   ultimate: ['*'],
   admin:    ['*']
 };
 
 // 👁️ Anonymous (ยังไม่ login) — fallback default ถ้า Firestore ยังไม่มี settings/public
 // admin เปลี่ยนค่านี้ได้ใน admin panel → เขียนไปที่ settings/public.anonymous_access
-const ANONYMOUS_ACCESS_FALLBACK = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*'];
+const ANONYMOUS_ACCESS_FALLBACK = ['demo:*', 'vlab:vpl01:*', 'vlab:vpl02:*', 'vlab:vpl03:*', 'vlab:vpl04:*', 'vlab:vpl05:*', 'vlab:vpl06:*', 'vlab:vpl07:*'];
 
 // state: ดึงมาจาก Firestore (null = ยังไม่โหลด/ไม่มี → ใช้ fallback)
 let publicSettings = null;
@@ -290,6 +294,9 @@ function migrateAccess(userData) {
       if (!access.includes(k)) access.push(k);
     } else if (VLAB_SERIES.vpl06.labs.includes(labId) && !access.includes('vlab:vpl06:*')) {
       const k = 'vlab:vpl06:' + labId;
+      if (!access.includes(k)) access.push(k);
+    } else if (VLAB_SERIES.vpl07.labs.includes(labId) && !access.includes('vlab:vpl07:*')) {
+      const k = 'vlab:vpl07:' + labId;
       if (!access.includes(k)) access.push(k);
     }
   });

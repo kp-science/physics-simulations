@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ข้อมูลกลาง Virtual Lab ทุกชุด จัดตามบทเรียน สสวท. — ใช้ generate virtual-lab.html และ library.html
    (แก้ที่นี่ที่เดียว แล้วรัน python3 _admin/build_virtual_lab.py)"""
-V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'; V6='Virtual Physics Lab 06/'
+V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'; V6='Virtual Physics Lab 06/'; V7='Virtual Physics Lab 07/'
 TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับหลัก
  ('measure','📏','การวัดและความคลาดเคลื่อน','Measurement & Uncertainty','accent5'),
  ('kinematics','🏃','การเคลื่อนที่แนวตรง','Linear Motion & Kinematics','accent3'),
@@ -17,13 +17,14 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
  ('electro','🎈','ไฟฟ้าสถิต','Electrostatics','accent4'),
  ('current','🔋','ไฟฟ้ากระแสและวงจร','Current Electricity & Circuits','accent3'),
+ ('magnet','🧲','แม่เหล็กไฟฟ้า','Magnetism & Electromagnetism','accent2'),
  ('astro','🌌','ดาราศาสตร์และจักรวาลวิทยา','Astronomy & Cosmology','accent4'),
  ('atomic','⚛️','ฟิสิกส์อะตอมและควอนตัม','Atomic & Quantum Physics','accent2'),
 ]
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
  ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm','fluid']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
- ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro','current']),
+ ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro','current','magnet']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
  ('modern','⚛️','ฟิสิกส์ยุคใหม่',['atomic']),
 ]
@@ -152,5 +153,6 @@ LABS=[
  ('vlab:vpl06:lab-113', V6+'113. kirchhoff-laws.html','113','กฎของเคอร์ชอฟฟ์: วงจร 2 ลูป (3D)','วงจร 3 กิ่งบนแผงวงจร ย้ายแอมมิเตอร์วัดกระแสทีละกิ่ง (ค่าลบเมื่อไหลสวนทิศอ้างอิง) · แตะโพรบวัดความต่างศักย์ระหว่างจุดใดก็ได้ · ตรวจ ΣI = 0 ที่จุดต่อ และ Σε = ΣIR รอบลูป · ทำนายกระแสก่อนวัด · หา ε และ R ในกล่องดำ X','current','ม.6','vpl06',['Kirchhoff','Circuit','Multiloop','3D']),
  ('vlab:vpl06:lab-114', V6+'114. electrical-power-heating.html','114','กำลังไฟฟ้าและพลังงานความร้อน: ฮีตเตอร์ในแคลอริมิเตอร์ (3D)','จ่ายไฟให้ฮีตเตอร์จุ่มในของเหลว วัด V และ I หา P = VI · จับเวลาอ่านเทอร์มอมิเตอร์ กราฟ θ–t ความชัน = P/(mc + C) · ตรวจวิธีกับน้ำ หาความจุความร้อนจำเพาะของของเหลวปริศนา X · กราฟ P–V² หา R ของฮีตเตอร์ · เร่ง/หยุดเวลาได้','current','ม.6','vpl06',['Electrical power','Joule heating','Specific heat','3D']),
  ('vlab:vpl06:lab-115', V6+'115. wheatstone-bridge.html','115','สะพานวีตสโตน: ต่อบนเบรดบอร์ดด้วยตัวเอง (3D)','ต่อสะพาน 4 แขนบนเบรดบอร์ดเองด้วยตัวต้านทาน 100 Ω · 1 kΩ · 220 Ω · กล่องความต้านทาน R_S และแกลแวนอมิเตอร์ (รู → รู แบบ Lab 110) · ปรับ R_S จน I_G = 0 · กราฟ I_G–R_S หาจุดสมดุลละเอียดกว่า 1 Ω · ใช้ P/Q = X/R_S หาความต้านทานปริศนา X · เทียบอัตราส่วน 1 : 1 กับ 1 : 10','current','ม.6','vpl06',['Wheatstone bridge','Null method','Breadboard','3D']),
+ ('vlab:vpl07:lab-123', V7+'123. magnetic-field-lines.html','123','เส้นแรงแม่เหล็ก: ผงเหล็กและเข็มทิศ (3D)','โรยผงเหล็กรอบแท่งแม่เหล็กที่ลากจัดวางเอง · ลากเส้นแรงด้วยเข็มทิศทีละจุด · หาจุดสะเทิน · ทายขั้วปริศนา','magnet','ม.6','vpl07',['Magnetism','3D']),
 ]
-SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล'),'vpl06':('VPL 06','Virtual Physics Lab 06 · ไฟฟ้ากระแส')}
+SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล'),'vpl06':('VPL 06','Virtual Physics Lab 06 · ไฟฟ้ากระแส'),'vpl07':('VPL 07','Virtual Physics Lab 07 · แม่เหล็กไฟฟ้า')}
