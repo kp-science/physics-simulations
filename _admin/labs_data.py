@@ -44,6 +44,7 @@ LABS=[
  ('vlab:vpl01:lab-2',  V1+'2. vector_forces_sim.html','2','การรวมเวกเตอร์ของแรง (Vector Addition) (3D)','รวมเวกเตอร์แรงแบบกราฟิก พร้อม resultant real-time','force','ม.4','vpl01',['Vector','3D']),
  ('vlab:vpl01:lab-4',  V1+'4. force_resolution_sim.html','4','การแยกองค์ประกอบของแรง (Force Resolution)','แยกแรงในแกน x-y แบบ interactive','force','ม.4','vpl01',['Vector']),
  ('vlab:vpl01:lab-5',  V1+'5. incline_forces.html','5','แรงบนพื้นเอียง (Forces on Incline) (3D)','แรงตั้งฉาก แรงเสียดทาน และแรงลงเขา','force','ม.4','vpl01',['Newton','3D']),
+ ('vlab:vpl02:lab-122', V2+'122. friction-bucket-and-tilt.html','122','สัมประสิทธิ์ความเสียดทาน: ถังถ่วงกรวดและการเอียงกระดาน (3D)','เติมกรวดจนบล็อกไถลด้วยความเร็วคงตัว · ชั่งหา F_f และ F_N · เอียงกระดานหา C = tan A · จับคู่วัตถุกับพื้นเอง · ยกกระดานจนบล็อกไถลเอง','force','ม.4','vpl02',['Newton','Friction','3D']),
  ('vlab:vpl01:lab-14', V1+'14.mass_weight_simulation.html','14','มวลและน้ำหนัก (Mass vs Weight) (3D)','เปรียบเทียบบนดาวต่าง ๆ พร้อมค่า g','force','ม.4','vpl01',['Newton','3D']),
  ('vlab:vpl01:lab-15', V1+'15. newtons_second_law_simulation.html','15',"กฎข้อ 2 ของนิวตัน (Newton's Second Law) (3D)",'F = ma — ปรับแรงและมวล สังเกตความเร่ง','force','ม.4','vpl01',['Newton','3D']),
  ('vlab:vpl01:lab-18', V1+'18. newton_third_law_simulation.html','18',"กฎข้อ 3 ของนิวตัน (Newton's Third Law) (3D)",'แรงกิริยา-ปฏิกิริยา ทุกแรงมีคู่แรงตรงข้ามเท่ากัน','force','ม.4','vpl01',['Newton','3D']),
