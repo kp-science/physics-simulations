@@ -151,7 +151,7 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
 <div class="empty" id="empty">ไม่พบการทดลองที่ตรงกับตัวกรอง — ลองล้างตัวกรองหรือค้นคำอื่น</div>
 </div>
 
-<footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="library.html">Library</a> · ข้อมูล lab ทั้งหมดสร้างจาก <code>_admin/labs_data.py</code></footer>
+<footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="library.html">Library</a> · <a href="https://kp-science.github.io/kp-course/" target="_blank" rel="noopener">คอร์สออนไลน์ ↗</a> · ข้อมูล lab ทั้งหมดสร้างจาก <code>_admin/labs_data.py</code></footer>
 
 <script>
 const GROUPS={{{','.join(f'"{g[0]}":{[t for t in g[3]]}'.replace("'",'"') for g in GROUPS)}}};
@@ -345,7 +345,7 @@ SERIES_TPL = """<!DOCTYPE html>
 <div class="wrap" id="catalog">
 @PARTS@</div>
 
-<footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="virtual-lab.html">Virtual Lab ทั้งหมด</a> · <a href="library.html">Library</a> · หน้านี้สร้างจาก <code>_admin/labs_data.py</code></footer>
+<footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="virtual-lab.html">Virtual Lab ทั้งหมด</a> · <a href="library.html">Library</a> · <a href="https://kp-science.github.io/kp-course/" target="_blank" rel="noopener">คอร์สออนไลน์ ↗</a> · หน้านี้สร้างจาก <code>_admin/labs_data.py</code></footer>
 
 <!-- KP Auth (Firebase) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
