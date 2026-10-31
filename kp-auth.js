@@ -63,7 +63,7 @@ const VLAB_SERIES = {
   },
   vpl07: {
     label: 'Virtual Lab 07 (แม่เหล็กไฟฟ้า)',
-    labs: ['lab-123', 'lab-124', 'lab-125', 'lab-126', 'lab-127', 'lab-128', 'lab-129', 'lab-130', 'lab-131', 'lab-132', 'lab-133', 'lab-134']
+    labs: ['lab-123', 'lab-124', 'lab-125', 'lab-126', 'lab-127', 'lab-128', 'lab-129', 'lab-130', 'lab-131', 'lab-132', 'lab-133', 'lab-134', 'lab-135', 'lab-136', 'lab-137', 'lab-138']
   }
 };
 
