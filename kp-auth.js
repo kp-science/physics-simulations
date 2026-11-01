@@ -38,7 +38,7 @@ const VLAB_SERIES = {
     label: 'Virtual Lab 01',
     labs: ['lab-1','lab-2','lab-3','lab-4','lab-5','lab-6.1','lab-6.2','lab-6.3',
            'lab-7','lab-8','lab-9','lab-10','lab-11','lab-12','lab-13','lab-14',
-           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21','lab-42','lab-43','lab-44','lab-96','lab-97','lab-154','lab-155','lab-156']
+           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21','lab-42','lab-43','lab-44','lab-96','lab-97','lab-154','lab-155','lab-156','lab-163','lab-164']
   },
   vpl02: {
     label: 'Virtual Lab 02',
@@ -51,7 +51,7 @@ const VLAB_SERIES = {
   },
   vpl04: {
     label: 'Virtual Lab 04 (ฟิสิกส์อะตอมและควอนตัม)',
-    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92','lab-93','lab-94','lab-95','lab-157','lab-158','lab-159']
+    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92','lab-93','lab-94','lab-95','lab-157','lab-158','lab-159','lab-166','lab-167','lab-168']
   },
   vpl05: {
     label: 'Virtual Lab 05 (กลศาสตร์ของไหล)',
@@ -59,7 +59,7 @@ const VLAB_SERIES = {
   },
   vpl06: {
     label: 'Virtual Lab 06 (ไฟฟ้ากระแสและวงจร)',
-    labs: ['lab-108','lab-109','lab-110','lab-111','lab-112','lab-113','lab-114','lab-115']
+    labs: ['lab-108','lab-109','lab-110','lab-111','lab-112','lab-113','lab-114','lab-115','lab-165']
   },
   vpl07: {
     label: 'Virtual Lab 07 (แม่เหล็กไฟฟ้า)',
