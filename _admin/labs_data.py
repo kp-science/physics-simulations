@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ข้อมูลกลาง Virtual Lab ทุกชุด จัดตามบทเรียน สสวท. — ใช้ generate virtual-lab.html และ library.html
    (แก้ที่นี่ที่เดียว แล้วรัน python3 _admin/build_virtual_lab.py)"""
-V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'; V6='Virtual Physics Lab 06/'; V7='Virtual Physics Lab 07/'
+V1='Virtual Physics Lab 01/Mechacnics/'; V2='Virtual Physics Lab 02/'; V3='Virtual Physics Lab 03/'; V4='Virtual Physics Lab 04/'; V5='Virtual Physics Lab 05/'; V6='Virtual Physics Lab 06/'; V7='Virtual Physics Lab 07/'; V8='Virtual Physics Lab 08/'
 TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับหลัก
  ('measure','📏','การวัดและความคลาดเคลื่อน','Measurement & Uncertainty','accent5'),
  ('kinematics','🏃','การเคลื่อนที่แนวตรง','Linear Motion & Kinematics','accent3'),
@@ -15,6 +15,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
  ('waves','〰️','คลื่นกล','Mechanical Waves','accent2'),
  ('sound','🔊','เสียง','Sound','accent3'),
  ('light','✨','แสงและทัศนศาสตร์','Light & Optics','accent5'),
+ ('thermal','🌡','ความร้อนและแก๊ส','Heat & Gases','accent4'),
  ('electro','🎈','ไฟฟ้าสถิต','Electrostatics','accent4'),
  ('current','🔋','ไฟฟ้ากระแสและวงจร','Current Electricity & Circuits','accent3'),
  ('magnet','🧲','แม่เหล็กไฟฟ้า','Magnetism & Electromagnetism','accent2'),
@@ -24,6 +25,7 @@ TOPICS=[  # id, icon, ชื่อไทย, English, สี, ระดับห
 GROUPS=[ # กลุ่มใหญ่สำหรับเมนูทางลัด
  ('mech','🔬','กลศาสตร์',['measure','kinematics','force','equilibrium','projectile','energy','momentum','shm','fluid']),
  ('wave','🌊','คลื่น · เสียง · แสง',['waves','sound','light']),
+ ('heat','🌡','ความร้อนและแก๊ส',['thermal']),
  ('elec','🔌','ไฟฟ้าและแม่เหล็ก',['electro','current','magnet']),
  ('astro','🌌','ดาราศาสตร์',['astro']),
  ('modern','⚛️','ฟิสิกส์ยุคใหม่',['atomic']),
@@ -170,5 +172,14 @@ LABS=[
  ('vlab:vpl07:lab-137', V7+'137. three-phase.html','137','เครื่องกำเนิดไฟฟ้ากระแสสลับ 3 เฟส (3D)','แม่เหล็กหมุนในขดลวด 3 ชุด · VL = √3 Vp · กระแสนิวทรัลกับโหลดไม่สมดุล · ถอดสายนิวทรัล · กำลังรวมคงตัว','magnet','ม.6','vpl07',['AC','3D']),
  ('vlab:vpl07:lab-138', V7+'138. power-transmission.html','138','การส่งไฟฟ้าทางไกล (3D)','แบบจำลองโรงไฟฟ้า สายส่ง และเมือง · Ploss = I²R · Ploss กับ 1/V² · ไฟดับเมื่อส่งแรงดันต่ำ · อัตราส่วนรอบหม้อแปลง','magnet','ม.6','vpl07',['AC','3D']),
  ('vlab:vpl07:lab-139', V7+'139. transformer-losses.html','139','หม้อแปลงและกำลังสูญเสีย (3D)','ปรับลวด แผ่นเหล็ก วัสดุแกน ช่องว่าง · ทดสอบไม่มีโหลดและลัดวงจร · แยกลอสในลวดกับแกน · หม้อแปลงปริศนาให้หาสาเหตุ','magnet','ม.6','vpl07',['AC','3D']),
+ ('vlab:vpl08:lab-140', V8+'140. thermometer-calibration.html','140','สอบเทียบเทอร์โมมิเตอร์ (3D)','ขีด 0 °C ในน้ำแข็ง 100 °C เหนือน้ำเดือด บนเทอร์โมมิเตอร์เปล่า · อ่านระยะปรอทคำนวณ T · แปลง K และ °F · จุดเดือดเปลี่ยนตามความดันอากาศ · น้ำปริศนา','thermal','ม.6','vpl08',['ความร้อน','3D']),
+ ('vlab:vpl08:lab-141', V8+'141. linear-expansion.html','141','การขยายตัวตามยาวของของแข็ง (3D)','เนื้อหาเสริม · ผ่านน้ำแข็งและไอน้ำในท่อโลหะ เข็มหมุนขยายการยืด · หา α ของท่อ 5 ชนิด และท่อปริศนา · ใช้ท่อวัดอุณหภูมิห้อง','thermal','ม.6','vpl08',['ความร้อน','3D']),
+ ('vlab:vpl08:lab-142', V8+'142. specific-heat.html','142','ความร้อนจำเพาะของโลหะ (3D)','ต้มโลหะแล้วลากลงน้ำเย็นในถ้วยโฟมบนตาชั่ง · ทำนาย T ผสมก่อนทำจริง · กราฟหาค่า c · ผลของฝาปิด · โลหะปริศนา','thermal','ม.6','vpl08',['ความร้อน','3D']),
+ ('vlab:vpl08:lab-143', V8+'143. latent-heat.html','143','ความร้อนแฝงของน้ำ (3D)','A หย่อนน้ำแข็งลงน้ำอุ่น · B ผ่านไอน้ำลงน้ำเย็นผ่านกับดักน้ำ · มวลจากการชั่งก่อนหลัง · ลองน้ำแข็งเปียกและน้ำแข็งจากช่องแช่','thermal','ม.6','vpl08',['ความร้อน','3D']),
+ ('vlab:vpl08:lab-144', V8+'144. heating-curve.html','144','กราฟการเปลี่ยนสถานะด้วยขดลวดให้ความร้อน (3D)','ขดลวดจุ่มให้กำลังคงตัว อ่าน V I t T · ช่วงราบหา L ช่วงเอียงหา c · เร่งเวลาได้ · ของเหลวปริศนา','thermal','ม.6','vpl08',['ความร้อน','3D']),
+ ('vlab:vpl08:lab-145', V8+'145. boyle-law.html','145','กฎของบอยล์ (3D)','กระบอกฉีดยาปิดปลาย วางตุ้มบนลูกสูบ P = Pa + mg/A · อ่าน V จากสเกล · กราฟ V–P และ 1/V–P · คว่ำกระบอก · หาความดันที่ยอดเขา','thermal','ม.6','vpl08',['แก๊ส','3D']),
+ ('vlab:vpl08:lab-146', V8+'146. ideal-gas-law.html','146','กฎของแก๊สอุดมคติ (3D)','แช่แก๊สในอ่างน้ำ 5–90 °C ลูกสูบลื่น หรือขวดกับเกจ · ต่อเส้นกราฟหาศูนย์สัมบูรณ์ · PV = nRT หาจำนวนโมลของขวดปริศนา','thermal','ม.6','vpl08',['แก๊ส','3D']),
+ ('vlab:vpl08:lab-147', V8+'147. kinetic-theory.html','147','ทฤษฎีจลน์ของแก๊ส (3D)','โมเลกุลชนผนังในกล่องมีลูกสูบ · นับการดลได้ความดัน · วัด v_rms และการแจกแจงอัตราเร็ว · หามวลต่อโมลของแก๊สปริศนา','thermal','ม.6','vpl08',['แก๊ส','3D']),
+ ('vlab:vpl08:lab-148', V8+'148. first-law-thermo.html','148','กฎข้อที่หนึ่งของอุณหพลศาสตร์ (3D)','กระบอกสูบกับขดลวด: ความดันคงตัว ปริมาตรคงตัว อัดเร็วในฉนวน · W = PΔV · ΔU = 3/2 nRΔT · ตรวจ Q = ΔU + W · กราฟ P–V','thermal','ม.6','vpl08',['แก๊ส','3D']),
 ]
-SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล'),'vpl06':('VPL 06','Virtual Physics Lab 06 · ไฟฟ้ากระแส'),'vpl07':('VPL 07','Virtual Physics Lab 07 · แม่เหล็กไฟฟ้า')}
+SERIES={'vpl01':('VPL 01','Virtual Physics Lab 01'),'vpl02':('VPL 02','Virtual Physics Lab 02'),'vpl03':('VPL 03','Virtual Physics Lab 03 · ปฏิบัติการ ม.'),'vpl04':('VPL 04','Virtual Physics Lab 04 · ฟิสิกส์อะตอม'),'vpl05':('VPL 05','Virtual Physics Lab 05 · กลศาสตร์ของไหล'),'vpl06':('VPL 06','Virtual Physics Lab 06 · ไฟฟ้ากระแส'),'vpl07':('VPL 07','Virtual Physics Lab 07 · แม่เหล็กไฟฟ้า'),'vpl08':('VPL 08','Virtual Physics Lab 08 · ความร้อนและแก๊ส')}

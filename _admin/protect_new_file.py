@@ -90,6 +90,8 @@ def get_access_string(filepath):
         return f'vlab:vpl06:{lab_id}'
     if '/Virtual Physics Lab 07/' in filepath:
         return f'vlab:vpl07:{lab_id}'
+    if '/Virtual Physics Lab 08/' in filepath:
+        return f'vlab:vpl08:{lab_id}'
     return None
 
 # ─── Templates ───────────────────────────────────────────
@@ -414,6 +416,8 @@ def fix_file(filepath, issues=None):
                 listing = get_root_path(filepath) + 'virtual-physics-lab-06.html'
             elif '/Virtual Physics Lab 07/' in filepath:
                 listing = get_root_path(filepath) + 'virtual-physics-lab-07.html'
+            elif '/Virtual Physics Lab 08/' in filepath:
+                listing = get_root_path(filepath) + 'virtual-physics-lab-08.html'
             elif '/Virtual Physics Lab 04/' in filepath:
                 # VPL04 (ฟิสิกส์อะตอม) ยังไม่มีหน้า catalog เฉพาะ → กลับ catalog รวม
                 listing = get_root_path(filepath) + 'virtual-lab.html'
