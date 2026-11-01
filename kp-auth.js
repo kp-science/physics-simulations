@@ -361,6 +361,7 @@ function applyAccessControl() {
     if (hasAccess(required)) unlock(el);
     else lock(el);
   });
+  kpRecheckPageAccess();
 }
 
 // Back-compat alias
@@ -375,9 +376,22 @@ function lockAll() {
 // ถ้าไม่มีสิทธิ์ → redirect กลับหน้า listing พร้อม ?locked=<required>
 // Usage (ใน HTML):
 //   <script>kpPageAccess('vlab:vpl01:lab-16', '../../virtual-physics-lab-01.html')</script>
+let kpPageGuard = null;
+// สิทธิ์อาจเปลี่ยนหลังตัวกันหน้าผ่านแล้ว (เช่น settings/public โหลดเสร็จทีหลัง) จึงต้องตรวจซ้ำ
+function kpRecheckPageAccess() {
+  if (!kpPageGuard || !kpPageGuard.checked) return;
+  if (currentUser && !currentUserData) return;
+  if (!hasAccess(kpPageGuard.required)) kpPageGuard.redirect();
+}
+
 function kpPageAccess(required, redirectTo) {
   redirectTo = redirectTo || '/index.html';
   let resolved = false;
+  const redirect = () => {
+    const sep = redirectTo.indexOf('?') === -1 ? '?' : '&';
+    location.replace(redirectTo + sep + 'locked=' + encodeURIComponent(required));
+  };
+  kpPageGuard = { required, redirect, checked: false };
   const guard = async () => {
     if (resolved) return;
     resolved = true;
@@ -387,10 +401,8 @@ function kpPageAccess(required, redirectTo) {
       await new Promise(r => setTimeout(r, 100));
       tries++;
     }
-    if (!hasAccess(required)) {
-      const sep = redirectTo.indexOf('?') === -1 ? '?' : '&';
-      location.replace(redirectTo + sep + 'locked=' + encodeURIComponent(required));
-    }
+    kpPageGuard.checked = true;
+    if (!hasAccess(required)) redirect();
   };
   auth.onAuthStateChanged(user => {
     // resolve หลัง auth state ถูก determine แล้ว
@@ -401,6 +413,8 @@ function kpPageAccess(required, redirectTo) {
 }
 
 function lock(el) {
+  // <body data-access> คือสิทธิ์ระดับหน้า ให้ตัวกันหน้า (kpPageAccess) จัดการ ไม่ล็อกแบบลิงก์ มิฉะนั้นทุกคลิกจะเด้งหน้าต่างล็อกอินและปิดไม่ได้
+  if (el === document.body) return;
   if (el.classList.contains('kp-locked')) return;
   el.classList.add('kp-locked');
   const href = el.getAttribute('href');
