@@ -4902,3 +4902,19 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - ผ่าน: 163 g 9.77 · 164 คาบ 401 s, S ±2.30 cm, G 6.67 · 165 ε 3.00 V r 1.004 Ω · 166 U-238 ถึง Pb-206 α 8 β 6, Th-232 ถึง Pb-208 α 6 β 4 · 167 ความชัน 20.0 · 168 ประจุและ B ของ p n π ถูกต้อง
+
+## 2026-11-02 — ชื่อเครื่อง: ไม่ระบุ
+
+### ทำอะไรไปบ้าง
+- เปลี่ยนลิงก์คอร์สออนไลน์ทั้งเว็บจาก `kp-science.github.io/kp-course/` เป็น `https://course.kpscience.com/#/` (15 จุด)
+
+### ไฟล์ที่แก้
+- ต้นทาง: `_admin/home_template.html`, `_admin/build_virtual_lab.py`
+- หน้าที่ build: `index.html`, `virtual-lab.html`, `virtual-physics-lab-05.html` ถึง `-08.html`
+- แก้มือ: `library.html`, `Demo/index.html`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- commit + push แล้วในรอบนี้
+
+### หมายเหตุ
+- `course.html` ในโปรเจกต์เป็นหน้าขายคอร์สเดิม ไม่มีลิงก์ไปเว็บคอร์สเก่า จึงไม่ได้แก้
