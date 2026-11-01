@@ -38,12 +38,12 @@ const VLAB_SERIES = {
     label: 'Virtual Lab 01',
     labs: ['lab-1','lab-2','lab-3','lab-4','lab-5','lab-6.1','lab-6.2','lab-6.3',
            'lab-7','lab-8','lab-9','lab-10','lab-11','lab-12','lab-13','lab-14',
-           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21','lab-42','lab-43','lab-44','lab-96','lab-97']
+           'lab-15','lab-16','lab-17','lab-18','lab-19','lab-20','lab-21','lab-42','lab-43','lab-44','lab-96','lab-97','lab-154','lab-155','lab-156']
   },
   vpl02: {
     label: 'Virtual Lab 02',
     labs: ['lab-30','lab-31','lab-32','lab-32b','lab-32c','lab-33','lab-33b',
-           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42','lab-43','lab-44','lab-45','lab-46','lab-47','lab-48','lab-49','lab-50','lab-51','lab-52','lab-53','lab-54','lab-55','lab-56','lab-57','lab-58','lab-59','lab-60','lab-61','lab-62','lab-63','lab-64','lab-65','lab-66','lab-67','lab-68','lab-69','lab-70','lab-71','lab-72','lab-73','lab-74','lab-75','lab-76','lab-77','lab-78','lab-79','lab-80','lab-81','lab-82','lab-83','lab-84','lab-85','lab-86','lab-116','lab-117','lab-118','lab-119','lab-120','lab-121','lab-122']
+           'lab-34','lab-35','lab-36','lab-37','lab-38','lab-39','lab-40','lab-41','lab-42','lab-43','lab-44','lab-45','lab-46','lab-47','lab-48','lab-49','lab-50','lab-51','lab-52','lab-53','lab-54','lab-55','lab-56','lab-57','lab-58','lab-59','lab-60','lab-61','lab-62','lab-63','lab-64','lab-65','lab-66','lab-67','lab-68','lab-69','lab-70','lab-71','lab-72','lab-73','lab-74','lab-75','lab-76','lab-77','lab-78','lab-79','lab-80','lab-81','lab-82','lab-83','lab-84','lab-85','lab-86','lab-116','lab-117','lab-118','lab-119','lab-120','lab-121','lab-122','lab-149','lab-150','lab-151','lab-152','lab-162']
   },
   vpl03: {
     label: 'Virtual Lab 03 (ปฏิบัติการฟิสิกส์ ม.)',
@@ -51,11 +51,11 @@ const VLAB_SERIES = {
   },
   vpl04: {
     label: 'Virtual Lab 04 (ฟิสิกส์อะตอมและควอนตัม)',
-    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92','lab-93','lab-94','lab-95']
+    labs: ['lab-87','lab-88','lab-89','lab-90','lab-91','lab-92','lab-93','lab-94','lab-95','lab-157','lab-158','lab-159']
   },
   vpl05: {
     label: 'Virtual Lab 05 (กลศาสตร์ของไหล)',
-    labs: ['lab-98','lab-99','lab-100','lab-101','lab-102','lab-103','lab-104','lab-105','lab-106','lab-107']
+    labs: ['lab-98','lab-99','lab-100','lab-101','lab-102','lab-103','lab-104','lab-105','lab-106','lab-107','lab-153']
   },
   vpl06: {
     label: 'Virtual Lab 06 (ไฟฟ้ากระแสและวงจร)',
@@ -63,7 +63,7 @@ const VLAB_SERIES = {
   },
   vpl07: {
     label: 'Virtual Lab 07 (แม่เหล็กไฟฟ้า)',
-    labs: ['lab-123', 'lab-124', 'lab-125', 'lab-126', 'lab-127', 'lab-128', 'lab-129', 'lab-130', 'lab-131', 'lab-132', 'lab-133', 'lab-134', 'lab-135', 'lab-136', 'lab-137', 'lab-138', 'lab-139']
+    labs: ['lab-123', 'lab-124', 'lab-125', 'lab-126', 'lab-127', 'lab-128', 'lab-129', 'lab-130', 'lab-131', 'lab-132', 'lab-133', 'lab-134', 'lab-135', 'lab-136', 'lab-137', 'lab-138', 'lab-139','lab-160','lab-161']
   },
   vpl08: {
     label: 'Virtual Lab 08 (ความร้อนและแก๊ส)',
@@ -385,6 +385,28 @@ function lockAll() {
 //   <script>kpPageAccess('vlab:vpl01:lab-16', '../../virtual-physics-lab-01.html')</script>
 let kpPageGuard = null;
 // สิทธิ์อาจเปลี่ยนหลังตัวกันหน้าผ่านแล้ว (เช่น settings/public โหลดเสร็จทีหลัง) จึงต้องตรวจซ้ำ
+// แจ้งเหตุผลเมื่อตัวกันหน้าส่งกลับมาหน้า catalog ด้วย ?locked=
+function kpShowLockedNotice() {
+  let req = null;
+  try { req = new URLSearchParams(location.search).get('locked'); } catch (e) { return; }
+  if (!req || document.getElementById('kp-locked-notice')) return;
+  const box = document.createElement('div');
+  box.id = 'kp-locked-notice';
+  box.setAttribute('role', 'status');
+  box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;max-width:min(92vw,520px);background:#0d1424;color:#e2e8f0;border:1px solid #38bdf8;border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.5;display:flex;gap:10px;align-items:center;box-shadow:0 8px 28px rgba(0,0,0,.45)';
+  const txt = document.createElement('span');
+  txt.textContent = '🔒 บัญชีนี้ยังไม่มีสิทธิ์เปิดแลปที่เลือก เข้าสู่ระบบหรือติดต่อผู้ดูแลเพื่อขอสิทธิ์';
+  const close = document.createElement('button');
+  close.textContent = '✕';
+  close.setAttribute('aria-label', 'ปิดข้อความ');
+  close.style.cssText = 'flex:none;min-width:36px;min-height:36px;background:none;border:0;color:#94a3b8;font-size:16px;cursor:pointer';
+  close.onclick = () => box.remove();
+  box.append(txt, close);
+  document.body.appendChild(box);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', kpShowLockedNotice);
+else kpShowLockedNotice();
+
 function kpRecheckPageAccess() {
   if (!kpPageGuard || !kpPageGuard.checked) return;
   if (currentUser && !currentUserData) return;
