@@ -13,9 +13,9 @@ GUIDE = {
     /* caliper วางบนยอดที่ k และ k+1 (ยอด = จุดสูงสุดเฉพาะที่ของรอยกราฟ แบบเดียวกับ snapToPeak ของแลป) */
     window.__cal = k => { const tS = Math.max(0, t - 8), P = []; for (let i = 1; i < traceA.length - 1; i++) if (traceA[i].x > traceA[i - 1].x && traceA[i].x > traceA[i + 1].x && traceA[i].t >= tS) P.push(traceA[i].t); caliper.x1 = (P[k] - tS) / 8; caliper.x2 = (P[k + 1] - tS) / 8; updateCaliperReadout(); gzFit(); drawGraph(); };
     window.__measA = b => { setB(b); resetCaliper(); __run(4); __cal(2); recordCaliper(); __cal(3); recordCaliper(); };
-    /* ฐาน B: เปลี่ยน f แล้วรอ 30 s ให้การสั่นคงตัว · แตะกราฟที่ f เดิมอีกครั้ง (amaxObserved = 0 แบบ handleGraph) รอ 3 s แล้วบันทึกจุด */
+    /* ฐาน B: เปลี่ยน f แล้วรอ 30 s ให้การสั่นคงตัว (แลปต้องการ 8m/b ≈ 27 s) แล้วบันทึกจุด = |x| มากสุดใน 3 คาบล่าสุด */
     window.__fd = f => { document.getElementById('sl-fd').value = f; document.getElementById('vi-fd').value = f; amaxObserved = 0; updateReadout(); };
-    window.__ptB = f => { __fd(f); __run(30); amaxObserved = 0; __run(3); recordPoint(); };
+    window.__ptB = f => { __fd(f); __run(30); recordPoint(); };
   """,
   'steps': [
    { 'el': ['.subnav', '#sidePanel .base-block[data-base="A"] .readout'], 'prep': "__base('A'); setMode('manual'); damping_log = []; document.querySelector('#tableA tbody').innerHTML = ''; __sl('k', 200); __sl('m', 1); __sl('A0', 0.2); setB(0); setView('iso'); scrollTo(0,0)",
@@ -48,8 +48,8 @@ GUIDE = {
      'out': 'f_drive = 1.00 Hz → รถสั่นด้วยแอมพลิจูดเล็ก (ราว 0.006 m)' },
    { 'el': ['#graphCanvas', '#tableB'], 'prep': "setView('iso'); clearPoints(); [1.0, 1.5, 1.8, 2.0, 2.1, 2.2, 2.25, 2.3, 2.4, 2.6, 3.0].forEach(__ptB); drawGraph()",
      'title': 'กวาดความถี่ บันทึกจุด (f, A)',
-     'text': 'เลื่อน <b>f_drive</b> (หรือแตะกราฟล่าง) ทีละค่า · รอให้การสั่นคงตัว (ราว 30 s) แตะกราฟที่ f เดิมอีกครั้งเพื่อเริ่มจับแอมพลิจูดใหม่ รอ 2–3 s แล้วกด <b>+ บันทึกจุด (f, A)</b> · ยิ่งใกล้ยอดให้เลื่อนทีละน้อย (0.05 Hz)<br><small>แอมพลิจูดที่บันทึก = ค่ามากสุดของ |x| ตั้งแต่เริ่มจับ ถ้าไม่รอให้คงตัวจะได้ค่าเกินจริง</small>',
-     'out': 'f = 2.00 · 2.20 · <b>2.25</b> · 2.30 · 2.40 Hz → <b>A</b> ≈ 0.024 · 0.101 · <b>0.234</b> · 0.105 · 0.037 m' },
+     'text': 'เลื่อน <b>f_drive</b> (หรือแตะกราฟล่าง) ทีละค่า · รอให้การสั่นคงตัว (ราว 30 s) แล้วกด <b>+ บันทึกจุด (f, A)</b> · ยิ่งใกล้ยอดให้เลื่อนทีละน้อย (0.05 Hz)<br><small>แอมพลิจูดที่บันทึก = |x| มากสุดใน 3 คาบล่าสุดของแรงขับ · ถ้ากดก่อนคงตัว (4τ = 8m/b) โปรแกรมจะบอกให้รอต่อ</small>',
+     'out': 'f = 2.00 · 2.20 · <b>2.25</b> · 2.30 · 2.40 Hz → <b>A</b> ≈ 0.024 · 0.101 · <b>0.233</b> · 0.107 · 0.038 m' },
    { 'el': ['[onclick="recordResonancePeak()"]', '#resonanceResult'], 'prep': "__fd(2.25); __run(30); recordResonancePeak()",
      'title': 'ตั้ง f ที่ A สูงสุด แล้วบันทึก peak',
      'text': 'ตั้ง f_drive ที่ให้ <b>A สูงสุด</b> แล้วกด <b>📍 บันทึก peak</b> โปรแกรมเผยค่าจริงของ f_natural และ %error<br>⑥ ความถี่ธรรมชาติ <b>f₀ = (1/2π)√(k/m)</b> · การสั่นพ้องเกิดเมื่อ <b>f_drive = f₀</b>',

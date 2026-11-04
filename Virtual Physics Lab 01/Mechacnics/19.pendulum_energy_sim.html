@@ -326,7 +326,7 @@ footer span{color:var(--accent)}
           <li>ใช้แถบ caliper สีแดง 2 อันบนเทป เลื่อนหาช่วง 10 จุดที่ห่างกันมากที่สุด</li>
           <li>คำนวณ v = s / (จำนวนช่อง × 1/50)</li>
           <li>คำนวณ KE = ½mv² เปรียบเทียบกับ PE = mgh</li>
-          <li>เพิ่ม h ครั้งละ 0.020 m (รวม 6 ครั้ง)</li>
+          <li>ทำซ้ำที่ h = 0.060 m และ 0.100 m (รวม 3 ครั้ง ตามช่อง Trial ในตาราง)</li>
         </ol>
       </div>
     </div>
@@ -394,15 +394,13 @@ footer span{color:var(--accent)}
         <button class="btn btn-secondary" onclick="toggleHint()">💡 Hint</button>
         <button class="btn btn-secondary btn-show-graph" onclick="toggleGraph()">📈 แสดงกราฟ PE/KE</button>
       </div>
-      <div class="hint-box" id="hintBox">
-        <b>เฉลย (อ้างอิงจากการทดลองจริง):</b><br>
-        h=0.020 → PE≈0.20 J, v≈0.54, KE≈0.15, err≈25%<br>
-        h=0.040 → PE≈0.39 J, v≈0.69, KE≈0.24, err≈33%<br>
-        h=0.060 → PE≈0.59 J, v≈0.92, KE≈0.42, err≈29%<br>
-        h=0.080 → PE≈0.78 J, v≈1.10, KE≈0.62, err≈21%<br>
-        h=0.100 → PE≈0.98 J, v≈1.20, KE≈0.76, err≈22%<br>
-        <i>ข้อสังเกต: KE &lt; PE เสมอ จากการสูญเสียพลังงาน</i>
-      </div>
+      <div class="hint-box" id="hintBox"></div>
+    </div>
+
+    <div class="panel" id="chartPanel" style="margin-top:12px">
+      <h3>📈 PE และ KE กับความสูง h (จากตาราง)</h3>
+      <div style="font-size:0.74rem;color:var(--muted);margin-bottom:6px">🟠 PE = mgh · 🟢 KE = ½mv² ของแต่ละ Trial</div>
+      <canvas id="chart"></canvas>
     </div>
 
     <div class="panel panel-tape-table" style="margin-top:12px">
@@ -1401,13 +1399,11 @@ function autoMeasureMaxV(){
   // v from largest single gap (1 dot interval)
   const v_max = bestGap / TIMER_DT;
   // Fill next empty trial column with auto-measured data
-  let idx = trials.findIndex(x => !x || x.h == null);
-  if (idx < 0) idx = N_TRIALS - 1;
-  if (idx >= N_TRIALS) idx = N_TRIALS - 1;
+  const idx = nextTrialIdx();
   trials[idx] = {h: h, ds: bestGap, n: 1};
   computeTrial(trials[idx]);
   renderTable();
-  drawAutoChart();
+  drawAutoChart(); drawChart();
   // Move calipers visually to that lowest-point gap
   const positions = window._tapePositions || [];
   if (positions.length > bestI){
@@ -1469,29 +1465,45 @@ function addCurrentTrial(){
   const dsM = window._caliperS || 0;
   const nInput = document.getElementById('caliperN');
   const n = nInput ? (parseInt(nInput.value) || 10) : 10;
-  let idx = trials.findIndex(x => !x || x.h == null);
-  if (idx < 0) idx = N_TRIALS - 1;
-  if (idx >= N_TRIALS) idx = N_TRIALS - 1;
+  const idx = nextTrialIdx();
   trials[idx] = {h: h, ds: dsM, n: n};
   computeTrial(trials[idx]);
   renderTable();
   drawChart();
 }
 
+/* ช่อง Trial ว่างช่องแรก (trials[] อาจสั้นกว่า N_TRIALS → findIndex ได้ −1) · เต็มแล้ว = เขียนทับช่องสุดท้าย */
+function nextTrialIdx(){
+  for (let i = 0; i < N_TRIALS; i++) if (!trials[i] || trials[i].h == null) return i;
+  return N_TRIALS - 1;
+}
+
+/* แบบจำลองเดียวกับ update(): ปล่อยจาก h แล้วเก็บจุดบนเทปทุก 1/50 s
+   คืน ds (m) ของช่วง n จุดที่ห่างที่สุด (= ผ่านจุดต่ำสุด) แบบที่นักเรียนวัดด้วย caliper */
+function modelTapeDs(hi, n){
+  let th = thetaFromH(hi, L), om = 0, tt = 0;
+  const S = 0.002, pts = [L * th];
+  while (tt < 1.5 && !(om > 0 && pts.length > n + 2 && th > 0)){
+    const a = -(G / L) * Math.sin(th) - friction * om;
+    om += a * S; th += om * S; tt += S;
+    while (pts.length * TIMER_DT <= tt) pts.push(L * th);
+  }
+  let best = 0;
+  for (let i = n; i < pts.length; i++) best = Math.max(best, Math.abs(pts[i] - pts[i - n]));
+  return best;
+}
+const TRIAL_H = [0.020, 0.060, 0.100];
+
 function autoFillAll(){
   trials = [];
-  const hVals = [0.020, 0.060, 0.100];
-  const refV = {0.020: 0.54, 0.060: 0.92, 0.100: 1.20};
-  hVals.forEach(hi => {
-    const v = refV[hi] || Math.sqrt(2*G*hi)*0.86;
+  TRIAL_H.forEach(hi => {
     const n = 10;
-    const t = n * TIMER_DT;
-    const ds = v * t;
-    const tr = {h: hi, ds: ds, n: n};
+    const tr = {h: hi, ds: modelTapeDs(hi, n), n: n};
     computeTrial(tr);
     trials.push(tr);
   });
   renderTable();
+  drawChart();
 }
 
 function resetTable(){
@@ -1501,7 +1513,16 @@ function resetTable(){
 }
 
 function toggleHint(){
-  document.getElementById('hintBox').classList.toggle('show');
+  const box = document.getElementById('hintBox');
+  /* เฉลยคำนวณจากแบบจำลองของแลป (m, L, แรงต้าน ที่ตั้งอยู่) · v จากช่วง 10 จุดที่ห่างที่สุด */
+  let html = `<b>เฉลย (จากแบบจำลองของแลป · m = ${m.toFixed(2)} kg, L = ${L.toFixed(2)} m · ช่วง 10 จุด):</b><br>`;
+  TRIAL_H.forEach(hi => {
+    const tr = {h: hi, ds: modelTapeDs(hi, 10), n: 10}; computeTrial(tr);
+    html += `h=${hi.toFixed(3)} → PE≈${tr.pe.toFixed(2)} J, v≈${tr.v.toFixed(2)} m/s, KE≈${tr.ke.toFixed(2)} J, err≈${tr.err.toFixed(0)}%<br>`;
+  });
+  html += '<i>ข้อสังเกต: KE &lt; PE เสมอ จากการสูญเสียพลังงาน (แรงต้านอากาศ + แรงเสียดทานของเทป)</i>';
+  box.innerHTML = html;
+  box.classList.toggle('show');
 }
 
 function toggleGraph(){
@@ -1606,7 +1627,7 @@ function drawChart(){
   if (!c) return;
   const ctx = c.getContext('2d');
   const W = c.width = c.clientWidth || 280;
-  const H = c.height = 200;
+  const H = c.height = 220;
   ctx.fillStyle = '#1a2235';
   ctx.fillRect(0,0,W,H);
 
@@ -1626,7 +1647,7 @@ function drawChart(){
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = '10px Share Tech Mono';
-  const hMax = 0.14, eMax = 1.4;
+  const hMax = 0.14, eMax = Math.max(1.4, ...trials.filter(t => t && t.pe).map(t => t.pe * 1.15));
   for (let i = 0; i <= 6; i++){
     const x = pad.l + i * plotW/6;
     ctx.fillText((i*hMax/6).toFixed(2), x - 12, H - 14);

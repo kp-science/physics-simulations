@@ -414,7 +414,9 @@ footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:0.75rem;
         <p>เมื่อใส่ทรายมวล m เข้าไป ถ้วยจะตกลง <em>h</em> เมตร (เท่ากับยางยืด เพราะเชือกไม่ยืด)</p>
         <p>พลังงานศักย์โน้มถ่วงของถ้วย<strong>ลดลง</strong>:</p>
         <div class="formula">ΔPE<sub>โน้มถ่วง</sub> = m · g · h</div>
-        <p>พลังงานนี้ถูกถ่ายทอดไปเป็น <strong style="color:#f472b6">PE สะสมในยาง</strong> (ตามกฎอนุรักษ์พลังงาน)</p>
+        <p>พลังงานนี้<strong>ไม่ได้</strong>ไปเป็น <strong style="color:#f472b6">PE สะสมในยาง</strong> ทั้งหมด — ระหว่างที่ถ้วยตก ระบบมีพลังงานจลน์ แล้วถูกหน่วง (แรงเสียดทาน/ความหนืดของยาง) กลายเป็นความร้อนจนหยุดนิ่ง</p>
+        <div class="formula">mgh = PE<sub>ยาง</sub> + พลังงานที่สูญเสีย &nbsp;⟹&nbsp; PE<sub>ยาง</sub> &lt; mgh</div>
+        <p>PE ของยางจึงต้องหาจาก<strong>พื้นที่ใต้กราฟ F–h</strong> (หัวข้อถัดไป) ไม่ใช่จาก mgh ของถ้วย · ถ้ายางเป็นไปตามกฎของฮุก PE<sub>ยาง</sub> = ½Fh = ½mgh พอดีครึ่งหนึ่ง</p>
         <canvas id="triCanvas" width="420" height="240"></canvas>
       </div>
     </div>
@@ -436,13 +438,13 @@ footer{padding:14px 20px;text-align:center;color:var(--muted);font-size:0.75rem;
 
     <div class="theory-card">
       <h2>🔄 การเปลี่ยนรูปพลังงาน</h2>
-      <p>ตลอดการทดลอง พลังงานเปลี่ยนจาก <strong style="color:#38bdf8">PE โน้มถ่วงของถ้วย</strong> → <strong style="color:#f472b6">PE สะสมในยาง</strong> (พร้อมพลังงานจลน์ชั่วคราวระหว่างทาง)</p>
+      <p>ตลอดการทดลอง พลังงานเปลี่ยนจาก <strong style="color:#38bdf8">PE โน้มถ่วงของถ้วย</strong> → <strong style="color:#f472b6">PE สะสมในยาง</strong> + พลังงานจลน์ชั่วคราวระหว่างทาง ซึ่งสุดท้ายถูกหน่วงกลายเป็น<strong style="color:#fb923c">ความร้อน</strong></p>
       <canvas id="energyCanvas" width="900" height="220"></canvas>
       <div class="btn-row" style="margin-top:10px;max-width:320px">
         <button class="btn btn-launch" onclick="playEnergyAnim()">▶ เล่น</button>
         <button class="btn btn-reset" onclick="stopEnergyAnim()">⏸ หยุด</button>
       </div>
-      <div class="tip"><strong>กฎอนุรักษ์พลังงาน:</strong> เมื่อระบบหยุด (สมดุล) — KE = 0 ดังนั้น ΔPE_โน้มถ่วง (ลดลง) = ΔPE_ยาง (เพิ่มขึ้น)</div>
+      <div class="tip"><strong>กฎอนุรักษ์พลังงาน:</strong> เมื่อระบบหยุด (สมดุล) KE = 0 · ΔPE<sub>โน้มถ่วง</sub> (ลดลง) = ΔPE<sub>ยาง</sub> (เพิ่มขึ้น) + ความร้อนจากการหน่วง · ยางในแลปนี้ F = k·h<sup>1.5</sup> ⟹ PE<sub>ยาง</sub> = ∫F dh = Fh/2.5 = 0.4 mgh</div>
     </div>
 
     <div class="theory-card">
@@ -545,6 +547,7 @@ function setMode(m) {
   $('btn-runall').style.display = (m === 'auto') ? 'block' : 'none';
   $('btn-record').style.display = (m === 'manual') ? 'block' : 'none';
   updateRecordBtn();
+  updateOutputs();
   draw();
 }
 
@@ -558,7 +561,8 @@ function updateOutputs() {
   $('out-mass').textContent = m.toFixed(3) + ' kg (' + (m*1000).toFixed(0) + ' g)';
   $('out-weight').textContent = (m * G).toFixed(4) + ' N';
   if (state.stopped && state.stretchEq > 0) {
-    $('out-stretch').textContent = (state.stretchEq * 1000).toFixed(3) + ' mm';
+    /* โหมดบันทึกเอง: ไม่เฉลยระยะยืดจริง — นักเรียนต้องวัดเองด้วย caliper */
+    $('out-stretch').textContent = (state.mode === 'manual') ? '??? (วัดด้วย caliper)' : (state.stretchEq * 1000).toFixed(3) + ' mm';
   } else {
     $('out-stretch').textContent = '— mm';
   }
@@ -1198,10 +1202,10 @@ function drawChart() {
   /* Sort by stretch */
   const sorted = filled.slice().sort((a, b) => a.stretch - b.stretch);
 
-  /* Area under measured points (PE) */
+  /* Area under measured points (PE) — เริ่มจากจุดกำเนิด (h = 0 ⇒ F = 0) จึงรวมพื้นที่ช่วง 0 → จุดแรกด้วย */
   ctx.fillStyle = 'rgba(52,211,153,.18)';
   ctx.beginPath();
-  ctx.moveTo(pad + (sorted[0].stretch * 1000 / hMaxMm) * plotW, pad + plotH);
+  ctx.moveTo(pad, pad + plotH);
   sorted.forEach(r => {
     const px = pad + (r.stretch * 1000 / hMaxMm) * plotW;
     const py = pad + plotH - (r.weight / fMax) * plotH;
@@ -1232,9 +1236,10 @@ function drawChart() {
 
   /* Total measured PE = trapezoidal sum */
   let totalPE = 0;
-  for (let i = 1; i < sorted.length; i++) {
-    const dh = sorted[i].stretch - sorted[i-1].stretch;
-    totalPE += 0.5 * (sorted[i].weight + sorted[i-1].weight) * dh;
+  const withO = [{stretch: 0, weight: 0}].concat(sorted);
+  for (let i = 1; i < withO.length; i++) {
+    const dh = withO[i].stretch - withO[i-1].stretch;
+    totalPE += 0.5 * (withO[i].weight + withO[i-1].weight) * dh;
   }
 
   /* Legend */
@@ -1507,22 +1512,21 @@ function drawEnergy() {
   const W = c.width = c.clientWidth || 900, H = c.height = 220;
   ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, W, H);
 
-  /* Phase: cup falls from 0 → 1, with KE peak at middle then 0 at end */
-  const tCycle = (eT % 5) / 5;
-  let peGrav = 1 - tCycle; /* cup PE decreases linearly with drop */
-  let peRubber = tCycle * tCycle; /* rubber PE grows as h^2 (since F~h^1.5, ∫ ~ h^2.5 actually, ok approx) */
-  let ke = Math.max(0, 1 - peGrav - peRubber);
-  /* normalize to total */
-  const total = peGrav + peRubber + ke;
-  peGrav /= total; peRubber /= total; ke /= total;
-
+  /* Phase: ถ้วยตกจาก 0 → h (สัดส่วน u) · หน่วยพลังงาน = mgh สุดท้าย
+     PE ยาง = ∫F dh (F = k·h^n, แรง F(h) = mg ที่สมดุล) = u^(n+1)/(n+1) · ส่วนต่างเป็น KE ชั่วคราว แล้วกลายเป็นความร้อนจากการหน่วง */
+  const u = Math.min(1, (eT % 5) / 4);
+  let peRubber = Math.pow(u, RB_N + 1) / (RB_N + 1);
+  let ke = Math.min(u - peRubber, 0.45 * Math.sin(Math.PI * u) * Math.exp(-2 * u));
+  let heat = Math.max(0, u - peRubber - ke);
+  let peGrav = 1 - u;
   const barMaxW = W - 260;
   const barH = 26, gap = 12;
   const startY = 22;
   const bars = [
     { name: 'PE โน้มถ่วง (ถ้วย)', val: peGrav, color: '#38bdf8' },
     { name: 'KE (จลน์ชั่วคราว)', val: ke, color: '#34d399' },
-    { name: 'PE ยาง', val: peRubber, color: '#f472b6' }
+    { name: 'PE ยาง', val: peRubber, color: '#f472b6' },
+    { name: 'ความร้อน (การหน่วง)', val: heat, color: '#fb923c' }
   ];
   bars.forEach((b, i) => {
     const y = startY + i * (barH + gap);
@@ -1538,11 +1542,11 @@ function drawEnergy() {
     ctx.fillText((b.val * 100).toFixed(0) + ' %', 170 + barMaxW - 40 + 10, y + 18);
   });
 
-  const tot = peGrav + ke + peRubber;
-  const ty = startY + 3 * (barH + gap) + 4;
+  const tot = peGrav + ke + peRubber + heat;
+  const ty = startY + 4 * (barH + gap) + 4;
   ctx.fillStyle = '#fb923c';
   ctx.font = '600 12px IBM Plex Sans Thai';
-  ctx.fillText('รวม = ' + (tot * 100).toFixed(0) + ' %  (พลังงานคงที่ตลอด)', 16, ty + 14);
+  ctx.fillText('รวม = ' + (tot * 100).toFixed(0) + ' % (พลังงานรวมคงที่) · หยุดนิ่งแล้ว PE ยาง = ' + (100 / (RB_N + 1)).toFixed(0) + ' % ของ mgh', 16, ty + 14);
 }
 
 function eLoop(ts) {

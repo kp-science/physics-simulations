@@ -401,7 +401,7 @@ footer{padding:10px 20px;text-align:center;color:var(--muted);font-size:0.72rem;
         <div class="proc-goal">
           <strong>🎯 จุดประสงค์:</strong> นักเรียนหาค่าความเร่งโน้มถ่วง <span class="mono">g</span> ของโลก
           โดยใช้จานหมุน (turntable) และการตกอิสระของลูกบอล วัดระยะตก <span class="mono">s</span> และมุมการหมุน <span class="mono">A</span>
-          แล้วคำนวณจากสมการ <span class="mono">g = 2sω²/(tanA)</span>
+          แล้วคำนวณจากสมการ <span class="mono">g = 2s / [T² × (A/360°)²]</span> (T = 60/rpm คือคาบการหมุนของจาน)
         </div>
 
         <ol class="proc-list">
@@ -959,9 +959,18 @@ function camPan(dx,dy){ if(VIEWS[curView]&&VIEWS[curView].follow){ curView='free
 function resizeCanvas(){ resize3D(); refitView(); draw(); }
 function degFromRad(r){ let d = r*180/Math.PI; d = ((d%360)+360)%360; return d; }
 let st3dKey='';
+/* มุม A จากแขน 2 อัน ไม่ขึ้นกับว่าวางแขนไหนบนรอยไหน: A = มุมจากรอย 2 ไปรอย 1 ตามทิศที่จานหมุน
+   (ถ้ามีทั้ง 2 รอย ดูว่าแขนไหนใกล้รอยไหน · ยังไม่มีรอย = ใช้มุมที่เล็กกว่าระหว่างแขน) */
+function armDelta(d1, d2){
+  const fwd = ((d2 - d1) % 360 + 360) % 360;
+  if(mark1===null || mark2===null) return Math.min(fwd, 360 - fwd);
+  const cd = (a,b) => { const x = ((a - b) % 360 + 360) % 360; return Math.min(x, 360 - x); };
+  const m1 = degFromRad(mark1 + thetaNow), m2 = degFromRad(mark2 + thetaNow);
+  return (cd(d2,m1) + cd(d1,m2) <= cd(d1,m1) + cd(d2,m2)) ? fwd : (360 - fwd) % 360;
+}
 function draw(){
   const d1 = degFromRad(arm1Rad), d2 = degFromRad(arm2Rad);
-  measuredA = ((d2 - d1) % 360 + 360) % 360;
+  measuredA = armDelta(d1, d2);
   const st=$3('st3d');
   if(st){ const zk=zoomArm(), key=d1.toFixed(1)+'|'+d2.toFixed(1)+'|'+zk;
     if(key!==st3dKey){ st3dKey=key;
@@ -1145,8 +1154,8 @@ function renderTable(){
           <input type="number" step="0.1" placeholder="A?" value="${r.A_input}" oninput="onManualInput(${i},this)">
           <button class="use-delta" title="ใช้ค่า Δ จากเครื่องมือวัด" onclick="useMeasured(${i})">↓Δ</button>
         </td>
-        <td id="g-${i}">—</td>
-        <td id="err-${i}">—</td>
+        <td id="g-${i}" class="${typeof r.g==='number'?(r.err<5?'error-good':(r.err<15?'':'error-bad')):''}">${typeof r.g==='number'?r.g.toFixed(2):'—'}</td>
+        <td id="err-${i}" class="${typeof r.g==='number'?(r.err<5?'error-good':(r.err<15?'':'error-bad')):''}">${typeof r.g==='number'?r.err.toFixed(2):'—'}</td>
         <td><button class="del" onclick="delRow(${i})">×</button></td>
       `;
     }

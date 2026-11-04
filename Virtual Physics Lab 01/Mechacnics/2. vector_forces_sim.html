@@ -484,8 +484,6 @@ table.data-tbl td.locked{color:var(--muted);font-style:italic;}
   <!-- COMPARISON BOX -->
   <div id="cmp-box" style="margin:0;padding:0;"></div>
 
-</div>
-
   <!-- CHALLENGE BAR -->
   <div class="challenge-bar hidden" id="challenge-bar">
     <span class="chal-label">🎯 เป้าหมาย F₃:</span>
@@ -527,9 +525,9 @@ table.data-tbl td.locked{color:var(--muted);font-style:italic;}
             <td>1</td>
             <td id="td-f3">—</td>
             <td id="td-f1">0.00</td>
-            <td id="td-angleB" class="err-bad">—</td>
+            <td id="td-angleB">—</td>
             <td id="td-f2">0.00</td>
-            <td id="td-angleC" class="err-bad">—</td>
+            <td id="td-angleC">—</td>
             <td id="td-R">—</td>
             <td id="td-angA" class="err-bad">—</td>
             <td id="td-err" class="err-bad">—</td>
@@ -544,6 +542,8 @@ table.data-tbl td.locked{color:var(--muted);font-style:italic;}
       <button class="btn-clear-tbl" onclick="clearTable()">🗑️ ล้างตาราง</button>
     </div>
   </div>
+
+</div><!-- /tab-sim -->
 
 
 <!-- =========================================================
@@ -871,8 +871,11 @@ function getParams() {
   // A = angle between R and F3 (direction error)
   const angleA_raw = ((a3/DEG) - (thetaR/DEG) + 360) % 360;
   const angleA = angleA_raw > 180 ? 360 - angleA_raw : angleA_raw;
+  // สมดุล: F₃ ต้องชี้ตรงข้ามกับ R (A = 180°) · angleDiffSym = มุมที่ F₃ เบนจากทิศตรงข้าม R (−180…+180°)
+  const angleDiffSym = ((((a3/DEG) - (thetaR/DEG) - 180) % 360) + 540) % 360 - 180;
+  const angleDev = Math.abs(angleDiffSym);   // = 180° − A
 
-  return { f1,a1,f2,a2,a3,angA,scale,f3, F1x,F1y,F2x,F2y,F3x,F3y,Rx,Ry,R,thetaR,Errx,Erry,Err,pctMag,angleB,angleC,angleA };
+  return { f1,a1,f2,a2,a3,angA,scale,f3, F1x,F1y,F2x,F2y,F3x,F3y,Rx,Ry,R,thetaR,Errx,Erry,Err,pctMag,angleB,angleC,angleA,angleDiffSym,angleDev };
 }
 
 // ============================================================
@@ -1299,7 +1302,7 @@ function updateReadout(p) {
 
   var magDiff = p.f3 - p.R;
   var magCls  = Math.abs(p.pctMag) < 5  ? 'cmp-good' : Math.abs(p.pctMag) < 15 ? 'cmp-warn' : 'cmp-bad';
-  var dirCls  = p.angleA < 10 ? 'cmp-good' : p.angleA < 25 ? 'cmp-warn' : 'cmp-bad';
+  var dirCls  = p.angleDev < 10 ? 'cmp-good' : p.angleDev < 25 ? 'cmp-warn' : 'cmp-bad';   /* ดี = A ใกล้ 180° (F₃ ตรงข้าม R) */
   var eqCls   = p.Err < 0.05*Math.max(p.R,0.01) ? 'cmp-good' : p.Err < 0.15*Math.max(p.R,0.01) ? 'cmp-warn' : 'cmp-bad';
   var rDir    = ((p.thetaR/DEG)+360)%360;
   var f3dir   = (p.a3/DEG+360)%360;
@@ -1319,7 +1322,7 @@ function updateReadout(p) {
   h += '<div class="cmp-cell" style="color:#43e97b">' + p.R.toFixed(3) + '</div>';
   h += '<div class="cmp-cell" style="color:#f7971e">' + p.f3.toFixed(3) + '</div>';
   h += '<div class="cmp-cell ' + magCls + '">' + (magDiff > 0 ? '+' : '') + magDiff.toFixed(3) + '</div>';
-  h += '<div class="cmp-cell">ทิศ (&deg;)</div>';
+  h += '<div class="cmp-cell">ทิศ (&deg;) <span style="color:var(--muted);font-size:.72rem">ผลต่าง = เทียบกับทิศตรงข้าม R</span></div>';
   h += '<div class="cmp-cell" style="color:#43e97b">' + rDir.toFixed(1) + '&deg;</div>';
   h += '<div class="cmp-cell" style="color:#f7971e">' + f3dir.toFixed(1) + '&deg;</div>';
   h += '<div class="cmp-cell ' + dirCls + '">' + (adiff > 0 ? '+' : '') + adiff.toFixed(1) + '&deg;</div>';
@@ -1427,9 +1430,9 @@ function updateLiveRow(p) {
   const hasF2 = p.f2 > 0.05;
 
   // angle classes
-  const bClass = p.angleB < 15 ? 'err-good' : p.angleB < 45 ? 'err-warn' : 'err-bad';
-  const cClass = p.angleC < 15 ? 'err-good' : p.angleC < 45 ? 'err-warn' : 'err-bad';
-  const aClass = p.angleA < 10 ? 'err-good' : p.angleA < 25 ? 'err-warn' : 'err-bad';
+  // B, C เป็นค่าที่วัดได้ (ไม่มีค่า "ถูก" ตายตัว) จึงไม่ใส่สีดี/เสีย
+  const bClass = '', cClass = '';
+  const aClass = p.angleDev < 10 ? 'err-good' : p.angleDev < 25 ? 'err-warn' : 'err-bad';   /* สมดุลเมื่อ A ≈ 180° */
 
   // Live row
   const td = (id) => document.getElementById(id);

@@ -402,11 +402,11 @@ footer{padding:10px 20px;text-align:center;font-size:0.72rem;color:var(--muted);
       ✓ <strong>บันทึกอัตโนมัติ:</strong> เมื่อกด "หยุดนาฬิกา" ระบบจะบันทึกค่าลงตารางให้ทันที
     </div>
 
-    <h3 style="margin-top:14px">สรุปค่าเฉลี่ยตามระยะทาง</h3>
+    <h3 style="margin-top:14px">สรุปค่าเฉลี่ยตามมุมเอียงและระยะทาง</h3>
     <div class="tbl-wrap" style="max-height:160px">
       <table id="avgTable">
         <thead>
-          <tr><th>s (cm)</th><th>t̄ (ml)</th><th>t̄² (ml²)</th><th>n</th></tr>
+          <tr><th>θ (°)</th><th>s (cm)</th><th>t̄ (ml)</th><th>t̄² (ml²)</th><th>n</th></tr>
         </thead>
         <tbody id="avgBody"></tbody>
       </table>
@@ -471,8 +471,10 @@ footer{padding:10px 20px;text-align:center;font-size:0.72rem;color:var(--muted);
 
         <div class="proc-tip">
           <strong>💡 ทดลองเพิ่มเติม:</strong> หลังจากได้ค่า a ที่มุมต่างๆ นักเรียนลองสร้างกราฟของ a กับ sin(θ) —
-          ตามทฤษฎี ความเร่งบนระนาบเอียงควรแปรผันเป็น <span class="mono">a = g·sin(θ)</span>
-          ถ้าคำนวณ a ได้จากการวัด และรู้ค่า g ≈ 9.8 m/s² นักเรียนสามารถตรวจสอบความแม่นยำของการทดลองได้
+          ตามทฤษฎี ความเร่งแปรผันตรงกับ sin θ · วัตถุที่<strong>ไถล</strong>โดยไม่มีแรงเสียดทานมี <span class="mono">a = g·sin θ</span>
+          แต่ลูกบอลตันที่<strong>กลิ้ง</strong>โดยไม่ไถล พลังงานส่วนหนึ่งไปกับการหมุน จึงมี <span class="mono">a = (5/7)·g·sin θ</span> (แลปนี้ใช้แบบจำลองนี้)
+          ดังนั้น <span class="mono">g = (7/5)·(a / sin θ)</span> ถ้าได้ g ใกล้ 9.8 m/s² แสดงว่าการทดลองแม่นยำ<br>
+          ตารางค่าเฉลี่ยแยกตามมุมเอียงให้แล้ว และกราฟแสดงเฉพาะค่าที่มุมเอียง (และอัตราน้ำไหล) ที่ตั้งอยู่ตอนนี้
         </div>
       </div>
     </div>
@@ -616,7 +618,7 @@ let animId = null;
 let waterMl = 0;           // current water collected
 let trueWaterAtImpact = 0; // computed exact water at impact
 let recordedAtStop = null; // user-recorded value when they hit stop
-let trials = [];           // {s, t}
+let trials = [];           // {s, t, th, q} · th = มุมเอียง (°), q = อัตราน้ำไหล ขณะบันทึก
 
 /* ============ PHYSICS ============ */
 function accelMps2(){
@@ -709,7 +711,7 @@ function finishRun(){
 
 function autoRecordTrial(){
   if(recordedAtStop === null || isNaN(recordedAtStop)) return;
-  trials.push({s: distCm, t: Math.round(recordedAtStop)});
+  trials.push({s: distCm, t: Math.round(recordedAtStop), th: theta, q: flowQ});
   renderTable();
   drawGraph();
 }
@@ -1139,7 +1141,7 @@ function recordTrial(){
   }
   const t = recordedAtStop;
   if(t === null || isNaN(t)){alert('ไม่มีค่าน้ำที่จะบันทึก');return;}
-  trials.push({s: distCm, t: Math.round(t)});
+  trials.push({s: distCm, t: Math.round(t), th: theta, q: flowQ});
   renderTable();
   drawGraph();
 }
@@ -1154,16 +1156,15 @@ function clearTable(){
 function renderTable(){
   const tb = document.getElementById('trialBody');
   tb.innerHTML = trials.map((tr,i)=>`<tr><td>${tr.s}</td><td>${tr.t}</td><td>${(tr.t*tr.t).toLocaleString()}</td><td><button class="btn" style="padding:2px 6px;background:#7c2d12;color:#fff;font-size:0.7rem" onclick="deleteTrial(${i})">×</button></td></tr>`).join('');
-  // averages
+  // averages — แยกตามมุมเอียง θ และระยะ s
   const groups = {};
-  trials.forEach(tr=>{(groups[tr.s]=groups[tr.s]||[]).push(tr.t);});
-  const avgs = Object.keys(groups).map(s=>{
-    const arr = groups[s];
-    const m = arr.reduce((a,b)=>a+b,0)/arr.length;
-    return {s:+s, t:m, n:arr.length};
-  }).sort((a,b)=>a.s-b.s);
+  trials.forEach(tr=>{ const th = tr.th===undefined ? theta : tr.th, k = th+'|'+tr.s; (groups[k]=groups[k]||{th:th, s:tr.s, arr:[]}).arr.push(tr.t); });
+  const avgs = Object.values(groups).map(g=>{
+    const m = g.arr.reduce((a,b)=>a+b,0)/g.arr.length;
+    return {th:g.th, s:g.s, t:m, n:g.arr.length};
+  }).sort((a,b)=>(a.th-b.th)||(a.s-b.s));
   document.getElementById('avgBody').innerHTML = avgs.map(a=>
-    `<tr><td>${a.s}</td><td>${a.t.toFixed(1)}</td><td>${(a.t*a.t).toFixed(0)}</td><td>${a.n}</td></tr>`
+    `<tr><td>${a.th}</td><td>${a.s}</td><td>${a.t.toFixed(1)}</td><td>${(a.t*a.t).toFixed(0)}</td><td>${a.n}</td></tr>`
   ).join('');
 }
 
@@ -1181,9 +1182,10 @@ function drawGraph(){
   const padL=50, padR=20, padT=14, padB=36;
   const plotW = W-padL-padR, plotH = H-padT-padB;
 
-  // group avgs
+  // group avgs — เฉพาะค่าที่บันทึกที่มุมเอียง θ และอัตราน้ำไหล Q ปัจจุบัน (คนละมุม/คนละ Q ความชันต่างกัน)
   const groups = {};
-  trials.forEach(tr=>{(groups[tr.s]=groups[tr.s]||[]).push(tr.t);});
+  trials.filter(tr=>(tr.th===undefined || tr.th===theta) && (tr.q===undefined || tr.q===flowQ))
+        .forEach(tr=>{(groups[tr.s]=groups[tr.s]||[]).push(tr.t);});
   const pts = Object.keys(groups).map(s=>{
     const arr = groups[s];
     const m = arr.reduce((a,b)=>a+b,0)/arr.length;
@@ -1238,7 +1240,7 @@ function drawGraph(){
     const sxx = pts.reduce((a,p)=>a+p.x*p.x,0);
     const slope = sxx>0 ? sxy/sxx : 0;
     const x1 = 0, y1 = 0;
-    const x2 = xMax, y2 = slope*xMax;
+    const x2 = (slope*xMax > yMax && slope > 0) ? yMax/slope : xMax, y2 = slope*x2;   /* ตัดเส้นที่ขอบบนของกราฟ (ไม่บีบ y อย่างเดียว ซึ่งทำให้ความชันเพี้ยน) */
     const px1 = padL + (x1/xMax)*plotW;
     const py1 = padT+plotH - (y1/yMax)*plotH;
     const px2 = padL + (x2/xMax)*plotW;
@@ -1252,7 +1254,7 @@ function drawGraph(){
     gCtx.fillStyle = '#34d399';
     gCtx.font = 'bold 11px Share Tech Mono';
     gCtx.textAlign = 'left';
-    gCtx.fillText(`slope = ${slope.toExponential(2)} cm/ml²`, padL+8, padT+14);
+    gCtx.fillText(`θ = ${theta}° · slope = ${slope.toExponential(2)} cm/ml²`, padL+8, padT+14);
   }
 
   // points
@@ -1616,6 +1618,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if(!isRunning){resetSim();}
     updateReadout();
     draw();
+    drawGraph();
   }
 
   init3D();

@@ -901,10 +901,26 @@ function step(dt){
   lastVsign = v>0 ? 1 : (v<0?-1:0);
   // track Amax
   if(Math.abs(x)>amaxObserved) amaxObserved=Math.abs(x);
+  if(Math.abs(x)>ssFrameMax) ssFrameMax=Math.abs(x);
 }
 function pushTrace(){
   traceA.push({t:t,x:x});
   if(traceA.length>TRACE_MAX) traceA.shift();
+  // ประวัติแอมพลิจูด (ค่ามากสุดต่อเฟรม) สำหรับหาแอมพลิจูดในสภาวะคงตัว · เริ่มนับใหม่เมื่อ f, k, m, b, F₀ เปลี่ยน
+  const p=getParams(), sig=[p.fd,p.k,p.m,p.b,p.F0].join('|');
+  if(sig!==ssSig){ ssSig=sig; ssChangeT=t; ssHist=[]; }
+  ssHist.push({t:t,a:ssFrameMax}); ssFrameMax=0;
+  const keep=t-Math.max(3/Math.max(p.fd,0.05),2);
+  while(ssHist.length && ssHist[0].t<keep) ssHist.shift();
+}
+/* สภาวะคงตัว: ส่วนชั่วครู่ (transient) ที่ความถี่ธรรมชาติลดลงตาม e^(−bt/2m) → รอ 4τ = 8m/b (เหลือ < 2%)
+   แอมพลิจูดที่บันทึก = |x| มากสุดในช่วง 3 คาบล่าสุดของแรงขับ */
+let ssHist=[], ssSig='', ssChangeT=0, ssFrameMax=0;
+function steadySettle(p){ return Math.min(8*p.m/Math.max(p.b,1e-6), 60); }
+function steadyAmp(p){
+  const tw=t-3/Math.max(p.fd,0.05); let A=0;
+  ssHist.forEach(h=>{ if(h.t>=tw && h.a>A) A=h.a; });
+  return A;
 }
 let lastVsign=0;
 let pendingTpeak=null;
@@ -1483,6 +1499,8 @@ function drawGraph(){
     if(maxA<0.001) maxA=0.001;
     const yScale=(H-40)/maxA;
 
+    // เส้นโค้งทฤษฎี — ไม่วาดในโหมด blind (ฐาน B · บันทึกเอง) เพราะยอดของเส้นบอกคำตอบ f_natural
+    const blindB = currentBase==='B' && currentMode==='manual';
     gctx.strokeStyle='#1e3a5f'; gctx.setLineDash([2,3]); gctx.lineWidth=1;
     gctx.beginPath();
     let first=true;
@@ -1494,7 +1512,7 @@ function drawGraph(){
       const py=(H-25)-A*yScale;
       if(first){gctx.moveTo(px,py);first=false;} else gctx.lineTo(px,py);
     }
-    gctx.stroke();
+    if(!blindB) gctx.stroke();
     gctx.setLineDash([]);
 
     // recorded points
@@ -1602,17 +1620,25 @@ function markPeriod(){
     alert('ยังไม่ครบ 2 peak — รอให้มวลผ่านจุดสูงสุด 2 ครั้ง แล้วค่อยกด');
     return;
   }
-  damping_log.push({b:p.b, T_meas:+pendingTpeak.toFixed(3), A_max:+amaxObserved.toFixed(4)});
+  const w0=Math.sqrt(p.k/p.m), wdSq=w0*w0-Math.pow(p.b/(2*p.m),2);
+  const T_th=wdSq>0?2*Math.PI/Math.sqrt(wdSq):Infinity;
+  const errT=isFinite(T_th)?Math.abs(pendingTpeak-T_th)/T_th*100:NaN;
+  damping_log.push({b:p.b, T_meas:+pendingTpeak.toFixed(3), T_th:+T_th.toFixed(3), A_max:+amaxObserved.toFixed(4)});
   const tb=document.querySelector('#tableA tbody');
   const tr=document.createElement('tr');
-  tr.innerHTML=`<td>${damping_log.length}</td><td>${p.b.toFixed(2)}</td><td>${pendingTpeak.toFixed(3)}</td><td>${amaxObserved.toFixed(4)}</td>`;
+  tr.innerHTML=`<td>${damping_log.length}</td><td>${p.b.toFixed(2)}</td><td>${pendingTpeak.toFixed(3)}</td><td>${isFinite(T_th)?T_th.toFixed(3):'—'}</td><td>${isFinite(errT)?errT.toFixed(2):'—'}</td>`;
   tb.appendChild(tr);
   pendingTpeak=null;
 }
 
 function recordPoint(){
   const p=getParams();
-  const A=Math.abs(amaxObserved>0?amaxObserved:x);
+  const wait=steadySettle(p)-(t-ssChangeT);
+  if(wait>0){
+    alert('⏳ การสั่นยังไม่คงตัว (ยังมีส่วนชั่วครู่ที่ความถี่ธรรมชาติปนอยู่)\nรออีกราว '+Math.ceil(wait)+' s (เวลาในแลป) แล้วกดบันทึกใหม่');
+    return;
+  }
+  const A=steadyAmp(p);
   const entry={f:+p.fd.toFixed(2), A:+A.toFixed(4)};
   f_drive_sweep_data.push(entry);
   addRowB(entry.f, entry.A);
@@ -1635,7 +1661,7 @@ function clearPoints(){
 const cases={
   tacoma:{
     title:'🌉 Tacoma Narrows Bridge (1940)',
-    desc:'สะพานพังจาก aeroelastic flutter — ลม 67 km/h สร้าง vortex shedding ที่ความถี่ใกล้ f_natural (~0.2 Hz) → resonance สะสมจนพัง',
+    desc:'สะพานพังจาก aeroelastic flutter — ลม 67 km/h สร้าง vortex shedding ที่ความถี่ใกล้ f_natural (สะพานจริง ~0.2 Hz · แบบจำลองย่อส่วนนี้ k = 80 N/m, m = 5 kg → f_natural ≈ 0.64 Hz) → resonance สะสมจนพัง',
     role:'❌ ต้องป้องกัน — ปัจจุบันใช้ tuned mass damper + aerodynamic profile',
     params:{k:80, m:5, b:0.2, F0:2, fd:0.2},
     video:'Tacoma Narrows Bridge Collapse 1940 (15 sec) — slow-motion ของ torsional oscillation'

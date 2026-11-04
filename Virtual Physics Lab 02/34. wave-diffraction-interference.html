@@ -329,9 +329,9 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
     <h3>โหมดเลเซอร์</h3>
     <ol>
       <li>ระบบ<strong>สุ่ม λ</strong> ให้ เลือกเกรตติง (จำนวนเส้น/cm) ปรับระยะจอ L</li>
-      <li>สังเกต: แถบสว่างคมชัด (sharp maxima) ห่างเท่ากัน ทั้งสองด้าน</li>
+      <li>สังเกต: แถบสว่างคมชัด (sharp maxima) ทั้งสองด้าน · มุมเลี้ยวเบนใหญ่ (เกรตติงเส้นถี่) แถบลำดับสูงจึงห่างกันมากขึ้น</li>
       <li><strong>ลากเม้าส์</strong>วัดระยะ y ถึงแถบสว่างลำดับ m → กด บันทึก</li>
-      <li>ระบบคำนวณ <strong>λ = y·d/(m·L)</strong> เทียบกับค่าจริง</li>
+      <li>ระบบคำนวณ <strong>sin θ = y/√(y² + L²)</strong> แล้ว <strong>λ = d·sin θ/m</strong> เทียบกับค่าจริง</li>
     </ol>
     <h3>โหมดฮีเลียม / โซเดียม</h3>
     <ol>
@@ -346,12 +346,12 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
     </ul>
     <div class="formula-box">
       <div class="formula-title">สมการเกรตติง:</div>
-      d·sin θ = mλ → y = mλL/d<br>
+      d·sin θ = mλ → y = L·tan θ &nbsp; (มุมเล็กเท่านั้นที่ y ≈ mλL/d · ถ้า mλ/d > 1 ไม่มีลำดับนั้น)<br>
       d = 1/(จำนวนเส้นต่อ cm) &nbsp; เช่น 5,276 gr/cm → d = 1.896 μm<br>
       <div class="formula-title">จำนวน order สูงสุด:</div>
       n_max = floor(d/λ) &nbsp; จำนวนแถบสว่างทั้งหมด = 2n_max + 1<br>
       <div class="formula-title">คำนวณ λ:</div>
-      λ = y·d / (m·L) &nbsp;&nbsp; % Error = |λ_calc − λ_actual| / λ_actual × 100
+      sin θ = y/√(y² + L²) → λ = d·sin θ / m &nbsp;&nbsp; % Error = |λ_calc − λ_actual| / λ_actual × 100
     </div>
 
     <div class="warn">⚠️ <strong>ข้อควรระวัง:</strong> ห้ามมองตรงเข้าไปในลำแสงเลเซอร์โดยเด็ดขาด!</div>
@@ -398,12 +398,12 @@ footer{text-align:center;padding:16px;color:var(--muted);font-size:0.72rem;borde
     <p>เกรตติงมีช่องจำนวนมาก (N ช่อง) ห่างกัน d เท่ากัน → แถบสว่างคมชัดมาก (sharp peaks) ห่างเท่ากัน</p>
     <div class="formula-box">
       <div class="formula-title">สมการเกรตติง (เหมือนสลิตคู่):</div>
-      d·sinθ = mλ → <strong>y = mλL/d</strong><br>
+      d·sinθ = mλ → <strong>y = L·tanθ</strong> (มุมเล็ก: y ≈ mλL/d)<br>
       d = 1/(จำนวนเส้นต่อ cm) &nbsp; เช่น 5,276 gr/cm → d = 1.896 μm<br><br>
       <div class="formula-title">จำนวน order สูงสุด:</div>
       n_max = ⌊d/λ⌋ &nbsp; | &nbsp; จำนวนแถบสว่าง = 2n_max + 1<br><br>
       <div class="formula-title">คำนวณ λ:</div>
-      <strong>λ = y·d / (m·L)</strong> &nbsp; | &nbsp; %Error = |λ_calc − λ_actual|/λ_actual × 100
+      <strong>sinθ = y/√(y² + L²) → λ = d·sinθ/m</strong> &nbsp; | &nbsp; %Error = |λ_calc − λ_actual|/λ_actual × 100
     </div>
 
     <h3>แสงขาว vs เลเซอร์ ผ่านเกรตติง</h3>
@@ -789,7 +789,9 @@ function gratingViewHalf_m(){ const d_m=getGratingD(), sp=getActiveSpectrum();
   const minLam=sp?Math.min(...sp.map(s=>s.nm))*1e-9:(whiteLightC?415e-9:lambdaCm());
   const maxLam=sp?Math.max(...sp.map(s=>s.nm))*1e-9:(whiteLightC?700e-9:lambdaCm());
   const nMax=Math.floor(d_m/minLam), lamRef=whiteLightC?maxLam:lambdaCm();
-  return Math.max(0.1, lamRef*1.0/d_m*Math.min(nMax,6)*1.2); }
+  let n=Math.max(1,Math.min(nMax,6)); while(n>1 && n*lamRef/d_m>0.94) n--;          /* ลำดับสูงสุดที่ θ ≤ 70° */
+  const s=Math.min(0.94,n*lamRef/d_m);
+  return Math.max(0.1, 1.0*Math.tan(Math.asin(s))*1.2); }   /* y = L·tanθ (L อ้างอิง 1 m) */
 function viewHalfCm(){ return curExp==='A'?0.3:(curExp==='C'?gratingViewHalf_m()*100:15); }   /* A: ±3 mm · B, สลิตคู่: ±15 cm · เกรตติง: ตามลำดับที่เห็น */
 function curPattern(){ return curExp==='A'?cacheA:curExp==='B'?cacheB:curExp==='D'?cacheD:cacheC; }
 function ensurePattern(){ const n=NPAT;
@@ -801,12 +803,13 @@ function ensurePattern(){ const n=NPAT;
   if(!cacheC){ const d_m=getGratingD(), vh=gratingViewHalf_m(), sp=getActiveSpectrum(); cacheC=[];
     if(whiteLightC&&sp){ const N=30;   /* หลายความยาวคลื่นพร้อมกัน (แสงขาว / He / Na) */
       for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); let rS=0,gS=0,bS=0,tot=0;
-        sp.forEach(sc=>{ const spacing=sc.nm*1e-9*screenDistC/d_m; if(spacing<1e-10) return; const ph=Math.PI*y_m/spacing; let I;
+        const sTh=y_m/Math.hypot(y_m,screenDistC);   /* sinθ จริง (มุมใหญ่: y = L·tanθ) */
+        sp.forEach(sc=>{ const ph=Math.PI*d_m*sTh/(sc.nm*1e-9); let I;
           if(Math.abs(Math.sin(ph))<1e-8) I=1; else { const s=Math.sin(N*ph)/(N*Math.sin(ph)); I=s*s; } I=Math.min(1,I); rS+=sc.r*I; gS+=sc.g*I; bS+=sc.b*I; tot+=I; });
         cacheC.push({y:y_m*100, I:tot/sp.length, r:Math.min(255,rS*1.8), g:Math.min(255,gS*1.8), b:Math.min(255,bS*1.8)}); }
-    } else { const lam=lambdaCm(), spacing=lam*screenDistC/d_m, N=30;
+    } else { const lam=lambdaCm(), N=30;
       for(let i=0;i<n;i++){ const y_m=vh-2*vh*i/(n-1); let I=0;
-        if(spacing>1e-8){ const ph=Math.PI*y_m/spacing; if(Math.abs(Math.sin(ph))<1e-8) I=1; else { const s=Math.sin(N*ph)/(N*Math.sin(ph)); I=s*s; } }
+        { const ph=Math.PI*d_m*(y_m/Math.hypot(y_m,screenDistC))/lam; if(Math.abs(Math.sin(ph))<1e-8) I=1; else { const s=Math.sin(N*ph)/(N*Math.sin(ph)); I=s*s; } }
         cacheC.push({y:y_m*100, I:Math.min(1,I)}); } } }
   return cacheC; }
 function probeOff(){ return curExp==='C'&&gratingLightSource==='white'; }   /* แสงขาว: ไม่มีการวัด (เหมือน 2D) */
@@ -1018,7 +1021,7 @@ function update3D(){ if(!scene) return;
   const rk=ex==='C'?[gratingGrooves,gratingLightSource,randomLambdaC,Lcm.toFixed(2)].join('|'):'-';
   if(rk!==P.rayKey){ P.rayKey=rk; const pts=[];
     if(ex==='C'){ const d_m=getGratingD(), sp=getActiveSpectrum(), lamR=(whiteLightC&&sp)?sp[Math.floor(sp.length/2)].nm*1e-9:lambdaCm(), nMax=Math.floor(d_m/((sp?Math.min(...sp.map(s=>s.nm)):(whiteLightC?415:randomLambdaC))*1e-9));
-      for(let m=-nMax;m<=nMax;m++){ const y=m*lamR*screenDistC/d_m*100; if(Math.abs(y)>half) continue; pts.push(new THREE.Vector3(0.05,BH,0),new THREE.Vector3(Lcm-0.1,BH,y)); } }
+      for(let m=-nMax;m<=nMax;m++){ const sT=m*lamR/d_m; if(Math.abs(sT)>=1) continue; const y=screenDistC*Math.tan(Math.asin(sT))*100; if(Math.abs(y)>half) continue; pts.push(new THREE.Vector3(0.05,BH,0),new THREE.Vector3(Lcm-0.1,BH,y)); } }
     P.rays.geometry.dispose(); P.rays.geometry=new THREE.BufferGeometry().setFromPoints(pts); }
   P.rays.visible=ex==='C';
   /* หน้าคลื่น (เฉพาะตอนเล่น) */
@@ -1416,14 +1419,14 @@ function recordManual() {
     document.getElementById('mi-yD').value = '';
     randomizeLambdaD();
   } else {
-    // Grating: λ = y·d/(m·L)
+    // Grating: d·sinθ = mλ, sinθ = y/√(y²+L²)  (มุมใหญ่ ใช้ sinθ ≈ y/L ไม่ได้)
     if (gratingLightSource === 'white') return; // no recording in white light mode
     const mOrder = parseInt(document.getElementById('mi-nC').value);
     const y_cm = parseFloat(document.getElementById('mi-yC').value);
     if (isNaN(mOrder) || mOrder < 1 || isNaN(y_cm) || y_cm <= 0) return;
     const y_m = y_cm * 0.01;
     const d_m = getGratingD();
-    const lambdaCalc = y_m * d_m / (mOrder * screenDistC);
+    const lambdaCalc = d_m * (y_m / Math.hypot(y_m, screenDistC)) / mOrder;
     const lambdaCalc_nm = lambdaCalc * 1e9;
     let lambdaActual_nm;
     if (gratingLightSource === 'helium' || gratingLightSource === 'sodium') {
@@ -1738,7 +1741,7 @@ function updateReadout() {
         <div class="readout-item"><span class="readout-label">λ:</span><span class="readout-val">${colorDot} ??? nm (สุ่ม)</span></div>
         <div class="readout-item"><span class="readout-label">d:</span><span class="readout-val">${(d_m * 1e6).toFixed(3)} μm</span></div>
         <div class="readout-item"><span class="readout-label">L:</span><span class="readout-val">${screenDistC.toFixed(2)} m</span></div>
-        <div class="readout-item"><span class="readout-label">สูตร:</span><span class="readout-val">λ = y·d / (m·L)</span></div>`;
+        <div class="readout-item"><span class="readout-label">สูตร:</span><span class="readout-val">λ = d·sinθ / m · sinθ = y/√(y²+L²)</span></div>`;
     }
   }
 }
@@ -1757,7 +1760,7 @@ function updateHint() {
         const srcH = gratingLightSource==='white'?'แสงขาว — สังเกตสเปกตรัมสีรุ้ง':gratingLightSource==='helium'?'He — สังเกต emission lines ของฮีเลียม':'Na — สังเกต sodium doublet (D₁, D₂ ≈ 589 nm)';
         box.innerHTML = `💡 โหมด${srcH}ที่แต่ละ order | สลับไป 🔴 เลเซอร์ เพื่อวัดค่าและบันทึกข้อมูล`;
       } else {
-        box.innerHTML = `💡 เกรตติง — ระบบสุ่ม λ ให้ → วัดระยะ <strong>y</strong> จากแนวกลางถึง<strong>แถบสว่างลำดับที่ m</strong> → ใส่ m และ y (cm) → กด บันทึก → ระบบคำนวณ λ = y·d/(m·L) เทียบกับค่าจริง`;
+        box.innerHTML = `💡 เกรตติง — ระบบสุ่ม λ ให้ → วัดระยะ <strong>y</strong> จากแนวกลางถึง<strong>แถบสว่างลำดับที่ m</strong> → ใส่ m และ y (cm) → กด บันทึก → ระบบคำนวณ sinθ = y/√(y²+L²) แล้ว λ = d·sinθ/m เทียบกับค่าจริง`;
       }
     }
   } else {

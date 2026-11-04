@@ -698,20 +698,22 @@ function eraAt(logt){
 }
 
 function tempAt(logt){
-  // Simple analytic approximation:
-  // For radiation era (logt < 13.08), T ~ 1.5e10 / sqrt(t)
-  // For matter era, T ~ 2725 * (a_now/a) ~ piecewise
-  if(logt < -32) return Math.pow(10, 32 - 0.5*(logt+32));   // very early
-  if(logt < 13.08) {
-    // T = 1.5e10 / sqrt(t)
-    return 1.5e10 / Math.sqrt(Math.pow(10, logt));
-  }
-  // Matter era: from recombination (T=3000K @ logt=13.08) to now (T=2.725 @ logt=17.46)
-  // T ∝ (1+z), and a ∝ t^(2/3) → T ∝ t^(-2/3)
-  const T_rec = 3000;
-  const t_rec = Math.pow(10, 13.08);
-  const t = Math.pow(10, logt);
-  return T_rec * Math.pow(t_rec/t, 2/3);
+  // Continuous piecewise model (log T vs log t), consistent with the era cards:
+  //  ① logt ≤ −32 (Planck → inflation): log T falls linearly 10³² K @ 10⁻⁴³ s → 10²⁷ K @ 10⁻³² s
+  //  ② −32 → −12: smooth join (log-linear) 10²⁷ K → radiation-era value 1.5×10¹⁶ K
+  //  ③ radiation era: T = 1.5×10¹⁰ K / √t[s]  (until matter–radiation equality ≈ 4×10⁴ yr, T ≈ 1.3×10⁴ K)
+  //  ④ matter era to recombination: T ∝ t^(−2/3) → 3000 K @ 10^13.08 s (≈ 380,000 yr)
+  //  ⑤ recombination → now: T = T_rec·(t_rec/t)^p , p chosen so T = 2.725 K @ 10^17.46 s (“Now” in this lab)
+  const T_rec = 3000, L_rec = 13.08, L_now = 17.46, T_now = 2.725;
+  const L_eq = -6*(Math.log10(1.5e10) - Math.log10(T_rec) - (2/3)*L_rec);   // ≈ 12.13 (radiation = matter branch)
+  if(logt < -32) return Math.pow(10, 27 + (5/11)*(-32 - logt));
+  const lgRad12 = Math.log10(1.5e10) + 6;                                   // log T_rad at 10⁻¹² s
+  if(logt < -12) return Math.pow(10, 27 + (lgRad12 - 27)*(logt + 32)/20);
+  if(logt < L_eq) return 1.5e10 / Math.sqrt(Math.pow(10, logt));
+  if(logt < L_rec) return T_rec * Math.pow(10, (2/3)*(L_rec - logt));
+  if(logt >= L_now) return T_now;
+  const p = Math.log10(T_rec/T_now)/(L_now - L_rec);                        // ≈ 0.695 (close to 2/3; Λ era)
+  return T_rec * Math.pow(10, -p*(logt - L_rec));
 }
 
 function scaleAt(logt){
@@ -2826,7 +2828,7 @@ const ex4 = (function(){
     // update readouts (DOM)
     document.getElementById('o4-t').textContent = T.toFixed(3)+' K';
     document.getElementById('o4-fp').textContent = fp.toFixed(2)+' GHz';
-    const lp = 0.2898/T*1e3;
+    const lp = 2.898/T;
     document.getElementById('o4-lp').textContent = lp.toFixed(3)+' mm';
     document.getElementById('o4-sse').textContent = sse.toFixed(4);
     const eel = document.getElementById('o4-err');
@@ -2848,7 +2850,7 @@ const ex4 = (function(){
       document.getElementById('o4-t').textContent = T.toFixed(3)+' K';
       const fp = HZ_PER_K_PEAK*T/1e9;
       document.getElementById('o4-fp').textContent = fp.toFixed(2)+' GHz';
-      document.getElementById('o4-lp').textContent = (0.2898/T*1e3).toFixed(3)+' mm';
+      document.getElementById('o4-lp').textContent = (2.898/T).toFixed(3)+' mm';
       return;
     }
     drawSkyMap(pad, pad, w-pad*2, skyH, T);
@@ -2894,7 +2896,7 @@ const ex4 = (function(){
     reset(){ setT(5); records.length=0; renderTable(); },
     record(){
       const fp = HZ_PER_K_PEAK*T/1e9;
-      const lp = 0.2898/T*1e3;
+      const lp = 2.898/T;
       const sse = parseFloat(document.getElementById('o4-sse').textContent)||0;
       records.push({T, fp, lp, sse});
       renderTable();
@@ -2907,7 +2909,7 @@ const ex4 = (function(){
         document.getElementById('vi-tcmb').value=Ts.toFixed(2);
         draw();
         const fp = HZ_PER_K_PEAK*Ts/1e9;
-        const lp = 0.2898/Ts*1e3;
+        const lp = 2.898/Ts;
         const sse = parseFloat(document.getElementById('o4-sse').textContent)||0;
         records.push({T:Ts, fp, lp, sse});
       }

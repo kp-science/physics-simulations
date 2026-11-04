@@ -660,7 +660,7 @@ footer{padding:16px 20px;text-align:center;color:var(--muted);font-size:0.78rem;
       <span class="htag">เทคนิค</span>
       • นับ 10 รอบดีกว่า 1 รอบ — ลดความผิดพลาดจากการกดปุ่ม (reaction time error)<br>
       • อย่าให้ A ใหญ่เกิน 0.30 m — สปริงจริงอาจหลุดจาก linear regime<br>
-      • ตั้งความเร็วเล่น (speed) เป็น 1× เพื่อให้นาฬิกาตรงกับเวลา simulation
+      • ความเร็วเล่น (speed) ชะลอ/เร่งภาพได้ — นาฬิกาเดินตามเวลา simulation ค่า T ที่วัดจึงไม่เปลี่ยน
     </div>
   </div>
 </div>
@@ -1739,7 +1739,7 @@ function swToggle(){
   SW.running = !SW.running;
   const btn = document.getElementById('swBtn');
   if(SW.running){
-    SW.t0 = performance.now() - SW.elapsed*1000;
+    SW.t0 = performance.now();
     btn.textContent = '⏸';
     swTick();
   } else {
@@ -1748,7 +1748,10 @@ function swToggle(){
   }
 }
 function swTick(){
-  SW.elapsed = (performance.now() - SW.t0)/1000;
+  /* นาฬิกาเดินตามความเร็วเล่น (S.speed) — เวลาที่อ่านได้ = เวลาใน simulation */
+  const now = performance.now();
+  SW.elapsed += (now - SW.t0)/1000 * S.speed;
+  SW.t0 = now;
   document.getElementById('swDisplay').textContent = SW.elapsed.toFixed(2)+'s';
   if(SW.running) SW.rafId = requestAnimationFrame(swTick);
 }
@@ -1816,7 +1819,8 @@ function cycReset(){
   document.getElementById('cycAlert').textContent = '';
 }
 function cycTick(){
-  CYC.elapsed = (performance.now() - CYC.t0)/1000;
+  /* เวลาที่แสดง/บันทึก = เวลาใน simulation (S.t) ชุดเดียวกับที่ใช้นับรอบ → T = t/n เสมอทุกความเร็วเล่น */
+  CYC.elapsed = S.t - CYC.simStart;
   // count cycles based on simulation time advancement (so speed× is honored)
   const kEff = calcKEff();
   const T = period(kEff, S.m);
@@ -1858,12 +1862,12 @@ function cycComputeAndStore(){
   const k_meas = (4 * Math.PI * Math.PI * S.m) / (T_meas * T_meas);
   const k_set = calcKEff();
   const err = k_set>0 ? Math.abs(k_meas - k_set)/k_set*100 : 0;
-  const t_real = CYC.elapsed.toFixed(3);
+  const t_real = (S.t - CYC.simStart).toFixed(3);
 
   document.getElementById('cycResult').style.display = 'block';
   document.getElementById('cycResult').innerHTML =
     `<div style="color:var(--accent);font-weight:700;margin-bottom:4px;">📊 ผลการวัด</div>
-     เวลารวม (จริง) = <b class="mono">${t_real} s</b> · จำนวนรอบ = <b class="mono">${CYC.count}</b><br>
+     เวลารวม t = <b class="mono">${t_real} s</b> · จำนวนรอบ = <b class="mono">${CYC.count}</b><br>
      T = t/n = <b class="mono">${T_meas.toFixed(4)} s</b><br>
      k_meas = 4π²m/T² = <b class="mono" style="color:var(--accent3);">${k_meas.toFixed(2)} N/m</b><br>
      k_set (จากช่องตั้งค่า) = <b class="mono" style="color:var(--accent2);">${k_set.toFixed(2)} N/m</b><br>

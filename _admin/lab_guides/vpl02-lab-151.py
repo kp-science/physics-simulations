@@ -11,7 +11,7 @@ GUIDE = {
     window.__wave = t => { const h = INS[__KM].h, s = h.reduce((a, c, i) => a + c * Math.sin(2 * Math.PI * (i + 1) * __FM * t), 0), n = h.reduce((a, c) => a + c, 0) * .72; return amp * s / n; };
     window.__ds0 = drawScope;
     drawScope = function () { if (!mys) return __ds0(); const o = scopeGrid(P.scope, 46), g = o.g; g.font = 'bold 24px "Share Tech Mono", monospace'; g.textAlign = 'left'; g.fillStyle = '#4ade80';
-      if (view === 'wave') { g.fillText('CH1 ไมค์', o.ML, 32); g.textAlign = 'right'; g.fillStyle = '#86efac'; g.fillText(tb + ' ms/div', o.W - o.ML, 32); scopeTrace(o, '#4ade80', u => __wave(u * 10 * tb / 1000) * 4, 1); }
+      if (view === 'wave') { g.fillText('CH1 ไมค์', o.ML, 32); g.textAlign = 'right'; g.fillStyle = '#86efac'; g.fillText(tb + ' ms/div', o.W - o.ML, 32); scopeTrace(o, '#4ade80', u => __wave(u * 10 * tb / 1000) * 2.8, 1); }
       else { g.fillText('ฮาร์มอนิก', o.ML, 32); const h = INS[__KM].h; g.fillStyle = '#fbbf24'; h.forEach((a, i) => { const bw = o.gw / 10, x = o.ML + i * bw + 8, hh = a * o.gh * .85; g.fillRect(x, o.MT + o.gh - hh, bw - 16, hh); g.fillStyle = '#e2e8f0'; g.textAlign = 'center'; g.fillText(String(i + 1), x + bw / 2 - 8, o.MT + o.gh - 6); g.fillStyle = '#fbbf24'; }); }
       P.scope.t.needsUpdate = true; };
     guess = k => { const ok = k === __KM; guessOK = ok; $('mysR').innerHTML = ok ? '<b style="color:var(--accent3)">✓ ถูกต้อง</b> รูปคลื่นซ้ำคาบเดียวกันแต่ฮาร์มอนิกเป็นลักษณะของเครื่องดนตรีนี้' : '<b style="color:var(--err)">✗ ลองเทียบแท่งฮาร์มอนิกกับเครื่องดนตรีอื่น</b>'; updateGuide(); };
@@ -41,7 +41,7 @@ GUIDE = {
      'out': 'f = 220 Hz: <b>T</b> = 4.55 ms · f = 880 Hz: <b>T</b> = 1.14 ms' },
    { 'el': ['#view3d', '#slA'], 'prep': "setF(440); setA(.25); __rec(); setView('scope')",
      'title': 'เปลี่ยนแอมพลิจูด',
-     'text': 'ตั้ง f กลับเป็น 440 Hz แล้วเลื่อน <b>A</b> จาก 0.60 เป็น <b>0.25</b> · คลื่นเตี้ยลง (เสียง<b>เบาลง</b>) แต่ระยะระหว่างยอดคลื่นเท่าเดิม · กลับกัน เพิ่ม A เสียงดังขึ้นแต่คาบก็ไม่เปลี่ยน · บันทึกผลอีกแถว',
+     'text': 'ตั้ง f กลับเป็น 440 Hz แล้วเลื่อน <b>A</b> จาก 0.60 เป็น <b>0.25</b> · คลื่นเตี้ยลง (เสียง<b>เบาลง</b>) แต่ระยะระหว่างยอดคลื่นเท่าเดิม · กลับกัน เพิ่ม A ถึง 1.00 คลื่นสูงขึ้น (ยอดยังอยู่ในจอ เป็นไซน์เหมือนเดิม) เสียงดังขึ้นแต่คาบก็ไม่เปลี่ยน · บันทึกผลอีกแถว',
      'out': 'A = 0.25: <b>T</b> = 2.27 ms เท่าเดิม → ความดังขึ้นกับแอมพลิจูด ไม่เปลี่ยนความถี่' },
    { 'el': '#secGraph', 'prep': "drawGraph(); setView('iso')",
      'title': 'กราฟ f กับ 1/T',

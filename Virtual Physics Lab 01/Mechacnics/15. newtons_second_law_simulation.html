@@ -1009,8 +1009,9 @@ function swStart(){
   document.getElementById('swDisp').classList.add('running');
   document.getElementById('swStartBtn').disabled = true;
   document.getElementById('swStopBtn').disabled = false;
+  /* โหมดวัดค่าเอง: นาฬิกาอ่านเวลาจำลอง t ของรถ (ตั้งต้นพร้อมกัน) → ความเร็วเล่นเท่าใด เวลาที่วัดได้ก็ตรงกับฟิสิกส์ */
   swInt = setInterval(()=>{
-    swElapsed = (performance.now() - swStart_t)/1000;
+    swElapsed = (mode==='manual') ? t : (performance.now() - swStart_t)/1000;
     document.getElementById('swDisp').textContent = swElapsed.toFixed(2)+' s';
   }, 30);
   // also release the cart in manual mode
@@ -1026,6 +1027,7 @@ function swStop(){
   if(!swRunning) return;
   swRunning = false;
   clearInterval(swInt);
+  if(mode==='manual'){ swElapsed = t; document.getElementById('swDisp').textContent = swElapsed.toFixed(2)+' s'; }
   document.getElementById('swDisp').classList.remove('running');
   document.getElementById('swStartBtn').disabled = false;
   document.getElementById('swStopBtn').disabled = true;
@@ -1255,7 +1257,9 @@ function drawGraph(){
     g.fillText(yv.toFixed(0), padL-6, py+3);
   }
 
-  // theoretical curve
+  // theoretical curve (ตัดที่ขอบกรอบกราฟ — เส้นพุ่งออกขอบบน ไม่แบนราบเหมือนค่าอิ่มตัว)
+  g.save();
+  g.beginPath(); g.rect(padL, padT, plotW, plotH); g.clip();
   g.strokeStyle = '#818cf8';
   g.lineWidth = 1.5;
   g.setLineDash([5,4]);
@@ -1268,22 +1272,24 @@ function drawGraph(){
       const Mtot = (Mc + mh_g)/1000;
       const a_cms2 = (F/Mtot)*100;
       const px = padL + (F/xMax)*plotW;
-      const py = H-padB - Math.min(a_cms2,yMax)/yMax*plotH;
+      const py = H-padB - Math.min(a_cms2,yMax*3)/yMax*plotH;
       if(i===0) g.moveTo(px,py); else g.lineTo(px,py);
     }
   } else {
     const F = val('sl-Ffix');
-    for(let i=1;i<=80;i++){
-      const M = (xMax/80)*i;
+    let first = true;
+    for(let i=1;i<=400;i++){
+      const M = (xMax/400)*i;
       if(M < 100) continue;
       const a_cms2 = (F/(M/1000))*100;
       const px = padL + (M/xMax)*plotW;
-      const py = H-padB - Math.min(a_cms2,yMax)/yMax*plotH;
-      if(i===1) g.moveTo(px,py); else g.lineTo(px,py);
+      const py = H-padB - Math.min(a_cms2,yMax*3)/yMax*plotH;
+      if(first){ g.moveTo(px,py); first=false; } else g.lineTo(px,py);
     }
   }
   g.stroke();
   g.setLineDash([]);
+  g.restore();
 
   // data points + line
   if(arr.length>0){

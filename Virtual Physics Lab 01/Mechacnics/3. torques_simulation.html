@@ -317,12 +317,17 @@ table.theory-table tr:hover td { background: var(--panel2); }
             <span class="sl-unit">cm</span>
           </div>
           <div class="unknown-readout">
-            <h4>⚖️ น้ำหนักที่คำนวณได้</h4>
+            <h4>⚖️ น้ำหนักที่คำนวณได้ (ใช้ได้เมื่อไม้สมดุล)</h4>
             <div style="font-family:'Share Tech Mono',monospace; font-size:1.1rem; color:var(--accent5); text-align:center; padding:6px 0;">
-              W(u) = <span id="wu-calc">—</span> N
+              W(u) = F(k)·S(k)/S(u) = <span id="wu-calc">—</span> N
             </div>
             <div style="font-size:0.75rem;color:var(--muted);text-align:center;">
-              (มวลจริง ≈ <span id="wu-mass">—</span> g)
+              m(u) = W(u)/g ≈ <span id="wu-mass">—</span> g
+            </div>
+            <div id="wu-true" style="font-size:0.78rem;color:var(--muted);text-align:center;margin-top:4px;">มวลจริง: ซ่อนไว้ 🔒</div>
+            <div class="btn-row" style="margin-top:6px;">
+              <button class="btn btn-hint" onclick="revealMu()">👁 เฉลยมวลจริง</button>
+              <button class="btn btn-reset" onclick="newUnknown()">🎲 สุ่มมวลใหม่</button>
             </div>
           </div>
         </div>
@@ -641,6 +646,10 @@ table.theory-table tr:hover td { background: var(--panel2); }
 <script>
 // ========= STATE =========
 let currentMode = 'A';
+/* มวลไม่รู้ค่า m(u) ของโหมด B — สุ่มแล้วซ่อน · ไม้บรรทัดเอียงตามทอร์กจริงของมวลนี้ ผู้เรียนต้องเลื่อน X(u) หาตำแหน่งสมดุลเอง */
+let MU_TRUE = 0, muRevealed = false;
+function newUnknown() { MU_TRUE = 80 + Math.floor(Math.random() * 221); muRevealed = false; draw(); }   // 80 – 300 g
+function revealMu() { muRevealed = true; draw(); }
 let X0 = 49.9; // cm — pivot (center of mass of stick)
 
 // ========= TAB =========
@@ -663,6 +672,7 @@ function setMode(m, btn) {
     ? 'วางมวลทั้งสองด้านแล้วหาตำแหน่งที่สมดุล'
     : 'แขวนมวลรู้ค่าและมวลไม่รู้ค่า หาน้ำหนักของมวลไม่รู้ค่า';
   syncViewBtns();
+  if (m === 'B') { MU_TRUE = 80 + Math.floor(Math.random() * 221); muRevealed = false; }
   resetSim();
 }
 
@@ -701,25 +711,26 @@ function draw() {
   // *** Tilt angle based on net torque *** (rad · บวก = ด้านขวาลง เหมือนภาพ 2D เดิม)
   let tilt = 0;
   let netTorque = 0;
+  const gu = MU_TRUE * 0.01 * Math.abs(su);   // ทอร์กจริงของ m(u) (ผู้เรียนไม่เห็นค่านี้)
   if (currentMode === 'A') {
     netTorque = g1 - g2; // CW positive
     const maxTilt = 0.35;
     tilt = Math.max(-maxTilt, Math.min(maxTilt, netTorque * 3.0));
   } else {
-    netTorque = gk - wu_calc * Math.abs(su);
+    netTorque = gk - gu;
     const maxTilt = 0.35;
     tilt = Math.max(-maxTilt, Math.min(maxTilt, netTorque * 3.0));
   }
 
   S3 = currentMode === 'A'
     ? { tilt, xR: x1, xL: x2, mR: m1, mL: m2, unk: false, gR: g1, gL: g2 }
-    : { tilt, xR: xk, xL: xu, mR: mk, mL: null, unk: true, gR: gk, gL: wu_calc * Math.abs(su) };
+    : { tilt, xR: xk, xL: xu, mR: mk, mL: null, unk: true, gR: gk, gL: gu };
 
   // Info panel (มุมขวาบนของภาพ 3D)
   drawInfoPanel(tilt, g1, g2, gk, wu_calc);
 
   // Update readouts
-  updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu_calc, sk, su, mk, fk);
+  updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu_calc, sk, su, mk, fk, gu);
 }
 
 function drawInfoPanel(tilt, g1, g2, gk, wu) {
@@ -1025,7 +1036,7 @@ function camPan(ddx, ddy) { freeFollow();
 /* ปุ่มมุมซูมเปลี่ยนชื่อตามโหมด (A: M(1)/M(2) · B: m(k)/m(u)) */
 function syncViewBtns() { const r = $('vbR'), l = $('vbL'); if (r) r.textContent = currentMode === 'A' ? '🔍 ซูม M(1)' : '🔍 ซูม m(k)'; if (l) l.textContent = currentMode === 'A' ? '🔍 ซูม M(2)' : '🔍 ซูม m(u)'; }
 
-function updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu, sk, su, mk, fk) {
+function updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu, sk, su, mk, fk, gu) {
   const x0d = X0.toFixed(1);
   document.getElementById('ro-x0').textContent = x0d + ' cm';
 
@@ -1052,11 +1063,15 @@ function updateReadouts(g1, g2, s1, s2, x1, x2, gk, wu, sk, su, mk, fk) {
     document.getElementById('ro-s1').textContent = (Math.abs(sk)*100).toFixed(1) + ' cm';
     document.getElementById('ro-s2').textContent = (Math.abs(su)*100).toFixed(1) + ' cm';
     document.getElementById('ro-g1').textContent = gk.toFixed(3) + ' N·m';
-    document.getElementById('ro-g2').textContent = (wu * Math.abs(su)).toFixed(3) + ' N·m';
-    document.getElementById('ro-err').textContent = '—';
+    document.getElementById('ro-g2').textContent = '? (ไม่รู้ W(u))';
     document.getElementById('wu-calc').textContent = wu.toFixed(3);
     document.getElementById('wu-mass').textContent = (wu * 100).toFixed(1);
-    const gu_torque = wu * Math.abs(su);
+    const errU = MU_TRUE > 0 ? Math.abs(wu * 100 - MU_TRUE) / MU_TRUE * 100 : 0;
+    document.getElementById('ro-err').textContent = muRevealed ? errU.toFixed(2) + '%' : '— (กดเฉลย)';
+    document.getElementById('wu-true').innerHTML = muRevealed
+      ? 'มวลจริง = <b style="color:var(--accent3)">' + MU_TRUE + ' g</b> · คลาด ' + errU.toFixed(2) + '%'
+      : 'มวลจริง: ซ่อนไว้ 🔒';
+    const gu_torque = gu;
     const diff = Math.abs(gk - gu_torque);
     const ind = document.getElementById('bal-ind');
     if (diff < 0.005) {
