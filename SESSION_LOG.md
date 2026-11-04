@@ -4955,3 +4955,19 @@ match /settings/{docId} {
 ### หมายเหตุ
 - ผล `protect_new_file.py --scan` เท่าเดิมก่อน/หลังแก้ (Demo 26 ไฟล์ขาด Domain Protection, mobile order fix 163 ไฟล์ — ค้างมาก่อน ไม่เกี่ยวกับงานนี้)
 - คนที่ล็อกอินค้างไว้ต้องล็อกอินใหม่ 1 ครั้ง (localStorage ผูกกับโดเมน)
+
+## [2026-11-05] — [เครื่อง: ไม่ระบุ] (ต่อ: ขึ้นเว็บ lab.kpscience.com)
+
+### ทำอะไรไปบ้าง
+- ครูตั้ง DNS `lab` ใน Cloudflare + Firebase Authorized domains แล้ว → push physics-simulations (67e6b39) + kp-home (088834d) · ตั้ง custom domain + Enforce HTTPS ใน GitHub Pages
+- **เหตุขัดข้อง ~20 นาที**: GitHub Actions ล่ม deploy ค้างคิว แต่โดเมนใหม่ทำงานก่อน → โค้ดเก่าบนโดเมนใหม่ขึ้นหน้า ⛔ (ตัวกันโดเมนเก่ารู้จักแค่ github.io) · แก้ด้วยการถอด custom domain ชั่วคราว รอ deploy เสร็จ แล้วตั้งกลับ
+- ตรวจแล้ว: https://lab.kpscience.com/ เปิดได้ · ลิงก์ github.io เดิม 301 มาโดเมนใหม่ · http → https · www.kpscience.com ลิงก์มา lab แล้ว
+
+### ไฟล์ที่แก้
+- `SESSION_LOG.md` เท่านั้น
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ได้ลองล็อกอินจริงบนโดเมนใหม่
+
+### หมายเหตุ
+- บทเรียน: ครั้งหน้าเปลี่ยนโดเมน ให้ push โค้ดที่รับโดเมนใหม่ให้ deploy เสร็จก่อน แล้วค่อยเปิด custom domain
