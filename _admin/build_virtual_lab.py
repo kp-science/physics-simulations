@@ -38,8 +38,17 @@ def build_page():
 {''.join(card(l) for l in labs)}  </div>
 </section>
 '''
-    level_chips=''.join(f'<button class="fchip" data-f="level" data-v="{LEVEL_KEY[lv]}" onclick="setFilter(this)">{esc(lv)}</button>' for lv in ['ม.4','ม.5','ม.6','ปริญญาตรี'] if any(l[6]==lv for l in LABS))
-    topic_chips=''.join(f'<button class="fchip" data-f="topic" data-v="{t[0]}" onclick="setFilter(this)">{t[1]} {esc(t[2])}</button>' for t in TOPICS if by_topic[t[0]])
+    level_chips=''.join(f'<button class="seg" data-f="level" data-v="{LEVEL_KEY[lv]}" onclick="setFilter(this)">{esc(lv)}</button>' for lv in ['ม.4','ม.5','ม.6','ปริญญาตรี'] if any(l[6]==lv for l in LABS))
+    # แถบซ้าย: กลุ่ม → บทเรียนซ้อนอยู่ใต้กลุ่ม (กลุ่มที่มีบทเรียนเดียว แสดงแค่หัวกลุ่ม ไม่ซ้ำชื่อ)
+    side=''
+    for gid,gicon,gname,tids in GROUPS:
+        tl=[t for t in tids if by_topic[t]]
+        if not tl: continue
+        n=sum(len(by_topic[t]) for t in tl)
+        sub=''
+        if len(tl)>1:
+            sub='<div class="slist">'+''.join(f'<button class="sitem st" data-f="topic" data-v="{t}" data-g="{gid}" onclick="setFilter(this)" style="--tclr:var(--{T[t][4]})"><span class="si">{T[t][1]}</span><span class="sl">{esc(T[t][2])}</span><span class="sn" data-n="{t}">{len(by_topic[t])}</span></button>' for t in tl)+'</div>'
+        side+=f'<div class="sgroup"><button class="sitem sg" data-f="group" data-v="{gid}" data-only="{tl[0] if len(tl)==1 else ""}" onclick="setFilter(this)"><span class="si">{gicon}</span><span class="sl">{esc(gname)}</span><span class="sn" data-n="g:{gid}">{n}</span></button>{sub}</div>'
     total=len(LABS)
     return f'''<!DOCTYPE html>
 <html lang="th">
@@ -63,19 +72,40 @@ nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);ba
 .hero h1{{font-size:clamp(1.5rem,3.6vw,2.2rem);font-weight:800;margin-bottom:.4rem}} .hero h1 span{{color:var(--accent)}}
 .hero p{{color:var(--muted);font-size:.98rem;max-width:640px;line-height:1.7}}
 .series-links{{margin-top:.8rem;font-size:.82rem;color:var(--muted)}} .series-links a{{color:var(--accent);text-decoration:none;margin-left:.4rem}}
-/* filter bar */
-.fbar.fhide{{transform:translateY(calc(-100% - 120px));pointer-events:none}}
-.fpeek{{position:fixed;top:112px;right:4%;z-index:95;display:flex;align-items:center;gap:.35rem;background:rgba(13,20,33,.95);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:20px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.25s}}
-.fpeek.show{{opacity:1;transform:none;pointer-events:auto}}
-.fbar{{position:sticky;top:102px;z-index:90;transition:transform .28s ease;background:rgba(6,9,15,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.7rem 5%}}
-.fbar-inner{{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:.5rem}}
-.frow{{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}}
-.flabel{{font-size:.72rem;color:var(--muted);font-weight:700;min-width:54px;text-transform:uppercase;letter-spacing:.5px}}
-.fchip{{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.2s;white-space:nowrap}}
-.fchip:hover{{border-color:var(--accent);color:var(--text)}} .fchip.active{{background:var(--accent);border-color:var(--accent);color:#06090f}}
-.fsearch{{margin-left:auto;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:.85rem;min-width:220px}}
+/* layout: แถบซ้าย (กลุ่ม → บทเรียน) + คอลัมน์ผลลัพธ์ */
+.vl-layout{{width:min(1320px,94%);margin:0 auto;display:grid;grid-template-columns:288px minmax(0,1fr);gap:1.8rem;align-items:start}}
+.side{{position:sticky;top:110px;max-height:calc(100vh - 120px);overflow-y:auto;padding:1.1rem .3rem 1.5rem 0;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}}
+.side-head{{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.5px;padding:0 .65rem .55rem}}
+.side-x{{display:none;background:var(--bg3);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center}}
+.sitem{{width:100%;display:flex;align-items:center;gap:.55rem;background:none;border:0;border-radius:8px;color:var(--muted);font-family:inherit;font-size:.84rem;text-align:left;padding:6px 10px;cursor:pointer;transition:background .15s,color .15s;line-height:1.35}}
+.sitem:hover{{background:var(--bg3);color:var(--text)}}
+.sitem .si{{width:1.35em;text-align:center;flex-shrink:0}} .sitem .sl{{flex:1;min-width:0}}
+.sitem .sn{{font-family:'Share Tech Mono',monospace;font-size:.76rem;color:var(--muted);flex-shrink:0}}
+.sitem.zero{{opacity:.38}}
+.sall,.sg{{font-family:IBM Plex Sans Thai,sans-serif;font-weight:700;color:var(--text);font-size:.9rem}}
+.sall{{margin-bottom:.35rem}}
+.sgroup{{border-top:1px solid var(--border);padding:.35rem 0}}
+.slist{{margin:.1rem 0 .15rem 1.15rem;padding-left:.4rem;border-left:1px solid var(--border2)}}
+.st{{font-size:.82rem;padding:5px 10px}}
+.sitem.active{{background:rgba(56,189,248,.12);color:var(--accent)}} .sitem.active .sn{{color:var(--accent)}}
+.st.active{{box-shadow:inset 3px 0 0 var(--accent)}}
+.sg.within{{color:var(--accent)}}
+.side-scrim{{display:none}}
+.vl-page .hero{{padding-left:3%;padding-right:3%}} .vl-page .hero-inner{{max-width:1320px}}
+.vl-main{{min-width:0}} .vl-main .wrap{{max-width:none;padding:1rem 0 3rem}}
+/* แถวค้นหา + ระดับ */
+.fbar{{position:sticky;top:102px;z-index:90;transition:transform .28s ease;background:rgba(6,9,15,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.8rem 0}}
+.fhead{{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}}
+.fsearch{{flex:1 1 220px;min-width:0;max-width:360px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:.86rem}}
 .fsearch:focus{{outline:none;border-color:var(--accent)}}
-.fcount{{font-size:.78rem;color:var(--muted);font-family:'Share Tech Mono',monospace}}
+.segs{{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}}
+.seg{{background:none;border:0;color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;padding:4px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:.15s}}
+.seg:hover{{color:var(--text)}} .seg.active{{background:var(--accent);color:#06090f}}
+.fcount{{margin-left:auto;font-size:.8rem;color:var(--muted);font-family:'Share Tech Mono',monospace;white-space:nowrap}}
+.ftog{{display:none;align-items:center;gap:.35rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;max-width:52%;overflow:hidden}}
+.ftog .fsum{{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis}}
+.fpeek{{position:fixed;top:58px;right:4%;z-index:95;display:none;align-items:center;gap:.35rem;background:rgba(13,20,33,.95);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:20px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.25s}}
+.fpeek.show{{opacity:1;transform:none;pointer-events:auto}}
 /* groups / topics */
 .wrap{{max-width:1200px;margin:0 auto;padding:1.6rem 5% 3rem}}
 .group-anchor{{display:flex;align-items:center;gap:.7rem;margin:2.2rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--border2);scroll-margin-top:170px}}
@@ -85,7 +115,7 @@ nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);ba
 .topic-header{{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--tclr);border-radius:10px;margin-bottom:1rem}}
 .topic-icon{{width:38px;height:38px;border-radius:9px;background:color-mix(in srgb,var(--tclr) 14%,transparent);display:flex;align-items:center;justify-content:center;font-size:1.1rem}}
 .topic-name{{font-weight:700;font-size:1rem}} .topic-en{{font-size:.75rem;color:var(--muted)}}
-.topic-count{{margin-left:auto;font-size:.73rem;font-family:'Share Tech Mono',monospace;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:2px 10px;border-radius:20px}}
+.topic-count{{margin-left:auto;white-space:nowrap;flex-shrink:0;font-size:.73rem;font-family:'Share Tech Mono',monospace;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:2px 10px;border-radius:20px}}
 .demo-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}}
 .demo-card{{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.25s;position:relative;display:flex;flex-direction:column;text-decoration:none;color:var(--text)}}
 .demo-card:hover{{transform:translateY(-4px);border-color:var(--card-accent,var(--accent))}}
@@ -103,20 +133,24 @@ nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);ba
 .dc-arrow{{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--muted);transition:.2s;flex-shrink:0}}
 .empty{{display:none;text-align:center;color:var(--muted);padding:3rem 0}} .empty.show{{display:block}}
 footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;color:var(--muted);font-size:.85rem}} footer a{{color:var(--accent);text-decoration:none}}
-.fhead{{display:flex;gap:.5rem;align-items:center}} .fhead .fsearch{{margin-left:0;flex:1;max-width:360px}} .fhead .fcount{{margin-left:auto}}
-.ftog{{display:none;align-items:center;gap:.35rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;max-width:48%;overflow:hidden;text-overflow:ellipsis}}
-.ftog .fsum{{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis}} .ftog .car{{transition:.2s;font-size:.7rem}} .fbar.open .ftog .car{{transform:rotate(180deg)}}
-@media(max-width:1024px){{nav.topnav{{position:static}} .fpeek{{top:58px}} .fbar{{top:50px;padding:.5rem 4%}} .fhead .fsearch{{max-width:none;min-width:0;padding:7px 10px}} .fhead .fcount{{display:none}} .ftog{{display:inline-flex}}
-  .fbar:not(.open) .frow{{display:none}} .fbar.open .fbar-inner{{max-height:62vh;overflow-y:auto}}
-  .frow{{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}} .frow::-webkit-scrollbar{{display:none}} .flabel{{min-width:auto;flex-shrink:0;position:sticky;left:0;background:rgba(6,9,15,.96);padding-right:6px;z-index:1}}
-  .group-anchor{{scroll-margin-top:104px}} .topic-section{{scroll-margin-top:110px}}}}
+@media(max-width:899px){{nav.topnav{{position:static}}
+  .vl-layout{{display:block;width:92%}} .vl-page .hero{{padding-left:4%;padding-right:4%}}
+  .side{{position:fixed;top:0;left:0;bottom:0;width:min(320px,86vw);max-height:none;z-index:10001;background:var(--bg2);border-right:1px solid var(--border2);padding:1rem .7rem 2rem;transform:translateX(-102%);transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.5);overscroll-behavior:contain}}
+  .side.open{{transform:none}} .side-head{{font-size:.85rem;color:var(--text)}} .side-x{{display:inline-flex}}
+  .sitem{{padding:8px 10px}}
+  .side-scrim{{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;opacity:0;pointer-events:none;transition:opacity .25s}} .side-scrim.show{{opacity:1;pointer-events:auto}}
+  .fbar{{top:50px;padding:.55rem 0}} .fbar.fhide{{transform:translateY(calc(-100% - 60px));pointer-events:none}}
+  .fhead{{gap:.45rem}} .fsearch{{flex:1 1 0;max-width:none;padding:7px 10px}} .ftog{{display:inline-flex}} .fcount{{display:none}}
+  .segs{{order:3;width:100%;overflow-x:auto;scrollbar-width:none}} .segs::-webkit-scrollbar{{display:none}} .seg{{flex:1 0 auto}}
+  .fpeek{{display:flex}}
+  .group-anchor{{scroll-margin-top:162px}} .topic-section{{scroll-margin-top:166px}}}}
 @media(max-width:768px){{.demo-grid{{grid-template-columns:1fr}} .hero{{padding:28px 5% 20px}}}}
 /* === KP Access Lock Overlay === */
 [data-locked="true"].kp-locked{{position:relative;pointer-events:all}}
 [data-locked="true"].kp-locked::after{{content:'🔒  สมาชิกเท่านั้น';position:absolute;inset:0;background:rgba(6,9,15,0.75);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:.9rem;border-radius:14px;z-index:5}}
 </style>
 </head>
-<body>
+<body class="vl-page">
 
 <nav class="topnav"><div class="nav-logo">KP<span>Science</span></div><a href="index.html" class="nav-back">← กลับหน้าหลัก</a></nav>
 
@@ -127,42 +161,51 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
   <div class="series-links">ดูแบบชุดเดิม: <a href="virtual-physics-lab-01.html">VPL 01 กลศาสตร์</a> · <a href="virtual-physics-lab-02.html">VPL 02 คลื่น แสง เสียง</a> · <a href="virtual-physics-lab-05.html">VPL 05 กลศาสตร์ของไหล</a></div>
 </div></div>
 
-<div class="fbar" id="fbar"><div class="fbar-inner">
+<div class="vl-layout">
+<aside class="side" id="side" aria-label="เลือกบทเรียน">
+  <div class="side-head"><span>เลือกบทเรียน</span><button class="side-x" type="button" onclick="openSide(false)" aria-label="ปิด">✕</button></div>
+  <button class="sitem sall active" data-f="topic" data-v="all" onclick="setFilter(this)"><span class="si">🧪</span><span class="sl">ทั้งหมด</span><span class="sn" data-n="all">{total}</span></button>
+  {side}
+</aside>
+<div class="side-scrim" id="scrim" onclick="openSide(false)"></div>
+
+<main class="vl-main">
+<div class="fbar" id="fbar">
   <div class="fhead">
     <input class="fsearch" id="q" type="search" placeholder="🔍 ค้นหา เช่น เลนส์, นิวตัน, Exp 37" oninput="applyFilter()">
-    <button class="ftog" id="ftog" type="button" onclick="toggleFbar()" aria-expanded="false">⚙️ ตัวกรอง<span class="fsum" id="fsum"></span><span class="car">▼</span></button>
+    <button class="ftog" id="ftog" type="button" onclick="openSide(true)" aria-expanded="false">☰ บทเรียน<span class="fsum" id="fsum"></span></button>
+    <div class="segs" role="group" aria-label="ระดับชั้น"><button class="seg active" data-f="level" data-v="all" onclick="setFilter(this)">ทุกระดับ</button>{level_chips}</div>
     <span class="fcount" id="fcount">{total} / {total}</span>
   </div>
-  <div class="frow"><span class="flabel">กลุ่ม</span>
-    <button class="fchip active" data-f="topic" data-v="all" onclick="setFilter(this)">ทั้งหมด</button>
-    {''.join(f'<button class="fchip" data-f="group" data-v="{g[0]}" onclick="setFilter(this)">{g[1]} {esc(g[2])}</button>' for g in GROUPS)}
-  </div>
-  <div class="frow"><span class="flabel">บทเรียน</span>{topic_chips}</div>
-  <div class="frow"><span class="flabel">ระดับ</span>
-    <button class="fchip active" data-f="level" data-v="all" onclick="setFilter(this)">ทุกระดับ</button>
-    {level_chips}
-  </div>
-</div></div>
-
-<button class="fpeek" id="fpeek" type="button" onclick="showFbar(true)">🔍 ค้นหา · ตัวกรอง ▾</button>
+</div>
 
 <div class="wrap" id="catalog">
 {sections}
 <div class="empty" id="empty">ไม่พบการทดลองที่ตรงกับตัวกรอง — ลองล้างตัวกรองหรือค้นคำอื่น</div>
 </div>
+</main>
+</div>
+
+<button class="fpeek" id="fpeek" type="button" onclick="showFbar(true)">🔍 ค้นหา · ตัวกรอง ▾</button>
 
 <footer>© 2569 KP Science · <a href="index.html">หน้าหลัก</a> · <a href="library.html">Library</a> · <a href="https://course.kpscience.com/#/" target="_blank" rel="noopener">คอร์สออนไลน์ ↗</a> · ข้อมูล lab ทั้งหมดสร้างจาก <code>_admin/labs_data.py</code></footer>
 
 <script>
 const GROUPS={{{','.join(f'"{g[0]}":{[t for t in g[3]]}'.replace("'",'"') for g in GROUPS)}}};
 const F={{topic:'all',group:null,level:'all'}};
+const mob=()=>matchMedia('(max-width:899px)').matches;
+function syncUI(){{
+  document.querySelectorAll('.sitem').forEach(b=>{{
+    const on = b.dataset.f==='group' ? (F.group===b.dataset.v || (!!b.dataset.only && F.topic===b.dataset.only)) : (!F.group && F.topic===b.dataset.v);
+    b.classList.toggle('active',on);
+    if(b.dataset.f==='group') b.classList.toggle('within',!on && !F.group && GROUPS[b.dataset.v].includes(F.topic));
+  }});
+  document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.v===F.level));
+}}
 function setFilter(btn){{
   const f=btn.dataset.f, v=btn.dataset.v;
   if(f==='group'){{ F.group=v; F.topic='all'; }} else if(f==='topic'){{ F.topic=v; F.group=null; }} else F.level=v;
-  document.querySelectorAll('.fchip[data-f="topic"],.fchip[data-f="group"]').forEach(b=>b.classList.toggle('active',(F.group? (b.dataset.f==='group'&&b.dataset.v===F.group) : (b.dataset.f==='topic'&&b.dataset.v===F.topic))));
-  document.querySelectorAll('.fchip[data-f="level"]').forEach(b=>b.classList.toggle('active',b.dataset.v===F.level));
-  applyFilter();
-  toggleFbar(false);
+  syncUI(); applyFilter(); openSide(false);
   // เลือกตัวกรองแล้วเลื่อนลงไปที่ผลลัพธ์เสมอ (ระดับชั้น/ทั้งหมด → หัวรายการแรกที่เหลือ)
   let tgt = f==='group'? document.getElementById('g-'+v) : (f==='topic'&&v!=='all'? document.getElementById('t-'+v) : null);
   if(!tgt) tgt=[...document.querySelectorAll('.group-anchor')].find(g=>g.style.display!=='none') || document.getElementById('catalog');
@@ -170,52 +213,50 @@ function setFilter(btn){{
 }}
 function applyFilter(){{
   const q=(document.getElementById('q').value||'').trim().toLowerCase();
-  let shown=0;
+  let shown=0; const cnt={{}};
   document.querySelectorAll('.lab-card').forEach(c=>{{
-    const okT = F.group ? GROUPS[F.group].includes(c.dataset.topic) : (F.topic==='all'||c.dataset.topic===F.topic);
-    const okL = F.level==='all'||c.dataset.level===F.level;
-    const okQ = !q || c.dataset.search.includes(q);
-    const ok=okT&&okL&&okQ; c.style.display=ok?'':'none'; if(ok) shown++;
+    const t=c.dataset.topic;
+    const okT = F.group ? GROUPS[F.group].includes(t) : (F.topic==='all'||t===F.topic);
+    const okLQ = (F.level==='all'||c.dataset.level===F.level) && (!q || c.dataset.search.includes(q));
+    if(okLQ) cnt[t]=(cnt[t]||0)+1;   // ตัวเลขในแถบซ้าย = จำนวนที่ตรงระดับ/คำค้น
+    const ok=okT&&okLQ; c.style.display=ok?'':'none'; if(ok) shown++;
   }});
   document.querySelectorAll('.topic-section').forEach(s=>{{ const n=[...s.querySelectorAll('.lab-card')].filter(c=>c.style.display!=='none').length; s.style.display=n?'':'none'; s.querySelector('[data-count]').textContent=n+' การทดลอง'; }});
   document.querySelectorAll('.group-anchor').forEach(g=>{{ const gid=g.id.replace('g-',''); const n=[...document.querySelectorAll('.lab-card')].filter(c=>GROUPS[gid].includes(c.dataset.topic)&&c.style.display!=='none').length; g.style.display=n?'':'none'; g.querySelector('.ga-count').textContent=n+' การทดลอง'; }});
+  document.querySelectorAll('.sn[data-n]').forEach(e=>{{ const k=e.dataset.n;
+    const n = k==='all' ? Object.values(cnt).reduce((a,b)=>a+b,0) : k.startsWith('g:') ? GROUPS[k.slice(2)].reduce((a,t)=>a+(cnt[t]||0),0) : (cnt[k]||0);
+    e.textContent=n; e.parentElement.classList.toggle('zero',n===0); }});
   document.getElementById('fcount').textContent=shown+' / {total}';
   document.getElementById('empty').classList.toggle('show',shown===0);
-  const a=[...document.querySelectorAll('.fchip.active')].filter(b=>b.dataset.v!=='all').map(b=>b.textContent.replace(/^[^\\p{{L}}\\p{{N}}]+/u,'').trim());
-  document.getElementById('fsum').textContent=a.length? ' · '+a.join(' · ') : '';
+  const act=document.querySelector('.sitem.active:not(.sall)');
+  document.getElementById('fsum').textContent=act? ' · '+act.querySelector('.sl').textContent : '';
 }}
-// มือถือ: แถบตัวกรองพับเก็บได้
-function toggleFbar(force){{
-  const b=document.getElementById('fbar'), on= force===undefined ? !b.classList.contains('open') : force;
-  b.classList.toggle('open',on); document.getElementById('ftog').setAttribute('aria-expanded',on);
+// มือถือ: แถบซ้ายกลายเป็นลิ้นชักเลื่อนออกจากซ้าย
+function openSide(on){{
+  document.getElementById('side').classList.toggle('open',on);
+  document.getElementById('scrim').classList.toggle('show',on);
+  document.getElementById('ftog').setAttribute('aria-expanded',on);
 }}
-// เลื่อนหน้าลง = แถบตัวกรองเลื่อนเก็บขึ้นไป · เลื่อนขึ้น/กดปุ่มลอย = กลับมา · ปัดแถบขึ้นก็เก็บได้
+addEventListener('keydown',e=>{{ if(e.key==='Escape') openSide(false); }});
+// มือถือ: เลื่อนหน้าลง = แถวค้นหาเลื่อนเก็บขึ้นไป · เลื่อนขึ้น/กดปุ่มลอย = กลับมา
 let lastY=scrollY;
 function showFbar(on){{
-  const b=document.getElementById('fbar');
-  if(!on) toggleFbar(false);
-  b.classList.toggle('fhide',!on);
+  document.getElementById('fbar').classList.toggle('fhide',!on);
   document.getElementById('fpeek').classList.toggle('show',!on);
 }}
 addEventListener('scroll',()=>{{
   const dy=scrollY-lastY; if(Math.abs(dy)<8) return; lastY=scrollY;
-  const b=document.getElementById('fbar'), hero=document.querySelector('.hero');
-  const past=scrollY > hero.offsetTop+hero.offsetHeight;
+  if(!mob()){{ showFbar(true); return; }}
+  const hero=document.querySelector('.hero'), past=scrollY > hero.offsetTop+hero.offsetHeight;
   if(document.activeElement.id==='q') return;
   if(dy>0&&past) showFbar(false); else if(dy<0||!past) showFbar(true);
 }},{{passive:true}});
+// deep links: ?level=uni | ?topic=waves | ?group=mech | ?q=... (บทเรียนที่เป็นกลุ่มเดี่ยว เช่น thermal → ปุ่มหัวกลุ่ม)
 (function(){{
-  const b=document.getElementById('fbar'); let y0=null,x0=0;
-  b.addEventListener('touchstart',e=>{{ y0=e.touches[0].clientY; x0=e.touches[0].clientX; }},{{passive:true}});
-  b.addEventListener('touchend',e=>{{ if(y0===null) return; const t=e.changedTouches[0], dy=y0-t.clientY, dx=Math.abs(t.clientX-x0); y0=null;
-    if(dy>40&&dy>dx*1.5&&scrollY>0) showFbar(false); }},{{passive:true}});
-}})();
-// deep links: ?level=uni | ?topic=waves | ?group=mech | ?q=...
-(function(){{
-  const p=new URLSearchParams(location.search);
-  if(p.get('level')){{ const b=document.querySelector('.fchip[data-f="level"][data-v="'+p.get('level')+'"]'); if(b) setFilter(b); }}
-  if(p.get('topic')){{ const b=document.querySelector('.fchip[data-f="topic"][data-v="'+p.get('topic')+'"]'); if(b) setFilter(b); }}
-  if(p.get('group')){{ const b=document.querySelector('.fchip[data-f="group"][data-v="'+p.get('group')+'"]'); if(b) setFilter(b); }}
+  const p=new URLSearchParams(location.search), pick=(f,v)=>document.querySelector('.sitem[data-f="'+f+'"][data-v="'+v+'"],.seg[data-f="'+f+'"][data-v="'+v+'"]');
+  if(p.get('level')){{ const b=pick('level',p.get('level')); if(b) setFilter(b); }}
+  if(p.get('topic')){{ const b=pick('topic',p.get('topic')) || document.querySelector('.sg[data-only="'+p.get('topic')+'"]'); if(b) setFilter(b); }}
+  if(p.get('group')){{ const b=pick('group',p.get('group')); if(b) setFilter(b); }}
   if(p.get('q')){{ document.getElementById('q').value=p.get('q'); applyFilter(); }}
 }})();
 </script>
