@@ -16,7 +16,12 @@ def card(l):
     t=T[topic]; clr='var(--'+t[4]+')'
     stag=SERIES[series][0]
     tag_html=''.join(f'<span class="tag tag-soft">{esc(x)}</span>' for x in tags[:2])
+    # ภาพการ์ด = ภาพหน้าจอแลป (_admin/capture_lab_thumbs.py) · ไม่มีไฟล์ = การ์ดแบบไม่มีภาพ
+    th='assets/thumbs/labs/'+acc.split(':',1)[1].replace(':','-')+'.jpg'
+    thumb=(f'<div class="lc-thumb"><img src="{esc(th)}" alt="" loading="lazy" decoding="async" width="640" height="360" onerror="this.parentNode.remove()"></div>'
+           if os.path.exists(os.path.join(BASE,th)) else '')
     return f'''      <a data-locked="true" data-access="{acc}" href="{esc(href)}" class="demo-card lab-card" data-topic="{topic}" data-level="{LEVEL_KEY[level]}" data-series="{series}" data-search="{esc((title+' '+desc+' '+' '.join(tags)+' '+num).lower())}" style="--card-accent:{clr}">
+        {thumb}
         <div class="lc-head"><span class="lc-icon">{t[1]}</span><span class="lc-num">{'Lab' if series=='vpl03' else 'Exp'} {esc(num)}</span><span class="lc-level">{esc(level)}</span><span class="lc-series">{stag}</span></div>
         <div class="dc-body"><div class="dc-title">{esc(title)}</div><p class="dc-desc">{esc(desc)}</p></div>
         <div class="dc-footer"><div class="dc-tags">{tag_html}</div><div class="dc-arrow">→</div></div>
@@ -47,7 +52,7 @@ def build_page():
         n=sum(len(by_topic[t]) for t in tl)
         sub=''
         if len(tl)>1:
-            sub='<div class="slist">'+''.join(f'<button class="sitem st" data-f="topic" data-v="{t}" data-g="{gid}" onclick="setFilter(this)" style="--tclr:var(--{T[t][4]})"><span class="si">{T[t][1]}</span><span class="sl">{esc(T[t][2])}</span><span class="sn" data-n="{t}">{len(by_topic[t])}</span></button>' for t in tl)+'</div>'
+            sub='<div class="slist">'+''.join(f'<button class="sitem st" data-f="topic" data-v="{t}" data-g="{gid}" onclick="setFilter(this)" style="--tclr:var(--{T[t][4]})"><span class="dot"></span><span class="sl">{esc(T[t][2])}</span><span class="sn" data-n="{t}">{len(by_topic[t])}</span></button>' for t in tl)+'</div>'
         side+=f'<div class="sgroup"><button class="sitem sg" data-f="group" data-v="{gid}" data-only="{tl[0] if len(tl)==1 else ""}" onclick="setFilter(this)"><span class="si">{gicon}</span><span class="sl">{esc(gname)}</span><span class="sn" data-n="g:{gid}">{n}</span></button>{sub}</div>'
     total=len(LABS)
     return f'''<!DOCTYPE html>
@@ -66,85 +71,100 @@ body{{background:var(--bg);color:var(--text);font-family:IBM Plex Sans Thai Loop
 nav.topnav{{position:sticky;top:50px;z-index:100;background:rgba(6,9,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 5%;display:flex;align-items:center;gap:1rem;height:52px}}
 .nav-logo{{font-size:1rem;font-weight:700;color:var(--accent)}} .nav-logo span{{color:var(--accent2)}}
 .nav-back{{margin-left:auto;color:var(--muted);text-decoration:none;font-size:.85rem}} .nav-back:hover{{color:var(--accent)}}
-.hero{{padding:44px 5% 28px;background:linear-gradient(180deg,rgba(56,189,248,0.05),transparent);border-bottom:1px solid var(--border)}}
+.hero{{position:relative;padding:52px 5% 34px;background:radial-gradient(900px 320px at 12% -10%,rgba(56,189,248,.14),transparent 70%),radial-gradient(700px 300px at 92% 0%,rgba(129,140,248,.10),transparent 70%);border-bottom:1px solid var(--border)}}
 .hero-inner{{max-width:1200px;margin:0 auto}}
-.hero-badge{{display:inline-flex;align-items:center;gap:.5rem;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.22);color:var(--accent);padding:5px 16px;border-radius:20px;font-size:.78rem;font-weight:700;letter-spacing:1px;margin-bottom:1rem}}
-.hero h1{{font-size:clamp(1.5rem,3.6vw,2.2rem);font-weight:800;margin-bottom:.4rem}} .hero h1 span{{color:var(--accent)}}
-.hero p{{color:var(--muted);font-size:.98rem;max-width:640px;line-height:1.7}}
+.hero-badge{{display:inline-flex;align-items:center;gap:.5rem;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.22);color:var(--accent);padding:5px 14px;border-radius:999px;font-size:.74rem;font-weight:700;letter-spacing:.8px;margin-bottom:1rem}}
+.hero h1{{font-family:IBM Plex Sans Thai,sans-serif;font-size:clamp(1.6rem,3.8vw,2.5rem);font-weight:700;letter-spacing:-.01em;line-height:1.25;margin-bottom:.5rem}} .hero h1 span{{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}}
+.hero p{{color:var(--muted);font-size:.98rem;max-width:660px;line-height:1.75}}
 .series-links{{margin-top:.8rem;font-size:.82rem;color:var(--muted)}} .series-links a{{color:var(--accent);text-decoration:none;margin-left:.4rem}}
 /* layout: แถบซ้าย (กลุ่ม → บทเรียน) + คอลัมน์ผลลัพธ์ */
-.vl-layout{{width:min(1320px,94%);margin:0 auto;display:grid;grid-template-columns:288px minmax(0,1fr);gap:1.8rem;align-items:start}}
-.side{{position:sticky;top:110px;max-height:calc(100vh - 120px);overflow-y:auto;padding:1.1rem .3rem 1.5rem 0;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}}
-.side-head{{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.5px;padding:0 .65rem .55rem}}
-.side-x{{display:none;background:var(--bg3);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center}}
-.sitem{{width:100%;display:flex;align-items:center;gap:.55rem;background:none;border:0;border-radius:8px;color:var(--muted);font-family:inherit;font-size:.84rem;text-align:left;padding:6px 10px;cursor:pointer;transition:background .15s,color .15s;line-height:1.35}}
-.sitem:hover{{background:var(--bg3);color:var(--text)}}
-.sitem .si{{width:1.35em;text-align:center;flex-shrink:0}} .sitem .sl{{flex:1;min-width:0}}
-.sitem .sn{{font-family:'Share Tech Mono',monospace;font-size:.76rem;color:var(--muted);flex-shrink:0}}
-.sitem.zero{{opacity:.38}}
-.sall,.sg{{font-family:IBM Plex Sans Thai,sans-serif;font-weight:700;color:var(--text);font-size:.9rem}}
-.sall{{margin-bottom:.35rem}}
-.sgroup{{border-top:1px solid var(--border);padding:.35rem 0}}
-.slist{{margin:.1rem 0 .15rem 1.15rem;padding-left:.4rem;border-left:1px solid var(--border2)}}
-.st{{font-size:.82rem;padding:5px 10px}}
-.sitem.active{{background:rgba(56,189,248,.12);color:var(--accent)}} .sitem.active .sn{{color:var(--accent)}}
-.st.active{{box-shadow:inset 3px 0 0 var(--accent)}}
+.vl-layout{{width:min(1320px,94%);margin:0 auto;display:grid;grid-template-columns:304px minmax(0,1fr);gap:1.8rem;align-items:start}}
+.side{{position:sticky;top:118px;max-height:calc(100vh - 132px);overflow-y:auto;margin-top:1.2rem;padding:.75rem;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:18px;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}}
+.side-head{{display:flex;align-items:center;justify-content:space-between;font-size:.68rem;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;padding:.25rem .6rem .6rem}}
+.side-x{{display:none;background:var(--bg3);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:10px;font-size:1rem;cursor:pointer;align-items:center;justify-content:center}}
+.sitem{{width:100%;display:flex;align-items:center;gap:.6rem;background:none;border:0;border-radius:10px;color:var(--muted);font-family:inherit;font-size:.84rem;text-align:left;padding:7px 10px;cursor:pointer;transition:background .18s,color .18s;line-height:1.35}}
+.sitem:hover{{background:rgba(255,255,255,.045);color:var(--text)}}
+.sitem .si{{width:28px;height:28px;border-radius:8px;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;font-size:.92rem;flex-shrink:0}}
+.sitem .dot{{width:7px;height:7px;border-radius:50%;background:var(--tclr);opacity:.55;flex-shrink:0;margin:0 3px 0 2px;transition:.18s}}
+.sitem .sl{{flex:1;min-width:0}}
+.sitem .sn{{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.05);min-width:28px;text-align:center;padding:1px 7px;border-radius:999px;flex-shrink:0;transition:.18s}}
+.sitem.zero{{opacity:.35}}
+.sall,.sg{{font-family:IBM Plex Sans Thai,sans-serif;font-weight:600;color:var(--text);font-size:.88rem}}
+.sall{{margin-bottom:.25rem}}
+.sgroup{{padding:.15rem 0}} .sgroup+.sgroup{{margin-top:.15rem}}
+.slist{{margin:.1rem 0 .3rem .7rem}}
+.st{{font-size:.82rem;padding:6px 8px;gap:.5rem}}
+.st:hover .dot{{opacity:1}}
+.sitem.active{{background:linear-gradient(90deg,rgba(56,189,248,.18),rgba(56,189,248,.05));color:var(--accent)}}
+.sitem.active .sn{{background:var(--accent);color:#06090f}} .sitem.active .dot{{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--tclr) 25%,transparent)}}
+.sitem.active .si{{background:rgba(56,189,248,.18)}}
 .sg.within{{color:var(--accent)}}
 .side-scrim{{display:none}}
 .vl-page .hero{{padding-left:3%;padding-right:3%}} .vl-page .hero-inner{{max-width:1320px}}
 .vl-main{{min-width:0}} .vl-main .wrap{{max-width:none;padding:1rem 0 3rem}}
 /* แถวค้นหา + ระดับ */
-.fbar{{position:sticky;top:102px;z-index:90;transition:transform .28s ease;background:rgba(6,9,15,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:.8rem 0}}
+.fbar{{position:sticky;top:102px;z-index:90;transition:transform .28s ease;background:linear-gradient(180deg,rgba(6,9,15,.97) 75%,rgba(6,9,15,.0));backdrop-filter:blur(10px);padding:1.2rem 0 .9rem}}
 .fhead{{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}}
-.fsearch{{flex:1 1 220px;min-width:0;max-width:360px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:.86rem}}
-.fsearch:focus{{outline:none;border-color:var(--accent)}}
-.segs{{display:inline-flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}}
-.seg{{background:none;border:0;color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;padding:4px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:.15s}}
-.seg:hover{{color:var(--text)}} .seg.active{{background:var(--accent);color:#06090f}}
-.fcount{{margin-left:auto;font-size:.8rem;color:var(--muted);font-family:'Share Tech Mono',monospace;white-space:nowrap}}
-.ftog{{display:none;align-items:center;gap:.35rem;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;max-width:52%;overflow:hidden}}
+.fsw{{position:relative;flex:1 1 240px;min-width:0;max-width:400px;display:flex}}
+.fsw svg{{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}}
+.fsearch{{width:100%;height:42px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:0 14px 0 38px;border-radius:12px;font-family:inherit;font-size:.88rem;transition:border-color .18s,box-shadow .18s}}
+.fsearch::placeholder{{color:#5d6d82}}
+.fsearch:focus{{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(56,189,248,.15)}}
+.segs{{display:inline-flex;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:4px;gap:2px;height:42px}}
+.seg{{background:none;border:0;color:var(--muted);font-family:inherit;font-size:.8rem;font-weight:600;padding:0 13px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:.18s}}
+.seg:hover{{color:var(--text);background:rgba(255,255,255,.04)}} .seg.active{{background:var(--accent);color:#06090f;box-shadow:0 4px 14px -4px rgba(56,189,248,.6)}}
+.fcount{{margin-left:auto;font-size:.8rem;color:var(--muted);font-family:'Share Tech Mono',monospace;white-space:nowrap;background:var(--bg2);border:1px solid var(--border);padding:4px 12px;border-radius:999px}}
+.ftog{{display:none;align-items:center;gap:.35rem;height:42px;background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:0 14px;border-radius:12px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;max-width:52%;overflow:hidden}}
 .ftog .fsum{{color:var(--accent);font-weight:600;overflow:hidden;text-overflow:ellipsis}}
-.fpeek{{position:fixed;top:58px;right:4%;z-index:95;display:none;align-items:center;gap:.35rem;background:rgba(13,20,33,.95);border:1px solid var(--border2);color:var(--text);padding:6px 14px;border-radius:20px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.25s}}
+.fpeek{{position:fixed;top:58px;right:4%;z-index:95;display:none;align-items:center;gap:.35rem;background:rgba(13,20,33,.92);backdrop-filter:blur(10px);border:1px solid var(--border2);color:var(--text);padding:7px 15px;border-radius:999px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.25s}}
 .fpeek.show{{opacity:1;transform:none;pointer-events:auto}}
 /* groups / topics */
 .wrap{{max-width:1200px;margin:0 auto;padding:1.6rem 5% 3rem}}
-.group-anchor{{display:flex;align-items:center;gap:.7rem;margin:2.2rem 0 1rem;padding-bottom:.5rem;border-bottom:2px solid var(--border2);scroll-margin-top:170px}}
+.group-anchor{{display:flex;align-items:center;gap:.75rem;margin:2.8rem 0 1.1rem;scroll-margin-top:170px}}
 .group-anchor:first-child{{margin-top:.4rem}}
-.ga-icon{{font-size:1.5rem}} .ga-name{{font-size:1.3rem;font-weight:800}} .ga-count{{margin-left:auto;font-size:.78rem;color:var(--muted);font-family:'Share Tech Mono',monospace}}
-.topic-section{{margin-bottom:2rem;scroll-margin-top:170px}}
-.topic-header{{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--tclr);border-radius:10px;margin-bottom:1rem}}
-.topic-icon{{width:38px;height:38px;border-radius:9px;background:color-mix(in srgb,var(--tclr) 14%,transparent);display:flex;align-items:center;justify-content:center;font-size:1.1rem}}
-.topic-name{{font-weight:700;font-size:1rem}} .topic-en{{font-size:.75rem;color:var(--muted)}}
-.topic-count{{margin-left:auto;white-space:nowrap;flex-shrink:0;font-size:.73rem;font-family:'Share Tech Mono',monospace;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:2px 10px;border-radius:20px}}
-.demo-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}}
-.demo-card{{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.25s;position:relative;display:flex;flex-direction:column;text-decoration:none;color:var(--text)}}
-.demo-card:hover{{transform:translateY(-4px);border-color:var(--card-accent,var(--accent))}}
-.demo-card:hover .dc-arrow{{background:var(--card-accent,var(--accent));color:#06090f;border-color:var(--card-accent,var(--accent))}}
-.lc-head{{display:flex;align-items:center;gap:.5rem;padding:.7rem 1rem;background:linear-gradient(135deg,color-mix(in srgb,var(--card-accent) 18%,#0d1421),#0d1421);border-bottom:1px solid var(--border)}}
-.lc-icon{{font-size:1.2rem}} .lc-num{{font-family:'Share Tech Mono',monospace;font-weight:800;color:var(--card-accent);font-size:.9rem}}
-.lc-level{{margin-left:auto;font-size:.68rem;font-weight:700;color:var(--muted);background:var(--bg3);border:1px solid var(--border);padding:1px 8px;border-radius:10px}}
-.lc-series{{font-size:.64rem;font-weight:700;color:var(--muted);border:1px dashed var(--border2);padding:1px 6px;border-radius:6px;letter-spacing:.3px}}
-.dc-body{{padding:.9rem 1rem .6rem;flex:1;display:flex;flex-direction:column;gap:.35rem}}
-.dc-title{{font-size:.95rem;font-weight:700;line-height:1.35}} .dc-desc{{font-size:.8rem;color:var(--muted);line-height:1.55;flex:1}}
-.dc-footer{{padding:.6rem 1rem .85rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}}
+.ga-icon{{font-size:1.25rem;width:42px;height:42px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center}}
+.ga-name{{font-family:IBM Plex Sans Thai,sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:-.01em}}
+.ga-count{{margin-left:auto;font-size:.76rem;color:var(--muted);font-family:'Share Tech Mono',monospace}}
+.topic-section{{margin-bottom:2.2rem;scroll-margin-top:170px}}
+.topic-header{{display:flex;align-items:center;gap:.75rem;padding:0 0 .8rem;margin-bottom:1rem;border-bottom:1px solid var(--border)}}
+.topic-icon{{width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--tclr) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tclr) 30%,transparent);display:flex;align-items:center;justify-content:center;font-size:1rem}}
+.topic-name{{font-family:IBM Plex Sans Thai,sans-serif;font-weight:600;font-size:1.05rem}} .topic-en{{font-size:.74rem;color:var(--muted)}}
+.topic-count{{margin-left:auto;white-space:nowrap;flex-shrink:0;font-size:.72rem;font-family:'Share Tech Mono',monospace;color:var(--muted);background:rgba(255,255,255,.04);padding:3px 11px;border-radius:999px}}
+.demo-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1rem}}
+.demo-card{{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),var(--bg);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .22s,border-color .22s,box-shadow .22s;position:relative;display:flex;flex-direction:column;text-decoration:none;color:var(--text)}}
+.demo-card::before{{content:'';position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,var(--card-accent,var(--accent)),transparent 75%);opacity:.75}}
+.demo-card:hover{{transform:translateY(-3px);border-color:color-mix(in srgb,var(--card-accent,var(--accent)) 55%,transparent);box-shadow:0 18px 36px -18px color-mix(in srgb,var(--card-accent,var(--accent)) 55%,transparent)}}
+.demo-card:hover .dc-arrow{{background:var(--card-accent,var(--accent));color:#06090f;border-color:transparent;transform:translateX(2px)}}
+.lc-thumb{{position:relative;margin:.75rem .75rem 0;aspect-ratio:2/1;overflow:hidden;border-radius:10px;background:var(--bg3);box-shadow:inset 0 0 0 1px var(--border)}}
+.lc-thumb img{{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease}}
+.demo-card:hover .lc-thumb img{{transform:scale(1.045)}}
+.demo-card::before{{z-index:2}}
+.lc-head{{display:flex;align-items:center;gap:.5rem;padding:1rem 1.1rem 0}}
+.lc-icon{{width:32px;height:32px;border-radius:9px;background:color-mix(in srgb,var(--card-accent) 14%,transparent);display:inline-flex;align-items:center;justify-content:center;font-size:1rem}}
+.lc-num{{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--card-accent);font-size:.86rem}}
+.lc-level{{margin-left:auto;font-size:.68rem;font-weight:600;color:var(--text);background:rgba(255,255,255,.06);padding:2px 9px;border-radius:999px}}
+.lc-series{{font-size:.64rem;font-weight:600;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);padding:1px 7px;border-radius:999px;letter-spacing:.3px}}
+.dc-body{{padding:.75rem 1.1rem .5rem;flex:1;display:flex;flex-direction:column;gap:.35rem}}
+.dc-title{{font-family:IBM Plex Sans Thai,sans-serif;font-size:.98rem;font-weight:600;line-height:1.4}} .dc-desc{{font-size:.8rem;color:var(--muted);line-height:1.6;flex:1}} .lc-thumb~.dc-body .dc-desc{{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:none;max-height:3.2em}}
+.dc-footer{{padding:.5rem 1.1rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}}
 .dc-tags{{display:flex;gap:.3rem;flex-wrap:wrap}}
-.tag{{display:inline-block;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px}}
-.tag-soft{{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border)}}
-.dc-arrow{{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--muted);transition:.2s;flex-shrink:0}}
+.tag{{display:inline-block;font-size:.66rem;font-weight:600;padding:2px 9px;border-radius:999px}}
+.tag-soft{{background:rgba(255,255,255,0.045);color:var(--muted)}}
+.dc-arrow{{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--muted);transition:.2s;flex-shrink:0}}
 .empty{{display:none;text-align:center;color:var(--muted);padding:3rem 0}} .empty.show{{display:block}}
 footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;color:var(--muted);font-size:.85rem}} footer a{{color:var(--accent);text-decoration:none}}
 @media(max-width:899px){{nav.topnav{{position:static}}
   .vl-layout{{display:block;width:92%}} .vl-page .hero{{padding-left:4%;padding-right:4%}}
-  .side{{position:fixed;top:0;left:0;bottom:0;width:min(320px,86vw);max-height:none;z-index:10001;background:var(--bg2);border-right:1px solid var(--border2);padding:1rem .7rem 2rem;transform:translateX(-102%);transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.5);overscroll-behavior:contain}}
-  .side.open{{transform:none}} .side-head{{font-size:.85rem;color:var(--text)}} .side-x{{display:inline-flex}}
+  .side{{position:fixed;top:0;left:0;bottom:0;width:min(320px,86vw);max-height:none;margin:0;z-index:10001;background:var(--bg2);border:0;border-right:1px solid var(--border2);border-radius:0 18px 18px 0;padding:1rem .7rem 2rem;transform:translateX(-102%);transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.5);overscroll-behavior:contain}}
+  .side.open{{transform:none}} .side-head{{font-size:.78rem;color:var(--text)}} .side-x{{display:inline-flex}}
   .sitem{{padding:8px 10px}}
   .side-scrim{{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;opacity:0;pointer-events:none;transition:opacity .25s}} .side-scrim.show{{opacity:1;pointer-events:auto}}
-  .fbar{{top:50px;padding:.55rem 0}} .fbar.fhide{{transform:translateY(calc(-100% - 60px));pointer-events:none}}
-  .fhead{{gap:.45rem}} .fsearch{{flex:1 1 0;max-width:none;padding:7px 10px}} .ftog{{display:inline-flex}} .fcount{{display:none}}
-  .segs{{order:3;width:100%;overflow-x:auto;scrollbar-width:none}} .segs::-webkit-scrollbar{{display:none}} .seg{{flex:1 0 auto}}
+  .fbar{{top:50px;padding:.7rem 0 .6rem;background:rgba(6,9,15,.97)}} .fbar.fhide{{transform:translateY(calc(-100% - 60px));pointer-events:none}}
+  .fhead{{gap:.45rem}} .fsw{{flex:1 1 0;max-width:none}} .ftog{{display:inline-flex}} .fcount{{display:none}}
+  .segs{{order:3;width:100%;height:40px;overflow-x:auto;scrollbar-width:none}} .segs::-webkit-scrollbar{{display:none}} .seg{{flex:1 0 auto}}
   .fpeek{{display:flex}}
   .group-anchor{{scroll-margin-top:162px}} .topic-section{{scroll-margin-top:166px}}}}
-@media(max-width:768px){{.demo-grid{{grid-template-columns:1fr}} .hero{{padding:28px 5% 20px}}}}
+@media(max-width:768px){{.demo-grid{{grid-template-columns:1fr}} .hero{{padding:30px 5% 22px}}}}
 /* === KP Access Lock Overlay === */
 [data-locked="true"].kp-locked{{position:relative;pointer-events:all}}
 [data-locked="true"].kp-locked::after{{content:'🔒  สมาชิกเท่านั้น';position:absolute;inset:0;background:rgba(6,9,15,0.75);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:.9rem;border-radius:14px;z-index:5}}
@@ -172,7 +192,7 @@ footer{{border-top:1px solid var(--border);padding:1.5rem 5%;text-align:center;c
 <main class="vl-main">
 <div class="fbar" id="fbar">
   <div class="fhead">
-    <input class="fsearch" id="q" type="search" placeholder="🔍 ค้นหา เช่น เลนส์, นิวตัน, Exp 37" oninput="applyFilter()">
+    <label class="fsw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="fsearch" id="q" type="search" placeholder="ค้นหา เช่น เลนส์, นิวตัน, Exp 37" aria-label="ค้นหาการทดลอง" oninput="applyFilter()"></label>
     <button class="ftog" id="ftog" type="button" onclick="openSide(true)" aria-expanded="false">☰ บทเรียน<span class="fsum" id="fsum"></span></button>
     <div class="segs" role="group" aria-label="ระดับชั้น"><button class="seg active" data-f="level" data-v="all" onclick="setFilter(this)">ทุกระดับ</button>{level_chips}</div>
     <span class="fcount" id="fcount">{total} / {total}</span>
