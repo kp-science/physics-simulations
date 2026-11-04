@@ -5056,3 +5056,16 @@ match /settings/{docId} {
 ### หมายเหตุ
 - เจอระหว่างทาง (ยังไม่แก้): `Virtual Physics Lab 01/Mechacnics/42. shm-spring-builder.html` ตัวกันหน้าเช็คสิทธิ์ `vlab:vpl02:lab-42` (ของแลปเวอร์เนียร์) แทน `vlab:vpl01:lab-42` → สิทธิ์ของแลป SHM ผูกผิดตัว
 - ตัวเลข "27 Simulations" บนหน้า virtual-physics-lab-01.html ไม่ตรงจำนวนการ์ดจริง (31) มาก่อนแล้ว
+
+## [2026-11-05] — [เครื่อง: ไม่ระบุ] (ต่อ: แก้สิทธิ์แลป Exp 42 SHM)
+
+### ทำอะไรไปบ้าง
+- `42. shm-spring-builder.html` ตัวกันหน้าเช็ค `vlab:vpl02:lab-42` (รหัสแลปเวอร์เนียร์ที่เพิ่งเอาออก) → แก้เป็น `vlab:vpl01:lab-42` และหน้าที่เด้งกลับเมื่อไม่มีสิทธิ์จาก `../virtual-physics-lab-02.html` (ไม่มีไฟล์นี้) → `../../virtual-physics-lab-01.html`
+- `43. shm-phase-explorer.html` หน้าที่เด้งกลับผิดชั้นโฟลเดอร์เหมือนกัน (`../` → `../../virtual-physics-lab-01.html`)
+- ตรวจทั้ง 167 แลปใน labs_data: รหัสสิทธิ์ในตัวกันหน้าตรงกับ labs_data ทุกแลป และหน้าที่เด้งกลับมีไฟล์อยู่จริงทุกแลป
+
+### ไฟล์ที่แก้
+- `Virtual Physics Lab 01/Mechacnics/42. shm-spring-builder.html` · `43. shm-phase-explorer.html` (บรรทัด kpPageAccess บรรทัดเดียว)
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ commit/push
