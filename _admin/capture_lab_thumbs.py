@@ -19,7 +19,7 @@ OUT = os.path.join(BASE, 'assets', 'thumbs', 'labs')
 W, H = 640, 360
 # แลปที่หน้าเริ่มต้นยังไม่มีภาพทดลอง (จอว่าง/เมนูเลือกชุด) → ไม่ถ่ายอัตโนมัติ การ์ดจะไม่มีภาพ
 # อยากได้ภาพ: ถ่ายเองตอนกำลังทดลอง แล้ววางไฟล์ชื่อตามนี้ (640×360 .jpg) ใน assets/thumbs/labs/
-SKIP = {'vpl01-lab-6.3', 'vpl02-lab-39', 'vpl02-lab-42', 'vpl02-lab-43'}
+SKIP = {'vpl01-lab-6.3', 'vpl02-lab-39', 'vpl02-lab-43'}
 
 def slug(acc):  # 'vlab:vpl01:lab-6.1' → 'vpl01-lab-6.1'
     return acc.split(':', 1)[1].replace(':', '-')
