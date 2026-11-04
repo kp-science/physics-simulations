@@ -323,13 +323,13 @@
   function labSlug(){ try { if (typeof kpPageGuard !== 'undefined' && kpPageGuard && kpPageGuard.required) return kpPageGuard.required.split(':').slice(1).join('-'); } catch (e) {} return null; }
   function guideTab(){
     var slug = labSlug(), nav = document.querySelector('nav:not(.kp-topbar) button[onclick^="showTab("]');
-    if (!slug || !nav || guideTab.busy) return;
+    if (!slug || guideTab.busy) return;
     guideTab.busy = true;
     var base = root() + 'assets/guides/';
     fetch(base + 'index.json', { cache: 'no-cache' }).then(function(r){ return r.ok ? r.json() : []; }).then(function(list){
       if (list.indexOf(slug) < 0) return;
-      return fetch(base + slug + '/guide.json', { cache: 'no-cache' }).then(function(r){ return r.json(); }).then(function(g){ renderGuide(g, base + slug + '/', nav.parentNode); });
-    }).catch(function(){});
+      return fetch(base + slug + '/guide.json', { cache: 'no-cache' }).then(function(r){ return r.json(); }).then(function(g){ renderGuide(g, base + slug + '/', nav && nav.parentNode); });
+    }).catch(function(){ guideTab.busy = false; });
   }
   function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   /* วางในแถบ "วิธีการทดลอง" เดิม (#tab-proc) ใต้หัวข้อ "ขั้นตอน" แทนรายการข้อความเดิม (ซ่อนไว้ ไม่ลบ)
@@ -344,7 +344,8 @@
     var box = document.createElement('div'); box.className = 'kpg'; box.id = 'kpg-steps';
     box.innerHTML = '<div class="kpg-head"><div><h2>' + esc(g.title || 'ขั้นตอนการทดลอง') + '</h2><p>' + g.steps.length + ' ขั้น ตั้งแต่เตรียมอุปกรณ์ บันทึกค่า จนวิเคราะห์ผล · กดภาพเพื่อขยาย</p></div>' +
       (window.KP_TUTOR ? '<button class="kpg-try" type="button">🎓 ลองทำตามบนแลปจริง</button>' : '') + '</div><ol class="kpg-steps">' + steps + '</ol>';
-    var proc = document.getElementById('tab-proc'), head = null;
+    /* แถบวิธีการทดลองมีหลายชื่อในแลปรุ่นต่าง ๆ */
+    var proc = ['tab-proc', 'tab-procedure', 'tab-method', 'tab-howto'].map(function(i){ return document.getElementById(i); }).filter(Boolean)[0], head = null;
     if (proc) proc.querySelectorAll('h2,h3').forEach(function(h){ if (!head && /^\s*ขั้นตอน/.test(h.textContent)) head = h; });
     if (head) {
       var nx = head.nextElementSibling;
@@ -352,18 +353,24 @@
       head.parentNode.insertBefore(box, head.nextSibling);
     } else if (proc) {
       var wrap = proc.querySelector('.content-wrap') || proc; wrap.insertBefore(box, wrap.firstChild);
-    } else {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = '📸 วิธีใช้แลป';
+    } else if (navEl && document.querySelector('.tab-section')) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = '📋 วิธีการทดลอง';
       b.setAttribute('onclick', "showTab('guide',this)"); navEl.appendChild(b);
       var secs = document.querySelectorAll('.tab-section'), last = secs[secs.length - 1];
-      var sec = document.createElement('div'); sec.id = 'tab-guide'; sec.className = 'tab-section'; sec.appendChild(box);
+      var sec = document.createElement('div'); sec.id = 'tab-guide'; sec.className = 'tab-section';
+      sec.innerHTML = '<div class="content-wrap" style="max-width:1100px;margin:0 auto;padding:16px"></div>'; sec.firstChild.appendChild(box);
       last.parentNode.insertBefore(sec, last.nextSibling);
+    } else {
+      /* แลปที่ไม่มีแถบ → วางเป็นส่วนท้ายหน้า (ก่อน footer) */
+      var holder = document.createElement('section'); holder.style.cssText = 'max-width:1100px;margin:24px auto;padding:0 16px';
+      holder.appendChild(box);
+      var ft = document.querySelector('footer'); if (ft) ft.parentNode.insertBefore(holder, ft); else document.body.appendChild(holder);
     }
     var z = document.createElement('div'); z.id = 'kpg-zoom'; z.innerHTML = '<img alt="">'; document.body.appendChild(z);
     z.addEventListener('click', function(){ z.classList.remove('open'); });
     box.addEventListener('click', function(e){
       if (e.target.matches('.kpg-step img')) { z.firstChild.src = e.target.src; z.classList.add('open'); }
-      if (e.target.closest('.kpg-try')) { var first = navEl.querySelector('button[onclick^="showTab("]'); if (first) first.click(); window.scrollTo(0, 0); setTimeout(start, 250); }
+      if (e.target.closest('.kpg-try')) { var first = navEl && navEl.querySelector('button[onclick^="showTab("]'); if (first) first.click(); window.scrollTo(0, 0); setTimeout(start, 250); }
     });
   }
 

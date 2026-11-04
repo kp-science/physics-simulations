@@ -30,7 +30,12 @@
         var bar = document.createElement('div');
         bar.className = 'kp-spd-bar';
         bar.style.cssText = 'display:flex;gap:6px;justify-content:flex-end;margin:6px 0 0';
-        box.parentNode.insertBefore(bar, box.nextSibling);
+        /* ถ้ากรอบภาพอยู่ในเลย์เอาต์ grid/flex แนวนอน (ภาพ | แผงควบคุม) การแทรกแถบเป็นพี่น้องจะดันแผงควบคุมไปแถวใหม่สูง 0
+           (Lab 4 แผงควบคุมหายทั้งแผง) → วางแถบไว้ใต้เลย์เอาต์ทั้งก้อนแทน */
+        var par = box.parentNode, pcs = getComputedStyle(par);
+        var row = pcs.display.indexOf('grid') >= 0 || (pcs.display.indexOf('flex') >= 0 && pcs.flexDirection.indexOf('column') < 0);
+        if (row && par.parentNode) par.parentNode.insertBefore(bar, par.nextSibling);
+        else par.insertBefore(bar, box.nextSibling);
         return { host: bar, ref: null };
       }
     }

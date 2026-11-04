@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ใส่ _shared/kp-labmode.js (🎓 โหมดสอน + 🔒 ล็อกโหมดอัตโนมัติสำหรับสมาชิก) ให้แลปที่มีปุ่มโหมดอัตโนมัติ
+"""ใส่ _shared/kp-labmode.js (🎓 โหมดสอน + 🔒 ล็อกโหมดอัตโนมัติสำหรับสมาชิก + 📸 วิธีการทดลองแบบมีภาพ) ให้ทุกแลปใน labs_data และแลปที่มีปุ่มโหมดอัตโนมัติ
 
 ใช้:
   python3 _admin/add_labmode.py            # ทุกแลปที่มี setMode('auto') ฯลฯ (ยกเว้น poe/ และ Demo/)
@@ -21,6 +21,11 @@ def root_rel(path):
 
 
 def targets():
+    # ทุกแลปใน labs_data ต้องมี kp-labmode.js ด้วย (วิธีการทดลองแบบมีภาพ · assets/guides) แม้ไม่มีปุ่มอัตโนมัติ
+    sys.path.insert(0, os.path.join(ROOT, '_admin'))
+    from labs_data import LABS
+    for l in LABS:
+        yield os.path.join(ROOT, l[1])
     for d, dirs, fs in os.walk(ROOT):
         dirs[:] = [x for x in dirs if x not in SKIP_DIRS]
         for f in fs:
@@ -33,7 +38,7 @@ def targets():
 def main():
     check = '--check' in sys.argv
     n = 0
-    paths = sorted(targets())
+    paths = sorted(set(targets()))
     for p in paths:
         s = open(p, encoding='utf-8').read()
         if 'kp-labmode.js' in s:
@@ -50,7 +55,7 @@ def main():
             continue
         open(p, 'w', encoding='utf-8').write(s[:i] + tag + s[i:])
         print('  ✓', rel)
-    print(('ยังไม่มี' if check else 'ใส่แล้ว'), n, 'ไฟล์', f'(แลปที่มีโหมดอัตโนมัติ {len(paths)} ไฟล์)')
+    print(('ยังไม่มี' if check else 'ใส่แล้ว'), n, 'ไฟล์', f'(แลปทั้งหมด {len(paths)} ไฟล์)')
 
 
 if __name__ == '__main__':
