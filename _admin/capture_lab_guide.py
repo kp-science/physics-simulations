@@ -5,7 +5,7 @@
 
    Usage:
      python3 _admin/capture_lab_guide.py 60            # แลปเลข 60 (หรือ vpl02-lab-60)
-     python3 _admin/capture_lab_guide.py --all         # ทุกแลปใน lab_guides.py
+     python3 _admin/capture_lab_guide.py --all         # ทุกแลปใน _admin/lab_guides/
 
    เนื้อหาขั้นตอน = _admin/lab_guides.py (กรอบเหลือง · prep ที่ตั้งสภาพแลป · คำอธิบาย · ค่าที่ได้)
    แสดงผลด้วย _shared/kp-labmode.js (เปิดแลปผ่าน http)
@@ -87,6 +87,12 @@ def render(raw, rects, dst):
     if im.width > 960: im = im.resize((960, round(im.height * 960 / im.width)), Image.LANCZOS)
     im.save(dst, 'JPEG', quality=84, optimize=True, progressive=True)
 
+def write_index():
+    """index.json = ทุกโฟลเดอร์ที่มี guide.json (สร้างใหม่ทั้งไฟล์ → รันหลายแลปพร้อมกันได้)"""
+    lst = sorted(d for d in os.listdir(OUT) if os.path.exists(os.path.join(OUT, d, 'guide.json')))
+    tmp = os.path.join(OUT, '.index.%d.json' % os.getpid())
+    json.dump(lst, open(tmp, 'w')); os.replace(tmp, os.path.join(OUT, 'index.json'))
+
 def capture(lab, g, port):
     s = slug(lab[0]); d = os.path.join(OUT, s); os.makedirs(d, exist_ok=True)
     for f in os.listdir(d):
@@ -108,10 +114,7 @@ def capture(lab, g, port):
             if not r['rects']: warn.append('ขั้น %d หาเป้าหมาย %s ไม่เจอ' % (n, st.get('el')))
             steps.append({'img': img, 'title': st['title'], 'text': st['text'], 'out': st.get('out', '')})
     json.dump({'lab': lab[2], 'title': g.get('title', ''), 'steps': steps}, open(os.path.join(d, 'guide.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-    idx = os.path.join(OUT, 'index.json')
-    lst = json.load(open(idx)) if os.path.exists(idx) else []
-    if s not in lst: lst.append(s)
-    json.dump(sorted(lst), open(idx, 'w'))
+    write_index()
     print(' → %d ขั้น' % len(steps))
     for w in warn: print('  ⚠️ ' + w)
 
