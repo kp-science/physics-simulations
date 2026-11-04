@@ -74,6 +74,8 @@ def render(raw, rects, dst):
     if rects:
         pad = 7
         boxes = [(max(0, r['x'] - pad), max(0, r['y'] - pad), min(VW, r['x'] + r['w'] + pad), min(VH, r['y'] + r['h'] + pad)) for r in rects]
+        boxes = [b for b in boxes if b[2] - b[0] > 4 and b[3] - b[1] > 4]   # ตัดกรอบที่หลุดนอกจอ (กัน PIL crop พัง)
+    if rects and boxes:
         keep = [im.crop(tuple(int(v) for v in b)) for b in boxes]
         im = Image.blend(im, Image.new('RGB', im.size, (2, 6, 14)), 0.55)
         for b, k in zip(boxes, keep): im.paste(k, (int(b[0]), int(b[1])))
