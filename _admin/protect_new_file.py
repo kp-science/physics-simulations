@@ -125,7 +125,7 @@ FRAME_PROTECTION = '''<script>
 DOMAIN_PROTECTION = '''<!-- KP-DOMAIN-PROTECTION — DO NOT REMOVE -->
   <script>
   (function(){
-    var allowed = ['kp-science.github.io', 'localhost', '127.0.0.1', ''];
+    var allowed = ['kpscience.com', 'kp-science.github.io', 'localhost', '127.0.0.1', ''];
     var host = location.hostname;
     if (host && !allowed.some(function(d){ return host === d || host.endsWith('.' + d); })) {
       document.body.innerHTML =
@@ -133,7 +133,7 @@ DOMAIN_PROTECTION = '''<!-- KP-DOMAIN-PROTECTION — DO NOT REMOVE -->
         '<div><div style="font-size:3rem">⛔</div>' +
         '<h2 style="margin:.5rem 0">This file was copied without permission</h2>' +
         '<p style="color:#94a3b8">© 2025 KP Science Simulation</p>' +
-        '<p style="color:#94a3b8">Please visit <a href="https://kp-science.github.io/physics-simulations/" style="color:#38bdf8">kp-science.github.io</a></p></div></div>';
+        '<p style="color:#94a3b8">Please visit <a href="https://lab.kpscience.com/" style="color:#38bdf8">lab.kpscience.com</a></p></div></div>';
     }
   })();
   </script>'''

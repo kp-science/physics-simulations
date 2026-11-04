@@ -4932,3 +4932,26 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - ใน repo มี `.DS_Store` ค้างแก้อยู่ ไม่เกี่ยวกับงานนี้ ตอน commit ให้เลือกเฉพาะ 3 ไฟล์นี้
+
+## [2026-11-05] — [เครื่อง: ไม่ระบุ]
+
+### ทำอะไรไปบ้าง
+- เตรียมย้ายเว็บซิมไปโดเมน `https://lab.kpscience.com/` (www.kpscience.com เป็นหน้าหลัก repo kp-home อยู่แล้ว จึงใช้ subdomain แบบเดียวกับ course)
+- ตัวกันโดเมนทุกไฟล์ (32 ไฟล์ + ต้นแบบใน protect_new_file.py / add_protection.py) รับ `kpscience.com` และยังรับ `kp-science.github.io` ช่วงเปลี่ยนผ่าน
+- เปลี่ยนลิงก์ `kp-science.github.io/physics-simulations/` เป็น `lab.kpscience.com/` ทั้งเว็บ (38 ไฟล์ 135 จุด) + ข้อความลายน้ำ PDF ใน add_watermark.py
+- เพิ่มไฟล์ `CNAME` = lab.kpscience.com · แก้ลิงก์ใน repo kp-home (`index.html` 4 จุด)
+
+### ไฟล์ที่แก้
+- `CNAME` (ใหม่) · `_admin/home_template.html` → build `index.html` · `course.html`, `mechanics.html`, `plane_mirror_reflection.html`, `physics-quest/index.html`, Demo/mechanics/* 24 ไฟล์, VPL01 Lab 1–2
+- `_admin/protect_new_file.py`, `_admin/add_protection.py`, `_admin/add_watermark.py`, `_marketing/*` · `CLAUDE.md`
+- repo kp-home: `index.html`
+
+### ค้างไว้ที่ไหน / ต้องทำต่อ
+- ยังไม่ commit/push ทั้ง 2 repo
+- ครูต้อง: ① Cloudflare เพิ่ม CNAME `lab` → `kp-science.github.io` แบบ DNS only (เมฆเทา) ② Firebase Console → Authentication → Authorized domains เพิ่ม `lab.kpscience.com`
+- **ลำดับสำคัญ**: ตั้ง DNS ให้ใช้ได้ก่อน แล้วค่อย push CNAME ไม่อย่างนั้น github.io จะ redirect ไปโดเมนที่ยังไม่มี → เว็บล่ม
+- หลัง push: เปิด Settings → Pages ติ๊ก Enforce HTTPS เมื่อใบรับรองออก
+
+### หมายเหตุ
+- ผล `protect_new_file.py --scan` เท่าเดิมก่อน/หลังแก้ (Demo 26 ไฟล์ขาด Domain Protection, mobile order fix 163 ไฟล์ — ค้างมาก่อน ไม่เกี่ยวกับงานนี้)
+- คนที่ล็อกอินค้างไว้ต้องล็อกอินใหม่ 1 ครั้ง (localStorage ผูกกับโดเมน)

@@ -17,7 +17,7 @@ import re
 # ─── CONFIG ───────────────────────────────────────────────
 ROOT_DIR    = os.path.dirname(os.path.abspath(__file__))
 OWNER       = "โกเมน ปาปะโถ"
-SITE        = "kp-science.github.io"
+SITE        = "lab.kpscience.com"
 YEAR        = "2025"
 MARKER      = "KP-DOMAIN-PROTECTION"   # ใช้ตรวจว่าเพิ่มแล้วหรือยัง
 
@@ -27,11 +27,11 @@ SKIP_FILES  = {"admin_passwords.html"}
 # ─── PROTECTION CODE (injected right before </head>) ──────
 PROTECTION_BLOCK = f"""
   <!-- {MARKER} — DO NOT REMOVE -->
-  <!-- © {YEAR} {OWNER} · KP Science Simulation · {SITE}/physics-simulations/ -->
+  <!-- © {YEAR} {OWNER} · KP Science Simulation · {SITE}/ -->
   <!-- ห้ามคัดลอก ดัดแปลง หรือเผยแพร่โดยไม่ได้รับอนุญาต -->
   <script>
   (function(){{
-    var allowed = ['{SITE}', 'localhost', '127.0.0.1'];
+    var allowed = ['kpscience.com', 'kp-science.github.io', 'localhost', '127.0.0.1'];
     var host = location.hostname;
     if (!allowed.some(function(d){{ return host === d || host.endsWith('.' + d); }})) {{
       document.documentElement.innerHTML =
@@ -41,8 +41,8 @@ PROTECTION_BLOCK = f"""
         '<div><div style="font-size:3rem">⛔</div>' +
         '<h2 style="margin:.5rem 0">ไฟล์นี้ถูกคัดลอกโดยไม่ได้รับอนุญาต</h2>' +
         '<p style="color:#94a3b8">© {YEAR} {OWNER} · KP Science Simulation</p>' +
-        '<p style="color:#94a3b8">กรุณาเข้าใช้งานที่ <a href="https://{SITE}/physics-simulations/" ' +
-        'style="color:#38bdf8">{SITE}/physics-simulations/</a></p></div></body>';
+        '<p style="color:#94a3b8">กรุณาเข้าใช้งานที่ <a href="https://{SITE}/" ' +
+        'style="color:#38bdf8">{SITE}/</a></p></div></body>';
     }}
   }})();
   </script>"""

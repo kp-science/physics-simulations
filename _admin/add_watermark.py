@@ -27,7 +27,7 @@ def create_watermark_page(width, height, text="KP Science"):
     # Smaller URL below
     c.setFont("Helvetica", 20)
     c.setFillColor(Color(0.5, 0.5, 0.5, alpha=0.05))
-    c.drawCentredString(0, -40, "kp-science.github.io")
+    c.drawCentredString(0, -40, "lab.kpscience.com")
 
     c.restoreState()
 
@@ -35,7 +35,7 @@ def create_watermark_page(width, height, text="KP Science"):
     c.saveState()
     c.setFillColor(Color(0.45, 0.45, 0.45, alpha=0.35))
     c.setFont("Helvetica", 8)
-    c.drawRightString(width - 20, height - 18, "KP Science  |  kp-science.github.io/physics-simulations")
+    c.drawRightString(width - 20, height - 18, "KP Science  |  lab.kpscience.com")
     c.restoreState()
 
     c.save()

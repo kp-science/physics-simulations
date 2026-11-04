@@ -38,6 +38,8 @@
 
 ## 📂 โครงสร้างโปรเจกต์ (โดยย่อ)
 
+- **โดเมนเว็บซิม: `https://lab.kpscience.com/`** (ไฟล์ `CNAME` · DNS อยู่ Cloudflare) · ลิงก์เดิม `kp-science.github.io/physics-simulations/` redirect มาเอง · `www.kpscience.com` = repo kp-home · `course.kpscience.com` = repo kp-course · ตัวกันโดเมน (`allowed = [...]`) ต้องมี `kpscience.com` เสมอ
+
 - `index.html` — หน้าแรก (แบบ PhET: หัวหน้าสั้น · การ์ดวิชา · การ์ดระดับชั้น · แลป/Demo แนะนำพร้อมภาพหน้าจอ · สมัครสมาชิก) — **generate จาก `_admin/home_template.html` ด้วย `python3 _admin/build_home.py`** (build_virtual_lab.py เรียกให้อัตโนมัติ) · ห้ามแก้ index.html ตรง ๆ · แลป/Demo แนะนำแก้ที่ `FEAT`/`DEMOS` ใน build_home.py · ภาพการ์ดอยู่ `assets/thumbs/<ชื่อ>.jpg`
 - `virtual-physics-lab-01.html` — หน้ารวม 22 simulations ของ VPL (ใช้ canvas previews)
 - `library.html` — หน้ารวมไฟล์ทั้งหมด มี search
