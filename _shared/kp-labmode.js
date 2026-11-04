@@ -208,7 +208,9 @@
     var el = $el(s.el);
     if (reveal(el)) {} else if (el && el.scrollIntoView) {
       var r = el.getBoundingClientRect();
-      if (r.top < 70 || r.bottom > innerHeight - 20) {
+      /* เป้าหมายอยู่ในแผงที่เลื่อนได้เอง (เช่นแผงควบคุมขวาที่สูงจำกัด) → scrollIntoView เลื่อนทั้งแผงและหน้าให้เห็น */
+      if (hiddenInPanel(el)) el.scrollIntoView({ block: r.height > innerHeight * 0.55 ? 'start' : 'center', behavior: document.hidden ? 'auto' : 'smooth' });
+      else if (r.top < 70 || r.bottom > innerHeight - 20) {
         var tall = r.height > innerHeight * 0.55;
         window.scrollBy({ top: tall ? r.top - 80 : r.top + r.height / 2 - innerHeight / 2, behavior: document.hidden ? 'auto' : 'smooth' });
       }
@@ -225,6 +227,17 @@
       (s.el && !last ? '<button class="skip" data-a="skip">ติดอยู่? ข้ามขั้นนี้ ▶</button>' : '');
     T.t0 = Date.now();
     place(true);
+  }
+  function hiddenInPanel(el){
+    var r = el.getBoundingClientRect();
+    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      var o = getComputedStyle(p).overflowY;
+      if ((o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight + 2) {
+        var q = p.getBoundingClientRect();
+        if (r.top < q.top || r.bottom > q.bottom) return true;
+      }
+    }
+    return false;
   }
   /* จอมือถือ: เป้าหมายอยู่ในแผ่น ⚙️ ตั้งค่า ที่เลื่อนขึ้นจากขอบล่าง (kp-mobile-panel.js) → เปิดแผ่นแล้วเลื่อนไปหาเป้าหมาย */
   function reveal(el){
@@ -285,8 +298,79 @@
     tp.classList.toggle('attop', innerWidth <= 640 && r.bottom > innerHeight - h - 24);
   }
 
-  function init(){ addCSS(); paintLocks(); tutorButton(); }
+  /* ═════════ 3) แถบ "📸 วิธีใช้แลป" — ภาพหน้าจอทีละขั้น + หน้าที่ของแต่ละปุ่ม ═════════
+     ข้อมูลจาก assets/guides/<ชุด>-lab-<เลข>/guide.json (สร้างด้วย _admin/capture_lab_guide.py)
+     มีเฉพาะแลปที่อยู่ใน assets/guides/index.json → แลปอื่นไม่โหลดอะไรเพิ่ม */
+  var GCSS = '' +
+    '.kpg{max-width:1100px;margin:10px 0 24px;padding:0;color:#e2e8f0;font-family:"IBM Plex Sans Thai Looped","IBM Plex Sans Thai",system-ui,sans-serif}' +
+    '.kpg-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:18px 20px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(129,140,248,.05))}' +
+    '.kpg .kpg-head h2{margin:0;padding:0;border:0;color:#f0f4f8;font:700 1.25rem/1.3 "IBM Plex Sans Thai",sans-serif}' +
+    '.kpg .kpg-step{margin:0;list-style:none}.kpg .kpg-st div{margin:0}' +
+    '.kpg-head p{margin:2px 0 0;color:#94a3b8;font-size:.88rem;line-height:1.55}' +
+    '.kpg-try{margin-left:auto;padding:10px 16px;border-radius:11px;border:0;background:#facc15;color:#1c1917;font:700 .9rem/1.2 inherit;cursor:pointer;box-shadow:0 6px 18px -6px rgba(250,204,21,.6)}' +
+    '.kpg-steps{list-style:none;margin:0;padding:0;display:grid;gap:14px}' +
+    '.kpg-step{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.02)}' +
+    '.kpg-step img{width:100%;display:block;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:#0d1117;cursor:zoom-in}' +
+    '.kpg-st{display:flex;gap:12px;align-items:flex-start;font-size:.95rem;line-height:1.6}' +
+    '.kpg-st small{display:block;color:#94a3b8;font-size:.82rem;margin-top:2px}' +
+    '.kpg-tt{display:block;font:700 1rem/1.4 "IBM Plex Sans Thai",sans-serif;color:#f0f4f8;margin-bottom:2px}' +
+    '.kpg-out{margin-top:8px;padding:6px 10px;border-radius:8px;background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.28);color:#a7f3d0;font-size:.85rem}' +
+    '.kpg-steps li::marker{content:none}.kpg ol.kpg-steps{margin:14px 0 0;padding:0}' +
+    '.kpg-n{flex:none;width:30px;height:30px;border-radius:50%;background:#facc15;color:#1c1917;display:flex;align-items:center;justify-content:center;font:700 .9rem/1 "Share Tech Mono",monospace}' +
+    '#kpg-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,6,14,.88);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}#kpg-zoom.open{display:flex}#kpg-zoom img{max-width:100%;max-height:100%;border-radius:10px}' +
+    '@media(max-width:760px){.kpg-step{grid-template-columns:1fr;gap:10px}.kpg-try{margin-left:0;width:100%}}';
+  function root(){ var k = document.querySelector('script[src*="kp-labmode.js"]'); return k ? k.getAttribute('src').replace(/_shared\/kp-labmode\.js.*$/, '') : '../'; }
+  function labSlug(){ try { if (typeof kpPageGuard !== 'undefined' && kpPageGuard && kpPageGuard.required) return kpPageGuard.required.split(':').slice(1).join('-'); } catch (e) {} return null; }
+  function guideTab(){
+    var slug = labSlug(), nav = document.querySelector('nav:not(.kp-topbar) button[onclick^="showTab("]');
+    if (!slug || !nav || guideTab.busy) return;
+    guideTab.busy = true;
+    var base = root() + 'assets/guides/';
+    fetch(base + 'index.json', { cache: 'no-cache' }).then(function(r){ return r.ok ? r.json() : []; }).then(function(list){
+      if (list.indexOf(slug) < 0) return;
+      return fetch(base + slug + '/guide.json', { cache: 'no-cache' }).then(function(r){ return r.json(); }).then(function(g){ renderGuide(g, base + slug + '/', nav.parentNode); });
+    }).catch(function(){});
+  }
+  function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  /* วางในแถบ "วิธีการทดลอง" เดิม (#tab-proc) ใต้หัวข้อ "ขั้นตอน" แทนรายการข้อความเดิม (ซ่อนไว้ ไม่ลบ)
+     แลปที่ไม่มีแถบนี้ → สร้างแถบ "📸 วิธีใช้แลป" แยก */
+  function renderGuide(g, dir, navEl){
+    if (!document.getElementById('kpg-css')) { var st = document.createElement('style'); st.id = 'kpg-css'; st.textContent = GCSS; document.head.appendChild(st); }
+    var steps = (g.steps || []).map(function(s, i){
+      return '<li class="kpg-step"><img src="' + dir + s.img + '" alt="ขั้นที่ ' + (i + 1) + '" loading="lazy">' +
+        '<div class="kpg-st"><span class="kpg-n">' + (i + 1) + '</span><div><b class="kpg-tt">' + s.title + '</b><div>' + s.text + '</div>' +
+        (s.out ? '<div class="kpg-out">📌 ได้ค่า: ' + s.out + '</div>' : '') + '</div></div></li>';
+    }).join('');
+    var box = document.createElement('div'); box.className = 'kpg'; box.id = 'kpg-steps';
+    box.innerHTML = '<div class="kpg-head"><div><h2>' + esc(g.title || 'ขั้นตอนการทดลอง') + '</h2><p>' + g.steps.length + ' ขั้น ตั้งแต่เตรียมอุปกรณ์ บันทึกค่า จนวิเคราะห์ผล · กดภาพเพื่อขยาย</p></div>' +
+      (window.KP_TUTOR ? '<button class="kpg-try" type="button">🎓 ลองทำตามบนแลปจริง</button>' : '') + '</div><ol class="kpg-steps">' + steps + '</ol>';
+    var proc = document.getElementById('tab-proc'), head = null;
+    if (proc) proc.querySelectorAll('h2,h3').forEach(function(h){ if (!head && /^\s*ขั้นตอน/.test(h.textContent)) head = h; });
+    if (head) {
+      var nx = head.nextElementSibling;
+      if (nx && /^(OL|UL)$/.test(nx.tagName)) nx.style.display = 'none';
+      head.parentNode.insertBefore(box, head.nextSibling);
+    } else if (proc) {
+      var wrap = proc.querySelector('.content-wrap') || proc; wrap.insertBefore(box, wrap.firstChild);
+    } else {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = '📸 วิธีใช้แลป';
+      b.setAttribute('onclick', "showTab('guide',this)"); navEl.appendChild(b);
+      var secs = document.querySelectorAll('.tab-section'), last = secs[secs.length - 1];
+      var sec = document.createElement('div'); sec.id = 'tab-guide'; sec.className = 'tab-section'; sec.appendChild(box);
+      last.parentNode.insertBefore(sec, last.nextSibling);
+    }
+    var z = document.createElement('div'); z.id = 'kpg-zoom'; z.innerHTML = '<img alt="">'; document.body.appendChild(z);
+    z.addEventListener('click', function(){ z.classList.remove('open'); });
+    box.addEventListener('click', function(e){
+      if (e.target.matches('.kpg-step img')) { z.firstChild.src = e.target.src; z.classList.add('open'); }
+      if (e.target.closest('.kpg-try')) { var first = navEl.querySelector('button[onclick^="showTab("]'); if (first) first.click(); window.scrollTo(0, 0); setTimeout(start, 250); }
+    });
+  }
+
+  function init(){ addCSS(); paintLocks(); tutorButton(); guideTab(); addEventListener('load', guideTab); setTimeout(guideTab, 2500); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
-  window.KPLabMode = { start: start, stop: stop, isMember: isMember, refresh: paintLocks };
+  /* next / step ใช้กับสคริปต์ถ่ายภาพคู่มือ (_admin/capture_lab_guide.py) */
+  window.KPLabMode = { start: start, stop: stop, isMember: isMember, refresh: paintLocks,
+    next: function(){ next(); }, step: function(){ return T ? T.i : -1; }, tutor: function(){ return { spot: T && T.spot, tip: T && T.tip }; } };
 })();
