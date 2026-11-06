@@ -288,6 +288,15 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 #screen-boss .dot.cur{border-color:var(--gold);background:rgba(251,191,36,.2);color:var(--gold);box-shadow:0 0 8px rgba(251,191,36,.5);}
 #screen-boss .boss-status{font-size:0.7rem;color:var(--muted2);margin-left:6px;}
 #screen-boss .boss-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:11px;overflow-y:auto;}
+#screen-boss .boss-preview{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+#screen-boss .bp-head{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:1px;color:var(--purple);}
+#screen-boss .bp-item{border:1px dashed rgba(129,140,248,.45);border-radius:10px;background:rgba(129,140,248,.06);font-size:.82rem;color:var(--muted2,#9fb3d1);}
+#screen-boss .bp-item > summary{padding:8px 12px;cursor:pointer;color:#c7d2fe;font-weight:600;list-style:none;}
+#screen-boss .bp-item > summary::-webkit-details-marker{display:none;}
+#screen-boss .bp-item[open] > summary{border-bottom:1px dashed rgba(129,140,248,.3);}
+#screen-boss .bp-body{padding:8px 12px 10px;line-height:1.6;}
+#screen-boss .bp-find{margin-top:6px;color:var(--gold);font-size:.78rem;}
+#screen-boss .bp-item.locked{opacity:.6;padding:8px 12px;border-style:dotted;}
 #screen-boss .q-step-tag{font-family:'Share Tech Mono',monospace;font-size:0.82rem;color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,.18),rgba(251,146,60,.08));border:1px solid rgba(251,191,36,.4);padding:5px 12px;border-radius:6px;letter-spacing:1px;align-self:flex-start;font-weight:700;text-transform:uppercase;box-shadow:0 0 10px rgba(251,191,36,.15);}
 #screen-boss .q-stmt{font-size:1.08rem;line-height:1.75;color:var(--text);background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(56,189,248,.06));border:1.5px solid rgba(124,58,237,.5);border-left:4px solid var(--gold);border-radius:0 12px 12px 0;padding:14px 18px;font-weight:500;letter-spacing:0.2px;text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:0 4px 16px rgba(91,33,182,.25),inset 0 1px 0 rgba(251,191,36,.1);position:relative;}
 #screen-boss .q-stmt::before{content:'';position:absolute;top:-6px;right:14px;width:36px;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);border-radius:2px;opacity:.7;}
@@ -2758,6 +2767,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
     <div class="q-fig" id="simFig"></div>
     <div class="input-grid" id="simInputs"></div>
     <div class="feedback" id="simFb" style="display:none;"></div>
+    <div class="boss-preview" id="bossPreview"></div>
   </div>
   <div class="boss-actions">
     <button class="btn btn-flee" onclick="exitBossBattle()">หนี</button>
@@ -5459,8 +5469,36 @@ function renderSim(){
   const btn = document.getElementById('bossSubmit');
   btn.textContent = '⚔️ ยืนยันคำตอบ';
   btn.classList.remove('advance','kill');
+  renderBossPreview();
   // Focus first input
   setTimeout(()=>{ const f = document.getElementById('simInput_0'); if(f) f.focus(); }, 50);
+}
+// 🔭 Boss Step Preview — INT 30+ sees the next sim · INT 60+ sees all · each int_preview rank +1 sim
+// Preview = statement + what to find (read-only) — still must compute everything (Cards Amplify, Don't Bypass)
+function bossPreviewDepth(){
+  const int = player.int || 5;
+  const base = int >= 60 ? 99 : (int >= 30 ? 1 : 0);
+  return base + (getSkillPassives().bossPreviewLv || 0);
+}
+function renderBossPreview(){
+  const host = document.getElementById('bossPreview');
+  if(!host || !bossState) return;
+  const idx = bossState.simIdx, sims = bossState.sims;
+  const upcoming = sims.slice(idx + 1);
+  if(!upcoming.length){ host.innerHTML = ''; return; }
+  const depth = bossPreviewDepth();
+  let html = `<div class="bp-head">🔭 BOSS PREVIEW · มองล่วงหน้า ${Math.min(depth, upcoming.length)}/${upcoming.length}</div>`;
+  upcoming.forEach((sim, k) => {
+    const n = idx + 2 + k;
+    if(k < depth){
+      const find = sim.def.inputs.map(i => `${i.sym} (${i.unit})`).join(' · ');
+      html += `<details class="bp-item"><summary>👁️ SIM ${n} · ${sim.def.title}</summary>
+        <div class="bp-body">${sim.def.statement(sim.vars)}<div class="bp-find">🎯 ต้องหา: ${find}</div></div></details>`;
+    } else {
+      html += `<div class="bp-item locked">🔒 SIM ${n} · ปลดด้วย INT ${depth === 0 ? 30 : 60}+ หรือสกิล 🔭 Boss Preview</div>`;
+    }
+  });
+  host.innerHTML = html;
 }
 function submitSim(){
   if(!bossState || bossState.status !== 'active') return;
@@ -5494,7 +5532,7 @@ function submitSim(){
     fb.className = 'feedback success';
     if(idx === bossState.sims.length - 1){
       // Final sim — defeat boss
-      fb.textContent = '🎉 ทั้งหมดถูกต้อง! กดปิดฉากเพื่อปราบกาลิเลโอ → รับการ์ด SR';
+      fb.textContent = `🎉 ทั้งหมดถูกต้อง! กดปิดฉากเพื่อปราบ${bossState.boss.name}` + (isMiniBossKilled(bossState.boss.id) ? '' : ' → รับการ์ด SR');
       btn.textContent = '⚔️ ปิดฉาก!';
       btn.classList.add('kill');
       btn.onclick = defeatBoss;
