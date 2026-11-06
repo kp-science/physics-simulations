@@ -203,6 +203,9 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .b-timer-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--accent));border-radius:4px;transition:width .15s linear;}
 .b-timer-fill.warn{background:linear-gradient(90deg,var(--orange),var(--red));}
 .b-timer-txt{font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:var(--accent);text-align:right;margin-top:3px;}
+.b-confuse{float:left;font-family:'Sarabun',sans-serif;color:var(--pink);font-weight:700;animation:confWob 1.6s ease-in-out infinite;display:inline-block;}
+.ss-confuse{font-size:.66rem;color:var(--pink);font-weight:700;margin-top:2px;}
+@keyframes confWob{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
 .b-qbox{background:rgba(15,26,46,.6);border:1px solid var(--border);border-radius:9px;padding:11px 13px;margin-bottom:10px;}
 .b-qid{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--accent);margin-bottom:4px;letter-spacing:.5px;}
 .b-qtxt{font-size:0.88rem;line-height:1.55;color:var(--text);}
@@ -2620,6 +2623,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
     <div class="ss-title">
       <h2 id="ssStageName">ทุ่งจลศาสตร์</h2>
       <div class="ss-meta" id="ssStageSub">REGION 1.1 · LV 1-5 · MECH</div>
+      <div class="ss-confuse" id="ssConfuse" style="display:none"></div>
     </div>
     <div class="ss-currency"><span class="gem">💎</span> <span id="ssKc">0</span></div>
   </div>
@@ -2673,7 +2677,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
   <div class="battle-bg">
     <div class="b-timer-wrap">
       <div class="b-timer-bar"><div id="bTimerFill" class="b-timer-fill"></div></div>
-      <div class="b-timer-txt"><span id="bTimerTxt">30.0</span>s</div>
+      <div class="b-timer-txt"><span id="bConfuse" class="b-confuse" style="display:none"></span><span id="bTimerTxt">30.0</span>s</div>
     </div>
     <div class="b-mob-art" id="bMobArt" style="position:relative;">⚽<span id="bMobArtBadge"></span></div>
     <div class="b-qbox">
@@ -9048,6 +9052,7 @@ function updateHud(){
   const doneAll = player.completed.length;
   const allPct = doneAll/totalAll*100;
 
+  if(typeof refreshConfusionUI==='function') refreshConfusionUI();
   const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent = v; };
   const setW = (id,v)=>{ const e=document.getElementById(id); if(e) e.style.width = v; };
 
@@ -9444,10 +9449,16 @@ function startTimer(resume){
     const qBase = (bState && bState.q && bState.q.timer_sec) ? bState.q.timer_sec : 30;
     const agiBonus = Math.min((player.agi - 5) * 0.5, 20);
     const buffBonus = (getActiveBuffs().timerBonus || 0);
-    const baseTimer = qBase + agiBonus + buffBonus;
+    let baseTimer = qBase + agiBonus + buffBonus;
+    // 😵 Confusion debuff: timer −10% (consumes 1 of 5 charges)
+    if(!bState.isSandbox && !bState.isDuel && !(bState.mobData && bState.mobData.isSandbox) && consumeConfusion()){
+      baseTimer *= CONFUSION.timerMul;
+      bState.confused = true;
+    }
     bState.timerMax = baseTimer;
     bState.timer = baseTimer;
   }
+  refreshConfusionUI();
   document.getElementById('bAttackBtn').disabled = false;
   updateTimerUI();
   if(bState.timerInterval) clearInterval(bState.timerInterval);
@@ -9464,6 +9475,49 @@ function _startTimerTick(){
     updateTimerUI();
   }, 100);
 }
+
+// ── 😵 Confusion debuff ── 3 timeouts in a row → timer −10% for the next 5 mobs (or 60s, whichever first)
+// Resist chance = AGI×1% + skill agi_resist (5%/rank), capped 90%. Any answered question resets the streak.
+const CONFUSION = {streak:3, mobs:5, ms:60000, timerMul:0.9, resistCap:90};
+function confusionActive(){
+  const c = player.confusion;
+  if(!c) return false;
+  if(c.left <= 0 || Date.now() > c.until){ player.confusion = null; refreshConfusionUI(); return false; }
+  return true;
+}
+function consumeConfusion(){
+  if(!confusionActive()) return false;
+  player.confusion.left--;
+  refreshConfusionUI();
+  return true;
+}
+function confusionResistPct(){
+  return Math.min(CONFUSION.resistCap, (player.agi || 0) * 1 + (getSkillPassives().confusionResist || 0));
+}
+function noteAnsweredForConfusion(){ player.timeoutStreak = 0; }
+// returns 'confused' | 'resisted' | null
+function noteTimeoutForConfusion(){
+  player.timeoutStreak = (player.timeoutStreak || 0) + 1;
+  if(player.timeoutStreak < CONFUSION.streak) return null;
+  player.timeoutStreak = 0;
+  if(Math.random() * 100 < confusionResistPct()) return 'resisted';
+  player.confusion = {left: CONFUSION.mobs, until: Date.now() + CONFUSION.ms};
+  refreshConfusionUI();
+  return 'confused';
+}
+function refreshConfusionUI(){
+  const on = !!(player.confusion && player.confusion.left > 0 && Date.now() <= player.confusion.until);
+  const left = on ? player.confusion.left : 0;
+  const ss = document.getElementById('ssConfuse');
+  if(ss){ ss.style.display = on ? '' : 'none'; ss.textContent = on ? `😵 สับสน · เวลา −10% อีก ${left} มอน` : ''; }
+  const b = document.getElementById('bConfuse');
+  if(b){
+    let show = false; try { show = !!(bState && bState.confused); } catch(e){}
+    b.style.display = show ? '' : 'none';
+    b.textContent = show ? '😵 สับสน −10%' : '';
+  }
+}
+setInterval(()=>{ if(player && player.confusion) confusionActive(); }, 5000);
 
 function updateTimerUI(){
   const t = bState.timer;
@@ -9705,6 +9759,7 @@ function submitAnswer(){
 }
 
 function onCorrect(){
+  noteAnsweredForConfusion();
   // visual
   document.getElementById('bMobArt').classList.add('hit');
   showCorrectBurst(player.combo >= 4 ? 'PERFECT!' : 'EXCELLENT!');
@@ -9785,6 +9840,7 @@ function escapeCurrentMob(){
   }, 500);
 }
 function onWrong(){
+  noteAnsweredForConfusion();
   showMockLaugh(bState && bState.mobData && bState.mobData.mob, 'wrong');
   playSfx('wrong');
   setTimeout(()=>playSfx('laugh'), 200);
@@ -9869,6 +9925,7 @@ function timeOut(){
   const pen = graceUsed ? 0 : applyXpPenalty();
   if(pen > 0) showXpPenaltyToast(pen);
   pityMpRegen();
+  const conf = (bState && !bState.isSandbox && !bState.isDuel) ? noteTimeoutForConfusion() : null;
   // Question rotation: requeue + mob escapes (same as onWrong)
   requeueCurrentQuestion();
   escapeCurrentMob();
@@ -9877,6 +9934,12 @@ function timeOut(){
     document.getElementById('rTitle').textContent = 'หมดเวลา';
     document.getElementById('rTitle').classList.add('fail');
     document.getElementById('rSub').textContent = pen > 0 ? `เสีย XP ${pen} แต้ม · มอนหนี ข้อนี้จะวนกลับมา` : 'ช้าไป! มอนหนีไปแล้ว ข้อนี้จะวนกลับมา';
+    if(conf === 'confused'){
+      document.getElementById('rSub').textContent += ' · 😵 หมดเวลา 3 ครั้งติด → สับสน! เวลา −10% อีก 5 มอน';
+      setTimeout(()=>toast('😵 สับสน! เวลาตอบ −10% อีก 5 มอน (หรือ 60 วิ)'), 300);
+    } else if(conf === 'resisted'){
+      setTimeout(()=>toast(`⚡ AGI ช่วยไว้! หลีกความสับสนได้ (${confusionResistPct()}%)`), 300);
+    }
     const rXp = document.getElementById('rXp');
     rXp.textContent = pen > 0 ? `−${pen}` : '+0';
     rXp.style.color = pen > 0 ? 'var(--red)' : '';
