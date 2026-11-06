@@ -268,6 +268,13 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 #screen-boss .boss-hud{background:linear-gradient(135deg,#1a0a1f,#0a0612);padding:14px 16px;border-bottom:2px solid #5b21b6;flex-shrink:0;}
 #screen-boss .boss-row{display:flex;align-items:center;gap:12px;}
 #screen-boss .boss-portrait{width:60px;height:60px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0;}
+#screen-boss .boss-portrait{overflow:hidden;}
+#screen-boss .boss-portrait > svg{width:100%;height:100%;display:block;}
+#screen-boss .boss-hero{flex-shrink:0;height:160px;border-radius:12px;overflow:hidden;border:1px solid rgba(251,191,36,.35);box-shadow:inset 0 0 30px rgba(0,0,0,.6);}
+#screen-boss .boss-hero > svg{width:100%;height:100%;display:block;animation:boss-idle 3.2s ease-in-out infinite;}
+@keyframes boss-idle{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.mini-boss-node .boss-head{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:block;}
+.mini-boss-node .boss-head > svg{width:100%;height:100%;display:block;}
 #screen-boss .boss-info{flex:1;min-width:0;}
 #screen-boss .boss-name{font-family:Cinzel,serif;color:var(--gold);font-size:1.2rem;font-weight:700;text-shadow:0 0 12px rgba(251,191,36,.4);}
 #screen-boss .boss-title{font-size:0.74rem;color:var(--muted2);font-family:'Share Tech Mono',monospace;letter-spacing:.8px;}
@@ -2741,6 +2748,7 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
     </div>
   </div>
   <div class="boss-body" id="bossBody">
+    <div class="boss-hero" id="bossHero"></div>
     <span class="q-step-tag" id="simTag">SIM 1/3</span>
     <div class="q-stmt" id="simStmt">โจทย์...</div>
     <div class="q-fig" id="simFig"></div>
@@ -5160,6 +5168,94 @@ function isMiniBossKilled(bossId){
 
 // ── Battle state for sims ──
 let bossState = null;  // {boss, simIdx:0..2, vars:[{}], timerInterval, timer, status}
+// ═══ Mini-boss art (studio-lit chibi, same key light as mobs). bossArt(id,'full'|'head') ═══
+const BOSS_DEFS = `<defs>
+<radialGradient id="bsBg1" cx="25%" cy="15%" r="100%"><stop offset="0%" stop-color="#3a2e12"/><stop offset="55%" stop-color="#14100a"/><stop offset="100%" stop-color="#050403"/></radialGradient>
+<radialGradient id="bsBg2" cx="25%" cy="15%" r="100%"><stop offset="0%" stop-color="#2e1a52"/><stop offset="55%" stop-color="#120a24"/><stop offset="100%" stop-color="#05030b"/></radialGradient>
+<radialGradient id="bsSh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#000" stop-opacity=".65"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="bsSkin" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#fff1e6"/><stop offset="45%" stop-color="#f5c7a1"/><stop offset="100%" stop-color="#a8673d"/></radialGradient>
+<linearGradient id="bsRobeG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6b4f2a"/><stop offset="55%" stop-color="#3b2a14"/><stop offset="100%" stop-color="#140c04"/></linearGradient>
+<linearGradient id="bsRobeH" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c5cd6"/><stop offset="50%" stop-color="#3b2577"/><stop offset="100%" stop-color="#130a2b"/></linearGradient>
+<radialGradient id="bsBeard" cx="35%" cy="25%" r="85%"><stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#d6d3d1"/><stop offset="100%" stop-color="#78716c"/></radialGradient>
+<radialGradient id="bsWig" cx="30%" cy="20%" r="90%"><stop offset="0%" stop-color="#8a6a52"/><stop offset="50%" stop-color="#3f2a1d"/><stop offset="100%" stop-color="#150b05"/></radialGradient>
+<linearGradient id="bsBrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef3c7"/><stop offset="40%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#78350f"/></linearGradient>
+<linearGradient id="bsTower" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#e7e5e4"/><stop offset="100%" stop-color="#78716c"/></linearGradient>
+</defs>`;
+const BOSS_BODY = {
+  galileo: `<rect x="0" y="0" width="334" height="380" fill="url(#bsBg1)"/>
+<g opacity=".55" transform="rotate(5 250 200)">
+<rect x="226" y="60" width="44" height="210" fill="url(#bsTower)"/>
+<path d="M226 90 h44 M226 120 h44 M226 150 h44 M226 180 h44 M226 210 h44 M226 240 h44" stroke="#57534e" stroke-width="1.2"/>
+<path d="M232 66 v200 M244 66 v200 M256 66 v200" stroke="#a8a29e" stroke-width=".8" opacity=".6"/>
+<rect x="232" y="44" width="32" height="16" fill="#d6d3d1"/>
+</g>
+<circle cx="292" cy="96" r="6" fill="#94a3b8"/><circle cx="292" cy="132" r="9" fill="#475569"/>
+<path d="M292 104 v8 M292 144 v8" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="2 3"/>
+<ellipse cx="150" cy="330" rx="92" ry="14" fill="url(#bsSh)"/>
+<path d="M78 330 q-6 -96 72 -116 q78 20 72 116 z" fill="url(#bsRobeG)"/>
+<path d="M150 214 v116" stroke="#140c04" stroke-width="2" opacity=".6"/>
+<path d="M98 300 q-4 -56 30 -80" stroke="#c4a36a" stroke-width="2" fill="none" opacity=".55"/>
+<path d="M118 214 q32 22 64 0 l-6 18 q-26 14 -52 0 z" fill="#f5f5f4"/>
+<circle cx="150" cy="150" r="48" fill="url(#bsSkin)"/>
+<path d="M104 140 q-4 -48 46 -54 q50 6 46 54 q-10 -24 -46 -26 q-36 2 -46 26 z" fill="#57534e"/>
+<path d="M108 132 q6 -26 30 -32" stroke="#a8a29e" stroke-width="2" fill="none"/>
+<path d="M110 168 q0 50 40 60 q40 -10 40 -60 q-14 22 -40 20 q-26 2 -40 -20 z" fill="url(#bsBeard)"/>
+<path d="M130 172 q20 10 40 0" stroke="#78716c" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+<ellipse cx="132" cy="150" rx="7" ry="8" fill="#fff"/><ellipse cx="168" cy="150" rx="7" ry="8" fill="#fff"/>
+<circle cx="134" cy="151" r="4" fill="#1c1917"/><circle cx="170" cy="151" r="4" fill="#1c1917"/>
+<circle cx="132" cy="148" r="1.4" fill="#fff"/><circle cx="168" cy="148" r="1.4" fill="#fff"/>
+<path d="M120 134 l20 4 M180 134 l-20 4" stroke="#44403c" stroke-width="3" stroke-linecap="round"/>
+<ellipse cx="128" cy="124" rx="12" ry="6" fill="#fff" opacity=".35"/>
+<g transform="rotate(-32 200 240)">
+<rect x="170" y="230" width="96" height="16" rx="5" fill="url(#bsBrass)"/>
+<rect x="258" y="226" width="16" height="24" rx="3" fill="url(#bsBrass)"/>
+<rect x="160" y="233" width="14" height="10" rx="2" fill="#78350f"/>
+<path d="M190 230 v16 M222 230 v16" stroke="#78350f" stroke-width="1.4"/>
+<path d="M172 233 h90" stroke="#fffbeb" stroke-width="1.6" opacity=".8"/>
+</g>
+<ellipse cx="196" cy="262" rx="12" ry="9" fill="url(#bsSkin)"/>`,
+  hooke: `<g transform="translate(-346 0)">
+<rect x="346" y="0" width="334" height="380" fill="url(#bsBg2)"/>
+<g opacity=".5">
+<rect x="566" y="190" width="70" height="10" rx="3" fill="#a16207"/>
+<path d="M586 190 l10 -60 h12 l10 60" fill="#78350f"/>
+<rect x="588" y="96" width="16" height="44" rx="4" fill="url(#bsBrass)" transform="rotate(-18 596 118)"/>
+<circle cx="608" cy="86" r="8" fill="#fde68a"/>
+</g>
+<g opacity=".5">
+<rect x="608" y="250" width="50" height="40" rx="4" fill="none" stroke="#c4b5fd" stroke-width="1"/>
+<path d="M614 254 h6 v6 h-6 z M622 254 h6 v6 h-6 z M630 254 h6 v6 h-6 z M614 262 h6 v6 h-6 z M622 262 h6 v6 h-6 z M630 262 h6 v6 h-6 z" fill="#c4b5fd" opacity=".6"/>
+</g>
+<ellipse cx="496" cy="330" rx="92" ry="14" fill="url(#bsSh)"/>
+<path d="M424 330 q-6 -96 72 -116 q78 20 72 116 z" fill="url(#bsRobeH)"/>
+<path d="M466 214 h60 l-8 24 h-44 z" fill="#f5f3ff"/>
+<path d="M480 238 h32" stroke="#c4b5fd" stroke-width="2"/>
+<path d="M444 300 q-4 -56 30 -80" stroke="#c4b5fd" stroke-width="2" fill="none" opacity=".5"/>
+<path d="M432 196 q-16 -70 18 -104 q46 -30 92 0 q34 34 18 104 q-10 26 -20 30 l-6 -60 q-10 -36 -38 -38 q-28 2 -38 38 l-6 60 q-12 -4 -20 -30 z" fill="url(#bsWig)"/>
+<circle cx="496" cy="150" r="44" fill="url(#bsSkin)"/>
+<path d="M454 136 q4 -44 42 -46 q38 2 42 46 q-14 -22 -42 -24 q-28 2 -42 24 z" fill="url(#bsWig)"/>
+<ellipse cx="480" cy="150" rx="7" ry="8" fill="#fff"/><ellipse cx="514" cy="150" rx="7" ry="8" fill="#fff"/>
+<circle cx="482" cy="151" r="4" fill="#1e1b4b"/><circle cx="516" cy="151" r="4" fill="#1e1b4b"/>
+<circle cx="480" cy="148" r="1.4" fill="#fff"/><circle cx="514" cy="148" r="1.4" fill="#fff"/>
+<path d="M468 136 l18 2 M526 132 l-18 6" stroke="#3f2a1d" stroke-width="3" stroke-linecap="round"/>
+<path d="M484 176 q12 6 24 -2" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M486 170 q10 -4 20 0" stroke="#3f2a1d" stroke-width="2" fill="none" opacity=".7"/>
+<ellipse cx="476" cy="126" rx="11" ry="5" fill="#fff" opacity=".35"/>
+<path d="M420 286 l14 -8 l-28 -8 l28 -8 l-28 -8 l28 -8 l-28 -8 l28 -8 l-14 -8" stroke="#e2e8f0" stroke-width="3.2" fill="none" stroke-linejoin="round"/>
+<path d="M420 286 l14 -8 l-28 -8" stroke="#fff" stroke-width="1.2" fill="none" opacity=".7"/>
+<rect x="404" y="286" width="32" height="22" rx="5" fill="#a78bfa"/>
+<rect x="406" y="288" width="16" height="5" rx="2" fill="#fff" opacity=".5"/>
+<ellipse cx="420" cy="214" rx="13" ry="9" fill="url(#bsSkin)"/>
+<path d="M444 236 v40 M440 242 l4 -6 l4 6 M440 270 l4 6 l4 -6" stroke="#c4b5fd" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+</g>`
+};
+function bossArt(bossId, mode){
+  const body = BOSS_BODY[bossId];
+  if(!body) return null;
+  const vb = mode === 'head' ? '84 78 132 132' : '0 74 334 180';
+  return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${BOSS_DEFS}${body}</svg>`;
+}
+
 function enterBossBattle(bossId){
   const boss = MINI_BOSSES[bossId];
   if(!boss){ toast('❌ ไม่พบ boss นี้'); return; }
@@ -5176,7 +5272,12 @@ function enterBossBattle(bossId){
     status: 'active'
   };
   // Render boss HUD
-  document.getElementById('bossPortrait').textContent = boss.portrait;
+  const pEl = document.getElementById('bossPortrait');
+  const headArt = bossArt(boss.id, 'head');
+  if(headArt) pEl.innerHTML = headArt; else pEl.textContent = boss.portrait;
+  const hero = document.getElementById('bossHero');
+  const fullArt = bossArt(boss.id, 'full');
+  if(hero){ hero.innerHTML = fullArt || ''; hero.style.display = fullArt ? '' : 'none'; }
   document.getElementById('bossName').textContent = boss.name;
   document.getElementById('bossTitle').textContent = boss.title;
   // Start timer
@@ -7172,7 +7273,10 @@ function renderStages(){
       node.style.background = 'linear-gradient(135deg,#7c3aed,#5b21b6)';
       node.style.borderColor = 'var(--gold)';
       node.style.boxShadow = '0 0 14px rgba(251,191,36,.5)';
-      node.innerHTML = `<span class="stage-letter" style="font-size:1.2rem;">${killed?'✓':boss.portrait}</span>`;
+      const headSvg = bossArt(bossId, 'head');
+      node.innerHTML = headSvg
+        ? `<span class="boss-head">${headSvg}</span>${killed ? '<span class="stage-letter" style="position:relative;font-size:1.2rem;text-shadow:0 0 6px #000;">✓</span>' : ''}`
+        : `<span class="stage-letter" style="font-size:1.2rem;">${killed?'✓':boss.portrait}</span>`;
       node.onclick = () => enterBossBattle(bossId);
       canvas.appendChild(node);
       const lbl = document.createElement('div');
