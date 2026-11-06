@@ -533,7 +533,7 @@ function updateHint(){
     pivot:'<b>🎯 ที่วัด</b> — หมุนไม้ใสให้ขนานขอบสี (ลากไม้ / ±0.1°) · ลากจุดกลางเพื่อเลื่อน',
     card:'<b>👁 ฉากเล็ก</b> — มองจากทรงกระบอก: เทียบลำดับสีของแถบปฐมภูมิกับทุติยภูมิ'};
   const am= part==='B'&&mode==='auto' ? ' · <b>ไม้วัด '+arm.a.toFixed(1)+'°</b>' : '';
-  $('hud').innerHTML= VH[curView] ? VH[curView]+am : part==='A' ? '<b>ตอน A · เลเซอร์'+(lam===650?'แดง':'ม่วง')+'</b> — ลากเลเซอร์ขึ้น-ลงเพื่อเลื่อน'+(curView==='iso'?' · ลากพื้นที่ว่างเพื่อหมุนมุมมอง':'') : '<b>ตอน B · แสงขาวลำกว้าง</b> — แถบรุ้งอยู่ด้านเดียวกับไฟฉาย'+am;
+  $('hud').innerHTML= VH[curView] ? VH[curView]+am : part==='A' ? '<b>ตอน A · เลเซอร์'+(lam===650?'แดง':'ม่วง')+'</b> — ลากเลเซอร์ขึ้น-ลงเพื่อเลื่อน · ลากพื้นที่ว่างเพื่อหมุนมุมมอง' : '<b>ตอน B · แสงขาวลำกว้าง</b> — แถบรุ้งอยู่ด้านเดียวกับไฟฉาย · ลากพื้นที่ว่างเพื่อหมุนมุมมอง'+am;
 }
 
 /* ── 🧭 ตอนนี้ต้องทำอะไร (ขึ้นกับสถานะจริงของการทดลอง · โหมดวัดเองไม่บอกค่ามุมรุ้ง/ค่า n) ── */
@@ -805,23 +805,29 @@ function zoomTarget(){
   if(curView==='pivot') return {x:arm.p[0], z:arm.p[1], half:3.8};
   if(curView==='card'){ const {f,C}=cardGeom(), e=0.30*card.d; return {eye:[f[0]*e,2.6,f[1]*e], at:[C[0],CARD_H*0.45,C[1]]}; }
   return null; }
+/* หมุนได้ทุกมุมมอง: ลากพื้นที่ว่าง → แปลงกล้องปัจจุบันเป็นวงโคจร (ภาพไม่กระโดด) แล้วหมุนต่อในโหมดมุมเฉียง */
+function camToOrbit(){ const zt=zoomTarget(), t=new THREE.Vector3();
+  if(zt&&zt.at) t.set(...zt.at); else { const d=new THREE.Vector3(); camera.getWorldDirection(d); const k= Math.abs(d.y)>1e-4 ? -camera.position.y/d.y : 30; t.copy(camera.position).addScaledVector(d,k); }
+  const v=camera.position.clone().sub(t), r=v.length(), sc=Math.tan(camera.fov*D2R/2)/Math.tan(19*D2R);
+  orbit.target.copy(t); orbit.dist=Math.max(1.5,r*sc); orbit.el=Math.max(0.03,Math.min(1.5,Math.asin(Math.max(-1,Math.min(1,v.y/r))))); orbit.az=Math.atan2(v.x,v.z);
+  curView='iso'; viewZoom=1; document.querySelectorAll('#viewbar button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v==='iso')); updateHint(); }
 function setupPointer(cv){
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3(); let dm=null,lx=0,ly=0;
   const setN=(x,y)=>{ const r=cv.getBoundingClientRect(); ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera); };
   const paperPt=(x,y)=>{ setN(x,y); return ray.ray.intersectPlane(plane,hit)?[hit.x,hit.z]:null; };
   const onLaser=q=> part==='A' && q && q[0]>BOX_X-3 && q[0]<RULER_X+1 && Math.abs(q[1])<3;
   const onTool=q=>{ if(part!=='B'||!q) return null; const dx=q[0]-arm.p[0], dz=q[1]-arm.p[1]; if(Math.hypot(dx,dz)<1.4) return 'move'; const u=armDir(), t=dx*u[0]+dz*u[1], perp=Math.abs(dx*u[1]-dz*u[0]); if(perp<0.9&&Math.abs(t)<12) return 'rot'; return null; };
-  const down=(x,y)=>{ lx=x; ly=y; const q=paperPt(x,y); const tool=onTool(q); if(tool){ dm= tool==='move'?{tool:'move',off:[arm.p[0]-q[0],arm.p[1]-q[1]]}:{tool:'rot'}; cv.style.cursor= tool==='move'?'move':'grabbing'; return; } if(onLaser(q)){ if(sweep) toggleSweep(); dm={laser:true}; setB(q[1]*10); cv.style.cursor='ns-resize'; } else { dm= curView==='iso'?{orbit:true}:null; cv.style.cursor= dm?'grabbing':'default'; } };
-  const move=(x,y)=>{ if(!dm){ const q=paperPt(x,y), tool=onTool(q); cv.style.cursor= tool==='move'?'move': tool==='rot'?'grab': onLaser(q)?'ns-resize':(curView==='iso'?'grab':'default'); return; }
+  const down=(x,y)=>{ lx=x; ly=y; const q=paperPt(x,y); const tool=onTool(q); if(tool){ dm= tool==='move'?{tool:'move',off:[arm.p[0]-q[0],arm.p[1]-q[1]]}:{tool:'rot'}; cv.style.cursor= tool==='move'?'move':'grabbing'; return; } if(onLaser(q)){ if(sweep) toggleSweep(); dm={laser:true}; setB(q[1]*10); cv.style.cursor='ns-resize'; } else { dm={orbit:true, x0:x, y0:y, free:curView==='iso'}; cv.style.cursor='grabbing'; } };
+  const move=(x,y)=>{ if(!dm){ const q=paperPt(x,y), tool=onTool(q); cv.style.cursor= tool==='move'?'move': tool==='rot'?'grab': onLaser(q)?'ns-resize':'grab'; return; }
     if(dm.tool){ const q=paperPt(x,y); if(q){ if(dm.tool==='move'){ arm.p=[q[0]+dm.off[0],q[1]+dm.off[1]]; clampArmP(); drawAll(); } else { const dx=q[0]-arm.p[0], dz=q[1]-arm.p[1]; if(Math.hypot(dx,dz)>0.8){ let a=Math.atan2(arm.side*dz,-dx)/D2R; if(a<0) a+=180; if(a>90) a=180-a; setArm(a); } } } lx=x; ly=y; return; }
-    if(dm.laser){ const q=paperPt(x,y); if(q) setB(q[1]*10); } else { orbit.az-=(x-lx)*0.006; orbit.el=Math.max(0.03,Math.min(1.5,orbit.el+(y-ly)*0.006)); }
+    if(dm.laser){ const q=paperPt(x,y); if(q) setB(q[1]*10); } else { if(!dm.free){ if(Math.hypot(x-dm.x0,y-dm.y0)<4) return; camToOrbit(); dm.free=true; } orbit.az-=(x-lx)*0.006; orbit.el=Math.max(0.03,Math.min(1.5,orbit.el+(y-ly)*0.006)); }
     lx=x; ly=y; };
   const up=()=>{ dm=null; };
   cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) up(); if(dm||e.target===cv) move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
   cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchend',up); cv.addEventListener('touchcancel',up);
-  cv.addEventListener('wheel',e=>{ if(['rule','prot','pivot'].includes(curView)){ e.preventDefault(); viewZoom=Math.max(0.35,Math.min(3,viewZoom*(1+e.deltaY*0.0012))); return; } if(curView!=='iso') return; e.preventDefault(); orbit.dist=Math.max(6,Math.min(150,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
+  cv.addEventListener('wheel',e=>{ if(['rule','prot','pivot'].includes(curView)){ e.preventDefault(); viewZoom=Math.max(0.35,Math.min(3,viewZoom*(1+e.deltaY*0.0012))); return; } if(curView!=='iso') return; e.preventDefault(); orbit.dist=Math.max(1.5,Math.min(150,orbit.dist*(1+e.deltaY*0.0012))); },{passive:false});
 }
 
 /* ═══════════ THEORY CANVASES ═══════════ */
