@@ -44,7 +44,7 @@
 - `virtual-physics-lab-01.html` — หน้ารวม 22 simulations ของ VPL (ใช้ canvas previews)
 - `library.html` — หน้ารวมไฟล์ทั้งหมด มี search
 - `virtual-lab.html` — **catalog รวม Virtual Lab ทุกชุด (46) จัดตามบทเรียน สสวท.** มี filter กลุ่ม/บทเรียน/ระดับ + search + deep link (`?level=uni`, `?topic=waves`, `#g-mech`) — **ไฟล์นี้ generate จาก `_admin/labs_data.py` ด้วย `python3 _admin/build_virtual_lab.py`** (สคริปต์เขียนหมวด Virtual Lab ใน library.html ใหม่ด้วย และรัน protect ให้เอง) → **เพิ่ม lab ใหม่ = เพิ่ม entry ใน labs_data.py แล้ว build** ห้ามแก้ virtual-lab.html ตรง ๆ · build ยังฝัง `LAB_META`/`TOPIC_META` ลง `_admin/admin.html` (modal สิทธิ์แสดง checkbox ราย lab เป็นชื่อไทย จัดกลุ่มตามบทเรียน — ค่า access string ไม่เปลี่ยน) → **เพิ่ม lab ใหม่ยังต้องเพิ่มใน `VLAB_SERIES` ของ kp-auth.js + admin.html ตามเดิม** แล้วค่อย build
-- หน้าแรกเดิมมีเมนูทางลัด QM:START/QM:END — **เลิกใช้แล้ว** (2026-09-15) ตัวเลขจำนวนแลป/Demo บนหน้าแรกนับจาก labs_data.py และไฟล์ใน Demo/ อัตโนมัติ · `Demo/index.html` แก้มือ (ครบ 48 เรื่อง ณ 2026-09-15)
+- หน้าแรกเดิมมีเมนูทางลัด QM:START/QM:END — **เลิกใช้แล้ว** (2026-09-15) ตัวเลขจำนวนแลป/Demo บนหน้าแรกนับจาก labs_data.py และไฟล์ใน Demo/ อัตโนมัติ · `Demo/index.html` แก้มือ (49 เรื่อง ณ 2026-11-06) · แถบซ้าย "เลือกหัวข้อ" + ช่องค้นหา + ตัวเลขจำนวน สร้างจากการ์ดในหน้าด้วย JS เอง → เพิ่มการ์ดใน `.sub` ที่มีอยู่ หรือเพิ่ม `.cat`/`.sub` ใหม่ เมนูตามให้อัตโนมัติ
 - `mechanics.html` — บทเรียนกลศาสตร์ (ปลดล็อก password แล้ว — free preview)
 - `Virtual Physics Lab 01/Mechacnics/` — 22 ไฟล์ simulation (มี frame-busting + back button)
 - `Virtual Physics Lab 02/` — Lab 30–46 (คลื่น · แสง · การวัด · จักรวาลวิทยา) · Lab 46 กระจกเว้า = 3D (three.js)
