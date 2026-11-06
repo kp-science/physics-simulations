@@ -3670,11 +3670,13 @@ function applyRewards(rewards){
   if(rewards.manaPotionS){ player.manaPotionS = (player.manaPotionS||0) + rewards.manaPotionS; summary.push(`💧 ×${rewards.manaPotionS} MP-S`); }
   if(rewards.manaPotionM){ player.manaPotionM = (player.manaPotionM||0) + rewards.manaPotionM; summary.push(`💧 ×${rewards.manaPotionM} MP-M`); }
   if(Array.isArray(rewards.cards)){
+    player.inventory = player.inventory || {};
     rewards.cards.forEach(cardId => {
-      player.inventory = player.inventory || {};
       player.inventory[cardId] = (player.inventory[cardId]||0) + 1;
+    });
+    stackById(rewards.cards, x => x).forEach(({item:cardId, count}) => {
       const c = (typeof CARDS !== 'undefined') ? CARDS.find(x=>x.id===cardId) : null;
-      summary.push(`🎴 ${c ? c.name : cardId}`);
+      summary.push(`🎴 ${c ? c.name : cardId} ×${count}`);
     });
   }
   return summary;
@@ -3844,9 +3846,9 @@ function renderRewardChips(r){
   if(r.manaPotionS) chips.push(`<div class="mail-reward-chip">💧 S×${r.manaPotionS}</div>`);
   if(r.manaPotionM) chips.push(`<div class="mail-reward-chip">💧 M×${r.manaPotionM}</div>`);
   if(Array.isArray(r.cards)){
-    r.cards.forEach(cid => {
+    stackById(r.cards, x => x).forEach(({item:cid, count}) => {
       const c = (typeof CARDS!=='undefined') ? CARDS.find(x=>x.id===cid) : null;
-      chips.push(`<div class="mail-reward-chip">🎴 ${escapeHtml(c?c.name:cid)}</div>`);
+      chips.push(`<div class="mail-reward-chip">🎴 ${escapeHtml(c?c.name:cid)} ×${count}</div>`);
     });
   }
   return chips.join('');
@@ -4626,6 +4628,17 @@ const MOBS = [
 function getMobsForRegion(regionId){
   const list = MOBS.filter(m => !m.regions || m.regions.includes(regionId));
   return list.length ? list : MOBS;
+}
+
+function stackById(items, keyFn){
+  const map = new Map();
+  (items||[]).forEach(it => {
+    if(!it) return;
+    const k = keyFn ? keyFn(it) : it.id;
+    const e = map.get(k);
+    if(e) e.count++; else map.set(k, {item: it, count: 1});
+  });
+  return [...map.values()];
 }
 
 function getMobArt(mob){
@@ -8056,7 +8069,9 @@ function doGachaPull(count){
     front.innerHTML = renderCard(top, {size:'medium', checkLock:false});
     const flipEl = document.getElementById('pullCardFlip');
     flipEl.classList.remove('flipped');
-    document.getElementById('pullExtraNote').textContent = count > 1 ? `+${count-1} more in inventory` : '';
+    document.getElementById('pullExtraNote').textContent = count > 1
+      ? 'ได้ทั้งหมด: ' + stackById(results).map(({item,count:n}) => `${item.icon} ${item.name} ×${n}`).join(' · ')
+      : '';
     document.getElementById('pullResult').classList.add('show');
     // Trigger flip after short delay (build anticipation)
     setTimeout(()=>flipEl.classList.add('flipped'), 250);
@@ -9135,8 +9150,7 @@ function processVictory(){
     dropHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
       <div style="font-size:0.66rem;letter-spacing:1.5px;color:var(--gold);font-family:'Share Tech Mono',monospace;">★ DROP${extraLabel}</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
-        ${renderCard(drop, {size:'medium', extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${drop.id}')`})}
-        ${extraDrops.map(d=>renderCard(d, {size:'medium', extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${d.id}')`})).join('')}
+        ${stackById([drop, ...extraDrops]).map(({item:d,count})=>renderCard(d, {size:'medium', count: count>1 ? count : null, extraClass:'reveal-drop', checkLock:false, onclick:`showCardDetail('${d.id}')`})).join('')}
       </div>
     </div>`;
   }
