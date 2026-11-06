@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2YTJBNHP6D"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2YTJBNHP6D');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard — KP Science</title>
@@ -165,6 +173,54 @@ td{padding:.8rem 1rem;vertical-align:middle}
 
   <!-- TAB: Overview -->
   <div class="tab-pane active" id="pane-overview">
+
+    <!-- 📈 ผู้เข้าชมเว็บ (kpstats — นับโดย kp-auth.js) -->
+    <div class="section" style="padding-top:1.5rem;padding-bottom:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap">
+        <div>
+          <div class="section-title">📈 ผู้เข้าชมเว็บแลป</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.2rem">เริ่มนับ 6 พ.ย. 2569 · รีเฟรชซ้ำในแท็บเดิมไม่นับเพิ่ม · คนไม่ซ้ำ = นับต่อเครื่อง/เบราว์เซอร์ · ออนไลน์ = เปิดหน้าเว็บอยู่ใน 5 นาทีล่าสุด</div>
+        </div>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <select id="vs-env" onchange="loadVisitorStats()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:.4rem .5rem;border-radius:6px;font-family:inherit;font-size:.78rem">
+            <option value="site">เว็บจริง</option><option value="dev">ทดสอบในเครื่อง</option>
+          </select>
+          <button onclick="loadVisitorStats()" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#7dd3fc;padding:.4rem .8rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">↻ รีเฟรช</button>
+        </div>
+      </div>
+      <div id="vs-err" style="font-size:.8rem;color:#fca5a5;margin-top:.5rem"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-n" id="vs-online" style="color:var(--accent3)">—</div><div class="stat-l">🟢 ออนไลน์ตอนนี้</div></div>
+      <div class="stat-card"><div class="stat-n" id="vs-today-views">—</div><div class="stat-l">เข้าชมวันนี้</div></div>
+      <div class="stat-card"><div class="stat-n" id="vs-today-uniques">—</div><div class="stat-l">คนไม่ซ้ำวันนี้</div></div>
+      <div class="stat-card"><div class="stat-n" id="vs-views" style="color:var(--accent2)">—</div><div class="stat-l">เข้าชมรวม</div></div>
+      <div class="stat-card"><div class="stat-n" id="vs-uniques" style="color:var(--accent2)">—</div><div class="stat-l">คนไม่ซ้ำรวม</div></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">เข้าชม 30 วัน</div>
+        <div class="chart-bars" id="chart-visits"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">คนไม่ซ้ำ 30 วัน</div>
+        <div class="chart-bars" id="chart-uniques"></div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card" style="grid-column:1/-1">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem">
+          <div class="chart-title" style="margin:0">ยอดเปิดรายหน้า / รายแลป</div>
+          <input class="search-inp" type="text" id="vs-search" placeholder="ค้นหาชื่อแลป..." oninput="renderVisitorPages()" />
+        </div>
+        <div class="table-wrap" style="max-height:420px;overflow:auto">
+          <table>
+            <thead><tr><th>#</th><th>หน้า</th><th>เปิด</th><th>ออนไลน์</th></tr></thead>
+            <tbody id="vs-pages-tbody"><tr><td colspan="4" class="empty">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-n" id="stat-total">—</div>
@@ -371,6 +427,7 @@ auth.onAuthStateChanged(async user => {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'flex';
     document.getElementById('adm-logged-email').textContent = user.email;
+    loadVisitorStats(); startVisitorAutoRefresh();
     await Promise.all([loadMembers(), loadDownloadLogs(), loadAnonymousSettings()]);
   } else if (user) {
     await auth.signOut();
@@ -1137,6 +1194,85 @@ async function saveTopics() {
 }
 
 // ── Toast ────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════
+// ── ผู้เข้าชมเว็บ (kpstats — เขียนโดย kpStats ใน kp-auth.js) ──
+// ═════════════════════════════════════════════════════════
+let vsPages = [], vsOnlineByPath = {};
+function vsFmt(n) { return (n || 0).toLocaleString('th-TH'); }
+function vsEsc(x) { return String(x).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function vsBkk(d) { return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); }
+
+async function loadVisitorStats() {
+  const env = document.getElementById('vs-env').value;
+  const root = db.collection('kpstats').doc(env);
+  const errEl = document.getElementById('vs-err');
+  errEl.textContent = '';
+  try {
+    const [siteSnap, daysSnap, pagesSnap] = await Promise.all([
+      root.get(),
+      root.collection('days').orderBy(firebase.firestore.FieldPath.documentId(), 'desc').limit(30).get(),
+      root.collection('pages').get(),
+    ]);
+    const site = siteSnap.exists ? siteSnap.data() : {};
+    document.getElementById('vs-views').textContent = vsFmt(site.views);
+    document.getElementById('vs-uniques').textContent = vsFmt(site.uniques);
+    const byDay = {};
+    daysSnap.docs.forEach(d => byDay[d.id] = d.data());
+    const today = vsBkk(new Date());
+    document.getElementById('vs-today-views').textContent = vsFmt((byDay[today] || {}).views);
+    document.getElementById('vs-today-uniques').textContent = vsFmt((byDay[today] || {}).uniques);
+    const v = [], u = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000), key = vsBkk(d);
+      const label = key.slice(8).replace(/^0/, '') + '/' + key.slice(5, 7).replace(/^0/, '');
+      v.push({ key, label, count: (byDay[key] || {}).views || 0 });
+      u.push({ key, label, count: (byDay[key] || {}).uniques || 0 });
+    }
+    renderChart('chart-visits', v, 'var(--accent)');
+    renderChart('chart-uniques', u, 'var(--accent2)');
+    vsPages = pagesSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.opens || 0) - (a.opens || 0));
+    await loadVisitorOnline();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = e.code === 'permission-denied'
+      ? 'อ่านสถิติไม่ได้ — ยังไม่ได้อัปเดต Firestore rules (kpstats) หรือไม่ได้ล็อกอินด้วยอีเมลแอดมิน'
+      : 'โหลดสถิติไม่สำเร็จ: ' + e.message;
+  }
+}
+
+async function loadVisitorOnline() {
+  const env = document.getElementById('vs-env').value;
+  const cutoff = firebase.firestore.Timestamp.fromMillis(Date.now() - 5 * 60000);
+  const snap = await db.collection('kpstats').doc(env).collection('online').where('t', '>', cutoff).get();
+  vsOnlineByPath = {};
+  snap.docs.forEach(d => { const p = d.data().p || '?'; vsOnlineByPath[p] = (vsOnlineByPath[p] || 0) + 1; });
+  document.getElementById('vs-online').textContent = vsFmt(snap.size);
+  renderVisitorPages();
+}
+
+function renderVisitorPages() {
+  const tbody = document.getElementById('vs-pages-tbody');
+  const q = (document.getElementById('vs-search').value || '').trim().toLowerCase();
+  const rows = vsPages.filter(p => !q || ((p.title || '') + ' ' + (p.path || '')).toLowerCase().includes(q));
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">ยังไม่มีข้อมูล</td></tr>'; return; }
+  tbody.innerHTML = rows.map((p, i) => {
+    const path = p.path || p.id.replace(/\|/g, '/');
+    const title = (p.title || path).replace(/\s*[—|–-]\s*KP Science.*$/i, '');
+    const on = vsOnlineByPath[path] || 0;
+    return `<tr><td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.78rem">${i + 1}</td>`
+      + `<td class="td-file" style="max-width:520px" title="${vsEsc(path)}"><a href="../${encodeURI(path)}" target="_blank" style="color:var(--text);text-decoration:none">${vsEsc(title)}</a>`
+      + `<div style="font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis">${vsEsc(path)}</div></td>`
+      + `<td><span style="font-family:'Share Tech Mono',monospace;color:var(--accent)">${vsFmt(p.opens)}</span></td>`
+      + `<td>${on ? `<span style="font-family:'Share Tech Mono',monospace;color:var(--accent3)">🟢 ${on}</span>` : ''}</td></tr>`;
+  }).join('');
+}
+
+let vsTimer = null;
+function startVisitorAutoRefresh() {
+  if (vsTimer) return;
+  vsTimer = setInterval(() => { if (document.visibilityState === 'visible') loadVisitorOnline().catch(() => {}); }, 30000);
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');

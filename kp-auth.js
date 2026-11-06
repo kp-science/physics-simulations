@@ -980,3 +980,62 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') hideModal();
 });
+
+// ═════════════════════════════════════════════════════════
+// ── ตัวนับผู้เข้าชม (KP Stats) ─────────────────────────────
+// เก็บใน Firestore: kpstats/{env}  (env = 'site' บนเว็บจริง · 'dev' ตอนเปิดในเครื่อง)
+//   kpstats/{env}                 { views, uniques }       รวมทั้งเว็บ
+//   kpstats/{env}/days/{วันที่}     { views, uniques }       รายวัน (เวลาไทย)
+//   kpstats/{env}/pages/{pageId}  { opens, path, title }   รายหน้า/รายแลป
+//   kpstats/{env}/online/{vid}    { t, p }                 ออนไลน์ (heartbeat ทุก 2 นาที)
+// · รีเฟรชซ้ำในแท็บเดิมไม่นับเพิ่ม (sessionStorage) · คนไม่ซ้ำ = เครื่อง/เบราว์เซอร์ (localStorage)
+// · ไม่นับหน้า _admin/ และบอท/เบราว์เซอร์ headless · ดูตัวเลขได้ที่ _admin/admin.html เท่านั้น
+// ═════════════════════════════════════════════════════════
+(function kpStats() {
+  try {
+    if (/bot|crawl|spider|slurp|headless|lighthouse/i.test(navigator.userAgent)) return;
+    let path = decodeURIComponent(location.pathname).replace(/^\/+/, '').replace(/^physics-simulations\//, '');
+    if (path === '' || path.endsWith('/')) path += 'index.html';
+    if (/^_admin\//.test(path)) return;
+    const PROD = /(^|\.)kpscience\.com$|^kp-science\.github\.io$/.test(location.hostname);
+    const root = db.collection('kpstats').doc(PROD ? 'site' : 'dev');
+    const pageId = path.replace(/\//g, '|').slice(0, 300);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // YYYY-MM-DD
+    const inc = firebase.firestore.FieldValue.increment(1);
+    const ls = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+    let vid = ls('kp_vid'), newVisitor = false;
+    if (!vid) { vid = 'v' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); newVisitor = true; lsSet('kp_vid', vid); }
+    const newToday = ls('kp_vday') !== today;
+    if (newToday) lsSet('kp_vday', today);
+
+    let counted = false;
+    try { counted = sessionStorage.getItem('kp_stat:' + pageId) === '1'; sessionStorage.setItem('kp_stat:' + pageId, '1'); } catch (e) {}
+
+    const online = root.collection('online').doc(vid);
+    const beatData = () => ({ t: firebase.firestore.FieldValue.serverTimestamp(), p: path.slice(0, 300) });
+    let lastBeat = 0;
+    const beat = () => {
+      if (document.visibilityState !== 'visible') return;
+      lastBeat = Date.now();
+      online.set(beatData()).catch(() => {});
+    };
+
+    setTimeout(() => {
+      if (counted) { beat(); return; }
+      const b = db.batch();
+      const site = { views: inc }, day = { views: inc };
+      if (newVisitor) site.uniques = inc;
+      if (newToday) day.uniques = inc;
+      b.set(root, site, { merge: true });
+      b.set(root.collection('days').doc(today), day, { merge: true });
+      b.set(root.collection('pages').doc(pageId), { opens: inc, path: path.slice(0, 300), title: (document.title || '').slice(0, 200) }, { merge: true });
+      if (document.visibilityState === 'visible') { b.set(online, beatData()); lastBeat = Date.now(); }
+      b.commit().catch(e => console.warn('[kpStats]', e.code || e));
+    }, 1200);
+
+    setInterval(beat, 120000);
+    document.addEventListener('visibilitychange', () => { if (Date.now() - lastBeat > 60000) beat(); });
+  } catch (e) { console.warn('[kpStats]', e); }
+})();
