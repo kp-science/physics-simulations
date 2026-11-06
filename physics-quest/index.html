@@ -174,6 +174,9 @@ svg .glint-l, svg .glint-r{animation:m-blink 2.4s ease-in-out infinite;}
 .mob.spawning{animation:spawn .55s cubic-bezier(.34,1.56,.64,1);}
 @keyframes spawn{0%{transform:scale(0) translateY(-20px);opacity:0;}100%{transform:scale(1) translateY(0);opacity:1;}}
 .mob.face-left > svg{transform:scaleX(-1);}
+.mob.walking > svg{animation:mob-walk .42s ease-in-out infinite;}
+.mob.walking{animation-play-state:paused;}
+@keyframes mob-walk{0%,100%{translate:0 0;rotate:-4deg;}50%{translate:0 -5px;rotate:4deg;}}
 .mob-spawn-fx{position:absolute;width:68px;height:68px;border-radius:50%;pointer-events:none;z-index:3;border:3px solid var(--accent);box-shadow:0 0 18px var(--accent),inset 0 0 12px rgba(56,189,248,.6);animation:mob-spawn-fx .75s ease-out forwards;}
 @keyframes mob-spawn-fx{0%{transform:scale(.2);opacity:1;}100%{transform:scale(1.9);opacity:0;}}
 
@@ -7167,7 +7170,7 @@ window.addEventListener('resize', () => {
   }, 250);
 });
 
-const MOB_WALK_SPEED = {ball:55, car:70, bird:60, pendulum:25, elevator:30};
+const MOB_WALK_SPEED = {ball:60, car:80, bird:70, pendulum:38, elevator:42};
 let mobWanderTimer = null;
 let mobMapWasVisible = false;
 let nextSpawnAt = 0;
@@ -7200,27 +7203,35 @@ function mobWanderTick(){
   for(const m of currentSubstage.mobs){
     const el = m.el;
     if(!el || !el.parentNode || el.classList.contains('dying') || el.classList.contains('spawning')) continue;
-    if(!m.nextMoveAt){ m.nextMoveAt = now + 1000 + Math.random()*3000; continue; }
+    if(!m.nextMoveAt){ m.nextMoveAt = now + 300 + Math.random()*1500; continue; }
     if(now < m.nextMoveAt || el.matches(':hover')) continue;
     const cx = parseFloat(el.style.left) || minX, cy = parseFloat(el.style.top) || minY;
     let tx = cx, ty = cy;
     for(let attempt=0; attempt<12; attempt++){
-      const ang = Math.random()*Math.PI*2, dist = 40 + Math.random()*70;
+      // Roam the whole field: long strides, mostly keeping the current heading so paths look purposeful
+      const keep = m.heading != null && Math.random() < 0.6;
+      const ang = keep ? m.heading + (Math.random() - 0.5) * 1.4 : Math.random()*Math.PI*2;
+      const dist = 90 + Math.random()*170;
       const px = Math.min(maxX, Math.max(minX, cx + Math.cos(ang)*dist));
       const py = Math.min(maxY, Math.max(minY, cy + Math.sin(ang)*dist*0.6));
+      if(Math.hypot(px - cx, py - cy) < 60) continue; // hit a wall — try another direction
       const crowded = currentSubstage.mobs.some(o => o !== m && o.el &&
         Math.hypot((parseFloat(o.el.style.left)||0) - px, (parseFloat(o.el.style.top)||0) - py) < 70);
+      if(!crowded) m.heading = Math.atan2(py - cy, px - cx);
       if(!crowded){ tx = px; ty = py; break; }
     }
     const d = Math.hypot(tx - cx, ty - cy);
     if(d < 8){ m.nextMoveAt = now + 1500; continue; }
-    const dur = Math.min(4, Math.max(1.2, d / (MOB_WALK_SPEED[m.mob.id] || 40)));
+    const dur = Math.min(7, Math.max(1.2, d / (MOB_WALK_SPEED[m.mob.id] || 45)));
     if(Math.abs(tx - cx) > 4) el.classList.toggle('face-left', tx < cx);
-    el.style.transition = `left ${dur}s ease-in-out, top ${dur}s ease-in-out, scale ${dur}s ease-in-out, filter .2s, background .2s`;
+    el.style.transition = `left ${dur}s linear, top ${dur}s linear, scale ${dur}s linear, filter .2s, background .2s`;
+    el.classList.add('walking');
+    clearTimeout(m.walkEndT);
+    m.walkEndT = setTimeout(() => el.classList.remove('walking'), dur*1000);
     el.style.left = tx + 'px';
     el.style.top = ty + 'px';
     applyMobDepth(el, ty, area);
-    m.nextMoveAt = now + dur*1000 + 2000 + Math.random()*3000;
+    m.nextMoveAt = now + dur*1000 + 300 + Math.random()*1500;
   }
 }
 
