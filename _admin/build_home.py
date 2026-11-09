@@ -17,6 +17,8 @@ lvl = Counter(l[6] for l in L.LABS)
 demos_all = [f for f in glob.glob('Demo/**/*.html', recursive=True) if not f.endswith('index.html')]
 dcount = Counter(f.split('/')[1] for f in demos_all)
 N_LAB, N_DEMO = len(L.LABS), len(demos_all)
+poe_all = [f for f in glob.glob('poe/**/*.html', recursive=True) if not f.endswith('index.html')]
+N_POE = len(poe_all)
 
 def clean(t):
     t = t.replace('(3D)', '').strip()
@@ -27,6 +29,7 @@ ICON = {  # ไอคอนเส้น 48×48
  'elec': '<circle cx="15" cy="24" r="6"/><circle cx="33" cy="24" r="6"/><path d="M12 24h6M15 21v6M30 24h6"/><path d="M21 24h6" stroke-dasharray="2 3"/>',
  'astro': '<circle cx="24" cy="24" r="7"/><ellipse cx="24" cy="24" rx="19" ry="7" transform="rotate(-20 24 24)"/><circle cx="41" cy="17" r="2.5"/>',
  'demo': '<rect x="6" y="9" width="36" height="24" rx="3"/><path d="M20 16l9 5-9 5z"/><path d="M17 40h14M24 33v7"/>',
+ 'poe': '<path d="M24 12c-8 0-15 5-18 12 3 7 10 12 18 12s15-5 18-12c-3-7-10-12-18-12z"/><circle cx="24" cy="24" r="5"/>',
 }
 subjects = [
  ('mech', 'กลศาสตร์', 'การวัด · การเคลื่อนที่ · แรง · วงกลม · SHM', f'{cnt["mech"]} แลป', 'virtual-lab.html#g-mech'),
@@ -34,6 +37,7 @@ subjects = [
  ('elec', 'ไฟฟ้าสถิต', 'ประจุ · สนาม · ศักย์ · ตัวเก็บประจุ', f'{cnt["elec"]} แลป', 'virtual-lab.html#g-elec'),
  ('astro', 'ดาราศาสตร์', 'เอกภพ · ดาวฤกษ์ · ดวงอาทิตย์', f'{cnt["astro"]} แลป · {dcount.get("ดาราศาสตร์",0)} Demo', 'virtual-lab.html#g-astro'),
  ('demo', 'Demo ช่วยสอน', 'ฉายประกอบการอธิบายในห้องเรียน', f'{N_DEMO} เรื่อง', 'Demo/index.html'),
+ ('poe', 'POE ทำนาย–สังเกต–อธิบาย', 'ให้นักเรียนทำนายก่อน แล้วค่อยเปิดผล', f'{N_POE} สถานการณ์', 'poe/index.html'),
 ]
 subj_html = ''.join(f'''<a class="subj s-{k}" href="{ROOT}{href}">
   <svg viewBox="0 0 48 48" aria-hidden="true">{ICON[k]}</svg>
@@ -78,7 +82,7 @@ for k, v in {'SUBJECTS': subj_html, 'GRADES': grade_html, 'FEATURED': feat_html,
              'N_LAB': N_LAB, 'N_DEMO': N_DEMO, 'ROOT': ROOT}.items():
     tpl = tpl.replace('{{' + k + '}}', str(v))
 open(os.path.join(BASE, 'index.html'), 'w', encoding='utf-8').write(tpl)
-print('built index.html · %d แลป · %d Demo' % (N_LAB, N_DEMO))
+print('built index.html · %d แลป · %d Demo · %d POE' % (N_LAB, N_DEMO, N_POE))
 missing = [i for _, i in FEAT] + [d[1] for d in DEMOS]
 missing = [i for i in missing if not os.path.exists(os.path.join(BASE, 'assets', 'thumbs', i + '.jpg'))]
 if missing: print('⚠️ ไม่พบภาพหน้าจอ:', missing)
