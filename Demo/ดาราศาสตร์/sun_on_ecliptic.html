@@ -156,12 +156,28 @@ window.addEventListener('DOMContentLoaded',()=>{ buildTable();
  $('playBtn').onclick=togglePlay; $('m1').onclick=()=>setDay(day-1); $('p1').onclick=()=>setDay(day+1); $('p7').onclick=()=>setDay(day+7);
  $('sl-day').addEventListener('input',e=>setDay(+e.target.value)); $('vi-day').addEventListener('change',e=>setDay(+e.target.value));
  $('goBday').onclick=()=>{ const v=$('bday').value; if(!v) return; const [y,m,d]=v.split('-').map(Number); let doy=0; for(let k=0;k<m-1;k++) doy+=ML[k]; doy+=d-1; if(m>2&&((y%4===0&&y%100!==0)||y%400===0)) doy-=1; setDay(doy-START); };
- $('togTable').onclick=()=>{ showTable=!showTable; $('tblWrap').hidden=!showTable; $('togTable').textContent="ตารางวันเข้า–ออก: "+(showTable?"แสดง":"ซ่อน"); $('togTable').classList.toggle('on',showTable); };
+ $('togTable').onclick=()=>{ if(!kpMember()){ wantTable=true; kpAskLogin(); return; } setTable(!showTable); };
  $('togHour').onclick=()=>{ hourMode=!hourMode; $('hourRow').classList.toggle('on',hourMode); $('togHour').textContent="โหมดเวลากลางคืน: "+(hourMode?"เปิด":"ปิด"); $('togHour').classList.toggle('on',hourMode); draw(); };
  $('togZoom').onclick=()=>{ zoom=!zoom; $('togZoom').textContent="มุมมอง: "+(zoom?"ซูมรอบดวงอาทิตย์":"ทั้งรอบ 360°"); $('skyTitle').textContent=zoom?"มองจากโลก — ท้องฟ้าตามแนวสุริยวิถี เห็นเฉพาะกลุ่มดาวจักรราศี (ซูมรอบดวงอาทิตย์ ±60°)":"มองจากโลก — แถบสุริยวิถีทั้งรอบ 360° เห็นเฉพาะกลุ่มดาวจักรราศี"; draw(); };
  $('sl-hour').addEventListener('input',e=>{ hour=+e.target.value; $('hourTxt').textContent=pad2(hour)+":00"; draw(); });
- draw(); });
+ paintTableBtn(); draw(); });
+
+/* ── ตารางวันเข้า–ออก = เฉลย ให้เฉพาะสมาชิกที่ล็อกอินแล้ว ── */
+let wantTable=false, lastMem=null;
+function kpMember(){ try{ if(typeof currentUser==='undefined'||!currentUser) return false;
+  if(typeof currentUserData!=='undefined'&&currentUserData&&currentUserData.role==='blocked') return false;
+  return true; }catch(e){ return false; } }
+function paintTableBtn(){ const b=$('togTable'); if(!b) return;
+  b.textContent="ตารางวันเข้า–ออก (เฉลย): "+(kpMember()?(showTable?"แสดง":"ซ่อน"):"สมาชิก 🔒"); }
+function setTable(on){ showTable=on; $('tblWrap').hidden=!on; $('togTable').classList.toggle('on',on); paintTableBtn(); }
+function kpAskLogin(){ if(typeof showModal==='function') showModal('login');
+  else alert('ตารางวันเข้า–ออกเป็นเฉลย ดูได้เมื่อเข้าสู่ระบบ — สมัครสมาชิกฟรีได้ที่ปุ่มบนแถบด้านบน'); }
+setInterval(()=>{ const m=kpMember(); if(m===lastMem) return; lastMem=m;
+  if(!m){ wantTable=false; setTable(false); }                /* ออกจากระบบ → ซ่อนเฉลยทันที */
+  else if(wantTable){ wantTable=false; setTable(true); }     /* เพิ่งล็อกอินหลังกดปุ่ม → เปิดให้เลย */
+  else paintTableBtn(); }, 600);
 </script>
+
 <!-- KP Watermark -->
 <script src="../../_shared/watermark.js"></script>
 
