@@ -5401,3 +5401,23 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - ทดสอบ: s = 15 (= f) ไม่มีภาพในกระจก · s = 17 ภาพจาง 23% · s ≤ 13 หรือ ≥ 18 ชัดเหมือนเดิม · กระจกราบ/นูน ไม่กระทบ · บันทึก s = 30 ได้ f = 15.00 err 0.0% · ลากแถบ s′ ได้ค่าตรงตามคาด (−20.5 / 33.4) · ไม่มี shader/JS error · 375 px ไม่มีสกรอลแนวนอน
+
+## [2026-11-13 ต่อ 3] — ใส่ CSS กันแถบเลือกข้อความ (iPad) ทุกไฟล์
+
+### ทำอะไรไปบ้าง
+- สคริปต์ใหม่ `_admin/add_touch_css.py` เติมบล็อก `<style id="kp-touch-css">` ก่อน `</head>` ให้ไฟล์ HTML **ทั้ง 254 ไฟล์** (`--check` ดู · `--remove` เอาออก)
+  - ปิดการเลือกข้อความเฉพาะส่วนที่ใช้ลาก: canvas · svg · ปุ่ม · label · แผงควบคุม · แถบเมนู/nav · `.view3d` · `.hud` ฯลฯ + `-webkit-touch-callout:none` + `-webkit-tap-highlight-color:transparent`
+  - ข้อความเนื้อหา (ทฤษฎี · วิธีทำ · ตาราง) และ `input`/`textarea` ยังเลือก/คัดลอก/พิมพ์ได้ตามปกติ
+- `_admin/protect_new_file.py`: เพิ่ม issue `TOUCHCSS` + ค่าคงที่ `TOUCH_CSS` → ไฟล์ใหม่ได้บล็อกนี้อัตโนมัติ
+- เอา CSS เฉพาะกิจที่เคยใส่ใน Lab 47 ออก ใช้บล็อกกลางแทน
+- ⚠️ **กับดักที่เจอ**: ตอนแรกใส่ `.kp-topbar` ไว้ใน selector → `protect_new_file.py` เช็กด้วย `'kp-topbar' not in content` เลยคิดว่าหน้ามี topbar แล้ว → หน้า catalog ที่ generate ใหม่ (vpl-06/07/08) หาย topbar · แก้โดยเปลี่ยนเป็น `nav,nav *` (ครอบ topbar อยู่แล้ว) แล้ว build ใหม่ topbar กลับมาครบ
+- build ใหม่ทั้ง `build_virtual_lab.py` และ `build_home.py` แล้ว บล็อกยังอยู่ในหน้า generate (template มีบล็อกด้วย)
+- ตรวจในเบราว์เซอร์: Lab 11 รางอากาศ → canvas `user-select: none` · ข้อความ/ช่องกรอก `auto` · หน้า vpl-06 มี topbar ปกติ
+
+### ไฟล์ที่แก้
+- ไฟล์ HTML 254 ไฟล์ (เพิ่มบล็อก 10 บรรทัดก่อน `</head>`) + `_admin/home_template.html`
+- `_admin/add_touch_css.py` (ใหม่) · `_admin/protect_new_file.py`
+- `Virtual Physics Lab 02/47. image-location-parallax-mirrors.html` — เอา CSS เฉพาะกิจออก
+
+### หมายเหตุ
+- ถ้าจะแก้เนื้อ CSS ภายหลัง: แก้ที่ `BLOCK` ใน add_touch_css.py + `TOUCH_CSS` ใน protect_new_file.py แล้วรัน `--remove` ตามด้วยรันปกติ

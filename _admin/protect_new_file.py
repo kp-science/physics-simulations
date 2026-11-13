@@ -138,6 +138,18 @@ DOMAIN_PROTECTION = '''<!-- KP-DOMAIN-PROTECTION — DO NOT REMOVE -->
   })();
   </script>'''
 
+TOUCH_CSS = """<!-- KP Touch: ลากนิ้วบน iPad/มือถือแล้วไม่ให้ขึ้นแถบเลือกข้อความสีฟ้า (ข้อความเนื้อหายังคัดลอกได้) -->
+<style id="kp-touch-css">
+html{-webkit-text-size-adjust:100%}
+body{-webkit-tap-highlight-color:transparent}
+canvas,svg,button,.btn,.btn-mini,.btn-sm,label,select,
+.view3d,.view3d *,.sim-panel,.panel,.panel-section,.panel-title,.controls,.control,.ctrl,.sidebar,
+.mode-btns,.viewbtns,.tabs,nav,nav *,.hud,.legend,.toolbar,.slider,.sl-row,.row-ctrl
+{-webkit-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;user-select:auto}
+</style>
+"""
+
 TOPBAR_CSS = """
 /* === KP Topbar === */
 .kp-topbar{position:sticky;top:0;z-index:200;background:rgba(6,9,15,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 4%;display:flex;align-items:center;height:50px;gap:1.2rem;font-family:IBM Plex Sans Thai Looped,IBM Plex Sans Thai,sans-serif}
@@ -257,6 +269,10 @@ def check_file(filepath):
         if 'kpPageAccess(' not in content:
             issues.append('ACCESS_GUARD')
 
+    # 8b. CSS กันแถบเลือกข้อความสีฟ้าตอนลากนิ้วบน iPad (ดู _admin/add_touch_css.py)
+    if 'kp-touch-css' not in content:
+        issues.append('TOUCHCSS')
+
     # 9. kp-auth.js ต้องมี ?v= ท้าย URL (กันเบราว์เซอร์ใช้สำเนาเก่า)
     if re.search(r'src="[^"]*kp-auth\.js"', content):
         issues.append('AUTH_VER')
@@ -287,6 +303,13 @@ def fix_file(filepath, issues=None):
         head_pos = content.find('<head>')
         if head_pos != -1:
             content = content[:head_pos + 6] + '\n' + GA_CODE + '\n' + content[head_pos + 6:]
+            changed = True
+
+    # Add touch CSS (iPad: ลากนิ้วแล้วไม่ขึ้นแถบเลือกข้อความ)
+    if 'TOUCHCSS' in issues and 'kp-touch-css' not in content:
+        head_end = content.find('</head>')
+        if head_end != -1:
+            content = content[:head_end] + TOUCH_CSS + content[head_end:]
             changed = True
 
     # Add topbar CSS
@@ -495,6 +518,7 @@ def scan_all():
                     'AUTH_VER': 'kp-auth.js ยังไม่มี ?v= (cache busting)',
                     'REAL3D': 'ขาด kp-real3d.js (ภาพ 3D สมจริง)',
                     'LABMODE': 'ขาด kp-labmode.js (โหมดสอน · ล็อกโหมดอัตโนมัติ)',
+                    'TOUCHCSS': 'ขาด CSS กันแถบเลือกข้อความบน iPad (kp-touch-css)',
                 }
                 print(f"      → {labels.get(issue, issue)}")
             issue_count += 1
