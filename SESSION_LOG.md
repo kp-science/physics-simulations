@@ -5368,3 +5368,16 @@ match /settings/{docId} {
 
 ### หมายเหตุ
 - รัน dev server ในเซสชันนี้ไม่ได้ (sandbox: `python3 -m http.server` ติด PermissionError ที่ `os.getcwd()`) จึงทดสอบผ่าน snapshot ของไฟล์แทน — 3D ขึ้นปกติ
+
+## [2026-11-13 ต่อ] — ถ่ายภาพคู่มือ Lab 47 ใหม่
+
+### ทำอะไรไปบ้าง
+- เครื่องนี้ไม่มี puppeteer แล้ว (น่าจะหายตอนอัป Node v26) → `npm install -g --allow-scripts=puppeteer puppeteer` · **npm 11 บล็อก postinstall โดยปริยาย** ถ้าไม่ใส่ `--allow-scripts=puppeteer` จะลงแต่ package ไม่โหลด Chromium
+- `python3 _admin/capture_lab_guide.py 47` → ถ่ายใหม่ 11 ขั้น ภาพขึ้นแผง 🔆 ทางยาวโฟกัสถูกต้อง
+- commit + push ขึ้น main แล้ว: `034c71a` (โค้ด Lab 47) · `e30d8a8` (ภาพคู่มือ 11 ไฟล์)
+
+### ไฟล์ที่แก้
+- `assets/guides/vpl02-lab-47/step-1..11.jpg` — ถ่ายใหม่ (`guide.json` ไม่เปลี่ยน)
+
+### หมายเหตุ
+- Chromium ของ puppeteer อยู่ที่ `~/.cache/puppeteer/chrome/mac_arm-157.0.8103.50` — เช็กด้วย `npx puppeteer browsers list`
