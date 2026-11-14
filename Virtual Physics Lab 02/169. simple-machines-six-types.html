@@ -287,6 +287,17 @@ input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;u
         <div style="font-size:.7rem;color:var(--muted);line-height:1.5;margin-top:5px">ก้อนปริศนา <b>ไม่บอกมวล</b> — ต้องหาจากเครื่องกลที่วัดประสิทธิภาพไว้แล้ว</div>
       </div>
 
+      <div class="panel-section">
+        <div class="panel-title">🎚️ ประสิทธิภาพของเครื่องกล</div>
+        <div class="pick-btns c4" id="effBtns">
+          <button data-e="1" onclick="setEff(1)">100%</button>
+          <button data-e="0.8" onclick="setEff(0.8)">80%</button>
+          <button data-e="0.5" onclick="setEff(0.5)">50%</button>
+          <button class="active" data-e="rand" onclick="setEff('rand')">🎲 สุ่ม</button>
+        </div>
+        <div id="effNote" style="font-size:.7rem;color:var(--muted);line-height:1.5;margin-top:5px"></div>
+      </div>
+
       <div id="autoCtrl" class="panel-section hidden">
         <div class="panel-title">⚡ ค่าจากแบบจำลอง</div>
         <div class="readout-grid" id="autoGrid"></div>
@@ -433,7 +444,7 @@ input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;u
 
     <h3>หามวลที่ไม่ทราบค่า</h3>
     <div class="formula-box">η = m g h / (F d) = m g / (VR · F)<br>→ <b>m = η · VR · F / g</b>   (ใช้ η ของเครื่องกลชุดเดิม ขนาดเดิม)</div>
-    <div class="note-box">💡 แบบจำลองใน simulation: g = 9.80 m/s² · ความฝืดของแต่ละเครื่องกล <b>สุ่มใหม่ทุกครั้งที่เปิดหน้า</b> · มวลก้อนปริศนาสุ่มในช่วง 0.6–1.4 kg · η ของคานอันดับ 2 3 และรอกขึ้นกับมวลภาระเล็กน้อย จึงควรวัด η ด้วยภาระที่ใกล้เคียงกัน · เข็มค้างค่ามีความคลาดเคลื่อนเชิงระบบราว ±0.3%</div>
+    <div class="note-box">💡 แบบจำลองใน simulation: g = 9.80 m/s² · แผง 🎚️ ประสิทธิภาพ เลือกได้ 100% (เครื่องกลในอุดมคติ) · 80% · 50% หรือ 🎲 สุ่ม — โหมดสุ่ม ความฝืดของแต่ละเครื่องกล <b>สุ่มใหม่ทุกครั้งที่เปิดหน้า</b> · มวลก้อนปริศนาสุ่มในช่วง 0.6–1.4 kg · η ของคานอันดับ 2 3 และรอกขึ้นกับมวลภาระเล็กน้อย จึงควรวัด η ด้วยภาระที่ใกล้เคียงกัน · เข็มค้างค่ามีความคลาดเคลื่อนเชิงระบบราว ±0.3%</div>
   </div>
 </div>
 
@@ -507,6 +518,7 @@ const M_MYS = Math.round(rnd(0.62,1.38)*1000)/1000;     /* มวลก้อน
 const CAL   = 1 + (Math.random()-0.5)*0.006;
 
 /* ── สถานะ ── */
+let effMode='rand';
 let mode='manual', mc='lever', massPick=1, curView='iso', graph='mavr';
 const cfg={cls:1, a:40, b:20, R:20, th:25, L:20, pt:'fix', al:15};
 let u=0, uTarget=0, mark=null, tell=null, tellN=0, tellSum=0;
@@ -546,7 +558,7 @@ function Fideal(m){ const W=m*G; switch(mc){
   case 'pul'  : return (W+PT[cfg.pt].wb*G)/PT[cfg.pt].vr;
   case 'wedge': return W*Math.tan(al());
 } return 0; }
-function Ffwd(m){ const W=m*G; switch(mc){
+function FfwdRand(m){ const W=m*G; switch(mc){
   case 'lever': return Fideal(m)/E_PIV;
   case 'wheel': return (W*WH_r+TF_W)/(cfg.R*E_BRG);
   case 'ramp' : return W*(Math.sin(th())+MU_K*Math.cos(th()));
@@ -554,8 +566,17 @@ function Ffwd(m){ const W=m*G; switch(mc){
   case 'pul'  : { const p=PT[cfg.pt]; return (W+p.wb*G)/(p.vr*Math.pow(E_SH,p.ns)); }
   case 'wedge': { const phi=Math.atan(MU_W); return W*(Math.tan(al()+phi)+MU_W); }
 } return 0; }
-function Fhold(m){ return (mc==='screw')? 0 : Fideal(m); }    /* สกรูล็อกตัวเอง ปล่อยมือได้ */
-function Fbwd(m){ return Math.max(0, 2*Fideal(m)-Ffwd(m)); }
+/* ประสิทธิภาพที่กำหนด: η = W/(VR·F) → F = W/(VR·η) · 100% = ไม่มีความฝืดและส่วนที่เคลื่อนที่ไม่มีน้ำหนัก */
+function Ffwd(m){ return effMode==='rand'? FfwdRand(m) : m*G/(VRth()*effMode); }
+function Fid0(m){ return effMode==='rand'? Fideal(m) : m*G/VRth(); }
+/* สกรูล็อกตัวเองเมื่อ η ≤ 50% (ปล่อยมือแล้วภาระไม่ไหลลง) */
+function Fhold(m){ if(mc==='screw') return (effMode==='rand'||effMode<=0.5)? 0 : Fid0(m); return Fid0(m); }
+function Fbwd(m){ return Math.max(0, 2*Fid0(m)-Ffwd(m)); }
+function effTxt(){ return effMode==='rand'? '' : 'η ตั้ง '+Math.round(effMode*100)+'%'; }
+function setEff(v){ effMode=v; document.querySelectorAll('#effBtns button').forEach(b=>b.classList.toggle('active',b.dataset.e===String(v)));
+  $('effNote').innerHTML= v==='rand'? 'แต่ละเครื่องกลมีความฝืดของตัวเอง <b>ไม่บอกค่า</b> (สุ่มใหม่ทุกครั้งที่เปิดหน้า) — ต้องวัดหา η เอง'
+    : 'ทุกเครื่องกลมี η = <b>'+Math.round(v*100)+'%</b> พอดี'+(v===1?' — เครื่องกลในอุดมคติ ไม่มีความฝืด MA = VR':' — ตรวจว่าค่าที่วัดได้ตรงกับที่ตั้งไว้')+(v<=0.5?' · สกรูล็อกตัวเองได้ (η ≤ 50%)':'');
+  onCfgChange(); }
 function etaTheory(){ return (M()*G)/(VRth()*Ffwd(M())); }
 function pickRange(){ const f=Ffwd(1.5)*1.12; for(const r of RANGES) if(f<=r) return r; return 100; }
 
@@ -680,7 +701,7 @@ function syncInfo(){
   };
   $('mcInfo').innerHTML=infos[mc]+'<br>ตาชั่งสปริงที่ใช้: <b style="color:#fde68a">0–'+SC_RANGE+' N</b> · ขีดเล็ก '+scMinor()+' N';
   $('mcTag').innerHTML='<span style="color:'+MC[mc].col+'">'+MC[mc].emo+' '+MC[mc].name+'</span> <span style="color:#94a3b8;font-weight:500">· '+mcSub()+'</span>';
-  $('in-set').value=MC[mc].name+' · '+mcSub()+' · '+(isMys()?'ก้อนปริศนา ? kg':M().toFixed(2)+' kg');
+  $('in-set').value=MC[mc].name+' · '+mcSub()+' · '+(isMys()?'ก้อนปริศนา ? kg':M().toFixed(2)+' kg')+(effTxt()?' · '+effTxt():'');
   $('rfWhat').textContent=MC[mc].emo+' '+MC[mc].name;
   const sc=(mc==='screw');
   $('lbE1').textContent= sc? '③ เครื่องนับรอบ เริ่ม' : '③ สเกลแรงพยายาม เริ่ม';
@@ -709,7 +730,7 @@ function updateHint(){ const el=$('hint'); if(!el) return; let cls='info', t='';
   el.className='hint-box '+cls; el.innerHTML=t;
   /* แถบสถานะ */
   const st=$('statusLine'); if(st){
-    st.innerHTML=MC[mc].emo+' <b>'+MC[mc].name+'</b> · '+mcSub()+' · ภาระ '+(isMys()?'? kg':M().toFixed(2)+' kg')+
+    st.innerHTML=MC[mc].emo+' <b>'+MC[mc].name+'</b> · '+mcSub()+' · ภาระ '+(isMys()?'? kg':M().toFixed(2)+' kg')+(effTxt()?' · <b style="color:#fde68a">'+effTxt()+'</b>':'')+
       ' · ตาชั่ง 0–'+SC_RANGE+' N · '+(pulling()? (isSteady()?'<span style="color:#6ee7b7">✓ ดึงสม่ำเสมอ</span>':'<span style="color:#fde68a">กำลังดึง…</span>') : (pulled?'ปล่อยมือแล้ว':'พร้อมดึง'))+
       (tell!==null? ' · <span style="color:#facc15">เข็มเหลืองค้างค่าแล้ว</span>':''); }
   /* โหมดอัตโนมัติ */
@@ -740,7 +761,7 @@ function recordRow(){
   else if(Math.abs(d-dT) > Math.max(0.2, 0.025*dT)) bad.push('สเกลแรงพยายาม');
   if(Math.abs(h-hT) > Math.max(0.2, 0.03*hT)) bad.push('สเกลความสูง');
   if(bad.length && mode!=='auto'){ recMsg('warn','⚠️ ค่าที่กรอกไม่ตรงกับที่อุปกรณ์แสดง: <b>'+bad.join(' · ')+'</b> — ซูมอ่านใหม่อีกครั้ง (ขีดเขียว = เริ่ม · ขีดแดง = สุดท้าย)'); return; }
-  rows.push({mc, sub:mcSub(), vrT:VRth(), m:isMys()?null:M(), F, d, h});
+  rows.push({mc, sub:mcSub()+(effTxt()?' · '+effTxt():''), vrT:VRth(), m:isMys()?null:M(), F, d, h});
   renderAll(); renderLast(rows.length-1);
   recMsg('ok','✓ บันทึกแถวที่ '+rows.length+' แล้ว — ↩ วางของกลับที่เดิม แล้วเปลี่ยนเครื่องกลหรือขนาดเพื่อวัดชุดถัดไป');
   if(mode!=='auto') ['in-F','in-e1','in-e2','in-l1','in-l2'].forEach(id=>$(id).value='');
@@ -1413,7 +1434,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   hb.addEventListener('contextmenu',e=>e.preventDefault());
   window.addEventListener('resize',()=>{ resizeAll(); drawAll(); if($('tab-theory').classList.contains('active')) drawTheory(); });
   init3D(); SC_RANGE=pickRange(); if(P.scTex) redrawTex(P.scTex);
-  setMc('lever'); setMode('manual'); renderAll(); drawTheory();
+  setMc('lever'); setEff('rand'); setMode('manual'); renderAll(); drawTheory();
   if(!renderer){ let last=performance.now(); setInterval(()=>{ const now=performance.now(); tick(Math.min(0.05,(now-last)/1000)); last=now; drawAll(); },40); }
 });
 
@@ -1421,7 +1442,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 window.__lab169={
   get mc(){ return mc; }, get cfg(){ return Object.assign({},cfg); }, get u(){ return u; }, get rows(){ return rows.length; }, get tell(){ return tell; },
   get mark(){ return mark? Object.assign({},mark) : null; }, get range(){ return SC_RANGE; }, get steady(){ return isSteady(); },
-  setMc, setMass, setView, setCls, setA, setB, setR, setTh, setL, setPt, setAl, markStart, resetPos, resetLab, record:recordRow, setMode,
+  setMc, setMass, setEff, setView, setCls, setA, setB, setR, setTh, setL, setPt, setAl, markStart, resetPos, resetLab, record:recordRow, setMode,
   hold(sec){ return new Promise(res=>{ holdStart(); setTimeout(()=>{ holdEnd(); setTimeout(()=>res(true),300); },sec*1000); }); },
   eRead, lRead, VRth, Ffwd:()=>Ffwd(M()), etaTheory, uMax:uMaxOf,
   fill(){ if(tell===null||!mark) return false; const dd=mc==='screw'?3:2; $('in-F').value=tell.toFixed(3); $('in-e1').value=mark.e.toFixed(dd); $('in-e2').value=eRead().toFixed(dd); $('in-l1').value=mark.l.toFixed(2); $('in-l2').value=lRead().toFixed(2); return true; },
