@@ -5495,3 +5495,13 @@ match /settings/{docId} {
 
 ### ไฟล์ที่แก้
 - `_admin/lab_guides/vpl02-lab-169.py` (ใหม่) · `assets/guides/vpl02-lab-169/` (ใหม่) · `assets/guides/index.json`
+
+## [2026-11-14 ต่อ 4] — Lab 169: ภาพการ์ด
+
+### ทำอะไรไปบ้าง
+- ภาพการ์ด `assets/thumbs/labs/vpl02-lab-169.jpg` (640×360) แบบ 6 ช่อง: คาน · ล้อกับเพลา · พื้นเอียง · สกรู · รอกพวงระบบที่ 1 · ลิ่ม — ภาพจากฉาก 3D ของแลปเอง (ขณะดึงไปครึ่งทาง ซ่อนไม้บรรทัด/ลำแสง) แทนภาพอัตโนมัติของ `capture_lab_thumbs.py` ที่เห็นแค่คาน
+- build_virtual_lab.py → การ์ดใน virtual-lab.html ใช้ภาพแล้ว (ตรวจในเบราว์เซอร์)
+- ⚠️ ถ้ารัน `capture_lab_thumbs.py --force` ภาพนี้จะถูกทับด้วยภาพอัตโนมัติ (เห็นแค่คาน)
+
+### ไฟล์ที่แก้
+- `assets/thumbs/labs/vpl02-lab-169.jpg` (ใหม่) · `virtual-lab.html` · `library.html`
