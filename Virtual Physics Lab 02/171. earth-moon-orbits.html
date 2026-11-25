@@ -138,7 +138,13 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 .view3d{display:flex;flex-direction:column;height:max(560px,calc(100vh - 150px))!important;min-height:0!important}
 .canvas-box{position:relative;flex:1;min-height:0}
 .canvas-box canvas{position:absolute;inset:0;cursor:default}
-.bar3d{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:7px 9px;background:#0f1729;flex-shrink:0;font-size:.76rem;color:var(--muted)}
+.bar3d{display:flex;flex-wrap:nowrap;gap:4px;align-items:center;padding:7px 6px;background:#0f1729;flex-shrink:0;font-size:.76rem;color:var(--muted)}
+.bar-scroll{display:flex;flex-wrap:nowrap;gap:6px 10px;align-items:center;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:1px 2px}
+.bar-scroll::-webkit-scrollbar{display:none}
+.bar-scroll>*{flex-shrink:0}
+.bar3d .bar-arrow{flex:none;min-height:30px;padding:2px 7px;background:#16203450;border:1px solid var(--border);color:var(--accent);border-radius:7px;cursor:pointer;font:700 .95rem/1 inherit}
+.bar3d .bar-arrow:hover{background:#1e293b;border-color:var(--accent)}
+.bar3d .bar-arrow.hidden{display:none}
 .bar-top{border-bottom:1px solid var(--border)}
 .bar-bottom{border-top:1px solid var(--border)}
 .bar-group{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
@@ -167,11 +173,9 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 .menu{position:relative;display:inline-flex}
 .bar3d .mbtn i{font-style:normal;opacity:.7;font-size:.7rem}
 .menu.open .mbtn{border-color:var(--accent);color:var(--accent);background:#152033}
-.bar3d .pop{display:none;position:absolute;z-index:40;min-width:210px;max-width:min(92vw,420px);padding:8px;gap:5px;flex-direction:column;
+.bar3d .pop{display:none;position:fixed;z-index:40;min-width:210px;max-width:min(92vw,420px);padding:8px;gap:5px;flex-direction:column;
   background:#0e1627;border:1px solid var(--border);border-radius:11px;box-shadow:0 18px 40px -12px #000,0 0 0 1px rgba(56,189,248,.12)}
 .menu.open .pop{display:flex}
-.bar3d .pop-down{top:calc(100% + 6px);left:0}
-.bar3d .pop-up{bottom:calc(100% + 6px);left:0}
 .bar3d .pop button{width:100%;text-align:left;min-height:34px}
 .bar3d .pop-2col{display:none;min-width:330px}
 .menu.open .pop-2col{display:grid;grid-template-columns:1fr 1fr;gap:5px}
@@ -184,6 +188,23 @@ footer{text-align:center;padding:14px;color:var(--muted);font-size:.76rem;border
 .bar3d .seg button{padding:3px 8px;min-width:36px;text-align:center}
 .bar3d button.ic{padding:3px 10px;font-size:.9rem}
 @media (any-pointer:coarse) and (orientation:landscape) and (max-height:900px){.bar3d{flex-wrap:wrap;overflow:visible}}
+
+/* ═══ ปุ่มหมุน/เลื่อน/ซูมภาพ 3D (มุมขวาล่างของกรอบภาพ) ═══ */
+.navpad{position:absolute;right:8px;bottom:30px;display:grid;grid-template-columns:30px 30px;gap:3px;z-index:6;opacity:.62;transition:opacity .15s}
+.navpad:hover{opacity:1}
+.navpad button{width:30px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.86);border:1px solid rgba(148,163,184,.3);
+  color:#e2e8f0;border-radius:7px;cursor:pointer;font-size:.82rem;font-family:inherit;padding:0;line-height:1}
+.navpad button:hover{border-color:var(--accent);color:var(--accent)}
+.navpad button:active{background:var(--accent);color:#0a0e1a}
+.navpad button.wide{grid-column:1/3;width:auto;font-size:.9rem}
+/* ═══ แถบเลื่อนเวลา (ลากซ้าย-ขวา = ย้อน/เดินเวลา) ═══ */
+.tl{position:absolute;left:8px;right:8px;bottom:5px;display:flex;align-items:center;gap:7px;z-index:6;
+  background:rgba(10,14,26,.72);border:1px solid rgba(148,163,184,.22);border-radius:9px;padding:2px 9px;backdrop-filter:blur(2px)}
+.tl-ic{font-size:.78rem;opacity:.8;cursor:help}
+.tl input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:18px;cursor:ew-resize}
+.tl-lbl{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent3);min-width:86px;text-align:right;opacity:0;transition:opacity .15s}
+.tl.on .tl-lbl{opacity:1}
+@media(max-width:560px){.navpad{bottom:28px;opacity:.75}.tl-lbl{display:none}}
 </style>
 <script>
 /* KP Science — Frame Protection */
@@ -238,6 +259,8 @@ input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;u
     <div class="sim-main">
       <div class="view3d" id="view3d">
         <div class="bar3d bar-top">
+          <button class="bar-arrow hidden" id="arTopL" onclick="barScroll('scTop',-1)" title="เลื่อนแถบไปทางซ้าย">‹</button>
+          <div class="bar-scroll" id="scTop">
           <div class="bar-group">
             <button class="hot" id="btnPlay" onclick="togglePlay()">▶ เดินเวลา</button>
             <button class="ic" onclick="stepDay(-1)" title="ถอยหลัง 1 วัน">⏪</button>
@@ -260,13 +283,30 @@ input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;u
               <button onclick="findEclipse('lun')">🌚 จันทรุปราคาถัดไป</button>
             </div>
           </div>
+          </div>
+          <button class="bar-arrow hidden" id="arTopR" onclick="barScroll('scTop',1)" title="เลื่อนแถบไปทางขวา">›</button>
         </div>
         <div class="canvas-box" id="canvasBox">
           <canvas id="glCanvas"></canvas>
           <div class="hud" id="hud"></div>
           <div class="nothree" id="nothree">⚠️ โหลดไลบรารี 3D (three.js) ไม่สำเร็จ — ต้องเชื่อมต่ออินเทอร์เน็ต</div>
+          <div class="navpad" id="navPad">
+            <button onclick="camRot(-1)" title="หมุนมุมกล้องไปทางซ้าย">↺</button><button onclick="camRot(1)" title="หมุนมุมกล้องไปทางขวา">↻</button>
+            <button onclick="camPan(-1,0)" title="เลื่อนภาพไปทางซ้าย">◀</button><button onclick="camPan(1,0)" title="เลื่อนภาพไปทางขวา">▶</button>
+            <button onclick="camPan(0,-1)" title="เลื่อนภาพขึ้น">▲</button><button onclick="camPan(0,1)" title="เลื่อนภาพลง">▼</button>
+            <button onclick="camZoom(0.85)" title="ซูมเข้า">＋</button><button onclick="camZoom(1.18)" title="ซูมออก">－</button>
+            <button class="wide" onclick="camReset()" title="กลับมุมมองตั้งต้น · พอดีกรอบ">⤢</button>
+          </div>
+          <div class="tl" id="tlWrap">
+            <span class="tl-ic" title="ลากเพื่อเลื่อนเวลาไป-กลับ ±6 เดือน">🕑</span>
+            <input type="range" id="tlRange" min="-182" max="182" step="0.25" value="0" aria-label="เลื่อนเวลา"
+                   oninput="tlScrub(this.value)" onchange="tlDone()" onpointerup="tlDone()">
+            <span class="tl-lbl" id="tlLbl"></span>
+          </div>
         </div>
         <div class="bar3d bar-bottom">
+          <button class="bar-arrow hidden" id="arBotL" onclick="barScroll('scBot',-1)" title="เลื่อนแถบไปทางซ้าย">‹</button>
+          <div class="bar-scroll" id="scBot">
           <div class="menu" id="mnShow">
             <button class="mbtn" onclick="menuTog('mnShow')" title="เลือกสิ่งที่แสดงในภาพ">👁 แสดง <i>▾</i></button>
             <div class="pop pop-up">
@@ -299,6 +339,8 @@ input,textarea,[contenteditable]{-webkit-user-select:auto;-ms-user-select:auto;u
           </div>
           <button class="rec" id="btnRecord" onclick="recordRow()">📝 บันทึกผล</button>
           <span class="bar-read hidden" id="rdAuto"><span id="rdAutoTxt"></span></span>
+          </div>
+          <button class="bar-arrow hidden" id="arBotR" onclick="barScroll('scBot',1)" title="เลื่อนแถบไปทางขวา">›</button>
         </div>
       </div>
       <div class="diag-wrap">
@@ -731,7 +773,8 @@ function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('no
     update3D(); camUpdate(); renderer.render(scene,camera); fr=(fr+1)%2; if(fr===0){ drawDiag(); updateReadout(); } })(last);
   if(window.ResizeObserver) new ResizeObserver(()=>{ resize3D(); drawGraph(); drawDiag(); }).observe($('canvasBox'));
 }
-function camUpdate(){ const t=orbit.target; camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t); }
+const panOff=new THREE.Vector3();
+function camUpdate(){ const t=orbit.target.clone().add(panOff); camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t); }
 function resize3D(){ if(!renderer) return; const b=$('canvasBox'), w=b.clientWidth||800, h=b.clientHeight||440; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); fitView(); }
 function setupPointer(cv){ let dm=false,lx=0,ly=0;
   const down=(x,y)=>{ dm=true; lx=x; ly=y; cv.style.cursor='grabbing'; };
@@ -843,11 +886,15 @@ function setView(v){ view=v; const T=(v==='em'||v==='earth'); scl=T?'true':'show
   userCam=false; fitView(true); update3D(); }
 function tog(k){ SHOW[k]=!SHOW[k]; paintTog(); }
 /* ═══ เมนูในแถบควบคุม (เปิดทีละเมนู · คลิกนอกเมนูหรือกด Esc เพื่อปิด) ═══ */
-function popFit(m){ const p=m.querySelector('.pop'); if(!p) return; p.style.left=''; p.style.right=''; p.style.maxWidth='';
-  const box=$('view3d').getBoundingClientRect(); let r=p.getBoundingClientRect();
-  if(r.width>box.width-16){ p.style.maxWidth=(box.width-16)+'px'; r=p.getBoundingClientRect(); }
-  if(r.right>box.right-8){ p.style.left='auto'; p.style.right='0'; r=p.getBoundingClientRect(); }
-  if(r.left<box.left+8){ p.style.left=(box.left+8-r.left)+'px'; p.style.right='auto'; } }
+function popFit(m){ const p=m.querySelector('.pop'), b=m.querySelector('.mbtn'); if(!p||!b) return;
+  p.style.left=p.style.right=p.style.top=p.style.bottom=p.style.maxWidth='';
+  const r=b.getBoundingClientRect(), box=$('view3d').getBoundingClientRect(), up=p.classList.contains('pop-up');
+  p.style.maxWidth=Math.min(window.innerWidth-16,box.width-12)+'px';
+  const w=p.getBoundingClientRect().width;
+  let x=r.left; if(x+w>box.right-8) x=box.right-8-w; if(x<box.left+8) x=box.left+8;
+  p.style.left=x+'px';
+  if(up) p.style.bottom=(window.innerHeight-r.top+6)+'px'; else p.style.top=(r.bottom+6)+'px';
+}
 function menuTog(id){ const m=$(id), was=m.classList.contains('open');
   document.querySelectorAll('.menu.open').forEach(x=>x.classList.remove('open'));
   if(!was){ m.classList.add('open'); popFit(m); } }
@@ -857,6 +904,35 @@ document.addEventListener('click',e=>{ if(!e.target.closest('.menu')) menuClose(
   else { const p=e.target.closest('.pop'); /* เลือกมุมมอง/ไปที่แล้วปิดเอง · ปุ่มเปิด-ปิดการแสดงผลค้างไว้ให้ติ๊กต่อ */
     if(p && e.target.closest('button') && (p.classList.contains('pop-down')||p.classList.contains('viewbtns'))) menuClose(); } });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') menuClose(); });
+/* ═══ แถบปุ่มเลื่อนซ้าย-ขวา: ปุ่มลูกศรโผล่เมื่อปุ่มล้นแถบ ═══ */
+function barScroll(id,d){ const el=$(id); if(el) el.scrollBy({left:d*Math.max(140,el.clientWidth*0.7),behavior:'smooth'}); menuClose(); }
+function barArrows(){ [['scTop','arTopL','arTopR'],['scBot','arBotL','arBotR']].forEach(([s_,l,r])=>{ const el=$(s_); if(!el) return;
+    const over=el.scrollWidth-el.clientWidth>4;
+    $(l).classList.toggle('hidden',!over||el.scrollLeft<=2);
+    $(r).classList.toggle('hidden',!over||el.scrollLeft>=el.scrollWidth-el.clientWidth-2); }); }
+let barBound=false;
+function barInit(){ if(barBound) return; const a=$('scTop'), b=$('scBot'); if(!a||!b) return; barBound=true;
+  [a,b].forEach(el=>el.addEventListener('scroll',()=>{ barArrows(); menuClose(); },{passive:true}));
+  barArrows(); }
+window.addEventListener('resize',()=>{ barInit(); barArrows(); });
+document.addEventListener('DOMContentLoaded',barInit); setTimeout(barInit,300); setTimeout(barInit,1500);
+/* ═══ ปุ่มหมุน / เลื่อน / ซูมภาพ ═══ */
+function camRot(d){ userCam=true; orbit.az+=d*0.18; camUpdate(); }
+function camZoom(f){ userCam=true; orbit.dist=Math.max(6,Math.min(2000,orbit.dist*f)); camUpdate(); }
+function camPan(dx,dy){ userCam=true; const step=orbit.dist*0.09;
+  const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+  const right=new THREE.Vector3().crossVectors(dir,new THREE.Vector3(0,1,0)).normalize();
+  const up=new THREE.Vector3().crossVectors(right,dir).normalize();
+  panOff.addScaledVector(right,dx*step).addScaledVector(up,-dy*step); camUpdate(); }
+function camReset(){ panOff.set(0,0,0); userCam=false; setView(view); }
+/* ═══ แถบเลื่อนเวลา (ลาก = ย้อน/เดินเวลา ±6 เดือน แล้วตั้งจุดกลางใหม่) ═══ */
+let tlAnchor=null;
+function tlScrub(v){ if(tlAnchor===null) tlAnchor=tt;
+  if(play){ play=false; $('btnPlay').innerHTML='▶ เดินเวลา'; }
+  tt=tlAnchor+(+v); $('tlWrap').classList.add('on'); $('tlLbl').textContent=dateShort(tt);
+  update3D(); updateReadout(); }
+function tlDone(){ if(tlAnchor===null) return; tlAnchor=null; $('tlRange').value=0;
+  setTimeout(()=>$('tlWrap').classList.remove('on'),900); }
 function paintTog(){ const m={orb:'shOrb',ecl:'shEcl',mpl:'shMpl',ax:'shAx',shd:'shShd',lbl:'shLbl'}; for(const k in m) $(m[k]).classList.toggle('active',SHOW[k]); }
 function togglePlay(){ play=!play; $('btnPlay').innerHTML=play?'⏸ หยุดเวลา':'▶ เดินเวลา'; }
 function setWarp(v){ warp=v; groupBtn('warpBtns',v); }
