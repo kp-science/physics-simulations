@@ -38,7 +38,11 @@ nav.tabs button.active{background:var(--accent);border-color:var(--accent);color
 .sim-main{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .view3d{position:relative;height:400px;background:linear-gradient(180deg,#141c2c,#0a0f1c);border:1px solid var(--border);border-radius:12px;overflow:hidden}
 .view3d canvas{display:block;width:100%;height:100%;cursor:grab}
-.view3d .hud{position:absolute;left:10px;top:10px;background:rgba(10,14,26,.82);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.74rem;color:var(--muted);pointer-events:none;line-height:1.5;max-width:60%}
+.view3d .hud{position:absolute;left:8px;top:8px;background:rgba(10,14,26,.72);border:1px solid rgba(148,163,184,.22);border-radius:8px;padding:4px 26px 4px 8px;font-size:.68rem;color:var(--muted);pointer-events:none;line-height:1.45;max-width:min(52%,380px);backdrop-filter:blur(2px)}
+.view3d .hud.min{opacity:.72}
+.view3d .hud.min .hud-more{display:none}
+.view3d .hud-tog{position:absolute;right:3px;top:3px;pointer-events:auto;cursor:pointer;border:0;background:transparent;color:var(--muted);font-size:.72rem;line-height:1;padding:3px 4px;border-radius:5px;font-family:inherit}
+.view3d .hud-tog:hover{color:var(--accent);background:rgba(56,189,248,.12)}
 .view3d .hud b{color:var(--accent)}
 .view3d .viewbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:4px}
 .view3d .viewbtns button,.btn-mini{background:rgba(26,34,53,.9);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.74rem;font-family:inherit}
@@ -728,16 +732,16 @@ function init3D(){ const cv=$('glCanvas'); if(typeof THREE==='undefined'){ $('no
   if(window.ResizeObserver) new ResizeObserver(()=>{ resize3D(); drawGraph(); drawDiag(); }).observe($('canvasBox'));
 }
 function camUpdate(){ const t=orbit.target; camera.position.set(t.x+orbit.dist*Math.sin(orbit.az)*Math.cos(orbit.el), t.y+orbit.dist*Math.sin(orbit.el), t.z+orbit.dist*Math.cos(orbit.az)*Math.cos(orbit.el)); camera.lookAt(t); }
-function resize3D(){ if(!renderer) return; const b=$('canvasBox'), w=b.clientWidth||800, h=b.clientHeight||440; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function resize3D(){ if(!renderer) return; const b=$('canvasBox'), w=b.clientWidth||800, h=b.clientHeight||440; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); fitView(); }
 function setupPointer(cv){ let dm=false,lx=0,ly=0;
   const down=(x,y)=>{ dm=true; lx=x; ly=y; cv.style.cursor='grabbing'; };
-  const move=(x,y)=>{ if(!dm) return; orbit.az-=(x-lx)*.006; orbit.el=Math.max(-1.5,Math.min(1.5,orbit.el+(y-ly)*.006)); lx=x; ly=y; };
+  const move=(x,y)=>{ if(!dm) return; userCam=true; orbit.az-=(x-lx)*.006; orbit.el=Math.max(-1.5,Math.min(1.5,orbit.el+(y-ly)*.006)); lx=x; ly=y; };
   const up=()=>{ dm=false; cv.style.cursor='grab'; };
   cv.addEventListener('mousedown',e=>{ e.preventDefault(); down(e.clientX,e.clientY); }); window.addEventListener('mousemove',e=>{ if(dm&&e.buttons===0) up(); move(e.clientX,e.clientY); }); window.addEventListener('mouseup',up); window.addEventListener('blur',up);
   cv.addEventListener('touchstart',e=>{ if(e.touches.length===1){ down(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchmove',e=>{ if(e.touches.length===1){ move(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); } },{passive:false});
   cv.addEventListener('touchend',up); cv.addEventListener('touchcancel',up);
-  cv.addEventListener('wheel',e=>{ e.preventDefault(); orbit.dist=Math.max(6,Math.min(2000,orbit.dist*(1+e.deltaY*.0012))); },{passive:false});
+  cv.addEventListener('wheel',e=>{ e.preventDefault(); userCam=true; orbit.dist=Math.max(6,Math.min(2000,orbit.dist*(1+e.deltaY*.0012))); },{passive:false});
   cv.style.cursor='grab';
 }
 /* วงโคจรโลก (วงรีจริง a=1 AU · e=0.0167 · ลองจิจูดจุดใกล้สุด 102.95°) */
@@ -813,8 +817,22 @@ function update3D(){ if(!scene) return; G=geomAt(tt);
   /* HUD */
   const sNote=T?'มาตราส่วนระยะโลก–ดวงจันทร์ <b>จริง</b> (ระยะ = 60.3 R<sub>โลก</sub>) · ขนาดเชิงมุมดวงอาทิตย์จริง':
     ('ภาพรวมวงโคจร: ระยะในวงโคจรโลกตามมาตราส่วน · ขยายขนาดดวงดาว ×'+Math.round(eR/(REARTH*AUU/AU))+' · ขยายวงโคจรดวงจันทร์ ×'+Math.round(KSHOW/(AUU/AU)));
-  $('hud').innerHTML='<b>'+dateTxt(tt)+'</b><br>δ☉ = '+fmt(G.dec,2)+'° · ดิถี '+Math.round(G.k*100)+'% ('+phaseName(G.dlam)+') · β☾ = '+fmt(G.M.bet,2)+'°<br><span style="font-size:.92em">'+sNote+'</span>';
+  const hd=$('hud');
+  hd.innerHTML='<button class="hud-tog" type="button" title="ย่อ/ขยายป้ายข้อมูล" onclick="hudTog(event)">'+(hudMin?'▸':'▾')+'</button>'+
+    '<b>'+dateTxt(tt)+'</b><br>δ☉ = '+fmt(G.dec,2)+'° · ดิถี '+Math.round(G.k*100)+'% ('+phaseName(G.dlam)+') · β☾ = '+fmt(G.M.bet,2)+'°'+
+    '<span class="hud-more"><br><span style="font-size:.92em">'+sNote+'</span></span>';
+  hd.classList.toggle('min',hudMin);
 }
+let hudMin=(()=>{ try{ return localStorage.getItem('kp171Hud')!=='full'; }catch(e){ return true; } })();   /* ค่าเริ่ม: ย่อ — ป้ายจะได้ไม่บังภาพ */
+function hudTog(e){ if(e) e.stopPropagation(); hudMin=!hudMin; try{ localStorage.setItem('kp171Hud',hudMin?'min':'full'); }catch(x){} update3D(); }
+/* ขยายภาพให้เต็มกรอบ: คำนวณระยะกล้องจากขนาดวงโคจรที่เห็นจริง (กว้าง 2R · สูง 2R·sin มุมเงย) ตามสัดส่วนจอ */
+let userCam=false;
+const VIEW_R={iso:153,top:153,edge:153,em:160};
+function fitView(force){ if(!camera||!VIEW_R[view]) return; if(userCam&&!force) return; const R=VIEW_R[view];
+  const b=$('canvasBox'), w=b.clientWidth||800, h=b.clientHeight||440, asp=Math.max(w/h,0.3);
+  const t=Math.tan(camera.fov*Math.PI/360);
+  const hNeed=R*Math.max(Math.abs(Math.sin(orbit.el)),0.14)+R*0.10, wNeed=R*1.06;
+  orbit.dist=Math.max(hNeed/t, wNeed/(t*asp))/0.94; camUpdate(); }
 /* ═══════════ มุมมอง / ปุ่ม ═══════════ */
 function setView(v){ view=v; const T=(v==='em'||v==='earth'); scl=T?'true':'show';
   if(v==='iso'){ orbit.target.set(0,0,0); orbit.az=.6; orbit.el=.5; orbit.dist=430; }
@@ -822,7 +840,7 @@ function setView(v){ view=v; const T=(v==='em'||v==='earth'); scl=T?'true':'show
   if(v==='edge'){ orbit.target.set(0,0,0); orbit.az=1.2; orbit.el=.03; orbit.dist=420; }
   if(v==='em'){ orbit.target.set(0,0,0); orbit.az=.7; orbit.el=.5; orbit.dist=380; }
   if(v==='earth'){ orbit.target.set(0,0,0); orbit.az=.7; orbit.el=.3; orbit.dist=12; }
-  update3D(); }
+  userCam=false; fitView(true); update3D(); }
 function tog(k){ SHOW[k]=!SHOW[k]; paintTog(); }
 /* ═══ เมนูในแถบควบคุม (เปิดทีละเมนู · คลิกนอกเมนูหรือกด Esc เพื่อปิด) ═══ */
 function popFit(m){ const p=m.querySelector('.pop'); if(!p) return; p.style.left=''; p.style.right=''; p.style.maxWidth='';
